@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
       provider = "postgresql"
-      url      = env("DATABASE_URL")
+  //    url      = env("DATABASE_URL")
 }
 
 model User {
@@ -127,7 +127,7 @@ model Transcription {
       project     Project? @relation(fields: [projectId], references: [id])
       projectId   String?
         
-      createdBy   User     @relation(fields: [userId], references: [id])
+      createdBy   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
       userId      String
 
       aiAnalyses  AIAnalysis[]
@@ -157,7 +157,7 @@ model AIAnalysis {
       project         Project?       @relation(fields: [projectId], references: [id])
       projectId       String?
         
-      createdBy       User           @relation(fields: [userId], references: [id])
+      createdBy       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
       userId          String
 
       createdAt       DateTime @default(now())
@@ -210,9 +210,9 @@ model Document {
   title     String
   content   String       @db.Text
   type      DocumentType @default(NOTE)
-  project   Project      @relation(fields: [projectId], references: [id])
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
-  createdBy User         @relation(fields: [userId], references: [id])
+  createdBy User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
