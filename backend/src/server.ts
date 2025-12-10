@@ -8,8 +8,8 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Import des routes
-import authRoutes from './routes/authRoutes.js';
-import projectRoutes from './routes/projectRoutes.js';
+import authRoutes from './routes/authRoutes';
+import projectRoutes from './routes/projectRoutes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
