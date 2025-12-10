@@ -1,223 +1,229 @@
 // backend/prisma/schema.prisma
 generator client {
-      provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-      provider = "postgresql"
-  //    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  // url = env("DATABASE_URL")
 }
 
 model User {
-      id            String    @id @default(cuid())
-      email         String    @unique
-      passwordHash  String
-      role          UserRole  @default(RESEARCHER)
-      isVerified    Boolean   @default(false)
-      verificationToken String?
-      resetToken    String?
-      resetTokenExpiry DateTime?
-      
-      profile       Profile?
-      createdProjects Project[] @relation("ProjectOwner")
-      projectMemberships ProjectMember[]
-      transcriptions Transcription[]
-      aiAnalyses    AIAnalysis[]
-      documents     Document[]
-        
-      createdAt     DateTime  @default(now())
-      updatedAt     DateTime  @updatedAt
+  id               String           @id @default(cuid())
+  email            String           @unique
+  passwordHash     String
+  role             UserRole         @default(RESEARCHER)
+  isVerified       Boolean          @default(false)
+  verificationToken String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  
+  profile          Profile?
+  createdProjects  Project[]        @relation("ProjectOwner")
+  projectMemberships ProjectMember[]
+  transcriptions   Transcription[]
+  aiAnalyses       AIAnalysis[]
+  documents        Document[]
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 }
 
 model Profile {
-      id          String   @id @default(cuid())
-      userId      String   @unique
-      user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-      
-      firstName   String
-      lastName    String
-      avatar      String?
-      discipline  String
-      affiliation String?
-      bio         String?
-        
-      researchInterests String[]
-        
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName        String
+  lastName         String
+  avatar           String?
+  discipline       String
+  affiliation      String?
+  bio              String?
+  
+  researchInterests String[]
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model Project {
-      id          String   @id @default(cuid())
-      title       String
-      description String?
-      status      ProjectStatus @default(ACTIVE)
-      visibility  Visibility @default(PRIVATE)
-      
-      owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-      ownerId     String
-        
-      members     ProjectMember[]
-      tags        ProjectTag[]
-      transcriptions Transcription[]
-      aiAnalyses  AIAnalysis[]
-      documents   Document[]
-        
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
+  id              String           @id @default(cuid())
+  title           String
+  description     String?
+  status          ProjectStatus    @default(ACTIVE)
+  visibility      Visibility       @default(PRIVATE)
+  
+  owner           User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId         String
+  
+  members         ProjectMember[]
+  tags            ProjectTag[]
+  transcriptions  Transcription[]
+  aiAnalyses      AIAnalysis[]
+  documents       Document[]
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model ProjectMember {
-      id        String   @id @default(cuid())
-      project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-      projectId String
-      user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-      userId    String
-      role      Role     @default(VIEWER)
-      joinedAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      Role     @default(VIEWER)
+  joinedAt  DateTime @default(now())
 
-      @@unique([projectId, userId])
+  @@unique([projectId, userId])
 }
 
 model ProjectTag {
-      id        String   @id @default(cuid())
-      project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-      projectId String
-      tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-      tagId     String
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     String
 
-      @@unique([projectId, tagId])
+  @@unique([projectId, tagId])
 }
 
 model Tag {
-      id    String @id @default(cuid())
-      name  String
-      category String? // 'system', 'user', 'discipline'
-      color String?
-        
-      projects ProjectTag[]
+  id       String       @id @default(cuid())
+  name     String
+  category String?      // 'system', 'user', 'discipline'
+  color    String?
+  
+  projects ProjectTag[]
 
-      @@unique([name, category])
+  @@unique([name, category])
 }
 
 model Transcription {
-      id          String   @id @default(cuid())
-      title       String
-      description String?
-      
-      // Métadonnées du fichier source
-      fileUrl     String
-      fileName    String
-      fileSize    Int      // Taille en octets
-      duration    Int?     // Durée en secondes
-      mimeType    String   // audio/mp4, video/mp4, etc.
-      language    String   @default("fr-FR")
-        
-      // État du traitement
-      status      TranscriptionStatus @default(PENDING)
-      progress    Int      @default(0) // Pourcentage
-      errorMessage String?
-        
-      // Résultats
-      transcriptText String?
-      words          Json?     // Pour alignement mot-timestamp
-      speakers       Json?     // Identification des locuteurs
-        
-      // Relations
-      project     Project? @relation(fields: [projectId], references: [id])
-      projectId   String?
-        
-      createdBy   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-      userId      String
+  id          String                 @id @default(cuid())
+  title       String
+  description String?
+  
+  // Métadonnées du fichier source
+  fileUrl     String
+  fileName    String
+  fileSize    Int                    // Taille en octets
+  duration    Int?                   // Durée en secondes
+  mimeType    String                 // audio/mp4, video/mp4, etc.
+  language    String                 @default("fr-FR")
+  
+  // État du traitement
+  status      TranscriptionStatus    @default(PENDING)
+  progress    Int                    @default(0) // Pourcentage
+  errorMessage String?
+  
+  // Résultats
+  transcriptText String?
+  words          Json?               // Pour alignement mot-timestamp
+  speakers       Json?               // Identification des locuteurs
+  
+  // Relations
+  project     Project?               @relation(fields: [projectId], references: [id])
+  projectId   String?
+  
+  createdBy   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
 
-      aiAnalyses  AIAnalysis[]
+  aiAnalyses  AIAnalysis[]
 
-      // Timestamps
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
-      processedAt DateTime?
+  // Timestamps
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  processedAt DateTime?
 }
 
 model AIAnalysis {
-      id          String   @id @default(cuid())
-      type        AnalysisType
-      content     Json      // Résultats de l'analyse
-      prompt      String?   // Prompt utilisé
-      model       String    // "deepseek-v1", etc.
-      cost        Float?    // Coût de l'analyse
-      duration    Int?      // Durée en ms
-        
-      // Relations
-      transcription   Transcription? @relation(fields: [transcriptionId], references: [id])
-      transcriptionId String?
-        
-      document        Document?      @relation(fields: [documentId], references: [id])
-      documentId      String?
-        
-      project         Project?       @relation(fields: [projectId], references: [id])
-      projectId       String?
-        
-      createdBy       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-      userId          String
+  id              String         @id @default(cuid())
+  type            AnalysisType
+  content         Json           // Résultats de l'analyse
+  prompt          String?        // Prompt utilisé
+  model           String         // "deepseek-v1", etc.
+  cost            Float?         // Coût de l'analyse
+  duration        Int?           // Durée en ms
+  
+  // Relations
+  transcription   Transcription? @relation(fields: [transcriptionId], references: [id])
+  transcriptionId String?
+  
+  document        Document?      @relation(fields: [documentId], references: [id])
+  documentId      String?
+  
+  project         Project?       @relation(fields: [projectId], references: [id])
+  projectId       String?
+  
+  createdBy       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
 
-      createdAt       DateTime @default(now())
+  createdAt       DateTime       @default(now())
 }
 
-// Enums
-enum UserRole {
-      RESEARCHER
-      ADMIN
-}
-
-enum ProjectStatus {
-      ACTIVE
-      PAUSED
-      COMPLETED
-      ARCHIVED
-}
-
-enum Visibility {
-      PRIVATE
-      TEAM
-      PUBLIC
-}
-
-enum Role {
-      OWNER
-      EDITOR
-      VIEWER
-}
-
-enum TranscriptionStatus {
-      PENDING
-      PROCESSING
-      COMPLETED
-      FAILED
-      CANCELLED
-}
-
-enum AnalysisType {
-      TRANSCRIPTION_SUMMARY
-      TOPIC_EXTRACTION
-      SENTIMENT_ANALYSIS
-      CODE_SUGGESTION
-      RESEARCH_QUESTIONS
-      METHODOLOGY_SUGGESTION
-      COLLABORATION_INSIGHTS
-}
 model Document {
   id        String       @id @default(cuid())
   title     String
   content   String       @db.Text
   type      DocumentType @default(NOTE)
+  
   project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
+  
   createdBy User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+  
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  
   aiAnalyses AIAnalysis[]
 }
+
+// Enums
+enum UserRole {
+  RESEARCHER
+  ADMIN
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum Visibility {
+  PRIVATE
+  TEAM
+  PUBLIC
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum TranscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AnalysisType {
+  TRANSCRIPTION_SUMMARY
+  TOPIC_EXTRACTION
+  SENTIMENT_ANALYSIS
+  CODE_SUGGESTION
+  RESEARCH_QUESTIONS
+  METHODOLOGY_SUGGESTION
+  COLLABORATION_INSIGHTS
+}
+
 enum DocumentType {
   NOTE
   LITERATURE_REVIEW
