@@ -1,0 +1,183 @@
+.transcription-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .page-header h1 {
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 10px;
+  }
+  
+  .page-header p {
+    font-size: 18px;
+    color: #666;
+  }
+  
+  .upload-section {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+  }
+  
+  .upload-section h2 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  
+  .transcriptions-list h2 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 18px;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    border: 2px dashed #ddd;
+  }
+  
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+  
+  .empty-subtext {
+    color: #888;
+    margin-top: 10px;
+  }
+  
+  .transcriptions-table {
+    overflow-x: auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .transcriptions-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .transcriptions-table th {
+    background: #f8f9fa;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+  }
+  
+  .transcriptions-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+  }
+  
+  .transcriptions-table tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .file-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .file-icon-small {
+    font-size: 20px;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .action-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .action-button.view {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  .action-button.view:hover {
+    background: #bbdefb;
+  }
+  
+  .action-button.delete {
+    background: #ffebee;
+    color: #d32f2f;
+  }
+  
+  .action-button.delete:hover {
+    background: #ffcdd2;
+  }
+  
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 30px;
+    padding: 20px;
+  }
+  
+  .pagination button {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .pagination button:hover:not(:disabled) {
+    background: #45a049;
+  }
+  
+  .pagination button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .page-info {
+    font-weight: 500;
+    color: #666;
+  }

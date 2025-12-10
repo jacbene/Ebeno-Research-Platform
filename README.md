@@ -9,6 +9,77 @@ Le projet est divisé en deux packages principaux :
 - `backend` : Une API RESTful construite avec Express.js, TypeScript, et Prisma pour la gestion de la base de données.
 - `frontend` : Une application web monopage (SPA) développée avec React, TypeScript, et Vite.
 
+## Structure du projet
+
+```
+.
+├── Dockerfile
+├── README.md
+├── dev.yml
+├── docker-compose.dev.yml
+├── firebase.json
+├── package-lock.json
+├── package.json
+├── .idx
+│   ├── dev.nix
+│   └── integrations.json
+├── backend
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── prisma
+│   │   └── schema.prisma
+│   └── src
+│       ├── controllers
+│       │   └── authController.ts
+│       ├── middleware
+│       │   └── authMiddleware.ts
+│       ├── routes
+│       │   ├── authRoutes.ts
+│       │   └── projectRoutes.ts
+│       ├── services
+│       │   ├── api.ts
+│       │   └── emailService.ts
+│       ├── utils
+│       │   └── prisma.ts
+│       └── server.ts
+└── frontend
+    ├── README.md
+    ├── eslint.config.js
+    ├── index.html
+    ├── package-lock.json
+    ├── package.json
+    ├── postcss.config.js
+    ├── tailwind.config.js
+    ├── tsconfig.app.json
+    ├── tsconfig.json
+    ├── tsconfig.node.json
+    ├── vite.config.ts
+    ├── public
+    │   └── vite.svg
+    └── src
+        ├── assets
+        │   └── react.svg
+        ├── pages
+        │   ├── Dashboard.tsx
+        │   └── auth
+        │       ├── ForgotPassword.tsx
+        │       ├── Login.tsx
+        │       ├── Register.tsx
+        │       └── ResetPassword.tsx
+        ├── routes
+        │   └── AppRoutes.tsx
+        ├── services
+        │   ├── api.ts
+        │   └── authService.ts
+        ├── stores
+        │   └── authStore.ts
+        ├── App.css
+        ├── App.tsx
+        ├── index.css
+        └── main.tsx
+```
+
 ## Fonctionnalités
 
 * **Backend**:
