@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { transcriptionController } from '../controllers/transcriptionController';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 const upload = multer({ 
@@ -29,7 +29,7 @@ const upload = multer({
 });
 
 // Toutes les routes nécessitent une authentification
-router.use(authMiddleware);
+router.use(protect);
 
 // Routes pour les transcriptions
 router.post('/upload', upload.single('file'), transcriptionController.uploadTranscription);
