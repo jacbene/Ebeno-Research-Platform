@@ -1,5 +1,5 @@
 // hooks/useAuth.ts
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '../stores/authStore';
 import { useEffect } from 'react';
 
 export const useAuth = () => {

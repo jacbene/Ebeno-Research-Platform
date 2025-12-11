@@ -34,8 +34,10 @@ export class TranscriptionService {
       // Créer l'enregistrement dans la base de données
       const transcription = await prisma.transcription.create({
         data: {
-          name: file.originalname,
-          filePath,
+          title: file.originalname,
+          fileUrl: filePath,
+          fileName: uniqueName,
+          mimeType: file.mimetype,
           status: 'PENDING',
           userId,
           projectId,
@@ -77,9 +79,9 @@ export class TranscriptionService {
       await prisma.transcription.update({
         where: { id: transcriptionId },
         data: {
-          text: mockText,
+          transcriptText: mockText,
           status: 'COMPLETED',
-          completedAt: new Date(),
+          processedAt: new Date(),
           duration: 120, // 2 minutes simulées
         },
       });
@@ -112,11 +114,10 @@ export class TranscriptionService {
     const transcription = await prisma.transcription.findUnique({
       where: { id: transcriptionId },
       include: {
-        user: {
+        createdBy: {
           select: {
             id: true,
             email: true,
-            name: true,
           },
         },
       },
@@ -139,11 +140,10 @@ export class TranscriptionService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          createdBy: {
             select: {
               id: true,
               email: true,
-              name: true,
             },
           },
         },
@@ -179,7 +179,7 @@ export class TranscriptionService {
 
     // Supprimer le fichier physique
     try {
-      await fs.unlink(transcription.filePath);
+      await fs.unlink(transcription.fileUrl);
     } catch (error) {
       logger.warn('Could not delete file, continuing with DB deletion', { error });
     }

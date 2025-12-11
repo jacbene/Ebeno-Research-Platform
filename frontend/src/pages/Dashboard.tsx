@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { 
   LogOut, 
@@ -12,7 +12,11 @@ import {
   Bell,
   Search,
   Plus,
-  GraduationCap
+  GraduationCap,
+  MessageSquare,
+  ArrowRight,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -144,6 +148,36 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Section IA Assistant - Ajoutée ici */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-8 text-white">
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div className="flex items-center space-x-6 mb-6 md:mb-0">
+                  <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                    <Brain className="h-12 w-12" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Assistant IA DeepSeek</h2>
+                    <p className="text-blue-100 max-w-2xl">
+                      Discutez avec notre IA spécialisée en recherche scientifique. 
+                      Analyse de données, résumés, suggestions méthodologiques et plus encore.
+                    </p>
+                  </div>
+                </div>
+                <Link 
+                  to="/chat" 
+                  className="flex items-center space-x-3 bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>Essayer l'assistant</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => {
@@ -222,9 +256,10 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Profil utilisateur */}
-          <div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+          {/* Colonne de droite */}
+          <div className="space-y-6">
+            {/* Profil utilisateur */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="px-6 py-4 border-b border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-900">Votre profil</h3>
               </div>
@@ -265,6 +300,28 @@ const Dashboard: React.FC = () => {
                   <User className="h-4 w-4 mr-2" />
                   Modifier le profil
                 </button>
+              </div>
+            </div>
+
+            {/* Carte IA - Version compacte */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="p-5">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                    <MessageSquare className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900">Assistant IA</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Obtenez des analyses approfondies de vos recherches en temps réel
+                </p>
+                <Link 
+                  to="/chat" 
+                  className="flex items-center justify-center space-x-2 w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200"
+                >
+                  <Brain className="h-4 w-4" />
+                  <span>Ouvrir l'assistant</span>
+                </Link>
               </div>
             </div>
 

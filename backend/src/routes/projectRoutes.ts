@@ -1,11 +1,11 @@
 import express from 'express';
 import { projectController } from '../controllers/projectController';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
 // Toutes les routes nécessitent une authentification
-router.use(authMiddleware);
+router.use(protect);
 
 // Routes CRUD pour les projets
 router.get('/', projectController.getUserProjects);
