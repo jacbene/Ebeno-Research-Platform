@@ -1,104 +1,45 @@
 # Plateforme de Recherche Ebeno
 
-Plateforme de recherche collaborative conçue pour les Sciences Humaines et Sociales. Ce projet est une application web monorepo avec un backend s'appuyant sur Node.js, Express, et PostgreSQL, et un frontend en React.
+**Statut du déploiement :** [![Deployment](https://github.com/your-username/ebeno-research-platform/actions/workflows/firebase-hosting-pull-request.yml/badge.svg)](https://ebeno-research-platform.web.app/)
+
+Plateforme de recherche collaborative conçue pour les Sciences Humaines et Sociales (SHS). Ce projet est une application web monorepo avec un backend s'appuyant sur Node.js/Express et un frontend en React, entièrement développé en TypeScript.
+
+L'application est désormais multilingue (Français, Anglais, Arabe) et déployée sur Firebase Hosting.
+
+## Prochaines Étapes
+
+Nous avons une feuille de route détaillée pour les futures fonctionnalités. Vous pouvez la consulter ici : [**ROADMAP.md**](./ROADMAP.md).
 
 ## Architecture
 
 Le projet est divisé en deux packages principaux :
 
-- `backend` : Une API RESTful construite avec Express.js, TypeScript, et Prisma pour la gestion de la base de données.
-- `frontend` : Une application web monopage (SPA) développée avec React, TypeScript, et Vite.
+-   `backend` : Une API RESTful construite avec Express.js, TypeScript, et Prisma pour la gestion de la base de données PostgreSQL.
+-   `frontend` : Une application web monopage (SPA) développée avec React, TypeScript, Vite, et stylisée avec Tailwind CSS.
 
-## Structure du projet
+## Fonctionnalités Actuelles
 
-```
-.
-├── Dockerfile
-├── README.md
-├── dev.yml
-├── docker-compose.dev.yml
-├── firebase.json
-├── package-lock.json
-├── package.json
-├── .idx
-│   ├── dev.nix
-│   └── integrations.json
-├── backend
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── prisma
-│   │   └── schema.prisma
-│   └── src
-│       ├── controllers
-│       │   └── authController.ts
-│       ├── middleware
-│       │   └── authMiddleware.ts
-│       ├── routes
-│       │   ├── authRoutes.ts
-│       │   └── projectRoutes.ts
-│       ├── services
-│       │   ├── api.ts
-│       │   └── emailService.ts
-│       ├── utils
-│       │   └── prisma.ts
-│       └── server.ts
-└── frontend
-    ├── README.md
-    ├── eslint.config.js
-    ├── index.html
-    ├── package-lock.json
-    ├── package.json
-    ├── postcss.config.js
-    ├── tailwind.config.js
-    ├── tsconfig.app.json
-    ├── tsconfig.json
-    ├── tsconfig.node.json
-    ├── vite.config.ts
-    ├── public
-    │   └── vite.svg
-    └── src
-        ├── assets
-        │   └── react.svg
-        ├── pages
-        │   ├── Dashboard.tsx
-        │   └── auth
-        │       ├── ForgotPassword.tsx
-        │       ├── Login.tsx
-        │       ├── Register.tsx
-        │       └── ResetPassword.tsx
-        ├── routes
-        │   └── AppRoutes.tsx
-        ├── services
-        │   ├── api.ts
-        │   └── authService.ts
-        ├── stores
-        │   └── authStore.ts
-        ├── App.css
-        ├── App.tsx
-        ├── index.css
-        └── main.tsx
-```
-
-## Fonctionnalités
-
-* **Backend**:
-    * Authentification (inscription, connexion) avec JWT.
-    * Gestion de projets de recherche.
-    * Middleware pour la protection des routes.
-* **Frontend**:
-    * Interface utilisateur réactive avec React.
-    * Gestion de l'état avec MobX.
-    * Routage côté client avec React Router.
-    * Communication avec le backend via des services API.
+*   **Backend**:
+    *   Authentification sécurisée (inscription, connexion) avec JWT.
+    *   Gestion de projets, documents et transcriptions.
+    *   Middleware pour la protection des routes.
+*   **Frontend**:
+    *   Interface utilisateur réactive construite avec React 19 et Vite.
+    *   Gestion de l'état global avec Zustand.
+    *   Routage côté client avec React Router v6.
+    *   **Internationalisation (i18n)** avec `i18next` pour le support multilingue.
+    *   Composants d'interface stylisés avec Tailwind CSS.
+    *   Application Web Progressive (PWA) pour une expérience hors ligne.
+*   **Déploiement**:
+    *   Déploiement continu sur **Firebase Hosting**.
 
 ## Démarrage Rapide
 
 ### Prérequis
 
-- Node.js (version 18 ou supérieure)
-- Docker et Docker Compose
-- Git
+-   Node.js (version 20.19+ ou 22.12+)
+-   Docker et Docker Compose
+-   Git
 
 ### Installation et Lancement
 
@@ -120,7 +61,7 @@ Le projet est divisé en deux packages principaux :
     npm run docker:up
     ```
 
-4. **Appliquer les migrations de la base de données :**
+4.  **Appliquer les migrations de la base de données :**
     ```bash
     cd backend
     npx prisma migrate dev
@@ -134,20 +75,13 @@ Le projet est divisé en deux packages principaux :
     ```
 
 L'application sera alors accessible :
-- Frontend : `http://localhost:5173`
-- Backend : `http://localhost:3000`
+-   **Frontend** : `http://localhost:3000`
+-   **Backend** : `http://localhost:5000`
 
 ## Scripts Disponibles
 
-- `npm run dev`: Démarre les serveurs de développement du backend et du frontend.
-- `npm run setup`: Installe toutes les dépendances.
-- `npm run docker:up`: Démarre le conteneur de la base de données.
-- `npm run docker:down`: Arrête le conteneur de la base de données.
-
-## Variables d'Environnement
-
-Le backend nécessite une variable d'environnement `DATABASE_URL` pour se connecter à la base de données PostgreSQL. Celle-ci est définie dans le fichier `dev.yml` pour l'environnement de développement IDX. Pour un environnement local, vous pouvez créer un fichier `.env` dans le dossier `backend` :
-
-```
-DATABASE_URL="postgresql://user:password@localhost:5432/ebeno_db?schema=public"
-```
+-   `npm run dev`: Démarre les serveurs de développement du backend et du frontend.
+-   `npm run setup`: Installe toutes les dépendances du projet (racine, backend, frontend).
+-   `npm run build:frontend`: Construit l'application frontend pour la production.
+-   `npm run docker:up`: Démarre le conteneur de la base de données via Docker.
+-   `npm run docker:down`: Arrête le conteneur de la base de données.

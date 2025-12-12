@@ -1,8 +1,6 @@
 // components/layout/Layout.tsx
 import { ReactNode } from 'react';
-import Header from './Header';
-import Sidebar from './Sidebar';
-import Footer from './Footer';
+import Navbar from './Navbar'; // Importation de la Navbar
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,15 +8,11 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-      <Footer />
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <Navbar /> {/* Ajout de la Navbar */}
+      <main className="flex-1 p-6">
+        {children}
+      </main>
     </div>
   );
 };

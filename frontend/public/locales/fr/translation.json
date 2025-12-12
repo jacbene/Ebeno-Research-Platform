@@ -1,0 +1,10 @@
+{
+  "loading": "Chargement...",
+  "navbar": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "transcriptions": "Transcriptions",
+    "documents": "Documents",
+    "profile": "Profil"
+  }
+}

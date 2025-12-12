@@ -1,3 +1,4 @@
+import { ChatMessage } from '../types/deepseek';
 // frontend/src/services/streamService.ts
 export const streamChatWithDeepSeek = async (
     messages: ChatMessage[], 
