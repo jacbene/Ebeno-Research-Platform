@@ -1,4 +1,4 @@
-To learn more about how to use Nix to configure your environment
+# To learn more about how to use Nix to configure your environment
 # see: https://firebase.google.com/docs/studio/customize-workspace
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
@@ -6,6 +6,7 @@ To learn more about how to use Nix to configure your environment
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
+    pkgs.nodejs_18
     pkgs.nodePackages.nodemon
   ];
 
@@ -17,41 +18,15 @@ To learn more about how to use Nix to configure your environment
       "prisma.prisma"
       "dbaeumer.vscode-eslint"
     ];
-
-    # Enable previews
-    previews = {
-      enable = true;
-      previews = {
-        # Backend server
-        backend = {
-          command = ["npm" "run" "dev" "--prefix" "backend"];
-          manager = "web";
-          env = {
-            PORT = "$PORT";
-            FRONTEND_URL = "$IDE_PREVIEW_URL_FRONTEND";
-          };
-        };
-        # Frontend server
-        frontend = {
-            command = ["npm" "run" "dev" "--prefix" "frontend"];
-            manager = "web";
-            env = {
-                PORT = "$PORT";
-            };
-        };
-      };
-    };
-
-    # Workspace lifecycle hooks
     workspace = {
-      # Runs when a workspace is first created
+      # Runs when the workspace is first created
       onCreate = {
-        npm-install-backend = "npm install --prefix backend";
-        npm-install-frontend = "npm install --prefix frontend";
+        install-dependencies = "npm install";
       };
-      # Runs when the workspace is (re)started
+      # Runs when the workspace is started
       onStart = {
-        prisma-generate = "npx prisma generate --schema=./backend/prisma/schema.prisma";
+        # start-database = "npm run docker:up";
+        # run-migrations = "npm run migrate:dev";
       };
     };
   };

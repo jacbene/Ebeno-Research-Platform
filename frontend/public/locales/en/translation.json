@@ -1,0 +1,11 @@
+
+{
+  "loading": "Loading...",
+  "navbar": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "transcriptions": "Transcriptions",
+    "documents": "Documents",
+    "profile": "Profile"
+  }
+}

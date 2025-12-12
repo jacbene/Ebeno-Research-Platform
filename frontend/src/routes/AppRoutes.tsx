@@ -1,6 +1,7 @@
 // routes/AppRoutes.tsx
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '../stores/authStore';
+import { useTranslation } from 'react-i18next'; // Importation du hook
 
 // Layouts
 import MainLayout from '../components/layout/Layout';
@@ -22,9 +23,11 @@ import ProfilePage from '../pages/ProfilePage';
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const { t } = useTranslation(); // Initialisation du hook
   
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    // Utilisation de la clé de traduction
+    return <div className="flex items-center justify-center h-screen">{t('loading')}</div>;
   }
   
   if (!isAuthenticated) {

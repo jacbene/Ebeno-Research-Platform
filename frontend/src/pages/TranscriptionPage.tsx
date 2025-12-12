@@ -39,7 +39,7 @@ const TranscriptionPage: React.FC = () => {
     loadTranscriptions(page);
   }, [page]);
 
-  const handleUploadComplete = (transcriptionId: string) => {
+  const handleUploadComplete = () => {
     // Recharger la liste après un upload réussi
     setTimeout(() => {
       loadTranscriptions(page);

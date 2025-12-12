@@ -1,0 +1,10 @@
+{
+  "loading": "جار التحميل...",
+  "navbar": {
+    "dashboard": "لوحة القيادة",
+    "projects": "المشاريع",
+    "transcriptions": "النسخ",
+    "documents": "المستندات",
+    "profile": "الملف الشخصي"
+  }
+}
