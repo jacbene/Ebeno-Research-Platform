@@ -11,16 +11,20 @@ import {
   Code,
   PieChart
 } from 'lucide-react';
-import CodeManager from '../components/coding/CodeManager.js';
-import TextAnnotator from '../components/coding/TextAnnotator.js';
-import CodingDashboard from '../components/coding/CodingDashboard.js';
+import CodeManager from '../components/coding/CodeManager';
+import TextAnnotator from '../components/coding/TextAnnotator';
+import CodingDashboard from '../components/coding/CodingDashboard';
 import './QualitativeAnalysisPage.css';
+import { Notebook } from 'lucide-react';
+import MemoList from '../components/memos/MemoList';
+import MemoDashboard from '../components/memos/MemoDashboard';
+
 
 const QualitativeAnalysisPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState<'codes' | 'annotate' | 'dashboard' | 'settings'>('codes');
+  const [activeTab, setActiveTab] = useState<'codes' | 'annotate' | 'dashboard' | 'settings' | 'memos' | 'memo-dashboard'>('codes');
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [documentContent, setDocumentContent] = useState<string>('');
 
@@ -34,15 +38,7 @@ const QualitativeAnalysisPage: React.FC = () => {
   const loadDocumentContent = (docId: string) => {
     // Simuler le chargement du contenu
     setSelectedDocumentId(docId);
-    setDocumentContent(`Ceci est un exemple de contenu pour le document ${docId}.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-Les chercheurs ont noté plusieurs thèmes récurrents dans les entretiens : la perception du temps, les relations sociales, et l'impact environnemental.
-
-Chaque participant a exprimé des préoccupations différentes, mais certains motifs communs émergent clairement de l'analyse.`);
+    setDocumentContent(`Ceci est un exemple de contenu pour le document ${docId}.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\nLes chercheurs ont noté plusieurs thèmes récurrents dans les entretiens : la perception du temps, les relations sociales, et l'impact environnemental.\n\nChaque participant a exprimé des préoccupations différentes, mais certains motifs communs émergent clairement de l'analyse.`);
     
     setActiveTab('annotate');
   };
@@ -114,6 +110,22 @@ Chaque participant a exprimé des préoccupations différentes, mais certains mo
               <Settings className="h-5 w-5" />
               <span>Paramètres</span>
             </button>
+
+<button
+  onClick={() => setActiveTab('memos')}
+  className={`sidebar-button ${activeTab === 'memos' ? 'active' : ''}`}
+>
+  <Notebook className="h-5 w-5" />
+  <span>Mémos analytiques</span>
+</button>
+
+<button
+  onClick={() => setActiveTab('memo-dashboard')}
+  className={`sidebar-button ${activeTab === 'memo-dashboard' ? 'active' : ''}`}
+>
+  <BarChart3 className="h-5 w-5" />
+  <span>Statistiques mémos</span>
+</button>
           </nav>
 
           {/* Documents */}
@@ -196,6 +208,18 @@ Chaque participant a exprimé des préoccupations différentes, mais certains mo
           {activeTab === 'dashboard' && (
             <div className="p-6">
               <CodingDashboard projectId={projectId} />
+            </div>
+          )}
+
+          {activeTab === 'memos' && (
+              <div className="p-6">
+                  <MemoList projectId={projectId} />
+              </div>
+          )}
+
+          {activeTab === 'memo-dashboard' && (
+            <div className="p-6">
+                <MemoDashboard projectId={projectId} />
             </div>
           )}
 

@@ -26,7 +26,8 @@ const SettingsPage: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setError(t('settings.exportError'));
     } finally {
       setIsLoading(false);
@@ -45,7 +46,8 @@ const SettingsPage: React.FC = () => {
         });
         // Rediriger vers la page de connexion après la suppression
         window.location.href = '/login';
-      } catch (err) {
+      } catch (error) {
+        console.error(error);
         setError(t('settings.deleteError'));
       } finally {
         setIsLoading(false);
