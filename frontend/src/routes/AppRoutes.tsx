@@ -19,6 +19,7 @@ import TranscriptionDetailPage from '../pages/TranscriptionDetailPage';
 import AnalysisPage from '../pages/AnalysisPage';
 import DocumentsPage from '../pages/DocumentsPage';
 import ProfilePage from '../pages/ProfilePage';
+import QualitativeAnalysisPage from '../pages/QualitativeAnalysisPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -95,6 +96,8 @@ const AppRoutes = () => {
           <MainLayout><ProfilePage /></MainLayout>
         </ProtectedRoute>
       } />
+
+<Route path="/projects/:projectId/analysis" element={<QualitativeAnalysisPage />}/>
       
       {/* 404 Route */}
       <Route path="*" element={<Navigate to="/" replace />} />

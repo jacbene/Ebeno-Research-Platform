@@ -5,66 +5,73 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id               String           @id @default(cuid())
-  email            String           @unique
+  id               String    @id @default(cuid())
+  email            String    @unique
   passwordHash     String
-  role             UserRole         @default(RESEARCHER)
-  isVerified       Boolean          @default(false)
+  role             UserRole  @default(RESEARCHER)
+  isVerified       Boolean   @default(false)
   verificationToken String?
   resetToken       String?
   resetTokenExpiry DateTime?
-  
+
   profile          Profile?
   createdProjects  Project[]        @relation("ProjectOwner")
   projectMemberships ProjectMember[]
   transcriptions   Transcription[]
   aiAnalyses       AIAnalysis[]
   documents        Document[]
-  
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  codes            Code[]
+  annotations      Annotation[]
+  memos            Memo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
 }
 
 model Profile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  firstName        String
-  lastName         String
-  avatar           String?
-  discipline       String
-  affiliation      String?
-  bio              String?
-  
+  id            String @id @default(cuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  avatar        String?
+  discipline    String
+  affiliation   String?
+  bio           String?
   researchInterests String[]
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Project {
-  id              String           @id @default(cuid())
-  title           String
-  description     String?
-  status          ProjectStatus    @default(ACTIVE)
-  visibility      Visibility       @default(PRIVATE)
-  
-  owner           User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId         String
-  
-  members         ProjectMember[]
-  tags            ProjectTag[]
-  transcriptions  Transcription[]
-  aiAnalyses      AIAnalysis[]
-  documents       Document[]
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  status       ProjectStatus @default(ACTIVE)
+  visibility   Visibility    @default(PRIVATE)
+  owner        User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  members      ProjectMember[]
+  tags         ProjectTag[]
+  transcriptions Transcription[]
+  aiAnalyses   AIAnalysis[]
+  documents    Document[]
+  codes        Code[]
+  memos        Memo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
 }
 
 model ProjectMember {
@@ -73,17 +80,17 @@ model ProjectMember {
   projectId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  role      Role     @default(VIEWER)
+  role      ProjectRole     @default(VIEWER)
   joinedAt  DateTime @default(now())
 
   @@unique([projectId, userId])
 }
 
 model ProjectTag {
-  id        String   @id @default(cuid())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
-  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId     String
 
   @@unique([projectId, tagId])
@@ -92,93 +99,82 @@ model ProjectTag {
 model Tag {
   id       String       @id @default(cuid())
   name     String
-  category String?      // 'system', 'user', 'discipline'
+  category String? // 'system', 'user', 'discipline'
   color    String?
-  
   projects ProjectTag[]
 
   @@unique([name, category])
 }
 
 model Transcription {
-  id          String                 @id @default(cuid())
-  title       String
-  description String?
-  
-  // Métadonnées du fichier source
-  fileUrl     String
-  fileName    String
-  fileSize    Int                    // Taille en octets
-  duration    Int?                   // Durée en secondes
-  mimeType    String                 // audio/mp4, video/mp4, etc.
-  language    String                 @default("fr-FR")
-  
-  // État du traitement
-  status      TranscriptionStatus    @default(PENDING)
-  progress    Int                    @default(0) // Pourcentage
-  errorMessage String?
-  
-  // Résultats
+  id             String              @id @default(cuid())
+  title          String
+  description    String?
+  fileUrl        String
+  fileName       String
+  fileSize       Int
+  duration       Int?
+  mimeType       String
+  language       String              @default("fr-FR")
+  status         TranscriptionStatus @default(PENDING)
+  progress       Int                 @default(0)
+  errorMessage   String?
   transcriptText String?
-  words          Json?               // Pour alignement mot-timestamp
-  speakers       Json?               // Identification des locuteurs
-  
-  // Relations
-  project     Project?               @relation(fields: [projectId], references: [id])
-  projectId   String?
-  
-  createdBy   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
+  words          Json?
+  speakers       Json?
+  project        Project?            @relation(fields: [projectId], references: [id])
+  projectId      String?
+  createdBy      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  aiAnalyses     AIAnalysis[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  processedAt    DateTime?
+  annotations    Annotation[]
+  memos          Memo[]
 
-  aiAnalyses  AIAnalysis[]
-
-  // Timestamps
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  processedAt DateTime?
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
 }
 
 model AIAnalysis {
   id              String         @id @default(cuid())
   type            AnalysisType
-  content         Json           // Résultats de l'analyse
-  prompt          String?        // Prompt utilisé
-  model           String         // "deepseek-v1", etc.
-  cost            Float?         // Coût de l'analyse
-  duration        Int?           // Durée en ms
-  
-  // Relations
-  transcription   Transcription? @relation(fields: [transcriptionId], references: [id])
+  content         Json
+  prompt          String?
+  model           String
+  cost            Float?
+  duration        Int?
+  transcription   Transcription? @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
   transcriptionId String?
-  
-  document        Document?      @relation(fields: [documentId], references: [id])
+  document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId      String?
-  
   project         Project?       @relation(fields: [projectId], references: [id])
   projectId       String?
-  
   createdBy       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String
 
-  createdAt       DateTime       @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Document {
-  id        String       @id @default(cuid())
-  title     String
-  content   String       @db.Text
-  type      DocumentType @default(NOTE)
-  
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
-  
-  createdBy User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  
+  id         String       @id @default(cuid())
+  title      String
+  content    String       @db.Text
+  type       DocumentType @default(NOTE)
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  createdBy  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   aiAnalyses AIAnalysis[]
+  annotations Annotation[]
+  memos      Memo[]
+
+  @@index([projectId])
+  @@index([type])
 }
 
 // Enums
@@ -200,8 +196,7 @@ enum Visibility {
   PUBLIC
 }
 
-enum Role {
-  OWNER
+enum ProjectRole {
   EDITOR
   VIEWER
 }
@@ -231,3 +226,80 @@ enum DocumentType {
   RESEARCH_LOG
   ARTICLE_DRAFT
 }
+
+// Modèle pour les codes (tags)
+model Code {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String   @default("#3b82f6")
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Code?    @relation("CodeHierarchy", fields: [parentId], references: [id])
+  children    Code[]   @relation("CodeHierarchy")
+  annotations Annotation[]
+  memos       Memo[]
+  createdBy   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([parentId])
+}
+
+// Modèle pour les annotations (codes appliqués à du texte)
+model Annotation {
+  id           String         @id @default(cuid())
+  codeId       String
+  code         Code           @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  documentId   String?
+  document     Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  transcriptionId  String?
+  transcription    Transcription? @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+  startIndex   Int
+  endIndex     Int
+  selectedText String
+  notes        String?
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memos        Memo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([transcriptionId])
+  @@index([codeId])
+  @@index([userId])
+}
+
+// Modèle pour les mémos
+model Memo {
+  id           String      @id @default(cuid())
+  title        String
+  content      String      @db.Text
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  codeId       String?
+  code         Code?       @relation(fields: [codeId], references: [id], onDelete: SetNull)
+  documentId   String?
+  document     Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  transcriptionId  String?
+  transcription    Transcription?    @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+  annotationId String?
+  annotation   Annotation? @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([codeId])
+  @@index([userId])
+}
+

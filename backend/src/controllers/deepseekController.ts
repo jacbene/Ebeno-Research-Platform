@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import deepseekService from '../services/deepseekService.js';
 
+// Add this type definition at the top of the file
+type ChatMessage = { role: "user" | "assistant" | "system"; content: string; };
+
 class DeepSeekController {
   async chat(req: Request, res: Response) {
     try {
@@ -132,7 +135,7 @@ class DeepSeekController {
       
       Fournis une analyse complète et détaillée.`;
 
-      const messages = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ];

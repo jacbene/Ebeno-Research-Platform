@@ -5,6 +5,20 @@
     "projects": "Projets",
     "transcriptions": "Transcriptions",
     "documents": "Documents",
-    "profile": "Profil"
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "exportTitle": "Exporter vos données",
+    "exportDescription": "Téléchargez une archive JSON de toutes les données de votre compte Ebeno Research.",
+    "exportButton": "Exporter les données",
+    "exportError": "Une erreur est survenue lors de l'exportation de vos données.",
+    "deleteTitle": "Supprimer le compte",
+    "deleteDescription": "Supprimez définitivement votre compte et toutes vos données. Cette action est irréversible.",
+    "deleteButton": "Supprimer le compte",
+    "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+    "deleteError": "Une erreur est survenue lors de la suppression de votre compte."
   }
 }

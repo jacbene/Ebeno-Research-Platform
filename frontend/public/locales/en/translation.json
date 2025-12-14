@@ -1,4 +1,3 @@
-
 {
   "loading": "Loading...",
   "navbar": {
@@ -6,6 +5,20 @@
     "projects": "Projects",
     "transcriptions": "Transcriptions",
     "documents": "Documents",
-    "profile": "Profile"
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "settings": {
+    "title": "Settings",
+    "exportTitle": "Export your data",
+    "exportDescription": "Download a JSON archive of all your Ebeno Research account data.",
+    "exportButton": "Export data",
+    "exportError": "An error occurred while exporting your data.",
+    "deleteTitle": "Delete account",
+    "deleteDescription": "Permanently delete your account and all your data. This action is irreversible.",
+    "deleteButton": "Delete account",
+    "deleteConfirmation": "Are you sure you want to delete your account? This action is irreversible.",
+    "deleteError": "An error occurred while deleting your account."
   }
 }
