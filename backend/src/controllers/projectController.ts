@@ -1,14 +1,20 @@
+
 import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
-// Schémas de validation améliorés
+// Schémas de validation
 const createProjectSchema = z.object({
-  title: z.string().min(1, 'Le titre est requis').max(100, 'Le titre ne peut pas dépasser 100 caractères'),
+  title: z.string()
+    .min(1, 'Le titre est requis')
+    .max(100, 'Le titre ne peut pas dépasser 100 caractères'),
   description: z.string().optional(),
   status: z.enum(['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']).default('ACTIVE'),
   visibility: z.enum(['PRIVATE', 'TEAM', 'PUBLIC']).default('PRIVATE'),
-  tags: z.array(z.string()).max(10, 'Maximum 10 tags autorisés').optional(),
+  tags: z.array(z.string())
+    .max(10, 'Maximum 10 tags autorisés')
+    .optional(),
 });
 
 const updateProjectSchema = z.object({
@@ -30,8 +36,120 @@ const updateMemberRoleSchema = z.object({
 });
 
 const tagSchema = z.object({
-  tagName: z.string().min(1, 'Le nom du tag est requis').max(50, 'Le nom du tag ne peut pas dépasser 50 caractères')
+  tagName: z.string()
+    .min(1, 'Le nom du tag est requis')
+    .max(50, 'Le nom du tag ne peut pas dépasser 50 caractères')
 });
+
+// Configuration du sélecteur de projet complet
+const fullProjectSelect = {
+  id: true,
+  title: true,
+  description: true,
+  status: true,
+  visibility: true,
+  ownerId: true,
+  createdAt: true,
+  updatedAt: true,
+  owner: {
+    select: {
+      id: true,
+      email: true,
+      profile: {
+        select: { firstName: true, lastName: true, avatar: true }
+      }
+    }
+  },
+  members: {
+    select: {
+      role: true,
+      joinedAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          profile: {
+            select: { firstName: true, lastName: true, avatar: true }
+          }
+        }
+      }
+    }
+  },
+  tags: {
+    select: {
+      tag: {
+        select: { id: true, name: true, color: true, category: true }
+      }
+    }
+  },
+  _count: {
+    select: {
+      transcriptions: true,
+      documents: true,
+      members: true,
+    }
+  }
+} satisfies Prisma.ProjectSelect;
+
+type FullProjectPayload = Prisma.ProjectGetPayload<{ select: typeof fullProjectSelect }>;
+
+// Fonction utilitaire pour formater le projet avec le propriétaire comme membre virtuel
+const formatProject = (project: FullProjectPayload) => {
+  return {
+    ...project,
+    tags: project.tags.map(t => t.tag),
+    // Ajouter le propriétaire comme premier membre avec rôle OWNER
+    members: [
+      {
+        userId: project.owner.id,
+        role: 'OWNER' as const,
+        joinedAt: project.createdAt,
+        user: project.owner
+      },
+      ...project.members.map(member => ({
+        userId: member.user.id,
+        role: member.role,
+        joinedAt: member.joinedAt,
+        user: member.user
+      }))
+    ]
+  };
+};
+
+// Fonction utilitaire pour vérifier les permissions
+const checkProjectPermissions = async (projectId: string, userId: string) => {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      ownerId: true,
+      visibility: true,
+      members: {
+        where: { userId },
+        select: { role: true }
+      }
+    }
+  });
+
+  if (!project) {
+    return { allowed: false, isOwner: false, isMember: false, isEditor: false };
+  }
+
+  const isOwner = project.ownerId === userId;
+  const isMember = project.members.length > 0;
+  const isEditor = isOwner || (isMember && project.members[0].role === 'EDITOR');
+
+  let allowed = false;
+  
+  if (project.visibility === 'PUBLIC') {
+    allowed = true;
+  } else if (project.visibility === 'TEAM') {
+    allowed = isOwner || isMember;
+  } else if (project.visibility === 'PRIVATE') {
+    allowed = isOwner || isMember;
+  }
+
+  return { allowed, isOwner, isMember, isEditor, project };
+};
 
 export const projectController = {
   // Récupérer tous les projets de l'utilisateur
@@ -48,67 +166,19 @@ export const projectController = {
             { members: { some: { userId: req.user.id } } }
           ]
         },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              profile: {
-                select: { firstName: true, lastName: true }
-              }
-            }
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  profile: {
-                    select: { firstName: true, lastName: true }
-                  }
-                }
-              }
-            }
-          },
-          tags: {
-            include: { tag: true }
-          },
-          _count: {
-            select: {
-              transcriptions: true,
-              members: true
-            }
-          }
-        },
+        select: fullProjectSelect,
         orderBy: { updatedAt: 'desc' }
       });
 
-      // Formater la réponse pour inclure le propriétaire dans les membres virtuels
-      const formattedProjects = projects.map(project => {
-        const members = [
-          {
-            userId: project.owner.id,
-            user: project.owner,
-            role: 'OWNER' as const,
-            joinedAt: project.createdAt
-          },
-          ...project.members
-        ];
-        
-        return {
-          ...project,
-          members
-        };
-      });
-
+      const formattedProjects = projects.map(formatProject);
       res.json(formattedProjects);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Erreur lors de la récupération des projets:', error);
       res.status(500).json({ error: 'Erreur lors de la récupération des projets' });
     }
   },
 
-  // Créer un nouveau projet avec transaction
+  // Créer un nouveau projet
   async createProject(req: Request, res: Response) {
     try {
       if (!req.user?.id) {
@@ -117,9 +187,9 @@ export const projectController = {
 
       const validatedData = createProjectSchema.parse(req.body);
       
-      const result = await prisma.$transaction(async (tx) => {
+      const project = await prisma.$transaction(async (tx) => {
         // Créer le projet
-        const project = await tx.project.create({
+        const newProject = await tx.project.create({
           data: {
             title: validatedData.title,
             description: validatedData.description,
@@ -129,107 +199,58 @@ export const projectController = {
           }
         });
 
-        // Ajouter les tags si fournis
+        // Gérer les tags si fournis
         if (validatedData.tags && validatedData.tags.length > 0) {
-          const uniqueTags = [...new Set(validatedData.tags)]; // Éliminer les doublons
+          const uniqueTags = [...new Set(validatedData.tags.map(tag => tag.toLowerCase()))];
           
           for (const tagName of uniqueTags) {
-            // Chercher ou créer le tag
             let tag = await tx.tag.findFirst({
               where: { 
-                name: tagName.toLowerCase(),
+                name: tagName,
                 category: 'user' 
               }
             });
 
             if (!tag) {
               tag = await tx.tag.create({
-                data: {
-                  name: tagName.toLowerCase(),
+                data: { 
+                  name: tagName,
                   category: 'user'
                 }
               });
             }
 
-            // Associer le tag au projet
             await tx.projectTag.create({
-              data: {
-                projectId: project.id,
-                tagId: tag.id
+              data: { 
+                projectId: newProject.id, 
+                tagId: tag.id 
               }
             });
           }
         }
 
-        // Récupérer le projet complet avec toutes les relations
-        const fullProject = await tx.project.findUnique({
-          where: { id: project.id },
-          include: {
-            tags: { 
-              include: { tag: true } 
-            },
-            owner: {
-              select: {
-                id: true,
-                email: true,
-                profile: {
-                  select: { firstName: true, lastName: true }
-                }
-              }
-            },
-            members: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    profile: {
-                      select: { firstName: true, lastName: true }
-                    }
-                  }
-                }
-              }
-            },
-            _count: {
-              select: {
-                transcriptions: true,
-                members: true
-              }
-            }
-          }
-        });
-
-        // Ajouter le propriétaire comme membre virtuel
-        if (fullProject) {
-          return {
-            ...fullProject,
-            members: [
-              {
-                userId: fullProject.owner.id,
-                user: fullProject.owner,
-                role: 'OWNER' as const,
-                joinedAt: fullProject.createdAt
-              },
-              ...fullProject.members
-            ]
-          };
-        }
-
-        return fullProject;
+        return newProject;
       });
 
-      res.status(201).json(result);
+      // Récupérer le projet complet
+      const fullProject = await prisma.project.findUnique({
+        where: { id: project.id },
+        select: fullProjectSelect
+      });
+
+      if (!fullProject) {
+        return res.status(500).json({ error: 'Erreur lors de la récupération du projet créé' });
+      }
+
+      res.status(201).json(formatProject(fullProject));
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           error: 'Données invalides', 
-          details: error.errors.map(e => ({
-            field: e.path.join('.'),
-            message: e.message
-          }))
+          details: error.flatten() 
         });
       }
-      console.error('Error creating project:', error);
+      console.error('Erreur lors de la création du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la création du projet' });
     }
   },
@@ -245,83 +266,23 @@ export const projectController = {
 
       const project = await prisma.project.findUnique({
         where: { id },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              profile: {
-                select: { firstName: true, lastName: true }
-              }
-            }
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  profile: {
-                    select: { firstName: true, lastName: true }
-                  }
-                }
-              }
-            }
-          },
-          tags: {
-            include: { tag: true }
-          },
-          transcriptions: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-            where: {
-              status: { not: 'DELETED' }
-            }
-          },
-          _count: {
-            select: {
-              transcriptions: true,
-              members: true
-            }
-          }
-        }
+        select: fullProjectSelect,
       });
 
       if (!project) {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      // Vérifier les permissions
-      const isOwner = project.ownerId === req.user!.id;
-      const isMember = project.members.some(m => m.userId === req.user!.id);
+      // Vérifier les permissions d'accès
+      const { allowed } = await checkProjectPermissions(id, req.user.id);
       
-      if (project.visibility === 'PRIVATE' && !isOwner && !isMember) {
+      if (!allowed) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      if (project.visibility === 'TEAM' && !isOwner && !isMember) {
-        return res.status(403).json({ error: 'Accès réservé aux membres du projet' });
-      }
-
-      // Pour PUBLIC, tout le monde peut voir
-
-      // Ajouter le propriétaire comme membre virtuel
-      const projectWithOwnerAsMember = {
-        ...project,
-        members: [
-          {
-            userId: project.owner.id,
-            user: project.owner,
-            role: 'OWNER' as const,
-            joinedAt: project.createdAt
-          },
-          ...project.members
-        ]
-      };
-
-      res.json(projectWithOwnerAsMember);
+      res.json(formatProject(project));
     } catch (error) {
-      console.error('Error fetching project:', error);
+      console.error('Erreur lors de la récupération du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la récupération du projet' });
     }
   },
@@ -336,77 +297,35 @@ export const projectController = {
       const { id } = req.params;
       const validatedData = updateProjectSchema.parse(req.body);
 
-      // Vérifier que le projet existe et que l'utilisateur est propriétaire
+      // Vérifier que l'utilisateur est propriétaire
       const project = await prisma.project.findUnique({
         where: { id },
-        select: {
-          id: true,
-          ownerId: true,
-        }
+        select: { ownerId: true }
       });
 
       if (!project) {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      const isOwner = project.ownerId === req.user!.id;
-      if (!isOwner) {
+      if (project.ownerId !== req.user.id) {
         return res.status(403).json({ error: 'Seul le propriétaire peut modifier ce projet' });
       }
 
       const updatedProject = await prisma.project.update({
         where: { id },
         data: validatedData,
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              profile: {
-                select: { firstName: true, lastName: true }
-              }
-            }
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  profile: {
-                    select: { firstName: true, lastName: true }
-                  }
-                }
-              }
-            }
-          },
-          tags: { include: { tag: true } }
-        }
+        select: fullProjectSelect
       });
 
-      // Ajouter le propriétaire comme membre virtuel
-      const projectWithOwnerAsMember = {
-        ...updatedProject,
-        members: [
-          {
-            userId: updatedProject.owner.id,
-            user: updatedProject.owner,
-            role: 'OWNER' as const,
-            joinedAt: updatedProject.createdAt
-          },
-          ...updatedProject.members
-        ]
-      };
-
-      res.json(projectWithOwnerAsMember);
+      res.json(formatProject(updatedProject));
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           error: 'Données invalides', 
-          details: error.errors 
+          details: error.flatten() 
         });
       }
-      console.error('Error updating project:', error);
+      console.error('Erreur lors de la mise à jour du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la mise à jour du projet' });
     }
   },
@@ -430,31 +349,19 @@ export const projectController = {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      if (project.ownerId !== req.user!.id) {
+      if (project.ownerId !== req.user.id) {
         return res.status(403).json({ error: 'Seul le propriétaire peut supprimer ce projet' });
       }
 
-      // Utiliser une transaction pour supprimer toutes les relations
-      await prisma.$transaction(async (tx) => {
-        // Supprimer les tags associés
-        await tx.projectTag.deleteMany({
-          where: { projectId: id }
-        });
-        
-        // Supprimer les membres
-        await tx.projectMember.deleteMany({
-          where: { projectId: id }
-        });
-        
-        // Supprimer le projet
-        await tx.project.delete({
-          where: { id }
-        });
+      await prisma.project.delete({ 
+        where: { id } 
       });
 
-      res.json({ message: 'Projet supprimé avec succès' });
+      res.status(200).json({ 
+        message: 'Projet supprimé avec succès' 
+      });
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error('Erreur lors de la suppression du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la suppression du projet' });
     }
   },
@@ -466,17 +373,17 @@ export const projectController = {
         return res.status(401).json({ error: 'Non authentifié' });
       }
 
-      const { id } = req.params;
-      const validatedData = addMemberSchema.parse(req.body);
+      const { id: projectId } = req.params;
+      const { email, role } = addMemberSchema.parse(req.body);
 
-      // Vérifier que le projet existe
+      // Vérifier les permissions (seul le propriétaire peut ajouter des membres)
       const project = await prisma.project.findUnique({
-        where: { id },
-        include: { 
-          owner: {
-            select: { id: true }
-          },
-          members: true
+        where: { id: projectId },
+        select: { 
+          ownerId: true,
+          members: { 
+            select: { userId: true } 
+          }
         }
       });
 
@@ -484,99 +391,75 @@ export const projectController = {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      // Vérifier les permissions : seul le propriétaire ou un EDITOR peut ajouter des membres
-      const isOwner = project.ownerId === req.user!.id;
-      const userMember = project.members.find(m => m.userId === req.user!.id);
-      const userRole = userMember?.role;
-      
-      if (!isOwner && (!userMember || userRole !== 'EDITOR')) {
-        return res.status(403).json({ error: 'Vous n\'avez pas la permission d\'ajouter des membres' });
+      if (project.ownerId !== req.user.id) {
+        return res.status(403).json({ 
+          error: 'Seul le propriétaire peut ajouter des membres' 
+        });
       }
 
       // Trouver l'utilisateur à ajouter
       const userToAdd = await prisma.user.findUnique({
-        where: { email: validatedData.email.toLowerCase() },
-        select: { 
-          id: true,
-          email: true,
-          profile: {
-            select: { firstName: true, lastName: true }
-          }
-        }
+        where: { email: email.toLowerCase() },
+        select: { id: true }
       });
 
       if (!userToAdd) {
         return res.status(404).json({ error: 'Utilisateur non trouvé' });
       }
 
-      // Vérifier si l'utilisateur est déjà membre
-      const isAlreadyMember = project.members.some(m => m.userId === userToAdd.id);
-      if (isAlreadyMember) {
-        return res.status(400).json({ error: 'Cet utilisateur est déjà membre du projet' });
+      // Vérifier si l'utilisateur est déjà membre ou propriétaire
+      if (userToAdd.id === project.ownerId) {
+        return res.status(400).json({ 
+          error: 'Le propriétaire est déjà membre du projet' 
+        });
       }
 
-      // Vérifier si l'utilisateur est le propriétaire
-      if (userToAdd.id === project.owner.id) {
-        return res.status(400).json({ error: 'Le propriétaire est déjà membre du projet' });
+      const isAlreadyMember = project.members.some(m => m.userId === userToAdd.id);
+      if (isAlreadyMember) {
+        return res.status(400).json({ 
+          error: 'Cet utilisateur est déjà membre du projet' 
+        });
       }
 
       // Ajouter le membre
-      const updatedProject = await prisma.project.update({
-        where: { id },
-        data: {
-          members: {
-            create: {
-              userId: userToAdd.id,
-              role: validatedData.role
-            }
-          }
-        },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              profile: {
-                select: { firstName: true, lastName: true }
-              }
-            }
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  profile: {
-                    select: { firstName: true, lastName: true }
-                  }
-                }
-              }
-            }
-          }
+      await prisma.projectMember.create({
+        data: { 
+          projectId, 
+          userId: userToAdd.id, 
+          role 
         }
       });
 
-      // Ajouter le propriétaire comme membre virtuel
-      const projectWithOwnerAsMember = {
-        ...updatedProject,
-        members: [
-          {
-            userId: updatedProject.owner.id,
-            user: updatedProject.owner,
-            role: 'OWNER' as const,
-            joinedAt: updatedProject.createdAt
-          },
-          ...updatedProject.members
-        ]
-      };
+      // Récupérer le projet mis à jour
+      const updatedProject = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: fullProjectSelect
+      });
 
-      res.json(projectWithOwnerAsMember);
+      if (!updatedProject) {
+        return res.status(500).json({ 
+          error: 'Erreur lors de la récupération du projet mis à jour' 
+        });
+      }
+
+      res.status(201).json(formatProject(updatedProject));
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Données invalides', details: error.errors });
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.flatten() 
+        });
       }
-      console.error('Error adding member:', error);
+      
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          return res.status(400).json({ 
+            error: 'Cet utilisateur est déjà membre du projet' 
+          });
+        }
+      }
+
+      console.error('Erreur lors de l\'ajout du membre:', error);
       res.status(500).json({ error: 'Erreur lors de l\'ajout du membre' });
     }
   },
@@ -588,16 +471,17 @@ export const projectController = {
         return res.status(401).json({ error: 'Non authentifié' });
       }
 
-      const { id, userId } = req.params;
+      const { id: projectId, userId: memberId } = req.params;
 
       // Vérifier que le projet existe
       const project = await prisma.project.findUnique({
-        where: { id },
-        include: { 
-          owner: {
-            select: { id: true }
-          },
-          members: true
+        where: { id: projectId },
+        select: { 
+          ownerId: true,
+          members: { 
+            where: { userId: memberId },
+            select: { userId: true }
+          }
         }
       });
 
@@ -605,42 +489,55 @@ export const projectController = {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      const isOwner = project.ownerId === req.user!.id;
-      const userMember = project.members.find(m => m.userId === req.user!.id);
-      
-      // Seul le propriétaire peut retirer des membres (sauf pour se retirer soi-même)
-      if (!isOwner && userId !== req.user!.id) {
-        return res.status(403).json({ error: 'Seul le propriétaire peut retirer des membres' });
+      // Vérifier les permissions
+      const isOwner = project.ownerId === req.user.id;
+      const isSelfRemoval = req.user.id === memberId;
+
+      // Le propriétaire ne peut pas être retiré
+      if (memberId === project.ownerId) {
+        return res.status(400).json({ 
+          error: 'Le propriétaire ne peut pas être retiré du projet' 
+        });
       }
 
-      // Le propriétaire ne peut pas se retirer lui-même
-      if (isOwner && userId === req.user!.id) {
-        return res.status(400).json({ error: 'Le propriétaire ne peut pas quitter son propre projet' });
-      }
-
-      // Vérifier si le membre à retirer est le propriétaire
-      if (userId === project.owner.id) {
-        return res.status(400).json({ error: 'Impossible de retirer le propriétaire du projet' });
+      // Seul le propriétaire peut retirer des autres membres
+      if (!isOwner && !isSelfRemoval) {
+        return res.status(403).json({ 
+          error: 'Vous n\'avez pas la permission de retirer ce membre' 
+        });
       }
 
       // Vérifier si le membre existe
-      const memberExists = project.members.some(m => m.userId === userId);
+      const memberExists = project.members.length > 0;
       if (!memberExists) {
-        return res.status(404).json({ error: 'Membre non trouvé dans ce projet' });
+        return res.status(404).json({ 
+          error: 'Membre non trouvé dans ce projet' 
+        });
       }
 
+      // Supprimer le membre
       await prisma.projectMember.delete({
         where: {
-          projectId_userId: {
-            projectId: id,
-            userId
+          projectId_userId: { 
+            projectId, 
+            userId: memberId 
           }
         }
       });
 
-      res.json({ message: 'Membre retiré avec succès' });
+      res.status(200).json({ 
+        message: 'Membre retiré avec succès' 
+      });
     } catch (error) {
-      console.error('Error removing member:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          return res.status(404).json({ 
+            error: 'Membre non trouvé dans ce projet' 
+          });
+        }
+      }
+
+      console.error('Erreur lors du retrait du membre:', error);
       res.status(500).json({ error: 'Erreur lors du retrait du membre' });
     }
   },
@@ -652,62 +549,54 @@ export const projectController = {
         return res.status(401).json({ error: 'Non authentifié' });
       }
 
-      const { id, userId } = req.params;
-      const validatedData = updateMemberRoleSchema.parse(req.body);
+      const { id: projectId, userId: memberId } = req.params;
+      const { role } = updateMemberRoleSchema.parse(req.body);
 
       // Vérifier que l'utilisateur est propriétaire
       const project = await prisma.project.findUnique({
-        where: { id },
-        select: { 
-          ownerId: true,
-          owner: {
-            select: { id: true }
-          }
-        }
+        where: { id: projectId },
+        select: { ownerId: true }
       });
 
       if (!project) {
         return res.status(404).json({ error: 'Projet non trouvé' });
       }
 
-      if (project.ownerId !== req.user!.id) {
-        return res.status(403).json({ error: 'Seul le propriétaire peut modifier les rôles' });
+      if (project.ownerId !== req.user.id) {
+        return res.status(403).json({ 
+          error: 'Seul le propriétaire peut modifier les rôles' 
+        });
       }
 
       // Ne pas modifier le rôle du propriétaire
-      if (userId === project.owner.id) {
-        return res.status(400).json({ error: 'Impossible de modifier le rôle du propriétaire' });
+      if (memberId === project.ownerId) {
+        return res.status(400).json({ 
+          error: 'Impossible de modifier le rôle du propriétaire' 
+        });
       }
 
-      // Vérifier si le membre existe
-      const existingMember = await prisma.projectMember.findUnique({
-        where: {
-          projectId_userId: {
-            projectId: id,
-            userId
-          }
-        }
-      });
-
-      if (!existingMember) {
-        return res.status(404).json({ error: 'Membre non trouvé' });
-      }
-
+      // Mettre à jour le rôle
       const updatedMember = await prisma.projectMember.update({
         where: {
-          projectId_userId: {
-            projectId: id,
-            userId
+          projectId_userId: { 
+            projectId, 
+            userId: memberId 
           }
         },
-        data: { role: validatedData.role },
-        include: {
+        data: { role },
+        select: {
+          role: true,
+          joinedAt: true,
           user: {
             select: {
               id: true,
               email: true,
               profile: {
-                select: { firstName: true, lastName: true }
+                select: { 
+                  firstName: true, 
+                  lastName: true, 
+                  avatar: true 
+                }
               }
             }
           }
@@ -717,9 +606,21 @@ export const projectController = {
       res.json(updatedMember);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Données invalides', details: error.errors });
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.flatten() 
+        });
       }
-      console.error('Error updating member role:', error);
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          return res.status(404).json({ 
+            error: 'Membre non trouvé' 
+          });
+        }
+      }
+
+      console.error('Erreur lors de la mise à jour du rôle:', error);
       res.status(500).json({ error: 'Erreur lors de la mise à jour du rôle' });
     }
   },
@@ -731,90 +632,86 @@ export const projectController = {
         return res.status(401).json({ error: 'Non authentifié' });
       }
 
-      const { id } = req.params;
-      const validatedData = tagSchema.parse(req.body);
+      const { id: projectId } = req.params;
+      const { tagName } = tagSchema.parse(req.body);
 
       // Vérifier les permissions
-      const project = await prisma.project.findUnique({
-        where: { id },
-        include: { 
-          owner: {
-            select: { id: true }
-          },
-          members: {
-            where: {
-              userId: req.user!.id
-            }
-          }
-        }
-      });
-
-      if (!project) {
-        return res.status(404).json({ error: 'Projet non trouvé' });
-      }
-
-      const isOwner = project.ownerId === req.user!.id;
-      const userMember = project.members.find(m => m.userId === req.user!.id);
-      const userRole = userMember?.role;
+      const { allowed, isEditor } = await checkProjectPermissions(projectId, req.user.id);
       
-      if (!isOwner && (!userMember || userRole !== 'EDITOR')) {
-        return res.status(403).json({ error: 'Vous n\'avez pas la permission d\'ajouter des tags' });
+      if (!allowed || !isEditor) {
+        return res.status(403).json({ 
+          error: 'Vous n\'avez pas la permission d\'ajouter des tags' 
+        });
       }
 
       // Limiter le nombre de tags
       const tagCount = await prisma.projectTag.count({
-        where: { projectId: id }
+        where: { projectId }
       });
 
       if (tagCount >= 10) {
-        return res.status(400).json({ error: 'Maximum 10 tags autorisés par projet' });
-      }
-
-      // Chercher ou créer le tag (en minuscules pour éviter les doublons)
-      const tagName = validatedData.tagName.toLowerCase();
-      
-      let tag = await prisma.tag.findFirst({
-        where: { name: tagName, category: 'user' }
-      });
-
-      if (!tag) {
-        tag = await prisma.tag.create({
-          data: {
-            name: tagName,
-            category: 'user'
-          }
+        return res.status(400).json({ 
+          error: 'Maximum 10 tags autorisés par projet' 
         });
       }
 
-      // Vérifier si le tag est déjà associé au projet
-      const existingProjectTag = await prisma.projectTag.findUnique({
-        where: {
-          projectId_tagId: {
-            projectId: id,
-            tagId: tag.id
-          }
+      // Chercher ou créer le tag
+      const tagNameLower = tagName.toLowerCase();
+      const tag = await prisma.tag.upsert({
+        where: { 
+          name_category: { 
+            name: tagNameLower, 
+            category: 'user' 
+          } 
+        },
+        update: {},
+        create: { 
+          name: tagNameLower, 
+          category: 'user' 
         }
       });
 
-      if (existingProjectTag) {
-        return res.status(400).json({ error: 'Ce tag est déjà associé au projet' });
-      }
-
       // Associer le tag au projet
-      const projectTag = await prisma.projectTag.create({
-        data: {
-          projectId: id,
-          tagId: tag.id
-        },
-        include: { tag: true }
-      });
+      try {
+        await prisma.projectTag.create({
+          data: { 
+            projectId, 
+            tagId: tag.id 
+          },
+        });
 
-      res.json(projectTag);
+        // Récupérer le projet mis à jour
+        const updatedProject = await prisma.project.findUnique({
+          where: { id: projectId },
+          select: fullProjectSelect
+        });
+
+        if (!updatedProject) {
+          return res.status(500).json({ 
+            error: 'Erreur lors de la récupération du projet mis à jour' 
+          });
+        }
+
+        res.status(201).json(formatProject(updatedProject));
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === 'P2002') {
+            return res.status(400).json({ 
+              error: 'Ce tag est déjà associé au projet' 
+            });
+          }
+        }
+        throw error;
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Données invalides', details: error.errors });
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.flatten() 
+        });
       }
-      console.error('Error adding tag:', error);
+
+      console.error('Erreur lors de l\'ajout du tag:', error);
       res.status(500).json({ error: 'Erreur lors de l\'ajout du tag' });
     }
   },
@@ -826,61 +723,40 @@ export const projectController = {
         return res.status(401).json({ error: 'Non authentifié' });
       }
 
-      const { id, tagId } = req.params;
+      const { id: projectId, tagId } = req.params;
 
       // Vérifier les permissions
-      const project = await prisma.project.findUnique({
-        where: { id },
-        include: { 
-          owner: {
-            select: { id: true }
-          },
-          members: {
-            where: {
-              userId: req.user!.id
-            }
-          }
-        }
-      });
-
-      if (!project) {
-        return res.status(404).json({ error: 'Projet non trouvé' });
-      }
-
-      const isOwner = project.ownerId === req.user!.id;
-      const userMember = project.members.find(m => m.userId === req.user!.id);
-      const userRole = userMember?.role;
+      const { allowed, isEditor } = await checkProjectPermissions(projectId, req.user.id);
       
-      if (!isOwner && (!userMember || userRole !== 'EDITOR')) {
-        return res.status(403).json({ error: 'Vous n\'avez pas la permission de retirer des tags' });
+      if (!allowed || !isEditor) {
+        return res.status(403).json({ 
+          error: 'Vous n\'avez pas la permission de retirer des tags' 
+        });
       }
 
-      // Vérifier si le tag est associé au projet
-      const projectTag = await prisma.projectTag.findUnique({
-        where: {
-          projectId_tagId: {
-            projectId: id,
-            tagId
-          }
-        }
-      });
-
-      if (!projectTag) {
-        return res.status(404).json({ error: 'Tag non trouvé dans ce projet' });
-      }
-
+      // Supprimer l'association
       await prisma.projectTag.delete({
         where: {
-          projectId_tagId: {
-            projectId: id,
-            tagId
+          projectId_tagId: { 
+            projectId, 
+            tagId 
           }
         }
       });
 
-      res.json({ message: 'Tag retiré avec succès' });
+      res.status(200).json({ 
+        message: 'Tag retiré avec succès' 
+      });
     } catch (error) {
-      console.error('Error removing tag:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          return res.status(404).json({ 
+            error: 'Tag non trouvé dans ce projet' 
+          });
+        }
+      }
+
+      console.error('Erreur lors du retrait du tag:', error);
       res.status(500).json({ error: 'Erreur lors du retrait du tag' });
     }
   }

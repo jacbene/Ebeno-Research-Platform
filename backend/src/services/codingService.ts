@@ -699,7 +699,7 @@ class CodingService {
     
     let currentParentId: string | null = potentialParentId;
     while (currentParentId) {
-      const parent = await prisma.code.findFirst({
+      const parent: { parentId: string | null } | null = await prisma.code.findFirst({
         where: { id: currentParentId },
         select: { parentId: true },
       });
