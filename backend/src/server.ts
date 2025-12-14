@@ -11,6 +11,8 @@ import authRoutes from './routes/authRoutes';
 import projectRoutes from './routes/projectRoutes';
 import deepseekRoutes from './routes/deepseekRoutes';
 import transcriptionRoutes from './routes/transcriptionRoute';
+import codingRoutes from './routes/codingRoutes';
+import userRoutes from './routes/userRoutes'; // Ajout de la nouvelle route
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/deepseek', deepseekRoutes);
 app.use('/api/transcriptions', transcriptionRoutes);
+app.use('/api/coding', codingRoutes);
+app.use('/api/users', userRoutes); // Utilisation de la nouvelle route
 
 // Routes de santé
 app.get('/api/health', (req, res) => {

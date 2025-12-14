@@ -1,0 +1,68 @@
+/* frontend/src/pages/SettingsPage.css */
+
+.settings-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.settings-page h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.settings-section {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #555;
+}
+
+.settings-section p {
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.settings-section button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.settings-section button:hover {
+  background-color: #0056b3;
+}
+
+.settings-section button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.danger-zone {
+  border-left: 4px solid #dc3545;
+}
+
+.danger-zone .danger-btn {
+  background-color: #dc3545;
+}
+
+.danger-zone .danger-btn:hover {
+  background-color: #c82333;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}

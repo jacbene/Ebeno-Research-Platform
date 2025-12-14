@@ -8,10 +8,13 @@
   packages = [
     pkgs.nodejs_18
     pkgs.nodePackages.nodemon
+    pkgs.docker-compose
   ];
 
   # Sets environment variables in the workspace
-  env = {};
+  env = {
+    NPM_CONFIG_PREFIX = "/home/user/.npm";
+  };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
@@ -21,12 +24,12 @@
     workspace = {
       # Runs when the workspace is first created
       onCreate = {
-        install-dependencies = "npm install";
+        install-dependencies = "npm run setup";
       };
       # Runs when the workspace is started
       onStart = {
-        # start-database = "npm run docker:up";
-        # run-migrations = "npm run migrate:dev";
+        start-database = "npm run docker:up";
+        run-migrations = "npm run db:migrate";
       };
     };
   };

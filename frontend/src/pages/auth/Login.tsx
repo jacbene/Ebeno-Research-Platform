@@ -166,8 +166,15 @@ const Login: React.FC = () => {
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center">
-              En vous connectant, vous acceptez nos conditions d'utilisation
-              et notre politique de confidentialité.
+              En vous connectant, vous acceptez nos{' '}
+              <Link to="/terms" className="font-medium text-blue-600 hover:text-blue-500">
+                conditions d'utilisation
+              </Link>{' '}
+              et notre{' '}
+              <Link to="/privacy" className="font-medium text-blue-600 hover:text-blue-500">
+                politique de confidentialité
+              </Link>
+              .
             </p>
           </div>
         </div>
