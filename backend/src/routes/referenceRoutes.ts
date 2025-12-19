@@ -1,0 +1,37 @@
+// backend/routes/referenceRoutes.ts
+// URL: /api/references/*
+import express from 'express';
+import ReferenceController from '../controllers/referenceController';
+import { authMiddleware } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
+import {
+  createReferenceSchema,
+  updateReferenceSchema,
+  importBibTeXSchema
+} from '../validators/reference.validator';
+
+const router = express.Router();
+
+// Appliquer l'authentification à toutes les routes
+router.use(authMiddleware);
+
+// Routes CRUD
+router.post('/', validateRequest(createReferenceSchema), ReferenceController.createReference);
+router.get('/', ReferenceController.searchReferences);
+router.get('/:id', ReferenceController.getReferenceById);
+router.put('/:id', validateRequest(updateReferenceSchema), ReferenceController.updateReference);
+router.delete('/:id', ReferenceController.deleteReference);
+
+// Import/Export
+router.post('/import/:projectId', validateRequest(importBibTeXSchema), ReferenceController.importReferences);
+
+// Sous-ressources
+router.get('/:id/attachments', async (req, res) => {
+  // Gérer les pièces jointes
+});
+
+router.post('/:id/attachments', async (req, res) => {
+  // Ajouter une pièce jointe
+});
+
+export default router;

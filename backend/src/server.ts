@@ -3,8 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
+import visualizationRoutes from './routes/visualizationRoutes';
 import memoRoutes from './routes/memoRoutes';
-
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -35,7 +35,8 @@ app.use('/api/deepseek', deepseekRoutes);
 app.use('/api/transcriptions', transcriptionRoutes);
 app.use('/api/coding', codingRoutes);
 app.use('/api/memos', memoRoutes);
-app.use('/api/users', userRoutes); // Utilisation de la nouvelle route
+app.use('/api/users', userRoutes);
+app.use('/api/visualizations', visualizationRoutes);
 
 // Routes de santé
 app.get('/api/health', (req, res) => {

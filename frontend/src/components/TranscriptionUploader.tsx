@@ -16,13 +16,21 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     
     if (selectedFile) {
-      // Vérifier le type de fichier
+      // Reset state for new file
+      setFile(null);
+      setError(null);
+      setUploading(false);
+      setProgress(0);
+      setTranscriptionId(null);
+      setIsCompleted(false);
+
       const allowedTypes = [
         'audio/mpeg',
         'audio/wav',
@@ -36,14 +44,12 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         return;
       }
 
-      // Vérifier la taille (100MB max)
       if (selectedFile.size > 100 * 1024 * 1024) {
         setError('Fichier trop volumineux (max 100MB)');
         return;
       }
 
       setFile(selectedFile);
-      setError(null);
     }
   };
 
@@ -52,6 +58,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
 
     setUploading(true);
     setError(null);
+    setIsCompleted(false);
 
     try {
       const response = await transcriptionApi.uploadAudio(file, projectId);
@@ -59,24 +66,18 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
       if (response.data.success) {
         const { transcriptionId } = response.data.data;
         setTranscriptionId(transcriptionId);
-        
-        // Démarrer le suivi de progression
         trackProgress(transcriptionId);
-        
-        if (onUploadComplete) {
-          onUploadComplete(transcriptionId);
-        }
       } else {
         setError(response.data.message || 'Erreur lors de l\'upload');
+        setUploading(false);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur de connexion au serveur');
-    } finally {
       setUploading(false);
     }
   };
 
-  const trackProgress = async (id: string) => {
+  const trackProgress = (id: string) => {
     const interval = setInterval(async () => {
       try {
         const response = await transcriptionApi.getProgress(id);
@@ -86,17 +87,31 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
 
         if (status === 'COMPLETED' || status === 'FAILED') {
           clearInterval(interval);
-          
+          setUploading(false);
+
           if (status === 'COMPLETED') {
-            // Recharger la page ou mettre à jour l'interface
-            window.location.reload();
+            setIsCompleted(true);
+            if (onUploadComplete) {
+              onUploadComplete(id);
+            }
+            // Reset after a delay to show completion message
+            setTimeout(() => {
+              setFile(null);
+              setIsCompleted(false);
+              setProgress(0);
+              if(fileInputRef.current) fileInputRef.current.value = '';
+            }, 5000);
+          } else {
+            setError('La transcription a échoué. Veuillez réessayer.');
           }
         }
       } catch (error) {
         console.error('Error tracking progress:', error);
+        setError('Erreur lors du suivi de la transcription.');
         clearInterval(interval);
+        setUploading(false);
       }
-    }, 2000); // Vérifier toutes les 2 secondes
+    }, 2000);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -106,16 +121,29 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+  
+  const resetState = () => {
+    setFile(null);
+    setUploading(false);
+    setProgress(0);
+    setError(null);
+    setTranscriptionId(null);
+    setIsCompleted(false);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  }
 
   return (
     <div className="transcription-uploader">
-      <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+      <div className="upload-area" onClick={() => !uploading && !isCompleted && fileInputRef.current?.click()}>
         <input
           ref={fileInputRef}
           type="file"
           accept="audio/*"
           onChange={handleFileChange}
           style={{ display: 'none' }}
+          disabled={uploading || isCompleted}
         />
         
         {file ? (
@@ -129,11 +157,9 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
               className="clear-button"
               onClick={(e) => {
                 e.stopPropagation();
-                setFile(null);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = '';
-                }
+                resetState();
               }}
+              disabled={uploading || isCompleted}
             >
               ×
             </button>
@@ -159,34 +185,42 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         </div>
       )}
 
-      {file && !uploading && (
+      {file && !uploading && !isCompleted && (
         <button 
           className="upload-button"
           onClick={handleUpload}
-          disabled={!file}
         >
           Démarrer la transcription
         </button>
       )}
 
-      {uploading && (
+      {(uploading || isCompleted) && (
         <div className="progress-container">
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="progress-text">
-            Transcription en cours... {progress}%
-            {transcriptionId && (
-              <span className="transcription-id">
-                ID: {transcriptionId.substring(0, 8)}...
-              </span>
+            {isCompleted ? (
+                <div className="completion-message">
+                    ✅ Transcription terminée avec succès !
+                </div>
+            ) : (
+                <>
+                    <div className="progress-bar">
+                        <div 
+                        className="progress-fill" 
+                        style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <div className="progress-text">
+                        Transcription en cours... {progress}%
+                        {transcriptionId && (
+                        <span className="transcription-id">
+                            ID: {transcriptionId.substring(0, 8)}...
+                        </span>
+                        )}
+                    </div>
+                </>
             )}
-          </div>
         </div>
       )}
+
     </div>
   );
 };

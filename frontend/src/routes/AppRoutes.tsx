@@ -1,13 +1,10 @@
-// routes/AppRoutes.tsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { useTranslation } from 'react-i18next'; // Importation du hook
+import { useTranslation } from 'react-i18next';
 
-// Layouts
 import MainLayout from '../components/layout/Layout';
 import AuthLayout from '../components/layout/AuthLayout';
 
-// Pages
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
@@ -20,14 +17,14 @@ import AnalysisPage from '../pages/AnalysisPage';
 import DocumentsPage from '../pages/DocumentsPage';
 import ProfilePage from '../pages/ProfilePage';
 import QualitativeAnalysisPage from '../pages/QualitativeAnalysisPage';
+import TermsPage from '../pages/TermsPage';
+import PrivacyPage from '../pages/PrivacyPage';
 
-// Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
-  const { t } = useTranslation(); // Initialisation du hook
+  const { t } = useTranslation();
   
   if (isLoading) {
-    // Utilisation de la clé de traduction
     return <div className="flex items-center justify-center h-screen">{t('loading')}</div>;
   }
   
@@ -41,14 +38,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public Routes */}
       <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
       
-      {/* Auth Routes */}
       <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
       <Route path="/register" element={<AuthLayout><RegisterPage /></AuthLayout>} />
+      <Route path="/terms" element={<AuthLayout><TermsPage /></AuthLayout>} />
+      <Route path="/privacy" element={<AuthLayout><PrivacyPage /></AuthLayout>} />
       
-      {/* Protected Routes */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <MainLayout><DashboardPage /></MainLayout>
@@ -99,7 +95,6 @@ const AppRoutes = () => {
 
 <Route path="/projects/:projectId/analysis" element={<QualitativeAnalysisPage />}/>
       
-      {/* 404 Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
