@@ -303,3 +303,45 @@ model Memo {
   @@index([userId])
 }
 
+// prisma/schema.prisma (extensions pour Phase 2)
+// backend/prisma/schema.prisma (extrait mis à jour)
+// Ajouter les nouveaux modèles aux modèles existants
+
+// ... modèles existants ...
+
+// Modèles Phase 2
+model Reference {
+  // ... champs de Reference ...
+}
+
+model Folder {
+  // ... champs de Folder ...
+}
+
+model Attachment {
+  // ... champs de Attachment ...
+}
+
+model Survey {
+  // ... champs de Survey ...
+}
+
+model Question {
+  // ... champs de Question ...
+}
+
+model SurveyResponse {
+  // ... champs de SurveyResponse ...
+}
+
+model Answer {
+  // ... champs de Answer ...
+}
+
+model FieldNote {
+  // ... champs de FieldNote ...
+}
+
+model FieldMedia {
+  // ... champs de FieldMedia ...
+}

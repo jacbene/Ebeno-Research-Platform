@@ -7,6 +7,8 @@ import ChatPage from './pages/ChatPage'; // Nouvelle page pour le chat
 import PrivateRoute from './components/PrivateRoute';
 import SettingsPage from './pages/SettingsPage';
 import MemoPage from './pages/MemoPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import './App.css';
 
 function App() {
@@ -16,7 +18,9 @@ function App() {
         {/* Routes publiques */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+
         {/* Routes protégées */}
         <Route path="/" element={<PrivateRoute />}>
           <Route index element={<DashboardPage />} />
@@ -26,7 +30,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/memos/:memoId" element={<MemoPage />} />
         </Route>
-        
+
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,5 +1,7 @@
 {
-  "firebase_hosting": {},
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://ebeno-research-32063955-31468.web.app"
+  },
   "cloud_run_deploy": {},
   "google_maps_platform": {},
   "secrets_manager": {}

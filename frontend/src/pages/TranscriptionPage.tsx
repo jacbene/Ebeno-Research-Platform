@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TranscriptionUploader from '../components/TranscriptionUploader';
 import { transcriptionApi } from '../services/transcriptionApi';
 import './TranscriptionPage.css';
@@ -19,7 +19,7 @@ const TranscriptionPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadTranscriptions = async (pageNum = 1) => {
+  const loadTranscriptions = useCallback(async (pageNum = 1) => {
     try {
       setLoading(true);
       const response = await transcriptionApi.getUserTranscriptions(pageNum, 10);
@@ -33,27 +33,28 @@ const TranscriptionPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadTranscriptions(page);
-  }, [page]);
+  }, [page, loadTranscriptions]);
 
-  const handleUploadComplete = () => {
-    // Recharger la liste après un upload réussi
-    setTimeout(() => {
-      loadTranscriptions(page);
-    }, 2000);
-  };
+  const handleUploadComplete = useCallback(() => {
+    // Refresh the list after a successful upload
+    loadTranscriptions(page);
+  }, [loadTranscriptions, page]);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette transcription ?')) {
       try {
+        // Optimistic deletion
+        setTranscriptions(prev => prev.filter(t => t.id !== id));
         await transcriptionApi.deleteTranscription(id);
-        loadTranscriptions(page);
       } catch (error) {
         console.error('Error deleting transcription:', error);
         alert('Erreur lors de la suppression');
+        // Re-fetch if deletion failed
+        loadTranscriptions(page);
       }
     }
   };
@@ -71,7 +72,7 @@ const TranscriptionPage: React.FC = () => {
   const formatDuration = (seconds?: number) => {
     if (!seconds) return 'N/A';
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const remainingSeconds = Math.round(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
@@ -119,8 +120,8 @@ const TranscriptionPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="transcriptions-table">
-              <table>
+            <div className="transcriptions-table-container">
+              <table className="transcriptions-table">
                 <thead>
                   <tr>
                     <th>Nom du fichier</th>

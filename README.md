@@ -1,8 +1,8 @@
 # Plateforme de Recherche Ebeno
 
-Plateforme de recherche collaborative conçue pour les Sciences Humaines et Sociales (SHS). Ce projet est une application web monorepo avec un backend s'appuyant sur Node.js/Express et un frontend en React, entièrement développé en TypeScript.
+Plateforme de recherche collaborative conçue pour les Sciences Humaines et Sociales (SHS). Ce projet est une application web monorepo avec un backend s'appuyant sur Node.js/Express et un frontend en React développé en TypeScript.
 
-*Dernière mise à jour : 26 Octobre 2023*
+*Dernière mise à jour : 19 December 2025*
 
 ## 🚀 Nouveautés
 
@@ -52,6 +52,12 @@ Le projet est divisé en deux packages principaux :
 *   **Analyse Qualitative :** Interface dédiée à la création et à la gestion des codes.
 *   **Annotation de Texte :** Outils de surlignage et d'annotation de texte intégrés à la visionneuse de documents.
 *   **Dashboard de Codage :** Tableau de bord interactif pour le suivi des statistiques d'analyse.
+
+### **Gestion Bibliographique**:
+*   Importation de références depuis des fichiers BibTeX et Zotero.
+*   Gestion des métadonnées des références (titre, auteurs, année, etc.).
+*   Association des références aux projets de recherche.
+*   Recherche et filtrage avancés des références.
 
 ### **Déploiement**:
 *   Déploiement continu sur **Firebase Hosting**.
