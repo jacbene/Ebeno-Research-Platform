@@ -89,7 +89,7 @@ ebeno-research-platform/
 
 1.  **Cloner le dépôt :**
     ```bash
-    git clone [URL-du-depot]
+    git clone https://github.com/jacbene/Ebeno-Research-Platform.git
     cd ebeno-research-platform
     ```
 
