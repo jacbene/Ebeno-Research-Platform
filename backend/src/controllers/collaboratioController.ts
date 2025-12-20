@@ -1,7 +1,7 @@
 // backend/controllers/collaborationController.ts
 // URL: /api/collaboration
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../utils/prisma';
 import { Server as SocketIOServer } from 'socket.io';
 import { createCollaborationSessionSchema, updateCollaborationDocumentSchema } from '../validators/collaboration.validator';
 
@@ -159,6 +159,9 @@ export class CollaborationController {
   // Méthodes REST
   async createCollaborationSession(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
       const data = createCollaborationSessionSchema.parse(req.body);
       
@@ -172,10 +175,8 @@ export class CollaborationController {
         },
         include: {
           createdBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
+            include: {
+              profile: true
             }
           },
           participants: true
@@ -186,7 +187,7 @@ export class CollaborationController {
         success: true,
         data: session
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message
@@ -197,6 +198,9 @@ export class CollaborationController {
   async getCollaborationSession(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
       
       const session = await prisma.collaborationSession.findUnique({
@@ -216,7 +220,7 @@ export class CollaborationController {
       }
 
       // Vérifier les permissions
-      const isParticipant = session.participants.some(p => p.id === userId);
+      const isParticipant = session.participants.some((p: any) => p.id === userId);
       const isCreator = session.createdById === userId;
       
       if (!isParticipant && !isCreator) {
@@ -230,7 +234,7 @@ export class CollaborationController {
         success: true,
         data: session
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message

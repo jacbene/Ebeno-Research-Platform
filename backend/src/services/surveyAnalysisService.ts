@@ -1,6 +1,6 @@
 // backend/services/surveyAnalysisService.ts
 // Service d'analyse IA pour les enquêtes
-import { prisma } from '../lib/prisma';
+import { prisma } from '../prisma';
 import { deepseekAPI } from './deepseekService';
 
 export class SurveyAnalysisService {

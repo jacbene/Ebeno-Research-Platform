@@ -5,6 +5,14 @@ import dotenv from 'dotenv';
 import path from 'path';
 import visualizationRoutes from './routes/visualizationRoutes';
 import memoRoutes from './routes/memoRoutes';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+// Initialiser les gestionnaires de socket
+import { CollaborationSocketHandler } from './sockets/collaborationSocket';
+new CollaborationSocketHandler(io);
+import { swaggerSpec, swaggerUiOptions } from './swagger/swagger.config';
+import swaggerUi from 'swagger-ui-express';
+
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -37,6 +45,14 @@ app.use('/api/coding', codingRoutes);
 app.use('/api/memos', memoRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/visualizations', visualizationRoutes);
+// Documentation Swagger
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+
+// JSON brut de la spécification
+app.get('/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Routes de santé
 app.get('/api/health', (req, res) => {
@@ -78,6 +94,19 @@ app.use('*', (req, res) => {
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('🚨 Erreur serveur:', err.stack);
   
+  const httpServer = createServer(app);
+  const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true
+  }
+});
+
+// Démarrer le serveur
+httpServer.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
+
   const statusCode = err.statusCode || 500;
   const message = process.env.NODE_ENV === 'production' 
     ? 'Erreur interne du serveur' 

@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { z } from 'zod';
@@ -151,7 +150,7 @@ const checkProjectPermissions = async (projectId: string, userId: string) => {
   return { allowed, isOwner, isMember, isEditor, project };
 };
 
-export const projectController = {
+export class ProjectController {
   // Récupérer tous les projets de l'utilisateur
   async getUserProjects(req: Request, res: Response) {
     try {
@@ -176,7 +175,7 @@ export const projectController = {
       console.error('Erreur lors de la récupération des projets:', error);
       res.status(500).json({ error: 'Erreur lors de la récupération des projets' });
     }
-  },
+  }
 
   // Créer un nouveau projet
   async createProject(req: Request, res: Response) {
@@ -253,7 +252,7 @@ export const projectController = {
       console.error('Erreur lors de la création du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la création du projet' });
     }
-  },
+  }
 
   // Récupérer un projet par ID
   async getProjectById(req: Request, res: Response) {
@@ -285,7 +284,7 @@ export const projectController = {
       console.error('Erreur lors de la récupération du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la récupération du projet' });
     }
-  },
+  }
 
   // Mettre à jour un projet
   async updateProject(req: Request, res: Response) {
@@ -328,7 +327,7 @@ export const projectController = {
       console.error('Erreur lors de la mise à jour du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la mise à jour du projet' });
     }
-  },
+  }
 
   // Supprimer un projet
   async deleteProject(req: Request, res: Response) {
@@ -364,7 +363,7 @@ export const projectController = {
       console.error('Erreur lors de la suppression du projet:', error);
       res.status(500).json({ error: 'Erreur lors de la suppression du projet' });
     }
-  },
+  }
 
   // Ajouter un membre à un projet
   async addMember(req: Request, res: Response) {
@@ -462,7 +461,7 @@ export const projectController = {
       console.error('Erreur lors de l\'ajout du membre:', error);
       res.status(500).json({ error: 'Erreur lors de l\'ajout du membre' });
     }
-  },
+  }
 
   // Supprimer un membre d'un projet
   async removeMember(req: Request, res: Response) {
@@ -540,7 +539,7 @@ export const projectController = {
       console.error('Erreur lors du retrait du membre:', error);
       res.status(500).json({ error: 'Erreur lors du retrait du membre' });
     }
-  },
+  }
 
   // Mettre à jour le rôle d'un membre
   async updateMemberRole(req: Request, res: Response) {
@@ -623,7 +622,7 @@ export const projectController = {
       console.error('Erreur lors de la mise à jour du rôle:', error);
       res.status(500).json({ error: 'Erreur lors de la mise à jour du rôle' });
     }
-  },
+  }
 
   // Ajouter un tag à un projet
   async addTag(req: Request, res: Response) {
@@ -714,7 +713,7 @@ export const projectController = {
       console.error('Erreur lors de l\'ajout du tag:', error);
       res.status(500).json({ error: 'Erreur lors de l\'ajout du tag' });
     }
-  },
+  }
 
   // Supprimer un tag d'un projet
   async removeTag(req: Request, res: Response) {
@@ -760,4 +759,6 @@ export const projectController = {
       res.status(500).json({ error: 'Erreur lors du retrait du tag' });
     }
   }
-};
+}
+
+export default new ProjectController();

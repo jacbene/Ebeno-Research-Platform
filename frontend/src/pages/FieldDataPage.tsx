@@ -45,8 +45,8 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useAuth } from '../../hooks/useAuth';
-import { api } from '../../services/api';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/services/api';
 
 // Fix pour les icônes Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -189,7 +189,7 @@ export const FieldDataPage: React.FC = () => {
       {/* En-tête */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container alignItems="center" justifyContent="space-between">
-          <Grid item>
+          <Grid>
             <Typography variant="h4" component="h1" gutterBottom>
               Données de Terrain
             </Typography>
@@ -198,7 +198,7 @@ export const FieldDataPage: React.FC = () => {
             </Typography>
           </Grid>
           
-          <Grid item>
+          <Grid>
             <Box display="flex" gap={2}>
               <Button
                 variant={showMap ? 'outlined' : 'contained'}
@@ -230,7 +230,7 @@ export const FieldDataPage: React.FC = () => {
         {/* Filtres */}
         <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid xs={12} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Type</InputLabel>
                 <Select
@@ -250,7 +250,7 @@ export const FieldDataPage: React.FC = () => {
               </FormControl>
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid xs={12} md={3}>
               <TextField
                 label="Date de début"
                 type="date"
@@ -262,7 +262,7 @@ export const FieldDataPage: React.FC = () => {
               />
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid xs={12} md={3}>
               <TextField
                 label="Date de fin"
                 type="date"
@@ -274,7 +274,7 @@ export const FieldDataPage: React.FC = () => {
               />
             </Grid>
             
-            <Grid item xs={12} md={3}>
+            <Grid xs={12} md={3}>
               <Button
                 variant="outlined"
                 startIcon={<FilterList />}
@@ -300,7 +300,7 @@ export const FieldDataPage: React.FC = () => {
         // Vue liste
         <Grid container spacing={3}>
           {fieldNotes.length === 0 ? (
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Paper sx={{ p: 5, textAlign: 'center' }}>
                 <Typography variant="h6" gutterBottom>
                   Aucune note de terrain
@@ -319,7 +319,7 @@ export const FieldDataPage: React.FC = () => {
             </Grid>
           ) : (
             fieldNotes.map((note) => (
-              <Grid item xs={12} md={6} lg={4} key={note.id}>
+              <Grid xs={12} md={6} lg={4} key={note.id}>
                 <Card>
                   <CardContent>
                     <Box display="flex" alignItems="center" mb={2}>
@@ -582,7 +582,7 @@ const CreateFieldNoteDialog: React.FC<{
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Titre *"
                 fullWidth
@@ -592,7 +592,7 @@ const CreateFieldNoteDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Type *</InputLabel>
                 <Select
@@ -611,7 +611,7 @@ const CreateFieldNoteDialog: React.FC<{
               </FormControl>
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Contenu *"
                 fullWidth
@@ -624,12 +624,12 @@ const CreateFieldNoteDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Typography variant="subtitle2" gutterBottom>
                 Localisation
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <TextField
                     label="Latitude"
                     type="number"
@@ -644,7 +644,7 @@ const CreateFieldNoteDialog: React.FC<{
                     }))}
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <TextField
                     label="Longitude"
                     type="number"

@@ -33,9 +33,9 @@ import {
   Download
 } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { useAuth } from '../../hooks/useAuth';
-import { api } from '../../services/api';
-import ReferenceManager from '../../components/ReferenceManager';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/services/api';
+import ReferenceManager from '@/components/ReferenceManager';
 
 export const ReferencesPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -117,7 +117,7 @@ export const ReferencesPage: React.FC = () => {
       {/* En-tête */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container alignItems="center" justifyContent="space-between">
-          <Grid item>
+          <Grid>
             <Typography variant="h4" component="h1" gutterBottom>
               Bibliographie
             </Typography>
@@ -126,7 +126,7 @@ export const ReferencesPage: React.FC = () => {
             </Typography>
           </Grid>
           
-          <Grid item>
+          <Grid>
             <Box display="flex" gap={2} alignItems="center">
               <TextField
                 placeholder="Rechercher..."
@@ -260,7 +260,7 @@ const AddReferenceDialog: React.FC<{
         {/* Formulaire d'ajout */}
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Titre *"
                 fullWidth
@@ -270,7 +270,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Typography variant="subtitle2">Auteurs *</Typography>
               {formData.authors.map((author, index) => (
                 <Box key={index} display="flex" gap={1} mb={1}>
@@ -304,7 +304,7 @@ const AddReferenceDialog: React.FC<{
               </Button>
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid xs={6}>
               <TextField
                 label="Année *"
                 type="number"
@@ -314,7 +314,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid xs={6}>
               <TextField
                 select
                 label="Type *"
@@ -336,7 +336,7 @@ const AddReferenceDialog: React.FC<{
               </TextField>
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Journal/Éditeur"
                 fullWidth
@@ -345,7 +345,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Résumé"
                 fullWidth

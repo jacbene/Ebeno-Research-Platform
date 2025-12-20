@@ -19,7 +19,9 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActions,
+  CardActions
+} from '@mui/material';
+import {
   DragHandle,
   Delete,
   Add,
@@ -27,9 +29,9 @@ import {
   Visibility,
   ArrowUpward,
   ArrowDownward
-} from '@mui/material';
+} from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { surveyAPI } from '../services/survey.api';
+import { surveyAPI } from '@/services/api/survey.api';
 
 export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => {
   const [survey, setSurvey] = useState({
@@ -143,7 +145,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
         {/* Panneau de configuration */}
-        <Grid item xs={3}>
+        <Grid xs={3}>
           <Paper sx={{ p: 3, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>
               Configuration
@@ -226,7 +228,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
             </Typography>
             
             <Grid container spacing={1}>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -236,7 +238,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Choix unique
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -246,7 +248,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Choix multiple
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -256,7 +258,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Texte court
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -266,7 +268,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Texte long
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -276,7 +278,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Échelle Likert
                 </Button>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Button
                   variant="outlined"
                   fullWidth
@@ -300,7 +302,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
         </Grid>
         
         {/* Zone de construction */}
-        <Grid item xs={9}>
+        <Grid xs={9}>
           <Paper sx={{ p: 3, minHeight: '80vh' }}>
             <Typography variant="h5" gutterBottom>
               {survey.title || 'Nouvelle enquête'}

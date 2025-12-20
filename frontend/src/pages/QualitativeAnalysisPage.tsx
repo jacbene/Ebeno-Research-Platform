@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import Sidebar from '../components/layout/Sidebar';
-import DocumentViewer from '../components/document/DocumentViewer';
-import VisualizationArea from '../components/visualizations/VisualizationArea';
-import { getProjectDocuments, getProjectData } from '../services/api';
-// import { Document, ProjectData } from '../types/project';
+import Sidebar from '@/components/layout/Sidebar';
+import DocumentViewer from '@/components/document/DocumentViewer';
+import VisualizationArea from '@/components/visualizations/VisualizationArea';
+import { getProjectDocuments, getProjectData } from '@/services/api';
+import { Document, ProjectData } from '@/types/project';
 
 const QualitativeAnalysisPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();

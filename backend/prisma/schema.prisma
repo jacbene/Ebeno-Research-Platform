@@ -1,4 +1,3 @@
-// backend/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -27,6 +26,17 @@ model User {
   codes            Code[]
   annotations      Annotation[]
   memos            Memo[]
+  surveys          Survey[]
+  surveyResponses  SurveyResponse[]
+  fieldNotes       FieldNote[]
+  createdCollaborationSessions CollaborationSession[] @relation("SessionCreator")
+  collaborationSessions        CollaborationSession[] @relation("CollaborationParticipant")
+  collaborationComments CollaborationComment[]
+  collaborationCursors  CollaborationCursor[]
+  collaborationHistory  CollaborationHistory[]
+  submittedPeerReviewSubmissions PeerReviewSubmission[] @relation("Submissions")
+  assignedPeerReviewSubmissions  PeerReviewSubmission[] @relation("Reviewers")
+  peerReviews                    PeerReview[]           @relation("Reviews")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -66,6 +76,12 @@ model Project {
   documents    Document[]
   codes        Code[]
   memos        Memo[]
+  references   Reference[]
+  folders      Folder[]
+  surveys      Survey[]
+  fieldNotes   FieldNote[]
+  collaborationSessions CollaborationSession[]
+  reviewCriteria   ReviewCriteria[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,12 +188,12 @@ model Document {
   aiAnalyses AIAnalysis[]
   annotations Annotation[]
   memos      Memo[]
+  collaborationSessions CollaborationSession[]
 
   @@index([projectId])
   @@index([type])
 }
 
-// Enums
 enum UserRole {
   RESEARCHER
   ADMIN
@@ -227,7 +243,6 @@ enum DocumentType {
   ARTICLE_DRAFT
 }
 
-// Modèle pour les codes (tags)
 model Code {
   id          String   @id @default(cuid())
   name        String
@@ -251,7 +266,6 @@ model Code {
   @@index([parentId])
 }
 
-// Modèle pour les annotations (codes appliqués à du texte)
 model Annotation {
   id           String         @id @default(cuid())
   codeId       String
@@ -277,7 +291,6 @@ model Annotation {
   @@index([userId])
 }
 
-// Modèle pour les mémos
 model Memo {
   id           String      @id @default(cuid())
   title        String
@@ -303,45 +316,316 @@ model Memo {
   @@index([userId])
 }
 
-// prisma/schema.prisma (extensions pour Phase 2)
-// backend/prisma/schema.prisma (extrait mis à jour)
-// Ajouter les nouveaux modèles aux modèles existants
-
-// ... modèles existants ...
-
-// Modèles Phase 2
 model Reference {
-  // ... champs de Reference ...
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  year        Int
+  journal     String?
+  volume      String?
+  issue       String?
+  pages       String?
+  doi         String?
+  url         String?
+  abstract    String?
+  notes       String?
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Folder {
-  // ... champs de Folder ...
+  id          String   @id @default(cuid())
+  name        String
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[] @relation("FolderHierarchy")
+  attachments Attachment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Attachment {
-  // ... champs de Attachment ...
+  id          String   @id @default(cuid())
+  filename    String
+  url         String
+  mimeType    String
+  size        Int
+  referenceId String
+  reference   Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+  folderId    String?
+  folder      Folder?  @relation(fields: [folderId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 model Survey {
-  // ... champs de Survey ...
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  responses   SurveyResponse[]
+  createdBy   User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Question {
-  // ... champs de Question ...
+  id       String       @id @default(cuid())
+  text     String
+  type     QuestionType
+  options  String[]
+  surveyId String
+  survey   Survey       @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers  Answer[]
+  order    Int
+}
+
+enum QuestionType {
+  TEXT
+  MULTIPLE_CHOICE
+  SINGLE_CHOICE
+  SCALE
 }
 
 model SurveyResponse {
-  // ... champs de SurveyResponse ...
+  id        String   @id @default(cuid())
+  surveyId  String
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 model Answer {
-  // ... champs de Answer ...
+  id         String   @id @default(cuid())
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  value      String
 }
 
 model FieldNote {
-  // ... champs de FieldNote ...
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  location    Json?
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media       FieldMedia[]
+  createdBy   User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model FieldMedia {
-  // ... champs de FieldMedia ...
+  id          String   @id @default(cuid())
+  filename    String
+  url         String
+  mimeType    String
+  size        Int
+  fieldNoteId String
+  fieldNote   FieldNote @relation(fields: [fieldNoteId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+enum CollaborationSessionType {
+  DOCUMENT
+  MEMO
+  ARTICLE
+  REPORT
+}
+
+model CollaborationSession {
+  id              String        @id @default(cuid())
+  title           String
+  type            CollaborationSessionType
+  content         String        @default("")
+  version         Int           @default(1)
+  
+  project         Project       @relation(fields: [projectId], references: [id])
+  projectId       String
+  document        Document?     @relation(fields: [documentId], references: [id])
+  documentId      String?
+  createdBy       User          @relation("SessionCreator", fields: [createdById], references: [id])
+  createdById     String
+  participants    User[]        @relation("CollaborationParticipant")
+  
+  isActive        Boolean       @default(true)
+  isPublic        Boolean       @default(false)
+  shareLink       String?       @unique
+  lastActivity    DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  comments        CollaborationComment[]
+  cursors         CollaborationCursor[]
+  history         CollaborationHistory[]
+  
+  @@index([projectId])
+  @@index([createdById])
+  @@index([isActive])
+}
+
+model CollaborationComment {
+  id              String        @id @default(cuid())
+  content         String
+  position        Json?         // Position dans le document
+  
+  session         CollaborationSession @relation(fields: [sessionId], references: [id])
+  sessionId       String
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  parent          CollaborationComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId        String?
+  replies         CollaborationComment[] @relation("CommentReplies")
+  
+  resolved        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model CollaborationCursor {
+  id              String        @id @default(cuid())
+  position        Json          // {line, column}
+  selection       Json?         // Sélection de texte
+  
+  session         CollaborationSession @relation(fields: [sessionId], references: [id])
+  sessionId       String
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  
+  lastActive      DateTime      @default(now())
+  
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model CollaborationHistory {
+  id              String        @id @default(cuid())
+  
+  session         CollaborationSession @relation(fields: [sessionId], references: [id])
+  sessionId       String
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  
+  operations      Json          // Liste des opérations OT
+  versionBefore   Int
+  versionAfter    Int
+  
+  createdAt       DateTime      @default(now())
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum ReviewStatus {
+  DRAFT
+  SUBMITTED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ReviewDecision {
+  ACCEPT
+  MINOR_REVISION
+  MAJOR_REVISION
+  REJECT
+}
+
+model PeerReviewSubmission {
+  id              String        @id @default(cuid())
+  title           String
+  abstract        String?
+  documentId      String        // Document source
+  projectId       String
+  submittedById   String
+  submittedBy     User          @relation("Submissions", fields: [submittedById], references: [id])
+  status          ReviewStatus  @default(SUBMITTED)
+  
+  reviewers       User[]        @relation("Reviewers")
+  reviews         PeerReview[]
+  
+  deadline        DateTime?
+  isBlindReview   Boolean       @default(true)
+  isDoubleBlind   Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([projectId])
+  @@index([submittedById])
+  @@index([status])
+}
+
+model PeerReview {
+  id              String        @id @default(cuid())
+  
+  submission      PeerReviewSubmission @relation(fields: [submissionId], references: [id])
+  submissionId    String
+  reviewer        User          @relation("Reviews", fields: [reviewerId], references: [id])
+  reviewerId      String
+  
+  score           Int?          // 1-10
+  comments        String
+  decision        ReviewDecision
+  strengths       String[]
+  weaknesses      String[]
+  recommendations String[]
+  
+  status          ReviewStatus  @default(SUBMITTED)
+  
+  submittedAt     DateTime      @default(now())
+  reviewedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  ratings         ReviewCriteriaRating[]
+  
+  @@unique([submissionId, reviewerId])
+  @@index([submissionId])
+  @@index([reviewerId])
+}
+
+model ReviewCriteria {
+  id              String        @id @default(cuid())
+  name            String
+  description     String
+  weight          Float         @default(1.0) // Poids dans le score total
+  
+  project         Project       @relation(fields: [projectId], references: [id])
+  projectId       String
+  ratings         ReviewCriteriaRating[]
+
+  createdAt       DateTime      @default(now())
+  
+  @@index([projectId])
+}
+
+model ReviewCriteriaRating {
+  id              String        @id @default(cuid())
+  
+  review          PeerReview    @relation(fields: [reviewId], references: [id])
+  reviewId        String
+  criteria        ReviewCriteria @relation(fields: [criteriaId], references: [id])
+  criteriaId      String
+  
+  score           Int           // 1-5
+  comments        String?
+  
+  @@unique([reviewId, criteriaId])
+  @@index([reviewId])
+  @@index([criteriaId])
 }

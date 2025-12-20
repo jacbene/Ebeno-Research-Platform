@@ -1,7 +1,7 @@
 // backend/controllers/fieldDataController.ts
 // URL: /api/field-data
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../utils/prisma';
 import { 
   createFieldNoteSchema, 
   updateFieldNoteSchema,
@@ -13,18 +13,19 @@ export class FieldDataController {
   // Créer une note de terrain
   async createFieldNote(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
       const data = createFieldNoteSchema.parse(req.body);
       
       const fieldNote = await prisma.fieldNote.create({
         data: {
           ...data,
-          userId,
-          deviceId: req.headers['x-device-id'] as string || null
+          userId
         },
         include: {
-          media: true,
-          tags: true
+          media: true
         }
       });
       
@@ -32,7 +33,7 @@ export class FieldDataController {
         success: true,
         data: fieldNote
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message
@@ -44,12 +45,13 @@ export class FieldDataController {
   async getProjectFieldNotes(req: Request, res: Response) {
     try {
       const { projectId } = req.params;
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
       const { 
-        type,
         startDate,
         endDate,
-        tags,
         page = 1,
         limit = 20
       } = req.query;
@@ -60,16 +62,6 @@ export class FieldDataController {
         projectId,
         userId
       };
-      
-      // Filtres
-      if (type) where.type = type;
-      if (tags) {
-        where.tags = {
-          some: {
-            id: { in: (tags as string).split(',') }
-          }
-        };
-      }
       
       if (startDate || endDate) {
         where.createdAt = {};
@@ -84,8 +76,7 @@ export class FieldDataController {
       const fieldNotes = await prisma.fieldNote.findMany({
         where,
         include: {
-          media: true,
-          tags: true
+          media: true
         },
         orderBy: {
           createdAt: 'desc'
@@ -106,7 +97,7 @@ export class FieldDataController {
           }
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message
@@ -117,8 +108,11 @@ export class FieldDataController {
   // Synchroniser les données mobiles
   async syncFieldData(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
-      const { deviceId, fieldNotes, lastSync } = syncFieldDataSchema.parse(req.body);
+      const { fieldNotes, lastSync } = syncFieldDataSchema.parse(req.body);
       
       // Récupérer les modifications côté serveur
       const serverChanges = await prisma.fieldNote.findMany({
@@ -141,10 +135,7 @@ export class FieldDataController {
             data: {
               ...note,
               id: undefined, // Laisser générer un nouvel ID
-              userId,
-              deviceId,
-              syncVersion: 1,
-              isSynced: true
+              userId
             }
           });
           processedNotes.push(created);
@@ -156,18 +147,13 @@ export class FieldDataController {
           
           if (existing) {
             // Résolution de conflit: prendre la version la plus récente
-            const serverVersion = existing.syncVersion || 0;
-            const clientVersion = note.syncVersion || 0;
-            
-            if (clientVersion > serverVersion) {
+            const clientUpdatedAt = new Date(note.updatedAt);
+            if (clientUpdatedAt > existing.updatedAt) {
               // Le client a une version plus récente
               const updated = await prisma.fieldNote.update({
                 where: { id: note.id },
                 data: {
-                  ...note,
-                  syncVersion: clientVersion + 1,
-                  isSynced: true,
-                  updatedAt: new Date()
+                  ...note
                 }
               });
               processedNotes.push(updated);
@@ -187,7 +173,7 @@ export class FieldDataController {
           syncTimestamp: new Date().toISOString()
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message
@@ -201,9 +187,10 @@ export class FieldDataController {
       if (!req.file) {
         throw new Error('Aucun fichier fourni');
       }
-      
-      const userId = req.user.id;
-      const { fieldNoteId, description } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      const { fieldNoteId } = req.body;
       
       // Stocker le fichier (exemple avec Firebase Storage)
       const fileUrl = await this.storeFile(req.file);
@@ -215,9 +202,7 @@ export class FieldDataController {
           mimeType: req.file.mimetype,
           size: req.file.size,
           url: fileUrl,
-          fieldNoteId,
-          userId,
-          description
+          fieldNoteId
         }
       });
       
@@ -225,7 +210,7 @@ export class FieldDataController {
         success: true,
         data: media
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message
@@ -237,6 +222,9 @@ export class FieldDataController {
   async getGeospatialData(req: Request, res: Response) {
     try {
       const { projectId } = req.params;
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
       const userId = req.user.id;
       
       const fieldNotes = await prisma.fieldNote.findMany({
@@ -248,16 +236,8 @@ export class FieldDataController {
         select: {
           id: true,
           title: true,
-          type: true,
           location: true,
           createdAt: true,
-          tags: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          }
         }
       });
       
@@ -265,8 +245,8 @@ export class FieldDataController {
       const geojson = {
         type: 'FeatureCollection',
         features: fieldNotes
-          .filter(note => note.location && note.location.lat && note.location.lng)
-          .map(note => ({
+          .filter((note: any) => note.location && note.location.lat && note.location.lng)
+          .map((note: any) => ({
             type: 'Feature',
             geometry: {
               type: 'Point',
@@ -275,9 +255,7 @@ export class FieldDataController {
             properties: {
               id: note.id,
               title: note.title,
-              type: note.type,
               date: note.createdAt.toISOString(),
-              tags: note.tags
             }
           }))
       };
@@ -286,7 +264,7 @@ export class FieldDataController {
         success: true,
         data: geojson
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({
         success: false,
         error: error.message

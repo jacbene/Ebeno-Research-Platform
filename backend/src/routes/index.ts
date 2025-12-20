@@ -12,6 +12,11 @@ import visualizationRoutes from './visualizationRoutes';
 import referenceRoutes from './referenceRoutes';
 import surveyRoutes from './surveyRoutes';
 import fieldDataRoutes from './fieldDataRoutes';
+import collaborationRoutes from './collaborationRoutes';
+import peerReviewRoutes from './peerReviewRoutes';
+import analyticsRoutes from './analyticsRoutes';
+import writingAssistantRoutes from './writingAssistantRoutes';
+
 
 const router = express.Router();
 
@@ -26,5 +31,10 @@ router.use('/visualizations', visualizationRoutes);
 router.use('/references', referenceRoutes);
 router.use('/surveys', surveyRoutes);
 router.use('/field-data', fieldDataRoutes);
+router.use('/collaboration', collaborationRoutes);
+router.use('/peer-review', peerReviewRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/writing-assistant', writingAssistantRoutes);
+
 
 export default router;
