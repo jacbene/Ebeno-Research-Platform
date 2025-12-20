@@ -14,16 +14,25 @@
             "db:migrate": "cd backend && npx prisma migrate dev",
             "db:studio": "cd backend && npx prisma studio",
             "setup": "npm install && cd backend && npm install && cd ../frontend && npm install",
-            "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+            "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+            "api:generate-key": "echo 'Usage: TOKEN=<jwt> NAME=<key-name> npm run api:generate-key' && curl -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"name\": \"'$NAME'\", \"scopes\": [\"read\", \"write\"]}' http://localhost:5000/api/v1/keys"
       },
       "devDependencies": {
-            "concurrently": "^8.2.0"
+            "@types/socket.io": "^3.0.1",
+            "@types/swagger-ui-express": "^4.1.8",
+            "concurrently": "^8.2.0",
+            "swagger-ui-express": "^5.0.1"
       },
       "dependencies": {
+            "@draft-js-plugins/editor": "^4.1.4",
+            "@draft-js-plugins/inline-toolbar": "^4.2.1",
             "axios": "^1.13.2",
+            "draft-js": "^0.11.7",
             "multer": "^2.0.2",
             "openai": "^6.10.0",
             "prisma": "^6.19.0",
+            "recharts": "^3.6.0",
+            "socket.io-client": "^4.8.1",
             "typescript": "^5.9.3"
       }
 }

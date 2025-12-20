@@ -38,9 +38,9 @@ import {
   Language
 } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
-import { useAuth } from '../../../hooks/useAuth';
-import { referenceAPI } from '../services/reference.api';
-import { ReferenceType } from '../types/reference.types';
+import { useAuth } from '@/hooks/useAuth';
+import { referenceAPI } from '@/services/api/reference.api';
+import { ReferenceType } from '@/types/reference.types';
 
 export const ReferenceManager: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { user } = useAuth();
@@ -219,7 +219,7 @@ export const ReferenceManager: React.FC<{ projectId: string }> = ({ projectId })
       {/* En-tête */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container alignItems="center" justifyContent="space-between" spacing={2}>
-          <Grid item>
+          <Grid>
             <Typography variant="h5" component="h1">
               Bibliographie
             </Typography>
@@ -228,7 +228,7 @@ export const ReferenceManager: React.FC<{ projectId: string }> = ({ projectId })
             </Typography>
           </Grid>
           
-          <Grid item>
+          <Grid>
             <Box display="flex" gap={2}>
               <TextField
                 placeholder="Rechercher..."
@@ -514,7 +514,7 @@ const AddReferenceDialog: React.FC<{
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Titre"
                 fullWidth
@@ -524,7 +524,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <Typography variant="subtitle2" gutterBottom>
                 Auteurs
               </Typography>
@@ -559,7 +559,7 @@ const AddReferenceDialog: React.FC<{
               </Button>
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid xs={6}>
               <TextField
                 label="Année"
                 type="number"
@@ -569,7 +569,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid xs={6}>
               <TextField
                 select
                 label="Type"
@@ -588,7 +588,7 @@ const AddReferenceDialog: React.FC<{
               </TextField>
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Journal/Éditeur"
                 fullWidth
@@ -597,7 +597,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={4}>
+            <Grid xs={4}>
               <TextField
                 label="Volume"
                 fullWidth
@@ -606,7 +606,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={4}>
+            <Grid xs={4}>
               <TextField
                 label="Numéro"
                 fullWidth
@@ -615,7 +615,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={4}>
+            <Grid xs={4}>
               <TextField
                 label="Pages"
                 fullWidth
@@ -624,7 +624,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="DOI"
                 fullWidth
@@ -633,7 +633,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="URL"
                 fullWidth
@@ -642,7 +642,7 @@ const AddReferenceDialog: React.FC<{
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 label="Résumé"
                 fullWidth

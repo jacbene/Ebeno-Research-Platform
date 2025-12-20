@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import TranscriptionUploader from '../components/TranscriptionUploader';
-import { transcriptionApi } from '../services/transcriptionApi';
+import TranscriptionUploader from '@/components/TranscriptionUploader';
+import { transcriptionApi } from '@/services/transcriptionApi';
 import './TranscriptionPage.css';
 
 interface Transcription {
