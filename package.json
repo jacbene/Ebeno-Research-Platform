@@ -16,12 +16,22 @@
             "setup": "npm install && cd backend && npm install && cd ../frontend && npm install",
             "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
             "api:generate-key": "echo 'Usage: TOKEN=<jwt> NAME=<key-name> npm run api:generate-key' && curl -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"name\": \"'$NAME'\", \"scopes\": [\"read\", \"write\"]}' http://localhost:5000/api/v1/keys"
+            "prepare": "husky install",
+            "commit": "git-cz",
+            "lint-staged": "lint-staged"
       },
       "devDependencies": {
             "@types/socket.io": "^3.0.1",
             "@types/swagger-ui-express": "^4.1.8",
             "concurrently": "^8.2.0",
             "swagger-ui-express": "^5.0.1"
+            "@commitlint/cli": "^19.0.0",
+            "@commitlint/config-conventional": "^19.0.0",
+            "commitizen": "^4.3.0",
+            "cz-conventional-changelog": "^3.3.0",
+            "husky": "^9.0.0",
+            "lint-staged": "^15.0.0",
+            "prettier": "^3.0.0"
       },
       "dependencies": {
             "@draft-js-plugins/editor": "^4.1.4",
@@ -35,4 +45,19 @@
             "socket.io-client": "^4.8.1",
             "typescript": "^5.9.3"
       }
+      "config": {
+             "commitizen": {
+             "path": "./node_modules/cz-conventional-changelog"
+             }
+      },
+      "lint-staged": {
+              "*.{js,jsx,ts,tsx}": [
+                               "eslint --fix",
+                               "prettier --write"
+                               ],
+             "*.{json,md,css,scss}": [
+                                "prettier --write"
+                                ]
+       }
+
 }
