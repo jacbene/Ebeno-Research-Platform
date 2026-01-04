@@ -1,0 +1,26 @@
+# <type>(<scope>): <subject>
+
+# <body>
+
+# <footer>
+
+# Types:
+# feat: Nouvelle fonctionnalité
+# fix: Correction de bug
+# docs: Documentation
+# style: Formatage, point-virgule manquant, etc.
+# refactor: Refactoring de code
+# test: Ajout ou modification de tests
+# chore: Maintenance, dépendances, etc.
+# perf: Amélioration de performance
+# ci: Intégration continue
+# revert: Annulation d'un commit précédent
+# build: Build système ou dépendances externes
+
+# Scopes pour Ebeno:
+# auth, projects, transcription, ia, coding, bibliography, ui, api, database
+
+# Exemples:
+# feat(ia): ajout suggestions automatiques de codes
+# fix(transcription): correction upload fichiers > 100MB
+# docs(api): mise à jour documentation endpoints
