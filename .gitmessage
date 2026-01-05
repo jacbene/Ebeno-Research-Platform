@@ -1,3 +1,28 @@
+# Convention de commits pour Ebeno Research Platform
+# Format: type(scope): description
+# 
+# TYPES:
+# feat:     Nouvelle fonctionnalité
+# fix:      Correction de bug
+# docs:     Documentation
+# style:    Formatage
+# refactor: Refactoring
+# test:     Tests
+# chore:    Maintenance
+# perf:     Performance
+# ci:       Intégration continue
+# revert:   Annulation
+# build:    Build
+#
+# SCOPES EBENO:
+# auth, projects, transcription, ia, coding, bibliography, ui, api, database
+#
+# EXEMPLES:
+# feat(ia): ajout analyse thématique automatique
+# fix(transcription): correction upload fichiers > 100MB
+# docs(coding): guide méthodologique analyse qualitative
+#
+# Votre message de commit (supprimez ces lignes de commentaire):
 # <type>(<scope>): <subject>
 
 # <body>

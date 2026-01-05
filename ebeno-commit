@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo "📋 CONVENTIONS DE COMMIT - EBENO RESEARCH"
+echo "=========================================="
+
+read -p "Type (feat/fix/docs/refactor/test/chore): " type
+read -p "Scope (auth/projects/transcription/ia/coding/bibliography/ui/api/database ou vide): " scope
+read -p "Description: " desc
+
+if [ -z "$scope" ]; then
+  commit_msg="$type: $desc"
+else
+  commit_msg="$type($scope): $desc"
+fi
+
+echo "📝 Message: $commit_msg"
+read -p "Confirmer? (o/n): " confirm
+
+if [ "$confirm" = "o" ]; then
+  git commit -m "$commit_msg"
+else
+  echo "❌ Annulé"
+fi
