@@ -190,7 +190,7 @@ export class CollaborationController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        error: error.message
+        error: (error as Error).message
       });
     }
   }
@@ -237,7 +237,7 @@ export class CollaborationController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        error: error.message
+        error: (error as Error).message
       });
     }
   }

@@ -75,16 +75,16 @@ export class WebhookService {
     } catch (error) {
       // Journaliser l'erreur
       await this.logWebhook(webhook.id, event, data, {
-        error: error.message,
-        responseCode: error.response?.status,
-        responseBody: error.response?.data,
+        error: error instanceof Error ? (error as Error).message : String(error),
+        responseCode: (error as any).response?.status,
+        responseBody: (error as any).response?.data,
         duration: Date.now() - startTime
       });
       
       return {
         webhookId: webhook.id,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? (error as Error).message : String(error),
         duration: Date.now() - startTime
       };
     }

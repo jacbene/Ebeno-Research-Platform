@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { deleteCurrentUser, exportCurrentUserDate } from '../controllers/userController';
+import userController from '../controllers/userController'; // Import par défaut
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
 
-/**
+/** 
  * @swagger
  * /api/users/me:
  *   delete:
@@ -20,9 +20,9 @@ const router = Router();
  *       500:
  *         description: An error occurred while deleting the user account.
  */
-router.delete('/me', protect, deleteCurrentUser);
+router.delete('/me', protect, userController.deleteCurrentUser);
 
-/**
+/** 
  * @swagger
  * /api/users/me/export:
  *   get:
@@ -42,6 +42,6 @@ router.delete('/me', protect, deleteCurrentUser);
  *       500:
  *         description: An error occurred while exporting user data.
  */
-router.get('/me/export', protect, exportCurrentUserDate);
+router.get('/me/export', protect, userController.exportCurrentUserData);
 
 export default router;
