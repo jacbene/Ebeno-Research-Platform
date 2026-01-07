@@ -32,9 +32,16 @@ interface MemoFilter {
   search?: string;
 }
 
+// Interface pour le résultat du groupBy
+interface MemoByUserResult {
+  userId: string;
+  _count: {
+    userId: number;
+  };
+}
+
 class MemoService {
   // === CRÉATION ===
-  
   async createMemo(data: CreateMemoInput) {
     try {
       // Validation des données
@@ -177,11 +184,9 @@ class MemoService {
   }
 
   // === LECTURE ===
-  
   async getMemos(filter: MemoFilter) {
     try {
       const where: any = {};
-
       if (filter.projectId) where.projectId = filter.projectId;
       if (filter.codeId) where.codeId = filter.codeId;
       if (filter.documentId) where.documentId = filter.documentId;
@@ -365,7 +370,6 @@ class MemoService {
   }
 
   // === MISE À JOUR ===
-  
   async updateMemo(memoId: string, data: UpdateMemoInput, userId: string) {
     try {
       // Vérifier que le mémo existe
@@ -443,7 +447,6 @@ class MemoService {
   }
 
   // === SUPPRESSION ===
-  
   async deleteMemo(memoId: string, userId: string) {
     try {
       const memo = await prisma.memo.findFirst({
@@ -486,7 +489,6 @@ class MemoService {
   }
 
   // === STATISTIQUES ===
-  
   async getMemoStatistics(projectId: string, userId: string) {
     try {
       const projectMember = await prisma.projectMember.findFirst({
@@ -577,7 +579,7 @@ class MemoService {
 
       // Récupérer les infos utilisateurs
       const usersWithInfo = await Promise.all(
-        memosByUser.map(async (user) => {
+        memosByUser.map(async (user: MemoByUserResult) => {
           const userInfo = await prisma.user.findFirst({
             where: { id: user.userId },
             select: {
@@ -589,7 +591,7 @@ class MemoService {
               },
             },
           });
-          
+
           return {
             userId: user.userId,
             count: user._count.userId,
@@ -616,7 +618,6 @@ class MemoService {
   }
 
   // === RECHERCHE AVANCÉE ===
-  
   async searchMemos(projectId: string, query: string, userId: string) {
     try {
       const projectMember = await prisma.projectMember.findFirst({
@@ -674,7 +675,6 @@ class MemoService {
   }
 
   // === GÉNÉRATION ASSISTÉE PAR IA ===
-  
   async generateMemoWithAI(projectId: string, context: any, userId: string) {
     try {
       const projectMember = await prisma.projectMember.findFirst({
@@ -693,7 +693,7 @@ class MemoService {
       const suggestions = {
         title: 'Analyse thématique suggérée',
         content: `Basé sur le contexte fourni, voici quelques pistes d'analyse :
-        
+
 ## Thèmes identifiés
 1. Premier thème majeur
 2. Deuxième thème récurrent

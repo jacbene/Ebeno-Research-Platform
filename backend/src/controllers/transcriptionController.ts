@@ -34,7 +34,7 @@ export class TranscriptionController {
       logger.error('Upload transcription error:', error);
       
       if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, error.message);
+        return ApiResponse.error(res, error.statusCode, (error as Error).message);
       }
       
       return ApiResponse.error(res, 500, 'Internal server error');
@@ -58,7 +58,7 @@ export class TranscriptionController {
       logger.error('Get transcription error:', error);
       
       if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, error.message);
+        return ApiResponse.error(res, error.statusCode, (error as Error).message);
       }
       
       return ApiResponse.error(res, 500, 'Internal server error');
@@ -96,7 +96,7 @@ export class TranscriptionController {
       logger.error('Delete transcription error:', error);
       
       if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, error.message);
+        return ApiResponse.error(res, error.statusCode, (error as Error).message);
       }
       
       return ApiResponse.error(res, 500, 'Internal server error');
@@ -125,7 +125,7 @@ export class TranscriptionController {
       logger.error('Get transcription progress error:', error);
       
       if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, error.message);
+        return ApiResponse.error(res, error.statusCode, (error as Error).message);
       }
       
       return ApiResponse.error(res, 500, 'Internal server error');

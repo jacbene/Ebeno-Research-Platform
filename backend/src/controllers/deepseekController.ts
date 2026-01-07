@@ -53,7 +53,7 @@ class DeepSeekController {
       res.status(500).json({ 
         success: false,
         error: 'Erreur lors du traitement de la requête',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
       });
     }
   }
@@ -108,7 +108,7 @@ class DeepSeekController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: (error as Error).message,
         provider: 'DeepSeek'
       });
     }
