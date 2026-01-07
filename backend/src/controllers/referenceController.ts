@@ -1,66 +1,84 @@
-// backend/controllers/referenceController.ts
-// URL: /api/references
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { 
-  createReferenceSchema, 
-  updateReferenceSchema,
-  importBibTeXSchema,
-  generateBibliographySchema 
-} from '../validators/reference.validator';
+import { Reference, Tag } from '@prisma/client';
 
 export class ReferenceController {
-  // Créer une référence manuelle
+  // Créer une référence
   async createReference(req: Request, res: Response) {
     try {
-      const userId = req.user.id;
-      const data = createReferenceSchema.parse(req.body);
-      
+      const userId = req.user?.id;
+      const { title, authors, year, journal, volume, issue, pages, doi, url, abstract, tagIds, projectId } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      // Validation basique
+      if (!title || !authors || !year || !projectId) {
+        return res.status(400).json({ 
+          message: 'Le titre, les auteurs, l\'année et le projet sont requis' 
+        });
+      }
+
+      // Vérifier que l'utilisateur a accès au projet
+      const projectMember = await prisma.projectMember.findFirst({
+        where: {
+          projectId,
+          userId,
+        },
+      });
+
+      if (!projectMember) {
+        return res.status(403).json({ 
+          message: 'Vous n\'avez pas accès à ce projet' 
+        });
+      }
+
+      // Créer la référence
       const reference = await prisma.reference.create({
         data: {
-          ...data,
+          title,
+          authors,
+          year: parseInt(year),
+          journal,
+          volume,
+          issue,
+          pages,
+          doi,
+          url,
+          abstract,
           userId,
-          importedFrom: 'manual'
-        }
+          projectId,
+          tags: {
+            connect: (tagIds || []).map((id: string) => ({ id })),
+          },
+        },
+        include: {
+          tags: true,
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
       });
-      
+
       res.status(201).json({
         success: true,
-        data: reference
+        data: reference,
       });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-
-  // Importer des références depuis un fichier
-  async importReferences(req: Request, res: Response) {
-    try {
-      const userId = req.user.id;
-      const projectId = req.params.projectId;
-      const { format, content } = importBibTeXSchema.parse(req.body);
-      
-      const references = await this.importFromFormat(
-        format, 
-        content, 
-        projectId, 
-        userId
-      );
-      
-      res.status(200).json({
-        success: true,
-        data: {
-          imported: references.length,
-          references
-        }
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
+    } catch (error: any) {
+      console.error('Error creating reference:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la création de la référence',
+        error: error.message 
       });
     }
   }
@@ -68,44 +86,107 @@ export class ReferenceController {
   // Rechercher des références
   async searchReferences(req: Request, res: Response) {
     try {
-      const userId = req.user.id;
-      const projectId = req.params.projectId;
-      const {
-        query,
-        yearFrom,
+      const userId = req.user?.id;
+      const { 
+        query = '', 
+        projectId, 
+        tags, 
+        yearFrom, 
         yearTo,
-        type,
-        folderId,
-        tagIds,
         page = 1,
-        limit = 20,
-        sortBy = 'createdAt',
-        sortOrder = 'desc'
+        limit = 20
       } = req.query;
-      
-      const result = await this.searchReferencesInDatabase({
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      const where: any = {
         userId,
-        projectId,
-        query: query as string,
-        yearFrom: yearFrom ? parseInt(yearFrom as string) : undefined,
-        yearTo: yearTo ? parseInt(yearTo as string) : undefined,
-        type: type as string,
-        folderId: folderId as string,
-        tagIds: tagIds ? (tagIds as string).split(',') : [],
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc'
-      });
-      
+      };
+
+      if (projectId) {
+        where.projectId = projectId as string;
+      }
+
+      // Recherche textuelle
+      if (query) {
+        where.OR = [
+          { title: { contains: query as string, mode: 'insensitive' } },
+          { authors: { hasSome: [query as string] } },
+          { journal: { contains: query as string, mode: 'insensitive' } },
+          { abstract: { contains: query as string, mode: 'insensitive' } },
+        ];
+      }
+
+      // Filtres par tags
+      if (tags) {
+        const tagArray = Array.isArray(tags) ? tags : [tags];
+        where.tags = {
+          some: {
+            id: { in: tagArray.map(tag => tag as string) },
+          },
+        };
+      }
+
+      // Filtres par année
+      if (yearFrom || yearTo) {
+        where.year = {};
+        if (yearFrom) where.year.gte = parseInt(yearFrom as string);
+        if (yearTo) where.year.lte = parseInt(yearTo as string);
+      }
+
+      const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+      const take = parseInt(limit as string);
+
+      const [references, total] = await Promise.all([
+        prisma.reference.findMany({
+          where,
+          include: {
+            tags: true,
+            project: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                profile: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          skip,
+          take,
+        }),
+        prisma.reference.count({ where }),
+      ]);
+
       res.status(200).json({
         success: true,
-        data: result
+        data: references,
+        pagination: {
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
+          total,
+          pages: Math.ceil(total / parseInt(limit as string)),
+        },
       });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
+    } catch (error: any) {
+      console.error('Error searching references:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la recherche des références',
+        error: error.message 
       });
     }
   }
@@ -113,39 +194,57 @@ export class ReferenceController {
   // Obtenir une référence par ID
   async getReferenceById(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
       const { id } = req.params;
-      
-      const reference = await prisma.reference.findUnique({
-        where: { id },
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      const reference = await prisma.reference.findFirst({
+        where: {
+          id,
+          userId,
+        },
         include: {
           tags: true,
-          folder: true,
-          attachments: true,
-          createdBy: {
+          project: {
             select: {
               id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
+              title: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
       });
-      
+
       if (!reference) {
-        return res.status(404).json({
-          success: false,
-          error: 'Référence non trouvée'
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Référence non trouvée' 
         });
       }
-      
+
       res.status(200).json({
         success: true,
-        data: reference
+        data: reference,
       });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
+    } catch (error: any) {
+      console.error('Error getting reference:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la récupération de la référence',
+        error: error.message 
       });
     }
   }
@@ -153,51 +252,73 @@ export class ReferenceController {
   // Mettre à jour une référence
   async updateReference(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
       const { id } = req.params;
-      const userId = req.user.id;
-      const data = updateReferenceSchema.parse(req.body);
-      
-      // Vérifier que l'utilisateur est le propriétaire
-      const existing = await prisma.reference.findUnique({
-        where: { id }
+      const { title, authors, year, journal, volume, issue, pages, doi, url, abstract, tagIds } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      // Vérifier que la référence existe et appartient à l'utilisateur
+      const existingReference = await prisma.reference.findFirst({
+        where: {
+          id,
+          userId,
+        },
       });
-      
-      if (!existing) {
-        return res.status(404).json({
-          success: false,
-          error: 'Référence non trouvée'
+
+      if (!existingReference) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Référence non trouvée ou non autorisée' 
         });
       }
-      
-      if (existing.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: 'Non autorisé'
-        });
-      }
-      
-      const reference = await prisma.reference.update({
+
+      // Mettre à jour la référence
+      const updatedReference = await prisma.reference.update({
         where: { id },
         data: {
-          ...data,
-          tags: data.tagIds ? {
-            set: data.tagIds.map(tagId => ({ id: tagId }))
-          } : undefined
+          title: title || existingReference.title,
+          authors: authors || existingReference.authors,
+          year: year ? parseInt(year) : existingReference.year,
+          journal: journal !== undefined ? journal : existingReference.journal,
+          volume: volume !== undefined ? volume : existingReference.volume,
+          issue: issue !== undefined ? issue : existingReference.issue,
+          pages: pages !== undefined ? pages : existingReference.pages,
+          doi: doi !== undefined ? doi : existingReference.doi,
+          url: url !== undefined ? url : existingReference.url,
+          abstract: abstract !== undefined ? abstract : existingReference.abstract,
+          tags: {
+            set: tagIds ? (tagIds as string[]).map((tagId: string) => ({ id: tagId })) : undefined,
+          },
         },
         include: {
           tags: true,
-          folder: true
-        }
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
       });
-      
+
       res.status(200).json({
         success: true,
-        data: reference
+        data: updatedReference,
       });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
+    } catch (error: any) {
+      console.error('Error updating reference:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la mise à jour de la référence',
+        error: error.message 
       });
     }
   }
@@ -205,281 +326,194 @@ export class ReferenceController {
   // Supprimer une référence
   async deleteReference(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
       const { id } = req.params;
-      const userId = req.user.id;
-      
-      // Vérifier que l'utilisateur est le propriétaire
-      const existing = await prisma.reference.findUnique({
-        where: { id }
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      // Vérifier que la référence existe et appartient à l'utilisateur
+      const existingReference = await prisma.reference.findFirst({
+        where: {
+          id,
+          userId,
+        },
       });
-      
-      if (!existing) {
-        return res.status(404).json({
-          success: false,
-          error: 'Référence non trouvée'
+
+      if (!existingReference) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Référence non trouvée ou non autorisée' 
         });
       }
-      
-      if (existing.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: 'Non autorisé'
-        });
-      }
-      
+
+      // Supprimer la référence
       await prisma.reference.delete({
-        where: { id }
+        where: { id },
       });
-      
+
       res.status(200).json({
         success: true,
-        message: 'Référence supprimée'
+        message: 'Référence supprimée avec succès',
       });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
+    } catch (error: any) {
+      console.error('Error deleting reference:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la suppression de la référence',
+        error: error.message 
       });
     }
   }
 
-  // Méthodes privées
-  private async importFromFormat(
-    format: string, 
-    content: string, 
-    projectId: string, 
-    userId: string
-  ) {
-    // Implémentation simplifiée
-    if (format === 'bibtex') {
-      return this.parseBibTeX(content, projectId, userId);
-    } else if (format === 'ris') {
-      return this.parseRIS(content, projectId, userId);
-    }
-    throw new Error('Format non supporté');
-  }
+  // Importer des références depuis BibTeX
+  async importReferences(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { projectId } = req.params;
+      const { bibtexContent } = req.body;
 
-  private async parseBibTeX(content: string, projectId: string, userId: string) {
-    // Parser BibTeX simple
-    const entries: any[] = [];
-    const lines = content.split('\n');
-    
-    // Logique de parsing simplifiée
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      if (line.startsWith('@')) {
-        // Détecter une nouvelle entrée
-        const match = line.match(/@(\w+)\{([^,]+),/);
-        if (match) {
-          const entry: any = {
-            type: this.mapBibTeXType(match[1]),
-            citationKey: match[2],
-            projectId,
-            userId,
-            importedFrom: 'bibtex'
-          };
-          
-          // Parser les champs suivants
-          for (let j = i + 1; j < lines.length; j++) {
-            const fieldLine = lines[j].trim();
-            if (fieldLine === '}') break;
-            
-            const fieldMatch = fieldLine.match(/(\w+)\s*=\s*{([^}]+)}/);
-            if (fieldMatch) {
-              const [, key, value] = fieldMatch;
-              this.parseBibTeXField(key, value, entry);
-            }
-          }
-          
-          entries.push(entry);
-        }
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
       }
-    }
-    
-    // Insérer dans la base de données
-    const createdEntries = [];
-    for (const entry of entries) {
-      const created = await prisma.reference.create({
-        data: entry
-      });
-      createdEntries.push(created);
-    }
-    
-    return createdEntries;
-  }
 
-  private parseBibTeXField(key: string, value: string, entry: any) {
-    switch (key.toLowerCase()) {
-      case 'title':
-        entry.title = value;
-        break;
-      case 'author':
-        entry.authors = value.split(' and ').map((a: string) => a.trim());
-        break;
-      case 'year':
-        entry.year = parseInt(value) || new Date().getFullYear();
-        break;
-      case 'journal':
-        entry.journal = value;
-        break;
-      case 'doi':
-        entry.doi = value;
-        break;
-    }
-  }
-
-  private mapBibTeXType(bibtexType: string): string {
-    const typeMap: Record<string, string> = {
-      'article': 'ARTICLE',
-      'book': 'BOOK',
-      'inproceedings': 'CONFERENCE'
-    };
-    return typeMap[bibtexType.toLowerCase()] || 'OTHER';
-  }
-
-  private async parseRIS(content: string, projectId: string, userId: string) {
-    // Parser RIS simplifié
-    const entries: any[] = [];
-    const lines = content.split('\n');
-    let currentEntry: any = {};
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      
-      if (trimmed.startsWith('TY')) {
-        if (Object.keys(currentEntry).length > 0) {
-          entries.push(currentEntry);
-          currentEntry = {};
-        }
-        currentEntry.type = this.mapRISType(trimmed.substring(3));
-      } else if (trimmed.startsWith('T1')) {
-        currentEntry.title = trimmed.substring(3);
-      } else if (trimmed.startsWith('AU')) {
-        if (!currentEntry.authors) currentEntry.authors = [];
-        currentEntry.authors.push(trimmed.substring(3));
-      } else if (trimmed.startsWith('PY')) {
-        currentEntry.year = parseInt(trimmed.substring(3)) || new Date().getFullYear();
+      if (!bibtexContent) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Contenu BibTeX requis' 
+        });
       }
-    }
-    
-    if (Object.keys(currentEntry).length > 0) {
-      entries.push(currentEntry);
-    }
-    
-    // Insérer dans la base de données
-    const createdEntries = [];
-    for (const entry of entries) {
-      const created = await prisma.reference.create({
-        data: {
-          ...entry,
+
+      // Vérifier que l'utilisateur a accès au projet
+      const projectMember = await prisma.projectMember.findFirst({
+        where: {
           projectId,
           userId,
-          importedFrom: 'ris'
-        }
+        },
       });
-      createdEntries.push(created);
+
+      if (!projectMember) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Vous n\'avez pas accès à ce projet' 
+        });
+      }
+
+      // Parser BibTeX (version simplifiée)
+      const references = this.parseBibTeX(bibtexContent);
+      const createdReferences = [];
+
+      for (const ref of references) {
+        const created = await prisma.reference.create({
+          data: {
+            title: ref.title,
+            authors: ref.authors,
+            year: ref.year,
+            journal: ref.journal,
+            volume: ref.volume,
+            issue: ref.issue,
+            pages: ref.pages,
+            doi: ref.doi,
+            url: ref.url,
+            abstract: ref.abstract,
+            userId,
+            projectId,
+          },
+        });
+        createdReferences.push(created);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `${createdReferences.length} référence(s) importée(s) avec succès`,
+        data: createdReferences,
+      });
+    } catch (error: any) {
+      console.error('Error importing references:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de l\'importation des références',
+        error: error.message 
+      });
     }
-    
-    return createdEntries;
   }
 
-  private mapRISType(risType: string): string {
-    const typeMap: Record<string, string> = {
-      'JOUR': 'ARTICLE',
-      'BOOK': 'BOOK',
-      'CHAP': 'CHAPTER'
-    };
-    return typeMap[risType] || 'OTHER';
-  }
+  // Parser BibTeX (version simplifiée)
+  private parseBibTeX(content: string): Array<{
+    title: string;
+    authors: string[];
+    year: number;
+    journal?: string;
+    volume?: string;
+    issue?: string;
+    pages?: string;
+    doi?: string;
+    url?: string;
+    abstract?: string;
+  }> {
+    const references = [];
+    const entries = content.split('@');
 
-  private async searchReferencesInDatabase(params: any) {
-    const {
-      userId,
-      projectId,
-      query,
-      yearFrom,
-      yearTo,
-      type,
-      folderId,
-      tagIds,
-      page,
-      limit,
-      sortBy,
-      sortOrder
-    } = params;
-    
-    const skip = (page - 1) * limit;
-    
-    const where: any = {
-      projectId,
-      OR: [
-        { userId },
-        { project: { collaborators: { some: { userId } } } }
-      ]
-    };
-    
-    // Filtres
-    if (query) {
-      where.OR = [
-        { title: { contains: query, mode: 'insensitive' } },
-        { authors: { has: query } },
-        { abstract: { contains: query, mode: 'insensitive' } }
-      ];
-    }
-    
-    if (yearFrom || yearTo) {
-      where.year = {};
-      if (yearFrom) where.year.gte = yearFrom;
-      if (yearTo) where.year.lte = yearTo;
-    }
-    
-    if (type) where.type = type;
-    if (folderId) where.folderId = folderId;
-    
-    if (tagIds && tagIds.length > 0) {
-      where.tags = {
-        some: {
-          id: { in: tagIds }
-        }
+    for (const entry of entries) {
+      if (!entry.trim()) continue;
+
+      const lines = entry.split('\n').filter(line => line.trim());
+      if (lines.length < 2) continue;
+
+      const reference: any = {
+        title: '',
+        authors: [],
+        year: new Date().getFullYear(),
       };
-    }
-    
-    // Compter le total
-    const total = await prisma.reference.count({ where });
-    
-    // Obtenir les résultats
-    const references = await prisma.reference.findMany({
-      where,
-      include: {
-        tags: true,
-        folder: true,
-        attachments: true,
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.includes('=')) {
+          const [key, ...valueParts] = line.split('=');
+          const value = valueParts.join('=').trim().replace(/[{}",]/g, '');
+
+          switch (key.trim().toLowerCase()) {
+            case 'title':
+              reference.title = value;
+              break;
+            case 'author':
+              reference.authors = value.split(' and ').map((a: string) => a.trim());
+              break;
+            case 'year':
+              reference.year = parseInt(value) || new Date().getFullYear();
+              break;
+            case 'journal':
+              reference.journal = value;
+              break;
+            case 'volume':
+              reference.volume = value;
+              break;
+            case 'issue':
+              reference.issue = value;
+              break;
+            case 'pages':
+              reference.pages = value;
+              break;
+            case 'doi':
+              reference.doi = value;
+              break;
+            case 'url':
+              reference.url = value;
+              break;
+            case 'abstract':
+              reference.abstract = value;
+              break;
           }
         }
-      },
-      orderBy: {
-        [sortBy]: sortOrder
-      },
-      skip,
-      take: limit
-    });
-    
-    return {
-      references,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
-        hasMore: (page * limit) < total
       }
-    };
+
+      if (reference.title) {
+        references.push(reference);
+      }
+    }
+
+    return references;
   }
 }
 

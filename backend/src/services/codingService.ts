@@ -90,7 +90,7 @@ class CodingService {
       return { success: true, data: code };
     } catch (error: any) {
       console.error('Error creating code:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -134,7 +134,7 @@ class CodingService {
       return { success: true, data: codes };
     } catch (error: any) {
       console.error('Error fetching codes:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -167,7 +167,7 @@ class CodingService {
       return { success: true, data: codeTree };
     } catch (error: any) {
       console.error('Error fetching code tree:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -232,7 +232,7 @@ class CodingService {
       return { success: true, data: updatedCode };
     } catch (error: any) {
       console.error('Error updating code:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -280,7 +280,7 @@ class CodingService {
       return { success: true, message: 'Code supprimé avec succès' };
     } catch (error: any) {
       console.error('Error deleting code:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -366,7 +366,7 @@ class CodingService {
       return { success: true, data: annotation };
     } catch (error: any) {
       console.error('Error creating annotation:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -422,7 +422,7 @@ class CodingService {
       return { success: true, data: annotations };
     } catch (error: any) {
       console.error('Error fetching annotations:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -475,7 +475,7 @@ class CodingService {
       return { success: true, data: annotations };
     } catch (error: any) {
       console.error('Error fetching transcript annotations:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -534,7 +534,7 @@ class CodingService {
       return { success: true, data: annotations };
     } catch (error: any) {
       console.error('Error fetching code annotations:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -579,7 +579,7 @@ class CodingService {
       return { success: true, message: 'Annotation supprimée avec succès' };
     } catch (error: any) {
       console.error('Error deleting annotation:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 
@@ -688,7 +688,7 @@ class CodingService {
       };
     } catch (error: any) {
       console.error('Error fetching coding statistics:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }
 

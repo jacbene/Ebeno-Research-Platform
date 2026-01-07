@@ -1,26 +1,19 @@
-import express from 'express';
-import { projectController } from '../controllers/projectController';
-import { protect } from '../middleware/authMiddleware';
+import { Router } from 'express';
+import { ProjectController } from '../controllers/projectController';
+import { authMiddleware } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
-// Toutes les routes nécessitent une authentification
-router.use(protect);
+router.use(authMiddleware);
 
-// Routes CRUD pour les projets
-router.get('/', projectController.getUserProjects);
-router.post('/', projectController.createProject);
-router.get('/:id', projectController.getProjectById);
-router.put('/:id', projectController.updateProject);
-router.delete('/:id', projectController.deleteProject);
-
-// Routes pour la gestion des membres
-router.post('/:id/members', projectController.addMember);
-router.delete('/:id/members/:userId', projectController.removeMember);
-router.put('/:id/members/:userId', projectController.updateMemberRole);
-
-// Routes pour les tags
-router.post('/:id/tags', projectController.addTag);
-router.delete('/:id/tags/:tagId', projectController.removeTag);
+router.get('/', ProjectController.getProjects);
+router.post('/', ProjectController.createProject);
+router.get('/:id', ProjectController.getProject);
+router.put('/:id', ProjectController.updateProject);
+router.delete('/:id', ProjectController.deleteProject);
+router.post('/:id/members', ProjectController.addMember);
+router.delete('/:id/members/:userId', ProjectController.removeMember);
+router.post('/:id/tags', ProjectController.addTag);
+router.delete('/:id/tags/:tagId', ProjectController.removeTag);
 
 export default router;

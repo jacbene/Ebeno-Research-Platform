@@ -36,7 +36,7 @@ class MobileSyncService {
       console.error('Erreur de synchronisation:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? (error as Error).message : String(error)
       };
     }
   }
@@ -67,7 +67,7 @@ class MobileSyncService {
       return { success: true, note };
     } catch (error) {
       console.error('Erreur de sauvegarde:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? (error as Error).message : String(error) };
     }
   }
   

@@ -96,7 +96,7 @@ export class TranscriptionService {
         where: { id: transcriptionId },
         data: {
           status: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage: error instanceof Error ? (error as Error).message : 'Unknown error',
         },
       });
       
