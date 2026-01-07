@@ -52,25 +52,25 @@ class DeepSeekService {
       };
     } catch (error: any) {
       console.error('❌ Erreur DeepSeek:', {
-        message: error.message,
-        code: error.code,
+        message: (error as Error).message,
+        code: (error as any).code,
         status: error.status
       });
 
       let errorMessage = 'Erreur lors de la communication avec DeepSeek';
       
-      if (error.code === 'insufficient_quota') {
+      if ((error as any).code === 'insufficient_quota') {
         errorMessage = 'Quota API épuisé. Veuillez vérifier votre compte DeepSeek.';
-      } else if (error.code === 'invalid_api_key') {
+      } else if ((error as any).code === 'invalid_api_key') {
         errorMessage = 'Clé API invalide. Veuillez vérifier votre configuration.';
-      } else if (error.code === 'rate_limit_exceeded') {
+      } else if ((error as any).code === 'rate_limit_exceeded') {
         errorMessage = 'Limite de requêtes dépassée. Veuillez réessayer plus tard.';
       }
 
       return {
         success: false,
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
       };
     }
   }
@@ -104,7 +104,7 @@ class DeepSeekService {
     } catch (error: any) {
       return {
         valid: false,
-        error: error.message,
+        error: (error as Error).message,
         provider: 'DeepSeek'
       };
     }
