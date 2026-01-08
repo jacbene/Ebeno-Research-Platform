@@ -8,32 +8,32 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  passwordHash     String
-  role             UserRole  @default(RESEARCHER)
-  isVerified       Boolean   @default(false)
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  role              UserRole  @default(RESEARCHER)
+  isVerified        Boolean   @default(false)
   verificationToken String?
-  resetToken       String?
-  resetTokenExpiry DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
 
-  profile          Profile?
-  createdProjects  Project[]        @relation("ProjectOwner")
-  projectMemberships ProjectMember[]
-  transcriptions   Transcription[]
-  aiAnalyses       AIAnalysis[]
-  documents        Document[]
-  codes            Code[]
-  annotations      Annotation[]
-  memos            Memo[]
-  surveys          Survey[]
-  surveyResponses  SurveyResponse[]
-  fieldNotes       FieldNote[]
-  createdCollaborationSessions CollaborationSession[] @relation("SessionCreator")
-  collaborationSessions        CollaborationSession[] @relation("CollaborationParticipant")
-  collaborationComments CollaborationComment[]
-  collaborationCursors  CollaborationCursor[]
-  collaborationHistory  CollaborationHistory[]
+  profile                        Profile?
+  createdProjects                Project[]              @relation("ProjectOwner")
+  projectMemberships             ProjectMember[]
+  transcriptions                 Transcription[]
+  aiAnalyses                     AIAnalysis[]
+  documents                      Document[]
+  codes                          Code[]
+  annotations                    Annotation[]
+  memos                          Memo[]
+  surveys                        Survey[]
+  surveyResponses                SurveyResponse[]
+  fieldNotes                     FieldNote[]
+  createdCollaborationSessions   CollaborationSession[] @relation("SessionCreator")
+  collaborationSessions          CollaborationSession[] @relation("CollaborationParticipant")
+  collaborationComments          CollaborationComment[]
+  collaborationCursors           CollaborationCursor[]
+  collaborationHistory           CollaborationHistory[]
   submittedPeerReviewSubmissions PeerReviewSubmission[] @relation("Submissions")
   assignedPeerReviewSubmissions  PeerReviewSubmission[] @relation("Reviewers")
   peerReviews                    PeerReview[]           @relation("Reviews")
@@ -46,15 +46,15 @@ model User {
 }
 
 model Profile {
-  id            String @id @default(cuid())
-  userId        String @unique
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName     String
-  lastName      String
-  avatar        String?
-  discipline    String
-  affiliation   String?
-  bio           String?
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName         String
+  lastName          String
+  avatar            String?
+  discipline        String
+  affiliation       String?
+  bio               String?
   researchInterests String[]
 
   createdAt DateTime @default(now())
@@ -62,26 +62,26 @@ model Profile {
 }
 
 model Project {
-  id           String        @id @default(cuid())
-  title        String
-  description  String?
-  status       ProjectStatus @default(ACTIVE)
-  visibility   Visibility    @default(PRIVATE)
-  owner        User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId      String
-  members      ProjectMember[]
-  tags         ProjectTag[]
-  transcriptions Transcription[]
-  aiAnalyses   AIAnalysis[]
-  documents    Document[]
-  codes        Code[]
-  memos        Memo[]
-  references   Reference[]
-  folders      Folder[]
-  surveys      Survey[]
-  fieldNotes   FieldNote[]
+  id                    String                 @id @default(cuid())
+  title                 String
+  description           String?
+  status                ProjectStatus          @default(ACTIVE)
+  visibility            Visibility             @default(PRIVATE)
+  owner                 User                   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId               String
+  members               ProjectMember[]
+  tags                  ProjectTag[]
+  transcriptions        Transcription[]
+  aiAnalyses            AIAnalysis[]
+  documents             Document[]
+  codes                 Code[]
+  memos                 Memo[]
+  references            Reference[]
+  folders               Folder[]
+  surveys               Survey[]
+  fieldNotes            FieldNote[]
   collaborationSessions CollaborationSession[]
-  reviewCriteria   ReviewCriteria[]
+  reviewCriteria        ReviewCriteria[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,13 +91,13 @@ model Project {
 }
 
 model ProjectMember {
-  id        String   @id @default(cuid())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String      @id @default(cuid())
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  role      ProjectRole     @default(VIEWER)
-  joinedAt  DateTime @default(now())
+  role      ProjectRole @default(VIEWER)
+  joinedAt  DateTime    @default(now())
 
   @@unique([projectId, userId])
 }
@@ -175,19 +175,19 @@ model AIAnalysis {
 }
 
 model Document {
-  id         String       @id @default(cuid())
-  title      String
-  content    String       @db.Text
-  type       DocumentType @default(NOTE)
-  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId  String
-  createdBy  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  aiAnalyses AIAnalysis[]
-  annotations Annotation[]
-  memos      Memo[]
+  id                    String                 @id @default(cuid())
+  title                 String
+  content               String                 @db.Text
+  type                  DocumentType           @default(NOTE)
+  project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId             String
+  createdBy             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  aiAnalyses            AIAnalysis[]
+  annotations           Annotation[]
+  memos                 Memo[]
   collaborationSessions CollaborationSession[]
 
   @@index([projectId])
@@ -213,8 +213,10 @@ enum Visibility {
 }
 
 enum ProjectRole {
+  OWNER
   EDITOR
   VIEWER
+  MEMBER
 }
 
 enum TranscriptionStatus {
@@ -243,19 +245,33 @@ enum DocumentType {
   ARTICLE_DRAFT
 }
 
+enum CollaborationRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum CollaborationStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+  CANCELLED
+}
+
 model Code {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   description String?
-  color       String   @default("#3b82f6")
+  color       String       @default("#3b82f6")
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parentId    String?
-  parent      Code?    @relation("CodeHierarchy", fields: [parentId], references: [id])
-  children    Code[]   @relation("CodeHierarchy")
+  parent      Code?        @relation("CodeHierarchy", fields: [parentId], references: [id])
+  children    Code[]       @relation("CodeHierarchy")
   annotations Annotation[]
   memos       Memo[]
-  createdBy   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
 
   createdAt DateTime @default(now())
@@ -267,20 +283,20 @@ model Code {
 }
 
 model Annotation {
-  id           String         @id @default(cuid())
-  codeId       String
-  code         Code           @relation(fields: [codeId], references: [id], onDelete: Cascade)
-  documentId   String?
-  document     Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  transcriptionId  String?
-  transcription    Transcription? @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
-  startIndex   Int
-  endIndex     Int
-  selectedText String
-  notes        String?
-  userId       String
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  memos        Memo[]
+  id              String         @id @default(cuid())
+  codeId          String
+  code            Code           @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  documentId      String?
+  document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  transcriptionId String?
+  transcription   Transcription? @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+  startIndex      Int
+  endIndex        Int
+  selectedText    String
+  notes           String?
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memos           Memo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -292,21 +308,21 @@ model Annotation {
 }
 
 model Memo {
-  id           String      @id @default(cuid())
-  title        String
-  content      String      @db.Text
-  projectId    String
-  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  codeId       String?
-  code         Code?       @relation(fields: [codeId], references: [id], onDelete: SetNull)
-  documentId   String?
-  document     Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  transcriptionId  String?
-  transcription    Transcription?    @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
-  annotationId String?
-  annotation   Annotation? @relation(fields: [annotationId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
+  title           String
+  content         String         @db.Text
+  projectId       String
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  codeId          String?
+  code            Code?          @relation(fields: [codeId], references: [id], onDelete: SetNull)
+  documentId      String?
+  document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  transcriptionId String?
+  transcription   Transcription? @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+  annotationId    String?
+  annotation      Annotation?    @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,7 +333,7 @@ model Memo {
 }
 
 model Reference {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   author      String
   year        Int
@@ -330,27 +346,27 @@ model Reference {
   abstract    String?
   notes       String?
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   attachments Attachment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Folder {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parentId    String?
-  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
-  children    Folder[] @relation("FolderHierarchy")
+  parent      Folder?      @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[]     @relation("FolderHierarchy")
   attachments Attachment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Attachment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   filename    String
   url         String
   mimeType    String
@@ -358,22 +374,22 @@ model Attachment {
   referenceId String
   reference   Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
   folderId    String?
-  folder      Folder?  @relation(fields: [folderId], references: [id])
-  createdAt   DateTime @default(now())
+  folder      Folder?   @relation(fields: [folderId], references: [id])
+  createdAt   DateTime  @default(now())
 }
 
 model Survey {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
   description String?
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   questions   Question[]
   responses   SurveyResponse[]
-  createdBy   User     @relation(fields: [userId], references: [id])
+  createdBy   User             @relation(fields: [userId], references: [id])
   userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model Question {
@@ -405,37 +421,37 @@ model SurveyResponse {
 }
 
 model Answer {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   responseId String
   response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
   questionId String
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question   Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
   value      String
 }
 
 model FieldNote {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text
-  location    Json?
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  media       FieldMedia[]
-  createdBy   User     @relation(fields: [userId], references: [id])
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String       @id @default(cuid())
+  title     String
+  content   String       @db.Text
+  location  Json?
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media     FieldMedia[]
+  createdBy User         @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 }
 
 model FieldMedia {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   filename    String
   url         String
   mimeType    String
   size        Int
   fieldNoteId String
   fieldNote   FieldNote @relation(fields: [fieldNoteId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }
 
 enum CollaborationSessionType {
@@ -445,89 +461,132 @@ enum CollaborationSessionType {
   REPORT
 }
 
+// Ajoutez cette section à votre fichier schema.prisma
+
+model Webhook {
+  id          String      @id @default(cuid())
+  url         String      // URL du webhook
+  event       String      // Événement déclencheur (ex: "transcription.completed", "analysis.completed")
+  secret      String?     // Secret pour signature HMAC
+  isActive    Boolean     @default(true)
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String?
+  description String?
+  headers     Json?       // Headers HTTP additionnels
+  retryCount  Int         @default(3)
+  timeout     Int         @default(5000) // en millisecondes
+  
+  logs        WebhookLog[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@unique([url, event, projectId])
+  @@index([projectId])
+  @@index([event])
+  @@index([isActive])
+}
+
+model WebhookLog {
+  id          String    @id @default(cuid())
+  webhook     Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhookId   String
+  event       String
+  payload     Json      // Données envoyées
+  statusCode  Int?      // Code HTTP de la réponse
+  response    String?   // Réponse du serveur
+  error       String?   // Message d'erreur
+  retryCount  Int       @default(0)
+  attemptedAt DateTime  @default(now())
+  completedAt DateTime? // Quand la tentative a été complétée
+  
+  @@index([webhookId])
+  @@index([attemptedAt])
+  @@index([statusCode])
+}
+
 model CollaborationSession {
-  id              String        @id @default(cuid())
-  title           String
-  type            CollaborationSessionType
-  content         String        @default("")
-  version         Int           @default(1)
-  
-  project         Project       @relation(fields: [projectId], references: [id])
-  projectId       String
-  document        Document?     @relation(fields: [documentId], references: [id])
-  documentId      String?
-  createdBy       User          @relation("SessionCreator", fields: [createdById], references: [id])
-  createdById     String
-  participants    User[]        @relation("CollaborationParticipant")
-  
-  isActive        Boolean       @default(true)
-  isPublic        Boolean       @default(false)
-  shareLink       String?       @unique
-  lastActivity    DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  comments        CollaborationComment[]
-  cursors         CollaborationCursor[]
-  history         CollaborationHistory[]
-  
+  id      String                   @id @default(cuid())
+  title   String
+  type    CollaborationSessionType
+  content String                   @default("")
+  version Int                      @default(1)
+
+  project      Project   @relation(fields: [projectId], references: [id])
+  projectId    String
+  document     Document? @relation(fields: [documentId], references: [id])
+  documentId   String?
+  createdBy    User      @relation("SessionCreator", fields: [createdById], references: [id])
+  createdById  String
+  participants User[]    @relation("CollaborationParticipant")
+
+  isActive     Boolean                @default(true)
+  isPublic     Boolean                @default(false)
+  shareLink    String?                @unique
+  lastActivity DateTime               @default(now())
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  comments     CollaborationComment[]
+  cursors      CollaborationCursor[]
+  history      CollaborationHistory[]
+
   @@index([projectId])
   @@index([createdById])
   @@index([isActive])
 }
 
 model CollaborationComment {
-  id              String        @id @default(cuid())
-  content         String
-  position        Json?         // Position dans le document
-  
-  session         CollaborationSession @relation(fields: [sessionId], references: [id])
-  sessionId       String
-  user            User          @relation(fields: [userId], references: [id])
-  userId          String
-  parent          CollaborationComment? @relation("CommentReplies", fields: [parentId], references: [id])
-  parentId        String?
-  replies         CollaborationComment[] @relation("CommentReplies")
-  
-  resolved        Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  id       String @id @default(cuid())
+  content  String
+  position Json? // Position dans le document
+
+  session   CollaborationSession   @relation(fields: [sessionId], references: [id])
+  sessionId String
+  user      User                   @relation(fields: [userId], references: [id])
+  userId    String
+  parent    CollaborationComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId  String?
+  replies   CollaborationComment[] @relation("CommentReplies")
+
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([sessionId])
   @@index([userId])
   @@index([parentId])
 }
 
 model CollaborationCursor {
-  id              String        @id @default(cuid())
-  position        Json          // {line, column}
-  selection       Json?         // Sélection de texte
-  
-  session         CollaborationSession @relation(fields: [sessionId], references: [id])
-  sessionId       String
-  user            User          @relation(fields: [userId], references: [id])
-  userId          String
-  
-  lastActive      DateTime      @default(now())
-  
+  id        String @id @default(cuid())
+  position  Json // {line, column}
+  selection Json? // Sélection de texte
+
+  session   CollaborationSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+  user      User                 @relation(fields: [userId], references: [id])
+  userId    String
+
+  lastActive DateTime @default(now())
+
   @@unique([sessionId, userId])
   @@index([sessionId])
   @@index([userId])
 }
 
 model CollaborationHistory {
-  id              String        @id @default(cuid())
-  
-  session         CollaborationSession @relation(fields: [sessionId], references: [id])
-  sessionId       String
-  user            User          @relation(fields: [userId], references: [id])
-  userId          String
-  
-  operations      Json          // Liste des opérations OT
-  versionBefore   Int
-  versionAfter    Int
-  
-  createdAt       DateTime      @default(now())
-  
+  id String @id @default(cuid())
+
+  session   CollaborationSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+  user      User                 @relation(fields: [userId], references: [id])
+  userId    String
+
+  operations    Json // Liste des opérations OT
+  versionBefore Int
+  versionAfter  Int
+
+  createdAt DateTime @default(now())
+
   @@index([sessionId])
   @@index([userId])
   @@index([createdAt])
@@ -548,83 +607,83 @@ enum ReviewDecision {
 }
 
 model PeerReviewSubmission {
-  id              String        @id @default(cuid())
-  title           String
-  abstract        String?
-  documentId      String        // Document source
-  projectId       String
-  submittedById   String
-  submittedBy     User          @relation("Submissions", fields: [submittedById], references: [id])
-  status          ReviewStatus  @default(SUBMITTED)
-  
-  reviewers       User[]        @relation("Reviewers")
-  reviews         PeerReview[]
-  
-  deadline        DateTime?
-  isBlindReview   Boolean       @default(true)
-  isDoubleBlind   Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  id            String       @id @default(cuid())
+  title         String
+  abstract      String?
+  documentId    String // Document source
+  projectId     String
+  submittedById String
+  submittedBy   User         @relation("Submissions", fields: [submittedById], references: [id])
+  status        ReviewStatus @default(SUBMITTED)
+
+  reviewers User[]       @relation("Reviewers")
+  reviews   PeerReview[]
+
+  deadline      DateTime?
+  isBlindReview Boolean   @default(true)
+  isDoubleBlind Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
   @@index([projectId])
   @@index([submittedById])
   @@index([status])
 }
 
 model PeerReview {
-  id              String        @id @default(cuid())
-  
-  submission      PeerReviewSubmission @relation(fields: [submissionId], references: [id])
-  submissionId    String
-  reviewer        User          @relation("Reviews", fields: [reviewerId], references: [id])
-  reviewerId      String
-  
-  score           Int?          // 1-10
+  id String @id @default(cuid())
+
+  submission   PeerReviewSubmission @relation(fields: [submissionId], references: [id])
+  submissionId String
+  reviewer     User                 @relation("Reviews", fields: [reviewerId], references: [id])
+  reviewerId   String
+
+  score           Int? // 1-10
   comments        String
   decision        ReviewDecision
   strengths       String[]
   weaknesses      String[]
   recommendations String[]
-  
-  status          ReviewStatus  @default(SUBMITTED)
-  
-  submittedAt     DateTime      @default(now())
-  reviewedAt      DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  ratings         ReviewCriteriaRating[]
-  
+
+  status ReviewStatus @default(SUBMITTED)
+
+  submittedAt DateTime               @default(now())
+  reviewedAt  DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  ratings     ReviewCriteriaRating[]
+
   @@unique([submissionId, reviewerId])
   @@index([submissionId])
   @@index([reviewerId])
 }
 
 model ReviewCriteria {
-  id              String        @id @default(cuid())
-  name            String
-  description     String
-  weight          Float         @default(1.0) // Poids dans le score total
-  
-  project         Project       @relation(fields: [projectId], references: [id])
-  projectId       String
-  ratings         ReviewCriteriaRating[]
+  id          String @id @default(cuid())
+  name        String
+  description String
+  weight      Float  @default(1.0) // Poids dans le score total
 
-  createdAt       DateTime      @default(now())
-  
+  project   Project                @relation(fields: [projectId], references: [id])
+  projectId String
+  ratings   ReviewCriteriaRating[]
+
+  createdAt DateTime @default(now())
+
   @@index([projectId])
 }
 
 model ReviewCriteriaRating {
-  id              String        @id @default(cuid())
-  
-  review          PeerReview    @relation(fields: [reviewId], references: [id])
-  reviewId        String
-  criteria        ReviewCriteria @relation(fields: [criteriaId], references: [id])
-  criteriaId      String
-  
-  score           Int           // 1-5
-  comments        String?
-  
+  id String @id @default(cuid())
+
+  review     PeerReview     @relation(fields: [reviewId], references: [id])
+  reviewId   String
+  criteria   ReviewCriteria @relation(fields: [criteriaId], references: [id])
+  criteriaId String
+
+  score    Int // 1-5
+  comments String?
+
   @@unique([reviewId, criteriaId])
   @@index([reviewId])
   @@index([criteriaId])

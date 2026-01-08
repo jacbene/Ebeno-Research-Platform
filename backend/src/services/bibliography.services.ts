@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Reference, Tag } from '@prisma/client';
+import { ProjectRole } from '@prisma/client';
 
 interface ReferenceInput {
   title: string;
