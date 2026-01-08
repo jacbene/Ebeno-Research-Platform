@@ -217,7 +217,234 @@ export class ApiController {
       });
     }
   }
-  
+
+// Ajoutez ces méthodes à votre classe ApiController existante
+
+// Méthodes pour les webhooks
+async listWebhooks(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const webhooks = await prisma.webhook.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.status(200).json({ success: true, data: webhooks });
+  } catch (error: any) {
+    console.error('Error listing webhooks:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async deleteWebhook(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    await prisma.webhook.delete({
+      where: { id, userId }
+    });
+
+    res.status(200).json({ success: true, message: 'Webhook supprimé' });
+  } catch (error: any) {
+    console.error('Error deleting webhook:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Méthodes pour les données
+async getProjects(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const projects = await prisma.project.findMany({
+      where: { members: { some: { userId } } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            documents: true,
+            transcriptions: true,
+            memos: true
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    res.status(200).json({ success: true, data: projects });
+  } catch (error: any) {
+    console.error('Error getting projects:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async getProject(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        members: { some: { userId } }
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                profile: {
+                  select: {
+                    firstName: true,
+                    lastName: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        tags: true
+      }
+    });
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Projet non trouvé ou accès refusé' 
+      });
+    }
+
+    res.status(200).json({ success: true, data: project });
+  } catch (error: any) {
+    console.error('Error getting project:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async getDocuments(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const { projectId, type, page = 1, limit = 20 } = req.query;
+    
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const where: any = {
+      project: {
+        members: { some: { userId } }
+      }
+    };
+
+    if (projectId) where.projectId = projectId as string;
+    if (type) where.type = type as string;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const [documents, total] = await Promise.all([
+      prisma.document.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          createdAt: true,
+          updatedAt: true,
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: Number(limit)
+      }),
+      prisma.document.count({ where })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: documents,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error getting documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async getReferences(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const { projectId, search, page = 1, limit = 20 } = req.query;
+    
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const where: any = { userId };
+
+    if (projectId) where.projectId = projectId as string;
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { authors: { hasSome: [search as string] } },
+        { journal: { contains: search as string, mode: 'insensitive' } }
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const [references, total] = await Promise.all([
+      prisma.reference.findMany({
+        where,
+        include: {
+          tags: true,
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
+          }
+        },
+        orderBy: { year: 'desc' },
+        skip,
+        take: Number(limit)
+      }),
+      prisma.reference.count({ where })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: references,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error getting references:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}  
+
   /**
    * @swagger
    * /api/v1/keys/{keyId}:

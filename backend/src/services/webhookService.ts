@@ -4,6 +4,26 @@ import axios from 'axios';
 import { prisma } from '../lib/prisma';
 
 export class WebhookService {
+
+  async getActiveWebhooks(event: string) {
+    return await prisma.webhook.findMany({
+      where: {
+        event,
+        isActive: true,
+      },
+    });
+  }
+
+  async createWebhookLog(webhookId: string, data: any) {
+    return await prisma.webhookLog.create({
+      data: {
+        webhookId,
+        event: data.event,
+        payload: data.payload,
+        // ... autres champs
+      },
+    });
+  }
   
   async triggerWebhook(event: string, data: any) {
     try {
