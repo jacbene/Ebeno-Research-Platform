@@ -6,7 +6,7 @@ import userRoutes from './userRoutes';
 import projectRoutes from './projectRoutes';
 import codingRoutes from './codingRoutes';
 import memoRoutes from './memoRoutes';
-import transcriptionRoutes from './transcriptionRoute';
+import transcriptionRoutes from './transcriptionRoutes';
 import deepseekRoutes from './deepseekRoutes';
 import visualizationRoutes from './visualizationRoutes';
 import referenceRoutes from './referenceRoutes';

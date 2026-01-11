@@ -18,20 +18,15 @@ import {
   FormGroup,
   Grid,
   Card,
-  CardContent,
-  CardActions
+  CardContent
 } from '@mui/material';
 import {
   DragHandle,
   Delete,
-  Add,
-  Settings,
-  Visibility,
-  ArrowUpward,
-  ArrowDownward
+  Add
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { surveyAPI } from '@/services/api/survey.api';
+import { surveyAPI } from '../../services/api/survey.api'; // Fixed import path
 
 export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => {
   const [survey, setSurvey] = useState({
@@ -43,9 +38,8 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
     shuffleQuestions: false,
     showProgress: true
   });
-  
+
   const [questions, setQuestions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
 
   // Charger l'enquête existante
@@ -56,7 +50,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
   }, [surveyId]);
 
   const loadSurvey = async (id: string) => {
-    setLoading(true);
+    // setLoading(true); // 'loading' is declared but its value is never read.
     try {
       const data = await surveyAPI.getById(id);
       setSurvey(data);
@@ -64,7 +58,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -80,7 +74,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
         { id: '2', label: 'Option 2', value: 'option2' }
       ] : undefined
     };
-    
+
     setQuestions([...questions, newQuestion]);
     setActiveQuestion(questions.length);
   };
@@ -101,17 +95,17 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
-    
+
     const items = Array.from(questions);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    
+
     // Mettre à jour les positions
     const reordered = items.map((item, index) => ({
       ...item,
       position: index
     }));
-    
+
     setQuestions(reordered);
   };
 
@@ -127,13 +121,13 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
           validationRules: q.validationRules
         }))
       };
-      
+
       if (surveyId) {
         await surveyAPI.update(surveyId, data);
       } else {
         await surveyAPI.create(data);
       }
-      
+
       alert('Enquête sauvegardée avec succès');
     } catch (error) {
       console.error('Erreur:', error);
@@ -145,12 +139,12 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
         {/* Panneau de configuration */}
-        <Grid xs={3}>
+        <Grid item xs={12} sm={4}> {/* Added 'item' and explicit 'sm' for better responsiveness */}
           <Paper sx={{ p: 3, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>
               Configuration
             </Typography>
-            
+
             <Box sx={{ mb: 3 }}>
               <TextField
                 label="Titre de l'enquête"
@@ -159,7 +153,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                 onChange={(e) => setSurvey({ ...survey, title: e.target.value })}
                 sx={{ mb: 2 }}
               />
-              
+
               <TextField
                 label="Description"
                 fullWidth
@@ -169,7 +163,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                 onChange={(e) => setSurvey({ ...survey, description: e.target.value })}
                 sx={{ mb: 2 }}
               />
-              
+
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Statut</InputLabel>
                 <Select
@@ -182,7 +176,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   <MenuItem value="PAUSED">En pause</MenuItem>
                 </Select>
               </FormControl>
-              
+
               <FormGroup>
                 <FormControlLabel
                   control={
@@ -222,13 +216,13 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                 />
               </FormGroup>
             </Box>
-            
+
             <Typography variant="subtitle1" gutterBottom>
               Ajouter une question
             </Typography>
-            
+
             <Grid container spacing={1}>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -238,7 +232,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Choix unique
                 </Button>
               </Grid>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -248,7 +242,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Choix multiple
                 </Button>
               </Grid>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -258,7 +252,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Texte court
                 </Button>
               </Grid>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -268,7 +262,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Texte long
                 </Button>
               </Grid>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -278,7 +272,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                   Échelle Likert
                 </Button>
               </Grid>
-              <Grid xs={6}>
+              <Grid item xs={6}> {/* Added 'item' */}
                 <Button
                   variant="outlined"
                   fullWidth
@@ -289,7 +283,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                 </Button>
               </Grid>
             </Grid>
-            
+
             <Button
               variant="contained"
               fullWidth
@@ -300,9 +294,9 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
             </Button>
           </Paper>
         </Grid>
-        
+
         {/* Zone de construction */}
-        <Grid xs={9}>
+        <Grid item xs={12} sm={8}> {/* Added 'item' and explicit 'sm' for better responsiveness */}
           <Paper sx={{ p: 3, minHeight: '80vh' }}>
             <Typography variant="h5" gutterBottom>
               {survey.title || 'Nouvelle enquête'}
@@ -310,7 +304,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
             <Typography variant="body2" color="textSecondary" paragraph>
               {survey.description || 'Ajoutez une description...'}
             </Typography>
-            
+
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="questions">
                 {(provided) => (
@@ -346,7 +340,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                                   <Delete />
                                 </IconButton>
                               </Box>
-                              
+
                               <QuestionEditor
                                 question={question}
                                 onChange={(updates) => handleUpdateQuestion(index, updates)}
@@ -361,7 +355,7 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
                 )}
               </Droppable>
             </DragDropContext>
-            
+
             {questions.length === 0 && (
               <Box
                 sx={{
@@ -390,25 +384,25 @@ export const SurveyBuilder: React.FC<{ surveyId?: string }> = ({ surveyId }) => 
 };
 
 // Éditeur de question
-const QuestionEditor: React.FC<{ 
-  question: any; 
-  onChange: (updates: any) => void 
+const QuestionEditor: React.FC<{
+  question: any;
+  onChange: (updates: any) => void
 }> = ({ question, onChange }) => {
-  
+
   const handleTextChange = (text: string) => {
     onChange({ text });
   };
-  
+
   const handleRequiredChange = (required: boolean) => {
     onChange({ required });
   };
-  
+
   const handleOptionChange = (index: number, option: any) => {
     const newOptions = [...question.options];
     newOptions[index] = option;
     onChange({ options: newOptions });
   };
-  
+
   const addOption = () => {
     const newOption = {
       id: Date.now().toString(),
@@ -417,12 +411,12 @@ const QuestionEditor: React.FC<{
     };
     onChange({ options: [...question.options, newOption] });
   };
-  
+
   const removeOption = (index: number) => {
     const newOptions = question.options.filter((_: any, i: number) => i !== index);
     onChange({ options: newOptions });
   };
-  
+
   return (
     <Box>
       <TextField
@@ -433,7 +427,7 @@ const QuestionEditor: React.FC<{
         sx={{ mb: 2 }}
         placeholder="Entrez votre question ici..."
       />
-      
+
       <FormControlLabel
         control={
           <Checkbox
@@ -444,7 +438,7 @@ const QuestionEditor: React.FC<{
         label="Réponse obligatoire"
         sx={{ mb: 2 }}
       />
-      
+
       {question.type.includes('CHOICE') && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
@@ -484,7 +478,7 @@ const QuestionEditor: React.FC<{
           </Button>
         </Box>
       )}
-      
+
       {question.type === 'LIKERT_SCALE' && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom>

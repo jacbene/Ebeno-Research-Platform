@@ -11,7 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/authRoutes';
 import projectRoutes from './routes/projectRoutes';
 import deepseekRoutes from './routes/deepseekRoutes';
-import transcriptionRoutes from './routes/transcriptionRoute';
+import transcriptionRoutes from './routes/transcriptionRoutes';
 import codingRoutes from './routes/codingRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';

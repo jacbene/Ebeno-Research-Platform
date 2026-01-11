@@ -1,11 +1,10 @@
 // backend/controllers/apiController.ts
 // Contrôleur principal de l'API publique
 import { Request, Response } from 'express';
-import { prisma } from '../utils/prisma';
+import { prisma } from '../lib/prisma';
 import { 
   generateApiKeySchema, 
   createWebhookSchema,
-  validateApiRequestSchema 
 } from '../validators/api.validator';
 import crypto from 'crypto';
 
@@ -95,7 +94,6 @@ export class ApiController {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
-      const userId = req.user.id;
       const data = generateApiKeySchema.parse(req.body);
       
       // This is a placeholder as the apiKey model does not exist
@@ -226,8 +224,14 @@ async listWebhooks(req: Request, res: Response) {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
+    const userProjects = await prisma.project.findMany({
+      where: { members: { some: { userId } } },
+      select: { id: true }
+    });
+    const projectIds = userProjects.map(p => p.id);
+
     const webhooks = await prisma.webhook.findMany({
-      where: { userId },
+      where: { projectId: { in: projectIds } },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -245,9 +249,20 @@ async deleteWebhook(req: Request, res: Response) {
     
     if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
-    await prisma.webhook.delete({
-      where: { id, userId }
+    const webhook = await prisma.webhook.findUnique({ where: { id } });
+    if (!webhook || !webhook.projectId) {
+      return res.status(404).json({ message: "Webhook non trouvé" });
+    }
+
+    const member = await prisma.projectMember.findFirst({
+      where: { projectId: webhook.projectId, userId }
     });
+
+    if (!member) {
+      return res.status(403).json({ message: "Accès non autorisé à ce webhook" });
+    }
+
+    await prisma.webhook.delete({ where: { id } });
 
     res.status(200).json({ success: true, message: 'Webhook supprimé' });
   } catch (error: any) {
@@ -347,7 +362,7 @@ async getDocuments(req: Request, res: Response) {
     };
 
     if (projectId) where.projectId = projectId as string;
-    if (type) where.type = type as string;
+    if (type) where.type = type as any;
 
     const skip = (Number(page) - 1) * Number(limit);
     
@@ -396,15 +411,32 @@ async getReferences(req: Request, res: Response) {
     const { projectId, search, page = 1, limit = 20 } = req.query;
     
     if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+    
+    const where: any = {};
 
-    const where: any = { userId };
-
-    if (projectId) where.projectId = projectId as string;
+    if (projectId) {
+      const member = await prisma.projectMember.findFirst({
+        where: { projectId: projectId as string, userId: userId }
+      });
+      if (!member) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+      where.projectId = projectId as string;
+    } else {
+      const userProjects = await prisma.project.findMany({
+        where: { members: { some: { userId } } },
+        select: { id: true }
+      });
+      const projectIds = userProjects.map(p => p.id);
+      where.projectId = { in: projectIds };
+    }
+    
     if (search) {
+      const searchString = search as string;
       where.OR = [
-        { title: { contains: search as string, mode: 'insensitive' } },
-        { authors: { hasSome: [search as string] } },
-        { journal: { contains: search as string, mode: 'insensitive' } }
+        { title: { contains: searchString, mode: 'insensitive' } },
+        { author: { contains: searchString, mode: 'insensitive' } },
+        { journal: { contains: searchString, mode: 'insensitive' } }
       ];
     }
 
@@ -414,7 +446,6 @@ async getReferences(req: Request, res: Response) {
       prisma.reference.findMany({
         where,
         include: {
-          tags: true,
           project: {
             select: {
               id: true,
@@ -510,57 +541,10 @@ async getReferences(req: Request, res: Response) {
    *       content:
    *         application/json:
    *           schema:
-   *             type: object
-   *             required:
-   *               - url
-   *               - events
-   *             properties:
-   *               url:
-   *                 type: string
-   *                 format: uri
-   *                 description: URL du webhook
-   *                 example: "https://example.com/webhook"
-   *               events:
-   *                 type: array
-   *                 items:
-   *                   type: string
-   *                   enum: [project.created, project.updated, document.created, transcription.completed, coding.completed]
-   *                 description: Événements à écouter
-   *                 example: ["project.created", "document.created"]
-   *               secret:
-   *                 type: string
-   *                 description: Secret pour signer les requêtes
-   *               enabled:
-   *                 type: boolean
-   *                 default: true
+   *             $ref: '#/components/schemas/CreateWebhook'
    *     responses:
    *       201:
    *         description: Webhook créé avec succès
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: string
-   *                     url:
-   *                       type: string
-   *                     events:
-   *                       type: array
-   *                       items:
-   *                         type: string
-   *                     secret:
-   *                       type: string
-   *                     enabled:
-   *                       type: boolean
-   *                     createdAt:
-   *                       type: string
-   *                       format: date-time
    *       400:
    *         $ref: '#/components/responses/ValidationError'
    *       401:
@@ -573,14 +557,14 @@ async getReferences(req: Request, res: Response) {
       }
       const data = createWebhookSchema.parse(req.body);
       
+      // Placeholder: In a real app, you would save this to the database
+      // const webhook = await prisma.webhook.create({ data: {...data, userId: req.user.id }});
+
       res.status(201).json({
         success: true,
         data: {
           id: 'placeholder',
-          url: data.url,
-          events: data.events,
-          secret: 'placeholder',
-          enabled: true,
+          ...data,
           createdAt: new Date()
         }
       });
@@ -624,44 +608,6 @@ async getReferences(req: Request, res: Response) {
    *     responses:
    *       200:
    *         description: Statistiques d'utilisation
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     totalRequests:
-   *                       type: integer
-   *                     successfulRequests:
-   *                       type: integer
-   *                     failedRequests:
-   *                       type: integer
-   *                     averageResponseTime:
-   *                       type: number
-   *                     usageByEndpoint:
-   *                       type: array
-   *                       items:
-   *                         type: object
-   *                         properties:
-   *                           endpoint:
-   *                             type: string
-   *                           count:
-   *                             type: integer
-   *                           averageTime:
-   *                             type: number
-   *                     dailyUsage:
-   *                       type: array
-   *                       items:
-   *                         type: object
-   *                         properties:
-   *                           date:
-   *                             type: string
-   *                           count:
-   *                             type: integer
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
@@ -702,34 +648,12 @@ async getReferences(req: Request, res: Response) {
    *     responses:
    *       200:
    *         description: Clé API valide
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     valid:
-   *                       type: boolean
-   *                     keyId:
-   *                       type: string
-   *                     scopes:
-   *                       type: array
-   *                       items:
-   *                         type: string
-   *                     expiresAt:
-   *                       type: string
-   *                       format: date-time
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
   async validateApiKey(req: Request, res: Response) {
     try {
       // This is a placeholder as the apiKey model does not exist
-      const apiKey = (req as any).apiKey;
       
       res.status(200).json({
         success: true,
@@ -747,78 +671,6 @@ async getReferences(req: Request, res: Response) {
         error: (error as Error).message
       });
     }
-  }
-  
-  // Méthodes privées
-  private calculateApiStats(logs: any[], groupBy: string) {
-    if (logs.length === 0) {
-      return {
-        totalRequests: 0,
-        successfulRequests: 0,
-        failedRequests: 0,
-        averageResponseTime: 0,
-        usageByEndpoint: [],
-        dailyUsage: []
-      };
-    }
-    
-    const successfulRequests = logs.filter(l => l.status >= 200 && l.status < 300);
-    const failedRequests = logs.filter(l => l.status >= 400);
-    
-    const totalResponseTime = successfulRequests.reduce((sum, log) => 
-      sum + (log.responseTime || 0), 0
-    );
-    
-    // Regroupement par endpoint
-    const endpointStats: Record<string, { count: number, totalTime: number }> = {};
-    logs.forEach(log => {
-      const endpoint = log.endpoint || 'unknown';
-      if (!endpointStats[endpoint]) {
-        endpointStats[endpoint] = { count: 0, totalTime: 0 };
-      }
-      endpointStats[endpoint].count++;
-      endpointStats[endpoint].totalTime += log.responseTime || 0;
-    });
-    
-    const usageByEndpoint = Object.entries(endpointStats).map(([endpoint, stats]) => ({
-      endpoint,
-      count: stats.count,
-      averageTime: stats.totalTime / stats.count
-    })).sort((a, b) => b.count - a.count);
-    
-    // Regroupement temporel
-    const dailyUsage: Record<string, number> = {};
-    logs.forEach(log => {
-      let dateKey: string;
-      const date = new Date(log.createdAt);
-      
-      switch (groupBy) {
-        case 'week':
-          const weekStart = new Date(date);
-          weekStart.setDate(date.getDate() - date.getDay());
-          dateKey = weekStart.toISOString().split('T')[0];
-          break;
-        case 'month':
-          dateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-          break;
-        default: // day
-          dateKey = date.toISOString().split('T')[0];
-      }
-      
-      dailyUsage[dateKey] = (dailyUsage[dateKey] || 0) + 1;
-    });
-    
-    return {
-      totalRequests: logs.length,
-      successfulRequests: successfulRequests.length,
-      failedRequests: failedRequests.length,
-      successRate: (successfulRequests.length / logs.length) * 100,
-      averageResponseTime: totalResponseTime / successfulRequests.length,
-      usageByEndpoint,
-      dailyUsage: Object.entries(dailyUsage)
-        .map(([date, count]) => ({ date, count }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-    };
   }
 }
 

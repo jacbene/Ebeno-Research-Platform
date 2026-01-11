@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, AreaChart, Area, TooltipProps
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
-import { TemporalData } from '../../types/visualization';
+import { TooltipProps } from 'recharts/types/component/DefaultTooltipContent';
+import { TemporalData, TimeRange, Series } from '../../types/visualization';
 import { Calendar, Download } from 'lucide-react';
 
 interface TemporalEvolutionChartProps {
@@ -18,13 +18,13 @@ type ChartDataPoint = {
   [key: string]: number | string;
 };
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number | string, string>) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
         <p className="font-medium text-gray-900 mb-2">{label}</p>
         <div className="space-y-1">
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <div key={`item-${index}`} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color || 'transparent' }}/>
@@ -48,24 +48,24 @@ const TemporalEvolutionChart: React.FC<TemporalEvolutionChartProps> = ({
   const [chartType, setChartType] = useState<'line' | 'area'>('line');
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
 
-  const chartData: ChartDataPoint[] = data.categories.map((category, index) => {
+  const chartData: ChartDataPoint[] = data.categories.map((category: string, index: number) => {
     const point: ChartDataPoint = { date: category };
-    data.series.forEach(series => {
+    data.series.forEach((series: Series) => {
       point[series.name] = series.data[index] || 0;
     });
     return point;
   });
 
-  const handleLegendClick = (payload: any) => {
+  const handleLegendClick = (payload: { dataKey: string }) => {
     if (payload.dataKey) {
-      setHiddenSeries(prev => 
-        prev.includes(payload.dataKey as string) 
-          ? prev.filter(name => name !== payload.dataKey) 
+      setHiddenSeries(prev =>
+        prev.includes(payload.dataKey as string)
+          ? prev.filter(name => name !== payload.dataKey)
           : [...prev, payload.dataKey as string]
       );
     }
   };
-  
+
   const ChartComponent = chartType === 'line' ? LineChart : AreaChart;
   const ChartElement = chartType === 'line' ? Line : Area;
 
@@ -102,14 +102,14 @@ const TemporalEvolutionChart: React.FC<TemporalEvolutionChartProps> = ({
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend onClick={handleLegendClick} wrapperStyle={{ cursor: 'pointer', paddingTop: '20px' }} />
-            {data.series.map((series) => 
-              <ChartElement 
-                key={series.name} 
-                type="monotone" 
-                dataKey={series.name} 
-                stroke={series.color} 
-                fill={series.color} 
-                strokeWidth={2} 
+            {data.series.map((series: Series) =>
+              <ChartElement
+                key={series.name}
+                type="monotone"
+                dataKey={series.name}
+                stroke={series.color}
+                fill={series.color}
+                strokeWidth={2}
                 hide={hiddenSeries.includes(series.name)}
                 {...(chartType === 'line' ? { dot: { r: 3 }, activeDot: { r: 6 } } : { fillOpacity: 0.3, stackId: '1' })}
               />
@@ -117,7 +117,7 @@ const TemporalEvolutionChart: React.FC<TemporalEvolutionChartProps> = ({
           </ChartComponent>
         </ResponsiveContainer>
       </div>
-      
+
       <div className="mt-6 pt-6 border-t border-gray-100">
         {/* ... Additional stats ... */}
       </div>

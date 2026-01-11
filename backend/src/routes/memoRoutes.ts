@@ -1,25 +1,17 @@
-import express from 'express';
-import memoController from '../controllers/memoController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { Router } from 'express';
+import memoController from '../controllers/memoController';
+import { authMiddleware } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
 // Toutes les routes nécessitent une authentification
-router.use(protect);
+router.use(authMiddleware);
 
-// === ROUTES CRUD ===
-router.post('/memos', memoController.createMemo);
-router.get('/memos', memoController.getMemos);
-router.get('/memos/:memoId', memoController.getMemo);
-router.put('/memos/:memoId', memoController.updateMemo);
-router.delete('/memos/:memoId', memoController.deleteMemo);
-
-// === ROUTES PAR PROJET ===
-router.get('/projects/:projectId/memos', memoController.getProjectMemos);
-router.get('/projects/:projectId/memos/statistics', memoController.getMemoStatistics);
-router.get('/projects/:projectId/memos/search', memoController.searchMemos);
-
-// === ROUTES IA ===
-router.post('/projects/:projectId/memos/generate-ai', memoController.generateMemoWithAI);
+// Routes CRUD
+router.post('/', memoController.createMemo);
+router.get('/', memoController.getMemos); // Peut être filtré par projectId avec ?projectId=...
+router.get('/:id', memoController.getMemo);
+router.put('/:id', memoController.updateMemo);
+router.delete('/:id', memoController.deleteMemo);
 
 export default router;
