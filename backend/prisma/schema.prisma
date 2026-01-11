@@ -1,14 +1,15 @@
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
   id                String    @id @default(cuid())
+  name              String?
   email             String    @unique
   passwordHash      String
   role              UserRole  @default(RESEARCHER)
@@ -16,6 +17,8 @@ model User {
   verificationToken String?
   resetToken        String?
   resetTokenExpiry  DateTime?
+
+  plan   UserPlan?
 
   profile                        Profile?
   createdProjects                Project[]              @relation("ProjectOwner")
@@ -37,12 +40,35 @@ model User {
   submittedPeerReviewSubmissions PeerReviewSubmission[] @relation("Submissions")
   assignedPeerReviewSubmissions  PeerReviewSubmission[] @relation("Reviewers")
   peerReviews                    PeerReview[]           @relation("Reviews")
+  apiKeys                        ApiKey[]
+  references                     Reference[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([role])
+}
+
+model UserPlan {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType       PlanType @default(FREE)
+  startedAt      DateTime @default(now())
+  endsAt         DateTime?
+  usage          Json? // { transcriptions: 3, analyses: 100 }
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PlanType {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 model Profile {
@@ -82,6 +108,8 @@ model Project {
   fieldNotes            FieldNote[]
   collaborationSessions CollaborationSession[]
   reviewCriteria        ReviewCriteria[]
+  webhooks              Webhook[]
+  annotations           Annotation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -118,6 +146,7 @@ model Tag {
   category String? // 'system', 'user', 'discipline'
   color    String?
   projects ProjectTag[]
+  references ReferenceTag[]
 
   @@unique([name, category])
 }
@@ -298,6 +327,10 @@ model Annotation {
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   memos           Memo[]
 
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -305,6 +338,7 @@ model Annotation {
   @@index([transcriptionId])
   @@index([codeId])
   @@index([userId])
+  @@index([projectId])
 }
 
 model Memo {
@@ -323,7 +357,7 @@ model Memo {
   annotation      Annotation?    @relation(fields: [annotationId], references: [id], onDelete: Cascade)
   userId          String
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -348,8 +382,22 @@ model Reference {
   projectId   String
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   attachments Attachment[]
+  tags        ReferenceTag[]
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model ReferenceTag {
+  id        String    @id @default(cuid())
+  reference Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+  referenceId String
+  tag       Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     String
+
+  @@unique([referenceId, tagId])
 }
 
 model Folder {
@@ -395,7 +443,7 @@ model Survey {
 model Question {
   id       String       @id @default(cuid())
   text     String
-  type     QuestionType
+  questionType QuestionType
   options  String[]
   surveyId String
   survey   Survey       @relation(fields: [surveyId], references: [id], onDelete: Cascade)
@@ -415,8 +463,8 @@ model SurveyResponse {
   surveyId  String
   survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   answers   Answer[]
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 }
 
@@ -461,20 +509,20 @@ enum CollaborationSessionType {
   REPORT
 }
 
-// Ajoutez cette section à votre fichier schema.prisma
-
 model Webhook {
   id          String      @id @default(cuid())
-  url         String      // URL du webhook
-  event       String      // Événement déclencheur (ex: "transcription.completed", "analysis.completed")
-  secret      String?     // Secret pour signature HMAC
-  isActive    Boolean     @default(true)
+  url         String
+  event       String
+  secret      String?
+  enabled     Boolean     @default(true)
   project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId   String?
   description String?
-  headers     Json?       // Headers HTTP additionnels
+  headers     Json?
   retryCount  Int         @default(3)
-  timeout     Int         @default(5000) // en millisecondes
+  timeout     Int         @default(5000)
+
+  lastTriggeredAt DateTime?
   
   logs        WebhookLog[]
   createdAt   DateTime    @default(now())
@@ -483,7 +531,7 @@ model Webhook {
   @@unique([url, event, projectId])
   @@index([projectId])
   @@index([event])
-  @@index([isActive])
+  @@index([enabled])
 }
 
 model WebhookLog {
@@ -491,17 +539,17 @@ model WebhookLog {
   webhook     Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
   webhookId   String
   event       String
-  payload     Json      // Données envoyées
-  statusCode  Int?      // Code HTTP de la réponse
-  response    String?   // Réponse du serveur
-  error       String?   // Message d'erreur
+  payload     Json
+  responseCode Int?
+  response    String?
+  error       String?
   retryCount  Int       @default(0)
   attemptedAt DateTime  @default(now())
-  completedAt DateTime? // Quand la tentative a été complétée
+  completedAt DateTime?
   
   @@index([webhookId])
   @@index([attemptedAt])
-  @@index([statusCode])
+  @@index([responseCode])
 }
 
 model CollaborationSession {
@@ -537,7 +585,7 @@ model CollaborationSession {
 model CollaborationComment {
   id       String @id @default(cuid())
   content  String
-  position Json? // Position dans le document
+  position Json?
 
   session   CollaborationSession   @relation(fields: [sessionId], references: [id])
   sessionId String
@@ -558,8 +606,8 @@ model CollaborationComment {
 
 model CollaborationCursor {
   id        String @id @default(cuid())
-  position  Json // {line, column}
-  selection Json? // Sélection de texte
+  position  Json
+  selection Json?
 
   session   CollaborationSession @relation(fields: [sessionId], references: [id])
   sessionId String
@@ -581,7 +629,7 @@ model CollaborationHistory {
   user      User                 @relation(fields: [userId], references: [id])
   userId    String
 
-  operations    Json // Liste des opérations OT
+  operations    Json
   versionBefore Int
   versionAfter  Int
 
@@ -610,7 +658,7 @@ model PeerReviewSubmission {
   id            String       @id @default(cuid())
   title         String
   abstract      String?
-  documentId    String // Document source
+  documentId    String
   projectId     String
   submittedById String
   submittedBy   User         @relation("Submissions", fields: [submittedById], references: [id])
@@ -638,7 +686,7 @@ model PeerReview {
   reviewer     User                 @relation("Reviews", fields: [reviewerId], references: [id])
   reviewerId   String
 
-  score           Int? // 1-10
+  score           Int?
   comments        String
   decision        ReviewDecision
   strengths       String[]
@@ -662,7 +710,7 @@ model ReviewCriteria {
   id          String @id @default(cuid())
   name        String
   description String
-  weight      Float  @default(1.0) // Poids dans le score total
+  weight      Float  @default(1.0)
 
   project   Project                @relation(fields: [projectId], references: [id])
   projectId String
@@ -681,10 +729,44 @@ model ReviewCriteriaRating {
   criteria   ReviewCriteria @relation(fields: [criteriaId], references: [id])
   criteriaId String
 
-  score    Int // 1-5
+  score    Int
   comments String?
 
   @@unique([reviewId, criteriaId])
   @@index([reviewId])
   @@index([criteriaId])
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyHash     String   @unique
+  scopes      String[]
+  revokedAt   DateTime?
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  logs        ApiLog[]
+
+  @@index([userId])
+}
+
+model ApiLog {
+  id           String   @id @default(cuid())
+  userId       String
+  apiKeyId     String
+  apiKey       ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  endpoint     String
+  method       String
+  ipAddress    String
+  userAgent    String
+  status       Int
+  responseTime Int
+  requestSize  Int
+  queryParams  String
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([apiKeyId])
 }

@@ -1,10 +1,9 @@
 import { prisma } from '../lib/prisma';
 import { Reference, Tag } from '@prisma/client';
-import { ProjectRole } from '@prisma/client';
 
 interface ReferenceInput {
   title: string;
-  authors: string[];
+  author: string;
   year: number;
   journal?: string;
   volume?: string;
@@ -14,6 +13,7 @@ interface ReferenceInput {
   url?: string;
   abstract?: string;
   tagIds?: string[];
+  projectId: string;
 }
 
 export class BibliographyService {
@@ -24,27 +24,37 @@ export class BibliographyService {
   ): Promise<Reference & { tags: Tag[] }> {
     const { tagIds = [], ...referenceData } = data;
 
-    const reference = await prisma.reference.create({
+    const referenceWithJoin = await prisma.reference.create({
       data: {
         ...referenceData,
         userId,
         tags: {
-          connect: tagIds.map((id: string) => ({ id })) || [],
+          create: tagIds.map((tagId: string) => ({
+            tag: {
+              connect: { id: tagId },
+            },
+          })),
         },
       },
       include: {
-        tags: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 
-    return reference;
+    return {
+      ...referenceWithJoin,
+      tags: referenceWithJoin.tags.map((refTag) => refTag.tag),
+    };
   }
 
   // Importer des références depuis un fichier BibTeX
-  static async importFromBibTeX(userId: string, bibtexContent: string): Promise<Reference[]> {
+  static async importFromBibTeX(userId: string, projectId: string, bibtexContent: string): Promise<Reference[]> {
     try {
-      // Parser le contenu BibTeX (implémentation simplifiée)
-      const references = this.parseBibTeX(bibtexContent);
+      const references = this.parseBibTeX(bibtexContent, projectId);
       const createdReferences: Reference[] = [];
 
       for (const ref of references) {
@@ -60,7 +70,7 @@ export class BibliographyService {
   }
 
   // Parser BibTeX (simplifié)
-  private static parseBibTeX(content: string): ReferenceInput[] {
+  private static parseBibTeX(content: string, projectId: string): ReferenceInput[] {
     const references: ReferenceInput[] = [];
     const entries = content.split('@');
 
@@ -73,8 +83,9 @@ export class BibliographyService {
       const typeLine = lines[0];
       const reference: ReferenceInput = {
         title: '',
-        authors: [],
+        author: '',
         year: new Date().getFullYear(),
+        projectId: projectId,
       };
 
       for (let i = 1; i < lines.length; i++) {
@@ -88,7 +99,7 @@ export class BibliographyService {
               reference.title = value;
               break;
             case 'author':
-              reference.authors = value.split(' and ').map(a => a.trim());
+              reference.author = value;
               break;
             case 'year':
               reference.year = parseInt(value) || new Date().getFullYear();
@@ -129,18 +140,20 @@ export class BibliographyService {
   // Rechercher des références
   static async searchReferences(
     userId: string,
+    projectId: string,
     query: string,
     filters?: {
       tags?: string[];
       yearFrom?: number;
       yearTo?: number;
     }
-  ): Promise<Reference[]> {
+  ): Promise<(Reference & { tags: Tag[] })[]> {
     const where: any = {
       userId,
+      projectId,
       OR: [
         { title: { contains: query, mode: 'insensitive' } },
-        { authors: { hasSome: [query] } },
+        { author: { contains: query, mode: 'insensitive' } },
         { journal: { contains: query, mode: 'insensitive' } },
         { abstract: { contains: query, mode: 'insensitive' } },
       ],
@@ -149,7 +162,7 @@ export class BibliographyService {
     if (filters?.tags?.length) {
       where.tags = {
         some: {
-          id: { in: filters.tags },
+          tag: { id: { in: filters.tags } },
         },
       };
     }
@@ -160,36 +173,54 @@ export class BibliographyService {
       if (filters.yearTo) where.year.lte = filters.yearTo;
     }
 
-    return prisma.reference.findMany({
+    const referencesWithJoin = await prisma.reference.findMany({
       where,
       include: {
-        tags: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: {
         year: 'desc',
       },
     });
+
+    return referencesWithJoin.map((ref) => ({
+      ...ref,
+      tags: ref.tags.map((refTag) => refTag.tag),
+    }));
   }
 
   // Exporter des références en format BibTeX
-  static async exportToBibTeX(userId: string, referenceIds?: string[]): Promise<string> {
-    const where: any = { userId };
+  static async exportToBibTeX(userId: string, projectId: string, referenceIds?: string[]): Promise<string> {
+    const where: any = { userId, projectId };
     if (referenceIds?.length) {
       where.id = { in: referenceIds };
     }
 
-    const references = await prisma.reference.findMany({
+    const referencesWithJoin = await prisma.reference.findMany({
       where,
       include: {
-        tags: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
+
+    const references = referencesWithJoin.map((ref) => ({
+        ...ref,
+        tags: ref.tags.map((refTag) => refTag.tag),
+    }));
 
     let bibtex = '';
     references.forEach((ref: Reference & { tags: Tag[] }, index: number) => {
       bibtex += `@article{ref${index + 1},\n`;
       bibtex += `  title = {${ref.title}},\n`;
-      bibtex += `  author = {${ref.authors.join(' and ')}},\n`;
+      bibtex += `  author = {${ref.author}},\n`;
       bibtex += `  year = {${ref.year}},\n`;
       if (ref.journal) bibtex += `  journal = {${ref.journal}},\n`;
       if (ref.volume) bibtex += `  volume = {${ref.volume}},\n`;
@@ -198,6 +229,7 @@ export class BibliographyService {
       if (ref.doi) bibtex += `  doi = {${ref.doi}},\n`;
       if (ref.url) bibtex += `  url = {${ref.url}},\n`;
       if (ref.abstract) bibtex += `  abstract = {${ref.abstract}},\n`;
+      if (ref.tags.length > 0) bibtex += `  keywords = {${ref.tags.map(t => t.name).join(', ')}},\n`;
       bibtex += '}\n\n';
     });
 

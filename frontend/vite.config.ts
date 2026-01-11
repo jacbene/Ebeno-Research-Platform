@@ -47,5 +47,10 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      external: ["i18next", "react-i18next", "i18next-browser-languagedetector", "i18next-http-backend", "lucide-react", "react-markdown", "zustand", "zustand/middleware"]
+    }
   }
 });

@@ -7,19 +7,19 @@ const router = Router();
 // Appliquer l'authentification à toutes les routes
 router.use(authMiddleware);
 
-// Routes CRUD (corrigées)
-router.post('/', collaborationController.createCollaboration); // Changé de createCollaborationSession
-router.get('/', collaborationController.getCollaborations); // Nouvelle route pour lister toutes les collaborations
-router.get('/:id', collaborationController.getCollaboration); // Changé de getCollaborationSession
-router.put('/:id', collaborationController.updateCollaboration); // Changé de updateCollaborationSession
-router.delete('/:id', collaborationController.deleteCollaboration); // Changé de deleteCollaborationSession
+// Routes CRUD
+router.post('/', collaborationController.createCollaboration);
+router.get('/project/:projectId', collaborationController.getCollaborationsByProject);
+router.get('/:id', collaborationController.getCollaborationById);
+router.put('/:id', collaborationController.updateCollaborationContent);
+router.delete('/:id', collaborationController.deleteCollaboration);
 
-// Gestion des membres (à ajouter si besoin)
-router.post('/:id/members', collaborationController.addMember);
-router.delete('/:id/members/:memberId', collaborationController.removeMember);
-router.put('/:id/members/:memberId/role', collaborationController.updateMemberRole);
+// Gestion des participants
+router.post('/:id/participants', collaborationController.manageCollaborationParticipants);
 
-// Statistiques (à ajouter si besoin)
-router.get('/:id/stats', collaborationController.getCollaborationStats);
+// Historique et curseurs
+router.get('/:id/history', collaborationController.getCollaborationHistory);
+router.get('/:id/cursors', collaborationController.getCollaborationCursors);
+
 
 export default router;

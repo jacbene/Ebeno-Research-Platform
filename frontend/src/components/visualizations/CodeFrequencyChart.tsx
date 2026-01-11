@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, TooltipProps
 } from 'recharts';
 import { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
-import { CodeFrequencyData, Frequency } from '../../types/visualization';
+import { CodeFrequencyData, Frequency, GroupedFrequency } from '../../types/visualization'; // Assuming visualization module has these named exports
 import { BarChart3, PieChart as PieChartIcon, Download } from 'lucide-react';
 
 interface CodeFrequencyChartProps {
@@ -24,10 +24,11 @@ interface ChartDataItem {
 
 const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {
+    // Ensure payload[0].payload is treated as the expected ChartDataItem
     const data = payload[0].payload as ChartDataItem;
     return (
       <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-medium text-gray-900">{label || data.name}</p>
+        <p className="font-medium text-gray-900">{label !== undefined ? String(label) : data.name}</p> {/* Cast label to String */}
         <p className="text-sm"><span className="font-medium">Annotations:</span> {data.value}</p>
         {data.percentage && <p className="text-sm"><span className="font-medium">Pourcentage:</span> {data.percentage.toFixed(1)}%</p>}
       </div>
@@ -45,11 +46,11 @@ const CodeFrequencyChart: React.FC<CodeFrequencyChartProps> = ({
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
 
   const flatData: ChartDataItem[] = data.frequencies
-    .map(f => ({ name: f.codeName, value: f.count, color: f.codeColor, percentage: f.percentage }))
+    .map((f: Frequency) => ({ name: f.codeName, value: f.count, color: f.codeColor, percentage: f.percentage }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 20);
 
-  const groupedChartData: ChartDataItem[] = data.groupedFrequencies.map(g => ({
+  const groupedChartData: ChartDataItem[] = data.groupedFrequencies.map((g: GroupedFrequency) => ({
     name: g.parentName,
     value: g.total,
     color: g.color,
@@ -57,7 +58,7 @@ const CodeFrequencyChart: React.FC<CodeFrequencyChartProps> = ({
   }));
   
   const pieChartData: ChartDataItem[] = data.frequencies
-    .map(f => ({ name: f.codeName, value: f.count, color: f.codeColor, percentage: f.percentage }))
+    .map((f: Frequency) => ({ name: f.codeName, value: f.count, color: f.codeColor, percentage: f.percentage }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
@@ -65,7 +66,17 @@ const CodeFrequencyChart: React.FC<CodeFrequencyChartProps> = ({
     <span style={{ color: entry.color }} className="text-sm">{value}</span>
   );
   
-  const renderPieLabel = (props: any) => {
+  interface PieLabelProps {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    name: string;
+  }
+
+  const renderPieLabel = (props: PieLabelProps) => {
     const RADIAN = Math.PI / 180;
     const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.7;

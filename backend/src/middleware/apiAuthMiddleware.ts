@@ -97,8 +97,8 @@ const logApiRequest = async (req: Request, apiKey: ApiKeyRecord) => {
         apiKeyId: apiKey.id,
         endpoint: req.path,
         method: req.method,
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'] || '',
+        ipAddress: req.ip || '',
+        userAgent: Array.isArray(req.headers['user-agent']) ? req.headers['user-agent'].join(', ') : req.headers['user-agent'] || '',
         status: 0,
         responseTime: 0,
         requestSize: JSON.stringify(req.body).length,
@@ -112,9 +112,12 @@ const logApiRequest = async (req: Request, apiKey: ApiKeyRecord) => {
 
 const updateApiLog = async (req: Request, statusCode: number, responseTime: number) => {
   try {
+    if (!req.user || !req.user.id) {
+        return;
+    }
     const log = await prisma.apiLog.findFirst({
       where: {
-        userId: req.user?.id,
+        userId: req.user.id,
         endpoint: req.path,
         method: req.method,
         status: 0
@@ -270,7 +273,7 @@ export const apiRateLimiter = async (
     });
 
     type PlanType = 'free' | 'pro' | 'enterprise';
-    const plan: PlanType = (userPlan?.plan as PlanType) || 'free';
+    const plan: PlanType = userPlan ? userPlan.planType.toLowerCase() as PlanType : 'free';
 
     const limits: Record<PlanType, { perMinute: number; perHour: number }> = {
       free: { perMinute: 60, perHour: 1000 },

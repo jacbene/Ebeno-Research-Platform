@@ -1,8 +1,7 @@
-
 // frontend/src/pages/ReferencesPage.tsx
 // URL: /projects/:projectId/references
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -12,7 +11,6 @@ import {
   Grid,
   TextField,
   IconButton,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -28,19 +26,13 @@ import {
   ImportExport,
   FilterList,
   Sort,
-  Article,
-  Book,
   Download
 } from '@mui/icons-material';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/services/api';
-import ReferenceManager from '@/components/ReferenceManager';
+import { ReferenceManager } from '@/components/ReferenceManager';
 
 export const ReferencesPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [references, setReferences] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,7 +80,7 @@ export const ReferencesPage: React.FC = () => {
         referenceIds: references.map(r => r.id),
         format: 'bibtex'
       });
-      
+
       // Télécharger le fichier
       const blob = new Blob([response.data.data.content], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
@@ -96,7 +88,7 @@ export const ReferencesPage: React.FC = () => {
       a.href = url;
       a.download = 'references.bib';
       a.click();
-      
+
     } catch (error) {
       console.error('Erreur:', error);
     }
@@ -117,7 +109,7 @@ export const ReferencesPage: React.FC = () => {
       {/* En-tête */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container alignItems="center" justifyContent="space-between">
-          <Grid>
+          <Grid item>
             <Typography variant="h4" component="h1" gutterBottom>
               Bibliographie
             </Typography>
@@ -125,8 +117,8 @@ export const ReferencesPage: React.FC = () => {
               Gérer les références bibliographiques du projet
             </Typography>
           </Grid>
-          
-          <Grid>
+
+          <Grid item>
             <Box display="flex" gap={2} alignItems="center">
               <TextField
                 placeholder="Rechercher..."
@@ -140,19 +132,19 @@ export const ReferencesPage: React.FC = () => {
                 }}
                 sx={{ width: 300 }}
               />
-              
+
               <Tooltip title="Filtrer">
                 <IconButton>
                   <FilterList />
                 </IconButton>
               </Tooltip>
-              
+
               <Tooltip title="Trier">
                 <IconButton>
                   <Sort />
                 </IconButton>
               </Tooltip>
-              
+
               <Button
                 variant="contained"
                 startIcon={<Add />}
@@ -160,7 +152,7 @@ export const ReferencesPage: React.FC = () => {
               >
                 Ajouter
               </Button>
-              
+
               <Button
                 variant="outlined"
                 startIcon={<ImportExport />}
@@ -168,7 +160,7 @@ export const ReferencesPage: React.FC = () => {
               >
                 Importer
               </Button>
-              
+
               <Button
                 variant="outlined"
                 startIcon={<Download />}
@@ -200,7 +192,7 @@ export const ReferencesPage: React.FC = () => {
           loadReferences();
         }}
       />
-      
+
       <ImportReferencesDialog
         open={showImportDialog}
         onClose={() => setShowImportDialog(false)}
@@ -240,7 +232,7 @@ const AddReferenceDialog: React.FC<{
     journal: '',
     abstract: ''
   });
-  
+
   const handleSubmit = async () => {
     try {
       await api.post('/references', {
@@ -252,7 +244,7 @@ const AddReferenceDialog: React.FC<{
       console.error('Erreur:', error);
     }
   };
-  
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Ajouter une référence</DialogTitle>
@@ -260,7 +252,7 @@ const AddReferenceDialog: React.FC<{
         {/* Formulaire d'ajout */}
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
-            <Grid xs={12}>
+            <Grid item xs={12}>
               <TextField
                 label="Titre *"
                 fullWidth
@@ -269,8 +261,8 @@ const AddReferenceDialog: React.FC<{
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               />
             </Grid>
-            
-            <Grid xs={12}>
+
+            <Grid item xs={12}>
               <Typography variant="subtitle2">Auteurs *</Typography>
               {formData.authors.map((author, index) => (
                 <Box key={index} display="flex" gap={1} mb={1}>
@@ -303,8 +295,8 @@ const AddReferenceDialog: React.FC<{
                 + Ajouter un auteur
               </Button>
             </Grid>
-            
-            <Grid xs={6}>
+
+            <Grid item xs={6}>
               <TextField
                 label="Année *"
                 type="number"
@@ -313,8 +305,8 @@ const AddReferenceDialog: React.FC<{
                 onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
               />
             </Grid>
-            
-            <Grid xs={6}>
+
+            <Grid item xs={6}>
               <TextField
                 select
                 label="Type *"
@@ -335,8 +327,8 @@ const AddReferenceDialog: React.FC<{
                 <option value="OTHER">Autre</option>
               </TextField>
             </Grid>
-            
-            <Grid xs={12}>
+
+            <Grid item xs={12}>
               <TextField
                 label="Journal/Éditeur"
                 fullWidth
@@ -344,8 +336,8 @@ const AddReferenceDialog: React.FC<{
                 onChange={(e) => setFormData(prev => ({ ...prev, journal: e.target.value }))}
               />
             </Grid>
-            
-            <Grid xs={12}>
+
+            <Grid item xs={12}>
               <TextField
                 label="Résumé"
                 fullWidth
@@ -378,16 +370,16 @@ const ImportReferencesDialog: React.FC<{
   const [format, setFormat] = useState('bibtex');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
   };
-  
+
   const handleSubmit = async () => {
     if (!file) return;
-    
+
     setUploading(true);
     try {
       const content = await file.text();
@@ -395,7 +387,7 @@ const ImportReferencesDialog: React.FC<{
         format,
         content
       });
-      
+
       onSuccess();
     } catch (error) {
       console.error('Erreur:', error);
@@ -403,7 +395,7 @@ const ImportReferencesDialog: React.FC<{
       setUploading(false);
     }
   };
-  
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Importer des références</DialogTitle>
@@ -428,7 +420,7 @@ const ImportReferencesDialog: React.FC<{
               RIS (.ris)
             </Button>
           </Box>
-          
+
           <Typography variant="subtitle2" gutterBottom>
             Fichier
           </Typography>
@@ -446,7 +438,7 @@ const ImportReferencesDialog: React.FC<{
               onChange={handleFileChange}
             />
           </Button>
-          
+
           {file && (
             <Alert severity="info" sx={{ mt: 2 }}>
               Prêt à importer {format === 'bibtex' ? 'BibTeX' : 'RIS'} : {file.name}
