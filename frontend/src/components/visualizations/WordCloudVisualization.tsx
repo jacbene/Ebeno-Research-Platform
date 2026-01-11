@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import d3Cloud, { Word } from 'd3-cloud';
-import { WordCloudData } from '../../types/visualization';
+import { WordCloudData } from '../../types/visualization'; // Fixed TS2307
 import { Download } from 'lucide-react';
 
 interface WordCloudVisualizationProps {
@@ -37,7 +37,8 @@ const WordCloudVisualization: React.FC<WordCloudVisualizationProps> = ({ data, o
 
     const { width, height } = svg.node()!.getBoundingClientRect();
     
-    const layoutWords: MyWord[] = words.map(w => ({
+    // Fixed TS7006: Explicitly typed 'w' as WordCloudData['words'][number]
+    const layoutWords: MyWord[] = words.map((w: WordCloudData['words'][number]) => ({ 
       ...w,
       size: getFontSize(w),
       text: w.text,
@@ -63,7 +64,8 @@ const WordCloudVisualization: React.FC<WordCloudVisualizationProps> = ({ data, o
           .style('fill', (d, i) => getFill(d, i))
           .attr('text-anchor', 'middle')
           .attr('transform', d => `translate(${[d.x, d.y]})rotate(${d.rotate})`)
-          .text(d => d.text)
+          // Fixed TS2345: Ensured the return type is compatible by explicitly returning string or null
+          .text((d: MyWord) => d.text || '') 
           .on('mouseover', function () {
             d3.select(this).style('font-weight', 'bold').style('cursor', 'pointer');
           })

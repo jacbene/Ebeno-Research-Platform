@@ -8,9 +8,15 @@ export const getProjectAnalytics = async (req: Request, res: Response) => {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
-        transcripts: true,
-        members: true,
-        tags: true,
+        _count: {
+          select: {
+            transcriptions: true,
+            members: true, // Corrected from projectMemberships
+            tags: true,
+            memos: true,
+            documents: true
+          }
+        }
       },
     });
 
@@ -18,11 +24,13 @@ export const getProjectAnalytics = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Projet non trouvé' });
     }
 
-    // Calcul des statistiques
+    // The _count property is now correctly typed
     const stats = {
-      transcripts: project.transcripts.length,
-      members: project.members.length,
-      tags: project.tags.length,
+      transcriptions: project._count.transcriptions,
+      members: project._count.members, // Corrected from projectMemberships
+      tags: project._count.tags,
+      memos: project._count.memos,
+      documents: project._count.documents,
       latestActivity: project.updatedAt,
     };
 

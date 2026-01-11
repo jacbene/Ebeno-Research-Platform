@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectVisualizations } from '../../types/visualization';
+import { ProjectVisualizations } from '../../types/visualization'; // This import is already correct based on the file structure.
 import CodeFrequencyChart from './CodeFrequencyChart';
 import WordCloudVisualization from './WordCloudVisualization';
 import CooccurrenceNetwork from './CoOccurenceNetwork';

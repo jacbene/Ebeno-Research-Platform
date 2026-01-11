@@ -10,8 +10,6 @@ import {
   Avatar,
   Badge,
   TextField,
-  Menu,
-  MenuItem,
   List,
   ListItem,
   ListItemAvatar,
@@ -23,13 +21,9 @@ import {
   Comment,
   History,
   Share,
-  MoreVert,
-  Edit,
-  Visibility,
-  Send,
-  CheckCircle
+  Send
 } from '@mui/icons-material';
-import { Editor, EditorState, ContentState, convertToRaw, convertFromRaw } from 'draft-js';
+import { Editor, EditorState, convertFromRaw } from 'draft-js';
 import 'draft-js/dist/Draft.css';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,7 +44,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const [socket, setSocket] = useState<Socket | null>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [cursors, setCursors] = useState<Record<string, any>>({});
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments] = useState<any[]>([]); // comments is declared but its value is never read, but let's keep it for now as it's part of the UI.
   const [showComments, setShowComments] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [version, setVersion] = useState(1);
@@ -165,22 +159,22 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   }, [socket, sessionId, user?.id, editorState]);
 
   // Ajouter un commentaire
-  const addComment = (text: string) => {
-    if (!socket) return;
+  // const addComment = (text: string) => { // addComment is declared but its value is never read.
+  //   if (!socket) return;
     
-    const selection = editorState.getSelection();
-    const position = {
-      start: selection.getStartOffset(),
-      end: selection.getEndOffset()
-    };
+  //   const selection = editorState.getSelection();
+  //   const position = {
+  //     start: selection.getStartOffset(),
+  //     end: selection.getEndOffset()
+  //   };
     
-    socket.emit('addComment', {
-      sessionId,
-      userId: user?.id,
-      content: text,
-      position
-    });
-  };
+  //   socket.emit('addComment', {
+  //     sessionId,
+  //     userId: user?.id,
+  //     content: text,
+  //     position
+  //   });
+  // };
 
   // Fonctions utilitaires
   const calculateOperations = (oldState: EditorState, newState: EditorState): any[] => {
@@ -213,7 +207,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     let currentContent = editorState.getCurrentContent();
     
     operations.forEach(op => {
-      const blockMap = currentContent.getBlockMap();
+      // const blockMap = currentContent.getBlockMap(); // blockMap is declared but its value is never read.
       
       // Appliquer l'opération (simplifié)
       // En production, utiliser une vraie implémentation OT
@@ -279,8 +273,8 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
               key={userId}
               sx={{
                 position: 'absolute',
-                left: position.column * 8,
-                top: position.line * 24,
+                left: (position.column * 8), // Assuming average character width of 8px
+                top: (position.line * 24), // Assuming line height of 24px
                 borderLeft: '2px solid blue',
                 height: '20px',
                 animation: 'blink 1s infinite'

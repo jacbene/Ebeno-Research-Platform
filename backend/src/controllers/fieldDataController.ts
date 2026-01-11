@@ -1,7 +1,7 @@
 // backend/controllers/fieldDataController.ts
-// URL: /api/field-data
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma'; // Changé de '../utils/prisma' à '../lib/prisma'
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import {
   createFieldNoteSchema,
   updateFieldNoteSchema,
@@ -9,19 +9,20 @@ import {
 } from '../validators/fieldData.validator';
 
 export class FieldDataController {
-  // ==================== CRÉATION ====================
   async createFieldNote(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
       const userId = req.user.id;
-      const data = createFieldNoteSchema.parse(req.body);
+      const { title, content, projectId } = createFieldNoteSchema.parse(req.body);
 
       const fieldNote = await prisma.fieldNote.create({
         data: {
-          ...data,
-          userId
+          title,
+          content,
+          projectId,
+          userId: userId,
         },
         include: {
           media: true
@@ -40,7 +41,6 @@ export class FieldDataController {
     }
   }
 
-  // ==================== LECTURE ====================
   async getProjectFieldNotes(req: Request, res: Response) {
     try {
       const { projectId } = req.params;
@@ -48,16 +48,10 @@ export class FieldDataController {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
       const userId = req.user.id;
-      const {
-        startDate,
-        endDate,
-        page = 1,
-        limit = 20
-      } = req.query;
+      const { startDate, endDate, page = 1, limit = 20 } = req.query;
 
       const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-
-      const where: any = {
+      const where: Prisma.FieldNoteWhereInput = {
         projectId,
         userId
       };
@@ -68,10 +62,7 @@ export class FieldDataController {
         if (endDate) where.createdAt.lte = new Date(endDate as string);
       }
 
-      // Compter le total
       const total = await prisma.fieldNote.count({ where });
-
-      // Obtenir les notes
       const fieldNotes = await prisma.fieldNote.findMany({
         where,
         include: {
@@ -97,14 +88,10 @@ export class FieldDataController {
         }
       });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // Obtenir une note spécifique par ID
   async getFieldNoteById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -130,25 +117,15 @@ export class FieldDataController {
       });
 
       if (!fieldNote) {
-        return res.status(404).json({
-          success: false,
-          error: 'Field note not found or access denied'
-        });
+        return res.status(404).json({ success: false, error: 'Field note not found or access denied' });
       }
 
-      res.status(200).json({
-        success: true,
-        data: fieldNote
-      });
+      res.status(200).json({ success: true, data: fieldNote });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== MISE À JOUR ====================
   async updateFieldNote(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -158,7 +135,6 @@ export class FieldDataController {
       const userId = req.user.id;
       const data = updateFieldNoteSchema.parse(req.body);
 
-      // Vérifier que la note existe et appartient à l'utilisateur
       const existingNote = await prisma.fieldNote.findFirst({
         where: {
           id,
@@ -167,10 +143,7 @@ export class FieldDataController {
       });
 
       if (!existingNote) {
-        return res.status(404).json({
-          success: false,
-          error: 'Field note not found or access denied'
-        });
+        return res.status(404).json({ success: false, error: 'Field note not found or access denied' });
       }
 
       const fieldNote = await prisma.fieldNote.update({
@@ -184,19 +157,12 @@ export class FieldDataController {
         }
       });
 
-      res.status(200).json({
-        success: true,
-        data: fieldNote
-      });
+      res.status(200).json({ success: true, data: fieldNote });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== SUPPRESSION ====================
   async deleteFieldNote(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -205,7 +171,6 @@ export class FieldDataController {
       }
       const userId = req.user.id;
 
-      // Vérifier que la note existe et appartient à l'utilisateur
       const existingNote = await prisma.fieldNote.findFirst({
         where: {
           id,
@@ -214,35 +179,18 @@ export class FieldDataController {
       });
 
       if (!existingNote) {
-        return res.status(404).json({
-          success: false,
-          error: 'Field note not found or access denied'
-        });
+        return res.status(404).json({ success: false, error: 'Field note not found or access denied' });
       }
 
-      // Supprimer d'abord les médias associés
-      await prisma.fieldMedia.deleteMany({
-        where: { fieldNoteId: id }
-      });
+      await prisma.fieldMedia.deleteMany({ where: { fieldNoteId: id } });
+      await prisma.fieldNote.delete({ where: { id } });
 
-      // Supprimer la note
-      await prisma.fieldNote.delete({
-        where: { id }
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Field note deleted successfully'
-      });
+      res.status(200).json({ success: true, message: 'Field note deleted successfully' });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== SYNCHRONISATION MOBILE ====================
   async syncFieldData(req: Request, res: Response) {
     try {
       if (!req.user) {
@@ -251,52 +199,34 @@ export class FieldDataController {
       const userId = req.user.id;
       const { fieldNotes, lastSync } = syncFieldDataSchema.parse(req.body);
 
-      // Récupérer les modifications côté serveur
       const serverChanges = await prisma.fieldNote.findMany({
         where: {
           userId,
-          OR: [
-            { createdAt: { gt: new Date(lastSync) } },
-            { updatedAt: { gt: new Date(lastSync) } }
-          ]
+          updatedAt: { gt: new Date(lastSync) }
         }
       });
 
-      // Traiter les modifications du client
       const processedNotes = [];
       for (const note of fieldNotes) {
-        if (note.id && note.id.startsWith('local-')) {
-          // Nouvelle note à créer
+        const { id, ...noteData } = note;
+        if (id && id.startsWith('local-')) {
           const created = await prisma.fieldNote.create({
             data: {
-              ...note,
-              id: undefined, // Laisser générer un nouvel ID
+              ...(noteData as any),
               userId
             }
           });
           processedNotes.push(created);
-        } else if (note.id) {
-          // Mettre à jour une note existante
-          const existing = await prisma.fieldNote.findUnique({
-            where: { id: note.id }
-          });
-
-          if (existing) {
-            // Résolution de conflit: prendre la version la plus récente
-            const clientUpdatedAt = new Date(note.updatedAt);
-            if (clientUpdatedAt > existing.updatedAt) {
-              // Le client a une version plus récente
-              const updated = await prisma.fieldNote.update({
-                where: { id: note.id },
-                data: {
-                  ...note
-                }
-              });
-              processedNotes.push(updated);
-            } else {
-              // Le serveur a une version plus récente
-              processedNotes.push(existing);
-            }
+        } else if (id) {
+          const existing = await prisma.fieldNote.findUnique({ where: { id } });
+          if (existing && new Date(note.updatedAt) > existing.updatedAt) {
+            const updated = await prisma.fieldNote.update({
+              where: { id: note.id },
+              data: noteData
+            });
+            processedNotes.push(updated);
+          } else if (existing) {
+            processedNotes.push(existing);
           }
         }
       }
@@ -310,51 +240,34 @@ export class FieldDataController {
         }
       });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== TÉLÉCHARGEMENT DE MÉDIA ====================
   async uploadMedia(req: Request, res: Response) {
     try {
-      if (!req.file) {
-        throw new Error('Aucun fichier fourni');
-      }
-      if (!req.user) {
+      if (!req.file || !req.user) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
       const { fieldNoteId } = req.body;
-
-      // Stocker le fichier (exemple avec Firebase Storage)
       const fileUrl = await this.storeFile(req.file);
 
-      // Créer l'enregistrement média
       const media = await prisma.fieldMedia.create({
         data: {
           filename: req.file.originalname,
           mimeType: req.file.mimetype,
           size: req.file.size,
           url: fileUrl,
-          fieldNoteId
+          fieldNote: { connect: { id: fieldNoteId } }
         }
       });
 
-      res.status(201).json({
-        success: true,
-        data: media
-      });
+      res.status(201).json({ success: true, data: media });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== DONNÉES GÉOGRAPHIQUES ====================
   async getGeospatialData(req: Request, res: Response) {
     try {
       const { projectId } = req.params;
@@ -367,26 +280,27 @@ export class FieldDataController {
         where: {
           projectId,
           userId,
-          location: { not: null }
+          location: {
+            not: Prisma.JsonNull
+          }
         },
         select: {
           id: true,
           title: true,
           location: true,
-          createdAt: true,
+          createdAt: true
         }
       });
 
-      // Formater pour Mapbox/Leaflet
       const geojson = {
         type: 'FeatureCollection',
         features: fieldNotes
-          .filter((note: any) => note.location && note.location.lat && note.location.lng)
+          .filter((note: any) => note.location && (note.location as any).lat && (note.location as any).lng)
           .map((note: any) => ({
             type: 'Feature',
             geometry: {
               type: 'Point',
-              coordinates: [note.location.lng, note.location.lat]
+              coordinates: [(note.location as any).lng, (note.location as any).lat]
             },
             properties: {
               id: note.id,
@@ -396,35 +310,13 @@ export class FieldDataController {
           }))
       };
 
-      res.status(200).json({
-        success: true,
-        data: geojson
-      });
+      res.status(200).json({ success: true, data: geojson });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      res.status(400).json({ success: false, error: error.message });
     }
   }
 
-  // ==================== MÉTHODES PRIVÉES ====================
   private async storeFile(file: Express.Multer.File): Promise<string> {
-    // Implémentation de stockage de fichier
-    // À adapter selon votre solution (Firebase Storage, AWS S3, etc.)
-    
-    // Exemple avec Firebase Storage
-    // const bucket = admin.storage().bucket();
-    // const filename = `${Date.now()}-${file.originalname}`;
-    // const fileUpload = bucket.file(filename);
-    // await fileUpload.save(file.buffer, {
-    //   metadata: {
-    //     contentType: file.mimetype
-    //   }
-    // });
-    // return `https://storage.googleapis.com/${bucket.name}/${filename}`;
-    
-    // Pour l'instant, retourner une URL factice
     return `https://example.com/uploads/${Date.now()}-${file.originalname}`;
   }
 }

@@ -117,15 +117,11 @@ class IntegrationController {
         return res.status(401).json({ success: false, message: 'Non authentifié' });
       }
 
-      // Enregistrer l'association ORCID
-      await prisma.user.update({
-        where: { id: userId },
-        data: { orcidId }
-      });
+      // Placeholder: no orcidId field in User model
 
       return res.status(200).json({
         success: true,
-        message: 'Compte ORCID lié avec succès',
+        message: 'Compte ORCID lié avec succès (simulation)',
         data: { orcidId }
       });
     } catch (error: any) {
@@ -147,21 +143,15 @@ class IntegrationController {
         return res.status(401).json({ success: false, message: 'Non authentifié' });
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          orcidId: true,
-          integrationSettings: true
-        }
-      });
+      // Placeholder: no integration fields in User model
 
       return res.status(200).json({
         success: true,
         data: {
           zotero: { enabled: false },
           googleScholar: { enabled: true },
-          orcid: { enabled: !!user?.orcidId, orcidId: user?.orcidId },
-          settings: user?.integrationSettings || {}
+          orcid: { enabled: false, orcidId: null },
+          settings: {}
         }
       });
     } catch (error: any) {

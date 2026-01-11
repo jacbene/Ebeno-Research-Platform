@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
-  ProjectVisualizations,
+  ProjectVisualizations, Visualization
 } from '../types/visualization';
 import { VisualizationApi } from '../services/api/visualizationApi';
 
