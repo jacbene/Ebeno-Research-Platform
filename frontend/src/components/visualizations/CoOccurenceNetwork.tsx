@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { CoOccurrenceData, Node as D3Node, Link as D3Link } from '../../types/visualization';
+import { CoOccurrenceData, Node as D3Node, Link as D3Link } from '../../types/visualization'; // Corrected import path if necessary, assuming it's in `frontend/src/types/visualization.ts`
 import { ZoomIn, ZoomOut, Download, Maximize } from 'lucide-react';
 
 interface CooccurrenceNetworkProps {
@@ -72,14 +72,16 @@ const CooccurrenceNetwork: React.FC<CooccurrenceNetworkProps> = ({ data, onExpor
       .text(d => `${d.name} (${d.value})`);
 
     simulationRef.current.on('tick', () => {
+      // Explicitly type 'd' as NetworkLink for links
       link
-        .attr('x1', d => (d.source as NetworkNode).x!)
-        .attr('y1', d => (d.source as NetworkNode).y!)
-        .attr('x2', d => (d.target as NetworkNode).x!)
-        .attr('y2', d => (d.target as NetworkNode).y!); 
+        .attr('x1', (d: NetworkLink) => (d.source as NetworkNode).x!)
+        .attr('y1', (d: NetworkLink) => (d.source as NetworkNode).y!)
+        .attr('x2', (d: NetworkLink) => (d.target as NetworkNode).x!)
+        .attr('y2', (d: NetworkLink) => (d.target as NetworkNode).y!); 
+      // Explicitly type 'd' as NetworkNode for nodes
       node
-        .attr('cx', d => d.x!)
-        .attr('cy', d => d.y!);
+        .attr('cx', (d: NetworkNode) => d.x!)
+        .attr('cy', (d: NetworkNode) => d.y!);
     });
 
     zoomRef.current = d3.zoom<SVGSVGElement, unknown>()

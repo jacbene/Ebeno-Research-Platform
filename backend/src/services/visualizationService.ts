@@ -32,7 +32,7 @@ interface CodeWithAnnotationsCount {
   projectId: string;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string;
+  userId: string;
   _count: {
     annotations: number;
   };
@@ -51,7 +51,6 @@ interface ProjectMemberWithUser {
   userId: string;
   role: string;
   joinedAt: Date;
-  createdAt: Date;
   user: {
     id: string;
     email: string;
@@ -81,14 +80,12 @@ class VisualizationService {
           _count: {
             select: {
               annotations: {
-                where: {
-                  ...(dateRange && {
-                    createdAt: {
-                      gte: dateRange.start,
-                      lte: dateRange.end,
-                    },
-                  }),
-                },
+                where: dateRange ? {
+                  createdAt: {
+                    gte: dateRange.start,
+                    lte: dateRange.end,
+                  },
+                } : {},
               },
             },
           },
@@ -100,25 +97,27 @@ class VisualizationService {
         },
       });
 
+      const totalAnnotations = codes.reduce((sum, c) => sum + c._count.annotations, 0);
+
       // Formater les données pour le graphique
       const data = {
-        labels: codes.map((code: CodeWithAnnotationsCount) => code.name),
+        labels: codes.map(code => code.name),
         datasets: [
           {
             label: 'Nombre d\'occurrences',
-            data: codes.map((code: CodeWithAnnotationsCount) => code._count.annotations),
-            backgroundColor: codes.map((code: CodeWithAnnotationsCount) => code.color || '#4ECDC4'),
+            data: codes.map(code => code._count.annotations),
+            backgroundColor: codes.map(code => code.color || '#4ECDC4'),
             borderColor: '#333',
             borderWidth: 1,
           },
         ],
-        codes: codes.map((code: CodeWithAnnotationsCount) => ({
+        codes: codes.map(code => ({
           id: code.id,
           name: code.name,
           color: code.color,
           count: code._count.annotations,
-          percentage: codes.length > 0 
-            ? Math.round((code._count.annotations / codes.reduce((sum: number, c: CodeWithAnnotationsCount) => sum + c._count.annotations, 0)) * 100)
+          percentage: totalAnnotations > 0
+            ? Math.round((code._count.annotations / totalAnnotations) * 100)
             : 0,
         })),
       };
@@ -172,8 +171,8 @@ class VisualizationService {
 
       // Combiner tout le texte
       const allText = [
-        ...documents.map((d: any) => d.content || ''),
-        ...transcriptions.map((t: any) => t.transcriptText || ''),
+        ...documents.map(d => d.content || ''),
+        ...transcriptions.map(t => t.transcriptText || ''),
       ].join(' ');
 
       // Analyser les mots (simplifié)
@@ -189,7 +188,7 @@ class VisualizationService {
           words,
           totalDocuments: documents.length,
           totalTranscriptions: transcriptions.length,
-          totalWords: words.reduce((sum: number, word: { text: string; value: number }) => sum + word.value, 0),
+          totalWords: words.reduce((sum, word) => sum + word.value, 0),
         },
       };
     } catch (error: any) {
@@ -223,7 +222,7 @@ class VisualizationService {
         };
       }
 
-      const codeIds = codes.map((code: any) => code.id);
+      const codeIds = codes.map(code => code.id);
       const matrix: number[][] = Array.from({ length: codes.length }, () => 
         Array.from({ length: codes.length }, () => 0)
       );
@@ -256,7 +255,7 @@ class VisualizationService {
               { documentId: annotation.documentId },
               { transcriptionId: annotation.transcriptionId },
             ],
-            codeId: { in: codeIds.filter((id: string) => id !== codeId) },
+            codeId: { in: codeIds.filter(id => id !== codeId) },
             ...(dateRange && {
               createdAt: {
                 gte: dateRange.start,
@@ -271,7 +270,7 @@ class VisualizationService {
           });
 
           // Mettre à jour la matrice
-          coOccurringAnnotations.forEach((coAnnotation: any) => {
+          coOccurringAnnotations.forEach(coAnnotation => {
             const j = codeIds.indexOf(coAnnotation.codeId);
             if (j !== -1) {
               matrix[i][j] += 1;
@@ -283,8 +282,8 @@ class VisualizationService {
 
       // Normaliser les valeurs pour l'affichage
       const maxValue = Math.max(...matrix.flat());
-      const normalizedMatrix = matrix.map((row: number[]) =>
-        row.map((value: number) => maxValue > 0 ? value / maxValue : 0)
+      const normalizedMatrix = matrix.map(row =>
+        row.map(value => maxValue > 0 ? value / maxValue : 0)
       );
 
       return {
@@ -292,11 +291,11 @@ class VisualizationService {
         data: {
           matrix: normalizedMatrix,
           rawMatrix: matrix,
-          codes: codes.map((code: any, index: number) => ({
+          codes: codes.map((code, index) => ({
             id: code.id,
             name: code.name,
             color: code.color,
-            totalOccurrences: matrix[index].reduce((sum: number, val: number) => sum + val, 0),
+            totalOccurrences: matrix[index].reduce((sum, val) => sum + val, 0),
           })),
         },
       };
@@ -318,9 +317,8 @@ class VisualizationService {
       const baseDate = dateRange?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
       const endDate = dateRange?.end || new Date();
 
-      // Récupérer les annotations groupées par intervalle
-      const annotations = await prisma.annotation.groupBy({
-        by: ['createdAt'],
+      // Récupérer les annotations
+      const annotations = await prisma.annotation.findMany({
         where: {
           projectId,
           createdAt: {
@@ -328,8 +326,9 @@ class VisualizationService {
             lte: endDate,
           },
         },
-        _count: {
-          _all: true,
+        select: {
+          createdAt: true,
+          codeId: true,
         },
         orderBy: {
           createdAt: 'asc',
@@ -342,48 +341,28 @@ class VisualizationService {
         select: { id: true, name: true, color: true },
       });
 
-      // Pour chaque code, compter les annotations par intervalle
-      const seriesData = await Promise.all(
-        codes.map(async (code: any) => {
-          const codeAnnotations = await prisma.annotation.groupBy({
-            by: ['createdAt'],
-            where: {
-              projectId,
-              codeId: code.id,
-              createdAt: {
-                gte: baseDate,
-                lte: endDate,
-              },
-            },
-            _count: {
-              _all: true,
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-          });
-
-          return {
-            codeId: code.id,
-            codeName: code.name,
-            color: code.color,
-            data: codeAnnotations.map((a: AnnotationGroupByResult) => ({
-              date: a.createdAt,
-              count: a._count._all,
-            })),
-          };
-        })
-      );
+      // Créer une map pour les codes
+      const codeMap = new Map(codes.map(code => [code.id, code]));
 
       // Grouper par intervalle de temps
-      const groupedData = this.groupByTimeInterval(seriesData, interval, baseDate, endDate);
+      const grouped = this.groupAnnotationsByInterval(annotations, interval, baseDate, endDate);
+
+      // Créer les séries pour chaque code
+      const series = codes.map(code => ({
+        name: code.name,
+        color: code.color,
+        data: grouped.intervals.map(interval => ({
+          date: interval.date,
+          count: interval.codeCounts[code.id] || 0
+        }))
+      }));
 
       return {
         success: true,
         data: {
-          timeline: groupedData.timeline,
-          series: groupedData.series,
-          totalAnnotations: annotations.reduce((sum: number, a: AnnotationGroupByResult) => sum + a._count._all, 0),
+          timeline: grouped.intervals.map(i => i.date.toISOString().split('T')[0]),
+          series,
+          totalAnnotations: annotations.length,
           period: {
             start: baseDate,
             end: endDate,
@@ -427,7 +406,7 @@ class VisualizationService {
 
       // Pour chaque membre, calculer les statistiques
       const userStats = await Promise.all(
-        members.map(async (member: ProjectMemberWithUser) => {
+        members.map(async member => {
           const whereClause = {
             projectId,
             userId: member.userId,
@@ -470,11 +449,11 @@ class VisualizationService {
       );
 
       // Trier par activité totale
-      userStats.sort((a: any, b: any) => b.stats.total - a.stats.total);
+      userStats.sort((a, b) => b.stats.total - a.stats.total);
 
       // Calculer les pourcentages
-      const totalActivity = userStats.reduce((sum: number, user: any) => sum + user.stats.total, 0);
-      const userData = userStats.map((user: any) => ({
+      const totalActivity = userStats.reduce((sum, user) => sum + user.stats.total, 0);
+      const userData = userStats.map(user => ({
         ...user,
         percentage: totalActivity > 0 ? Math.round((user.stats.total / totalActivity) * 100) : 0,
       }));
@@ -526,7 +505,7 @@ class VisualizationService {
     // Compter les occurrences
     const wordCounts: Record<string, number> = {};
     
-    words.forEach((word: string) => {
+    words.forEach(word => {
       if (
         word.length >= (options.minWordLength || 3) &&
         (!options.excludeCommonWords || !commonWords.has(word))
@@ -538,29 +517,27 @@ class VisualizationService {
     // Convertir en tableau et trier
     const sortedWords = Object.entries(wordCounts)
       .map(([text, value]) => ({ text, value }))
-      .sort((a: { text: string; value: number }, b: { text: string; value: number }) => b.value - a.value)
+      .sort((a, b) => b.value - a.value)
       .slice(0, options.maxWords || 100);
 
     return sortedWords;
   }
 
-  private groupByTimeInterval(
-    seriesData: Array<{
-      codeId: string;
-      codeName: string;
-      color: string | null;
-      data: Array<{ date: Date; count: number }>;
-    }>,
+  private groupAnnotationsByInterval(
+    annotations: Array<{ createdAt: Date; codeId: string }>,
     interval: 'day' | 'week' | 'month',
     startDate: Date,
     endDate: Date
   ) {
     // Générer les intervalles de temps
-    const intervals: Date[] = [];
+    const intervals: Array<{ date: Date; codeCounts: Record<string, number> }> = [];
     const current = new Date(startDate);
     
     while (current <= endDate) {
-      intervals.push(new Date(current));
+      intervals.push({
+        date: new Date(current),
+        codeCounts: {}
+      });
       
       switch (interval) {
         case 'day':
@@ -575,36 +552,31 @@ class VisualizationService {
       }
     }
 
-    // Initialiser les séries
-    const series = seriesData.map((code: { codeName: string; color: string | null }) => ({
-      name: code.codeName,
-      color: code.color,
-      data: new Array(intervals.length).fill(0),
-    }));
-
     // Remplir les données
-    seriesData.forEach((code: { data: Array<{ date: Date; count: number }> }, codeIndex: number) => {
-      code.data.forEach((point: { date: Date; count: number }) => {
-        const pointDate = new Date(point.date);
+    annotations.forEach(annotation => {
+      const annotationDate = new Date(annotation.createdAt);
+      
+      // Trouver l'intervalle correspondant
+      for (let i = 0; i < intervals.length; i++) {
+        const intervalStart = intervals[i].date;
+        let intervalEnd: Date;
         
-        // Trouver l'intervalle correspondant
-        const intervalIndex = intervals.findIndex((intervalDate: Date, idx: number) => {
-          if (idx === intervals.length - 1) return pointDate >= intervalDate;
-          
-          const nextInterval = intervals[idx + 1];
-          return pointDate >= intervalDate && pointDate < nextInterval;
-        });
-
-        if (intervalIndex !== -1) {
-          series[codeIndex].data[intervalIndex] += point.count;
+        if (i === intervals.length - 1) {
+          intervalEnd = new Date(endDate);
+        } else {
+          intervalEnd = new Date(intervals[i + 1].date);
+          intervalEnd.setMilliseconds(intervalEnd.getMilliseconds() - 1);
         }
-      });
+        
+        if (annotationDate >= intervalStart && annotationDate <= intervalEnd) {
+          intervals[i].codeCounts[annotation.codeId] = 
+            (intervals[i].codeCounts[annotation.codeId] || 0) + 1;
+          break;
+        }
+      }
     });
 
-    return {
-      timeline: intervals.map((date: Date) => date.toISOString().split('T')[0]),
-      series,
-    };
+    return { intervals };
   }
 }
 

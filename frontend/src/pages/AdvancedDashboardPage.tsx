@@ -17,11 +17,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Button,
   ToggleButton,
   ToggleButtonGroup,
   CircularProgress,
-  Chip,
   Avatar,
   List,
   ListItem,
@@ -65,7 +63,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export const AdvancedDashboardPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // Renamed 'user' to 'authUser' to avoid TS6133 if not explicitly used, but still declared.
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30days');
   const [viewMode, setViewMode] = useState('overview');
@@ -146,7 +144,7 @@ export const AdvancedDashboardPage: React.FC = () => {
               Analyse approfondie de votre projet de recherche
             </Typography>
           </Box>
-          
+
           <Box display="flex" gap={2} alignItems="center">
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>Période</InputLabel>
@@ -157,12 +155,12 @@ export const AdvancedDashboardPage: React.FC = () => {
               >
                 <MenuItem value="7days">7 jours</MenuItem>
                 <MenuItem value="30days">30 jours</MenuItem>
-                                <MenuItem value="90days">90 jours</MenuItem>
+                <MenuItem value="90days">90 jours</MenuItem>
                 <MenuItem value="year">Année</MenuItem>
                 <MenuItem value="all">Tout</MenuItem>
               </Select>
             </FormControl>
-            
+
             <ToggleButtonGroup
               value={viewMode}
               exclusive
@@ -182,15 +180,15 @@ export const AdvancedDashboardPage: React.FC = () => {
                 <Science />
               </ToggleButton>
             </ToggleButtonGroup>
-            
+
             <IconButton onClick={loadAnalytics}>
               <Refresh />
             </IconButton>
-            
+
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
               <MoreVert />
             </IconButton>
-            
+
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
@@ -211,10 +209,10 @@ export const AdvancedDashboardPage: React.FC = () => {
             </Menu>
           </Box>
         </Box>
-        
+
         {/* Statistiques rapides */}
         <Grid container spacing={3} mb={3}>
-          <Grid xs={12} md={3}>
+          <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -235,15 +233,15 @@ export const AdvancedDashboardPage: React.FC = () => {
                     <TrendingDown color="error" sx={{ mr: 1 }} />
                   ) : null}
                   <Typography variant="caption" color="textSecondary">
-                    {analytics.trends.trend === 'increasing' ? 'En hausse' : 
+                    {analytics.trends.trend === 'increasing' ? 'En hausse' :
                      analytics.trends.trend === 'decreasing' ? 'En baisse' : 'Stable'}
                   </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid xs={12} md={3}>
+
+          <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -263,8 +261,8 @@ export const AdvancedDashboardPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid xs={12} md={3}>
+
+          <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -284,8 +282,8 @@ export const AdvancedDashboardPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid xs={12} md={3}>
+
+          <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -312,7 +310,7 @@ export const AdvancedDashboardPage: React.FC = () => {
       {viewMode === 'overview' ? (
         <Grid container spacing={3}>
           {/* Graphique d'activité */}
-          <Grid xs={12} md={8}>
+          <Grid item xs={12} md={8}>
             <Card>
               <CardHeader title="Activité quotidienne" />
               <CardContent>
@@ -329,9 +327,9 @@ export const AdvancedDashboardPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           {/* Répartition par type */}
-          <Grid xs={12} md={4}>
+          <Grid item xs={12} md={4}>
             <Card>
               <CardHeader title="Répartition par type" />
               <CardContent>
@@ -348,13 +346,13 @@ export const AdvancedDashboardPage: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'].map((color, index) => (
-                        <Cell key={`cell-${index}`} fill={color} />
+                      {['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'].map((color, idx) => (
+                        <Cell key={`cell-${idx}`} fill={color} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -363,15 +361,15 @@ export const AdvancedDashboardPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           {/* Engagement des collaborateurs */}
-          <Grid xs={12}>
+          <Grid item xs={12}>
             <Card>
               <CardHeader title="Engagement des collaborateurs" />
               <CardContent>
                 <Grid container spacing={2}>
                   {analytics.engagement.slice(0, 6).map((collab: any, index: number) => (
-                    <Grid xs={12} md={4} key={collab.user.id}>
+                    <Grid item xs={12} md={4} key={collab.user.id}>
                       <Paper sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
                         <Avatar sx={{ mr: 2, bgcolor: getColorByScore(collab.engagementScore) }}>
                           {collab.user.name.charAt(0)}
@@ -417,7 +415,7 @@ export const AdvancedDashboardPage: React.FC = () => {
       ) : viewMode === 'collaboration' ? (
         <Grid container spacing={3}>
           {/* Carte réseau des collaborations */}
-          <Grid xs={12}>
+          <Grid item xs={12}>
             <Card>
               <CardHeader title="Réseau de collaborations" />
               <CardContent>
@@ -430,9 +428,9 @@ export const AdvancedDashboardPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           {/* Statistiques de collaboration */}
-          <Grid xs={12} md={6}>
+          <Grid item xs={12} md={6}>
             <Card>
               <CardHeader title="Sessions de collaboration" />
               <CardContent>
@@ -449,7 +447,7 @@ export const AdvancedDashboardPage: React.FC = () => {
                         secondary={
                           <>
                             <Typography variant="caption" component="span">
-                              {session.participants.length} participants • 
+                              {session.participants.length} participants •
                               {new Date(session.lastActivity).toLocaleDateString()}
                             </Typography>
                           </>
@@ -465,12 +463,12 @@ export const AdvancedDashboardPage: React.FC = () => {
       ) : viewMode === 'ai' ? (
         <Grid container spacing={3}>
           {/* Utilisation de l'IA */}
-          <Grid xs={12}>
+          <Grid item xs={12}>
             <Card>
               <CardHeader title="Analyse de l'utilisation IA" />
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid xs={12} md={6}>
+                  <Grid item xs={12} md={6}>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={Object.entries(analytics.aiUsage?.usageByType || {}).map(([name, value]) => ({ name, value }))}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -482,8 +480,8 @@ export const AdvancedDashboardPage: React.FC = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </Grid>
-                  
-                  <Grid xs={12} md={6}>
+
+                  <Grid item xs={12} md={6}>
                     <Box p={3}>
                       <Typography variant="h6" gutterBottom>
                         Statistiques IA
