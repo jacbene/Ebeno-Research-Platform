@@ -23,7 +23,7 @@ export const registerUser = async (req: Request, res: Response) => {
         email,
         passwordHash,
         isVerified: true,
-        //verificationToken,
+        verificationToken,
       },
     });
 
