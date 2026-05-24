@@ -22,7 +22,8 @@ export const registerUser = async (req: Request, res: Response) => {
       data: {
         email,
         passwordHash,
-        verificationToken,
+        isVerified: true,
+        //verificationToken,
       },
     });
 
@@ -51,11 +52,11 @@ export const loginUser = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
-
+/* temporairement commenté 
     if (!user.isVerified) {
         return res.status(401).json({ msg: 'Please verify your email to log in' });
     }
-
+*/
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid credentials' });
