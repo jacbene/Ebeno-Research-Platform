@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { Prisma, ProjectRole, QuestionType } from '@prisma/client';
+//import { prisma } from '../lib/prisma';
+//import { ProjectRole, QuestionType } from '@prisma/client';
 
 // Helper to check for editor/owner permissions
 const checkSurveyPermission = async (surveyId: string, userId: string, roles: ProjectRole[] = [ProjectRole.OWNER, ProjectRole.EDITOR]) => {
