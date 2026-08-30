@@ -4,11 +4,10 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "prebuild": "npx prisma generate",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts"
-  },
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "dev": "ts-node src/server.ts"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
