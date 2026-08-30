@@ -1,7 +1,7 @@
 // backend/controllers/fieldDataController.ts
 import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+//import { Prisma } from '@prisma/client';
+//import { prisma } from '../lib/prisma';
 import {
   createFieldNoteSchema,
   updateFieldNoteSchema,
