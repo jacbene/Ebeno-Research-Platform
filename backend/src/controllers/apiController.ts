@@ -1,7 +1,7 @@
 // backend/controllers/apiController.ts
 // Contrôleur principal de l'API publique
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
+//import { prisma } from '../lib/prisma';
 import { 
   generateApiKeySchema, 
   createWebhookSchema,
