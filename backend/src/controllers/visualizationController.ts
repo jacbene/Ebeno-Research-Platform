@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import visualizationService from '../services/visualizationService';
-import { PrismaClient } from '@prisma/client';
+//import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
