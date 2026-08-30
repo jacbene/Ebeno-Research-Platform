@@ -1,44 +1,122 @@
-// components/layout/Navbar.tsx
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import LanguageSelector from '../common/LanguageSelector';
-import Dropdown, { DropdownItem } from '../common/Dropdown';
+// frontend/src/components/layout/Navbar.tsx
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../ui/Button';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { breakpoints } from '../../styles/breakpoints';
 
-const Navbar = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+interface NavbarProps {
+  user: any;
+  onLogout: () => void;
+}
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
+  const { mode, toggleMode, colors } = useTheme();
+  const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const headerStyle: React.CSSProperties = {
+    backgroundColor: colors.dark,
+    color: colors.white,
+    padding: '8px 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+  };
+
+  const linkStyle: React.CSSProperties = {
+    color: colors.white,
+    textDecoration: 'none',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    transition: 'background-color 0.2s',
+    display: 'block',
+    width: '100%',
+    textAlign: 'center',
+  };
+
+  const toggleButtonStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: colors.white,
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  };
+
+  const mobileMenuStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    backgroundColor: colors.dark,
+    padding: '8px 0',
+    gap: '6px',
+    borderTop: `1px solid ${colors.gray[700]}`,
+    marginTop: '8px',
+  };
+
+  const hamburgerStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: colors.white,
+    fontSize: '1.6rem',
+    cursor: 'pointer',
+    padding: '4px 8px',
   };
 
   return (
-    <nav className="bg-gray-900 shadow-md p-4 flex justify-between items-center">
-      <div className="flex items-center space-x-4">
-        <Link to="/dashboard" className="text-white text-lg font-bold">Ebeno</Link>
-        {/* Liens de navigation principaux */}
-        <Link to="/dashboard" className="text-gray-300 hover:text-white">{t('navbar.dashboard')}</Link>
-        <Link to="/projects" className="text-gray-300 hover:text-white">{t('navbar.projects')}</Link>
-        <Link to="/transcriptions" className="text-gray-300 hover:text-white">{t('navbar.transcriptions')}</Link>
-        <Link to="/documents" className="text-gray-300 hover:text-white">{t('navbar.documents')}</Link>
+    <header style={headerStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <h1 style={{ margin: 0, fontSize: '1.2rem' }}>🎓 Ebeno Research</h1>
       </div>
-      <div className="flex items-center space-x-4">
-        <LanguageSelector />
-        <Dropdown 
-          trigger={
-            <span className="text-gray-300 hover:text-white cursor-pointer">
-              {t('navbar.profile')}
-            </span>
-          }
-        >
-          <DropdownItem to="/profile">{t('navbar.profile')}</DropdownItem>
-          <DropdownItem to="/settings">{t('navbar.settings')}</DropdownItem>
-          <DropdownItem to="#" onClick={handleLogout}>{t('navbar.logout')}</DropdownItem>
-        </Dropdown>
-      </div>
-    </nav>
+
+      {isMobile ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={toggleMode} style={toggleButtonStyle}>
+              {mode === 'light' ? '🌙' : '☀️'}
+            </button>
+            <button onClick={() => setMenuOpen(!menuOpen)} style={hamburgerStyle}>
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
+          {menuOpen && (
+            <nav style={mobileMenuStyle}>
+              <Link to="/" style={linkStyle} onClick={() => setMenuOpen(false)}>📊 Dashboard</Link>
+              <Link to="/chat" style={linkStyle} onClick={() => setMenuOpen(false)}>🤖 Chat IA</Link>
+              <Link to="/collaboration" style={linkStyle} onClick={() => setMenuOpen(false)}>🤝 Collaboration</Link>
+              <Link to="/settings" style={linkStyle} onClick={() => setMenuOpen(false)}>⚙️ Paramètres</Link>
+              <span style={{ opacity: 0.7, textAlign: 'center', padding: '4px 0' }}>👋 {user?.name || user?.email}</span>
+              <Button variant="danger" size="sm" onClick={() => { onLogout(); setMenuOpen(false); }} style={{ width: '90%', margin: '0 auto' }}>
+                Déconnexion
+              </Button>
+            </nav>
+          )}
+        </>
+      ) : (
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          <Link to="/" style={linkStyle}>📊 Dashboard</Link>
+          <Link to="/chat" style={linkStyle}>🤖 Chat IA</Link>
+          <Link to="/collaboration" style={linkStyle}>🤝 Collaboration</Link>
+          <Link to="/settings" style={linkStyle}>⚙️ Paramètres</Link>
+          <span style={{ opacity: 0.7, marginLeft: '4px' }}>👋 {user?.name || user?.email}</span>
+          <Button variant="danger" size="sm" onClick={onLogout}>Déconnexion</Button>
+          <button onClick={toggleMode} style={toggleButtonStyle}>
+            {mode === 'light' ? '🌙' : '☀️'}
+          </button>
+        </nav>
+      )}
+    </header>
   );
 };
-
-export default Navbar;

@@ -1,80 +1,90 @@
-// pages/SettingsPage.tsx
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import axios from 'axios';
-import './SettingsPage.css';
+import { useTheme } from '../context/ThemeContext';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 const SettingsPage: React.FC = () => {
-  const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { mode, toggleMode, colors, setCustomPalette } = useTheme();
+  const [primaryColor, setPrimaryColor] = useState(colors.primary);
+  const [primaryDark, setPrimaryDark] = useState(colors.primaryDark);
+  const [primaryLight, setPrimaryLight] = useState(colors.primaryLight);
 
-  const handleExportData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get('/api/users/me/export', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        responseType: 'blob' // Important pour le téléchargement de fichiers
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'ebeno_research_data_export.json');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      setError(t('settings.exportError'));
-    } finally {
-      setIsLoading(false);
-    }
+  const applyCustomPalette = () => {
+    const palette = {
+      primary: primaryColor,
+      primaryDark,
+      primaryLight,
+    };
+    setCustomPalette(palette);
+    localStorage.setItem('customPalette', JSON.stringify(palette));
   };
 
-  const handleDeleteAccount = async () => {
-    if (window.confirm(t('settings.deleteConfirmation'))) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        await axios.delete('/api/users/me', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        // Rediriger vers la page de connexion après la suppression
-        window.location.href = '/login';
-      } catch (error) {
-        console.error(error);
-        setError(t('settings.deleteError'));
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const resetPalette = () => {
+    setCustomPalette(null);
+    localStorage.removeItem('customPalette');
+    setPrimaryColor('#4A6CF7');
+    setPrimaryDark('#3651B5');
+    setPrimaryLight('#6B8AFF');
   };
 
   return (
-    <div className="settings-page">
-      <h1>{t('settings.title')}</h1>
-      {error && <p className="error-message">{error}</p>}
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <h1>⚙️ Paramètres</h1>
 
-      <div className="settings-section">
-        <h2>{t('settings.exportTitle')}</h2>
-        <p>{t('settings.exportDescription')}</p>
-        <button onClick={handleExportData} disabled={isLoading}>
-          {isLoading ? t('loading') : t('settings.exportButton')}
-        </button>
-      </div>
+      <Card title="🎨 Apparence">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <span>Mode {mode === 'light' ? '☀️ Clair' : '🌙 Sombre'}</span>
+          <button
+            onClick={toggleMode}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: mode === 'light' ? '#333' : '#f0f0f0',
+              color: mode === 'light' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '14px',
+            }}
+          >
+            {mode === 'light' ? 'Activer le sombre' : 'Activer le clair'}
+          </button>
+        </div>
 
-      <div className="settings-section danger-zone">
-        <h2>{t('settings.deleteTitle')}</h2>
-        <p>{t('settings.deleteDescription')}</p>
-        <button onClick={handleDeleteAccount} className="danger-btn" disabled={isLoading}>
-            {isLoading ? t('loading') : t('settings.deleteButton')}
-        </button>
-      </div>
+        <h4 style={{ marginTop: '20px' }}>Couleurs personnalisées</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+          <div>
+            <label>Primaire</label>
+            <input
+              type="color"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              style={{ width: '100%', height: '40px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+          <div>
+            <label>Primaire sombre</label>
+            <input
+              type="color"
+              value={primaryDark}
+              onChange={(e) => setPrimaryDark(e.target.value)}
+              style={{ width: '100%', height: '40px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+          <div>
+            <label>Primaire clair</label>
+            <input
+              type="color"
+              value={primaryLight}
+              onChange={(e) => setPrimaryLight(e.target.value)}
+              style={{ width: '100%', height: '40px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+          <Button variant="primary" onClick={applyCustomPalette}>Appliquer</Button>
+          <Button variant="outline" onClick={resetPalette}>Réinitialiser</Button>
+        </div>
+      </Card>
     </div>
   );
 };

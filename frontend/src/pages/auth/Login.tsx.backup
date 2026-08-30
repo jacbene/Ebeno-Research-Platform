@@ -1,0 +1,202 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../stores/authStore';
+import { GraduationCap } from 'lucide-react';
+
+const Login: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  
+  const { login, isLoading } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      await login({ email, password });
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors de la connexion');
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+    }}>
+      <div style={{
+        display: 'flex',
+        flex: 1,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: '420px'
+        }}>
+          {/* En-tête */}
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+              <GraduationCap size={40} color="#2563eb" />
+              <span style={{ fontSize: '24px', fontWeight: 'bold', marginLeft: '10px', color: '#1e293b' }}>
+                Ebeno Research
+              </span>
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>
+              Connexion
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '14px' }}>
+              Accédez à votre espace de recherche
+            </p>
+          </div>
+
+          {/* Erreur */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              <strong>⚠️ {error}</strong>
+            </div>
+          )}
+
+          {/* Formulaire */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="researcher@university.edu"
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#475569' }}>
+                <input type="checkbox" /> Se souvenir de moi
+              </label>
+              <a href="#" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Mot de passe oublié ?
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1,
+                transition: 'background-color 0.2s'
+              }}
+            >
+              {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+            </button>
+
+            <div style={{ position: 'relative', textAlign: 'center', marginTop: '8px' }}>
+              <span style={{ backgroundColor: 'white', padding: '0 12px', color: '#94a3b8', fontSize: '14px' }}>
+                Pas encore de compte ?
+              </span>
+            </div>
+
+            <Link
+              to="/register"
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: 'white',
+                color: '#2563eb',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '500',
+                textAlign: 'center',
+                textDecoration: 'none',
+                display: 'block',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              Créer un nouveau compte
+            </Link>
+          </form>
+
+          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+              En vous connectant, vous acceptez nos{' '}
+              <Link to="/terms" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                conditions
+              </Link>{' '}
+              et notre{' '}
+              <Link to="/privacy" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                politique de confidentialité
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

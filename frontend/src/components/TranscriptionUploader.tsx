@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { transcriptionApi } from '../services/transcriptionApi';
 import './TranscriptionUploader.css';
 
 interface TranscriptionUploaderProps {
@@ -7,9 +6,9 @@ interface TranscriptionUploaderProps {
   onUploadComplete?: (transcriptionId: string) => void;
 }
 
-const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({ 
-  projectId, 
-  onUploadComplete 
+const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
+  projectId,
+  onUploadComplete,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -21,9 +20,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    
     if (selectedFile) {
-      // Reset state for new file
       setFile(null);
       setError(null);
       setUploading(false);
@@ -37,9 +34,16 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         'audio/mp4',
         'audio/webm',
         'audio/ogg',
+        'audio/x-m4a',
+        'audio/flac',
       ];
-      
-      if (!allowedTypes.includes(selectedFile.type)) {
+      const extension = selectedFile.name.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ['mp3', 'wav', 'mp4', 'webm', 'ogg', 'm4a', 'flac'];
+
+      if (
+        !allowedTypes.includes(selectedFile.type) &&
+        !allowedExtensions.includes(extension || '')
+      ) {
         setError('Type de fichier non supporté. Veuillez sélectionner un fichier audio.');
         return;
       }
@@ -60,56 +64,90 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
     setError(null);
     setIsCompleted(false);
 
+    const formData = new FormData();
+    formData.append('file', file);
+    if (projectId) {
+      formData.append('projectId', projectId);
+    }
+
+    const token = localStorage.getItem('authToken');
+
     try {
-      const response = await transcriptionApi.uploadAudio(file, projectId);
-      
-      if (response.data.success) {
-        const { transcriptionId } = response.data.data;
-        setTranscriptionId(transcriptionId);
-        trackProgress(transcriptionId);
-      } else {
-        setError(response.data.message || 'Erreur lors de l\'upload');
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://localhost:5001/api/transcriptions/upload', true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded * 100) / event.total);
+          setProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status === 201) {
+          const transcriptionId = data.data?.transcriptionId;
+          setTranscriptionId(transcriptionId);
+          trackProgress(transcriptionId);
+        } else {
+          setError(data.message || 'Erreur lors de l\'upload');
+          setUploading(false);
+        }
+      };
+
+      xhr.onerror = () => {
+        setError('Erreur de connexion au serveur');
         setUploading(false);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur de connexion au serveur');
+      };
+
+      xhr.send(formData);
+    } catch (err) {
+      setError('Erreur de connexion au serveur');
       setUploading(false);
     }
   };
 
   const trackProgress = (id: string) => {
+    const token = localStorage.getItem('authToken');
     const interval = setInterval(async () => {
       try {
-        const response = await transcriptionApi.getProgress(id);
-        const { status, progress } = response.data.data;
-        
-        setProgress(progress);
+        const response = await fetch(`http://localhost:5001/api/transcriptions/${id}/progress`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success) {
+          const { status, progress } = data.data;
+          setProgress(progress || 0);
 
-        if (status === 'COMPLETED' || status === 'FAILED') {
+          if (status === 'COMPLETED' || status === 'FAILED') {
+            clearInterval(interval);
+            setUploading(false);
+            if (status === 'COMPLETED') {
+              setIsCompleted(true);
+              if (onUploadComplete) {
+                onUploadComplete(id);
+              }
+              setTimeout(() => {
+                setFile(null);
+                setIsCompleted(false);
+                setProgress(0);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }, 5000);
+            } else {
+              setError('La transcription a échoué. Veuillez réessayer.');
+            }
+          }
+        } else {
           clearInterval(interval);
           setUploading(false);
-
-          if (status === 'COMPLETED') {
-            setIsCompleted(true);
-            if (onUploadComplete) {
-              onUploadComplete(id);
-            }
-            // Reset after a delay to show completion message
-            setTimeout(() => {
-              setFile(null);
-              setIsCompleted(false);
-              setProgress(0);
-              if(fileInputRef.current) fileInputRef.current.value = '';
-            }, 5000);
-          } else {
-            setError('La transcription a échoué. Veuillez réessayer.');
-          }
+          setError('Erreur lors du suivi de la transcription.');
         }
       } catch (error) {
         console.error('Error tracking progress:', error);
-        setError('Erreur lors du suivi de la transcription.');
         clearInterval(interval);
         setUploading(false);
+        setError('Erreur lors du suivi de la transcription.');
       }
     }, 2000);
   };
@@ -121,7 +159,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-  
+
   const resetState = () => {
     setFile(null);
     setUploading(false);
@@ -130,13 +168,16 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
     setTranscriptionId(null);
     setIsCompleted(false);
     if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      fileInputRef.current.value = '';
     }
-  }
+  };
 
   return (
     <div className="transcription-uploader">
-      <div className="upload-area" onClick={() => !uploading && !isCompleted && fileInputRef.current?.click()}>
+      <div
+        className="upload-area"
+        onClick={() => !uploading && !isCompleted && fileInputRef.current?.click()}
+      >
         <input
           ref={fileInputRef}
           type="file"
@@ -145,7 +186,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
           style={{ display: 'none' }}
           disabled={uploading || isCompleted}
         />
-        
+
         {file ? (
           <div className="file-info">
             <div className="file-icon">🎵</div>
@@ -153,7 +194,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
               <div className="file-name">{file.name}</div>
               <div className="file-size">{formatFileSize(file.size)}</div>
             </div>
-            <button 
+            <button
               className="clear-button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -179,48 +220,33 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         )}
       </div>
 
-      {error && (
-        <div className="error-message">
-          ⚠️ {error}
-        </div>
-      )}
+      {error && <div className="error-message">⚠️ {error}</div>}
 
       {file && !uploading && !isCompleted && (
-        <button 
-          className="upload-button"
-          onClick={handleUpload}
-        >
+        <button className="upload-button" onClick={handleUpload}>
           Démarrer la transcription
         </button>
       )}
 
       {(uploading || isCompleted) && (
         <div className="progress-container">
-            {isCompleted ? (
-                <div className="completion-message">
-                    ✅ Transcription terminée avec succès !
-                </div>
-            ) : (
-                <>
-                    <div className="progress-bar">
-                        <div 
-                        className="progress-fill" 
-                        style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="progress-text">
-                        Transcription en cours... {progress}%
-                        {transcriptionId && (
-                        <span className="transcription-id">
-                            ID: {transcriptionId.substring(0, 8)}...
-                        </span>
-                        )}
-                    </div>
-                </>
-            )}
+          {isCompleted ? (
+            <div className="completion-message">✅ Transcription terminée avec succès !</div>
+          ) : (
+            <>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="progress-text">
+                Transcription en cours... {progress}%
+                {transcriptionId && (
+                  <span className="transcription-id">ID: {transcriptionId.substring(0, 8)}...</span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
-
     </div>
   );
 };

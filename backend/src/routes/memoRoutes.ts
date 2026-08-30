@@ -1,17 +1,14 @@
 import { Router } from 'express';
-import memoController from '../controllers/memoController';
-import { authMiddleware } from '../middleware/auth';
+import { getMemos, getMemoById, createMemo, updateMemo, deleteMemo } from '../controllers/memoController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// Toutes les routes nécessitent une authentification
-router.use(authMiddleware);
-
-// Routes CRUD
-router.post('/', memoController.createMemo);
-router.get('/', memoController.getMemos); // Peut être filtré par projectId avec ?projectId=...
-router.get('/:id', memoController.getMemo);
-router.put('/:id', memoController.updateMemo);
-router.delete('/:id', memoController.deleteMemo);
+// Routes protégées
+router.get('/', authenticate, getMemos);
+router.get('/:id', authenticate, getMemoById);
+router.post('/', authenticate, createMemo);
+router.put('/:id', authenticate, updateMemo);
+router.delete('/:id', authenticate, deleteMemo);
 
 export default router;

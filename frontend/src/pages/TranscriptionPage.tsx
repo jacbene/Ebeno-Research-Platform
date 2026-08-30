@@ -1,194 +1,91 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import TranscriptionUploader from '@/components/TranscriptionUploader';
-import { transcriptionApi } from '@/services/transcriptionApi';
-import './TranscriptionPage.css';
-
-interface Transcription {
-  id: string;
-  name: string;
-  status: string;
-  createdAt: string;
-  completedAt?: string;
-  duration?: number;
-  fileSize: number;
-}
+import React, { useState, useEffect } from 'react';
 
 const TranscriptionPage: React.FC = () => {
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [transcriptions, setTranscriptions] = useState([]);
 
-  const loadTranscriptions = useCallback(async (pageNum = 1) => {
+
+// Fonction pour charger les transcriptions
+const fetchTranscriptions = async () => {
+  const token = localStorage.getItem('authToken');
+  const response = await fetch('http://localhost:5001/api/transcriptions', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data = await response.json();
+  if (data.success) {
+    setTranscriptions(data.data.transcriptions || []);
+  }
+};
+
+// Appeler fetchTranscriptions au chargement de la page
+useEffect(() => {
+  fetchTranscriptions();
+}, []);  
+
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setMessage('');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    setMessage('Upload en cours...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      setLoading(true);
-      const response = await transcriptionApi.getUserTranscriptions(pageNum, 10);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5001/api/transcriptions/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
       
-      if (response.data.success) {
-        setTranscriptions(response.data.data.transcriptions);
-        setTotalPages(response.data.data.pagination.pages);
+      // Afficher la réponse complète pour déboguer
+      console.log('Réponse du backend:', data);
+
+      if (response.ok) {
+        const transcriptionId = data.data?.transcriptionId || data.transcriptionId || 'ID inconnu';
+        setMessage(`✅ Transcription réussie ! ID: ${transcriptionId}`);
+      } else {
+        setMessage(`❌ Erreur: ${data.message || data.error || 'Erreur inconnue'}`);
       }
     } catch (error) {
-      console.error('Error loading transcriptions:', error);
+      console.error('Erreur fetch:', error);
+      setMessage('❌ Erreur de connexion au serveur');
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadTranscriptions(page);
-  }, [page, loadTranscriptions]);
-
-  const handleUploadComplete = useCallback(() => {
-    // Refresh the list after a successful upload
-    loadTranscriptions(page);
-  }, [loadTranscriptions, page]);
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette transcription ?')) {
-      try {
-        // Optimistic deletion
-        setTranscriptions(prev => prev.filter(t => t.id !== id));
-        await transcriptionApi.deleteTranscription(id);
-      } catch (error) {
-        console.error('Error deleting transcription:', error);
-        alert('Erreur lors de la suppression');
-        // Re-fetch if deletion failed
-        loadTranscriptions(page);
-      }
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.round(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { color: string; label: string }> = {
-      PENDING: { color: 'bg-yellow-100 text-yellow-800', label: 'En attente' },
-      PROCESSING: { color: 'bg-blue-100 text-blue-800', label: 'En cours' },
-      COMPLETED: { color: 'bg-green-100 text-green-800', label: 'Terminé' },
-      FAILED: { color: 'bg-red-100 text-red-800', label: 'Échoué' },
-    };
-
-    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', label: status };
-    
-    return (
-      <span className={`status-badge ${config.color}`}>
-        {config.label}
-      </span>
-    );
   };
 
   return (
-    <div className="transcription-page">
-      <header className="page-header">
-        <h1>Transcription Audio</h1>
-        <p>Convertissez vos fichiers audio en texte avec précision</p>
-      </header>
-
-      <div className="upload-section">
-        <h2>Nouvelle transcription</h2>
-        <TranscriptionUploader onUploadComplete={handleUploadComplete} />
-      </div>
-
-      <div className="transcriptions-list">
-        <h2>Historique des transcriptions</h2>
-        
-        {loading ? (
-          <div className="loading">Chargement...</div>
-        ) : transcriptions.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🎵</div>
-            <p>Aucune transcription pour le moment</p>
-            <p className="empty-subtext">
-              Commencez par uploader un fichier audio ci-dessus
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="transcriptions-table-container">
-              <table className="transcriptions-table">
-                <thead>
-                  <tr>
-                    <th>Nom du fichier</th>
-                    <th>Statut</th>
-                    <th>Date</th>
-                    <th>Durée</th>
-                    <th>Taille</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transcriptions.map((transcription) => (
-                    <tr key={transcription.id}>
-                      <td className="file-name">
-                        <div className="file-icon-small">🎵</div>
-                        <span>{transcription.name}</span>
-                      </td>
-                      <td>{getStatusBadge(transcription.status)}</td>
-                      <td>{formatDate(transcription.createdAt)}</td>
-                      <td>{formatDuration(transcription.duration)}</td>
-                      <td>
-                        {(transcription.fileSize / 1024 / 1024).toFixed(2)} MB
-                      </td>
-                      <td className="actions">
-                        <button 
-                          className="action-button view"
-                          onClick={() => window.open(`/transcription/${transcription.id}`, '_blank')}
-                        >
-                          Voir
-                        </button>
-                        <button 
-                          className="action-button delete"
-                          onClick={() => handleDelete(transcription.id)}
-                        >
-                          Supprimer
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  ← Précédent
-                </button>
-                
-                <span className="page-info">
-                  Page {page} sur {totalPages}
-                </span>
-                
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Suivant →
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+      <h1>🎙️ Transcription</h1>
+      <p>Sélectionnez un fichier audio et lancez la transcription.</p>
+      <input type="file" accept="audio/*" onChange={handleFileChange} disabled={uploading} />
+      <br /><br />
+      <button
+        onClick={handleUpload}
+        disabled={!file || uploading}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: uploading ? 'not-allowed' : 'pointer'
+        }}
+      >
+        {uploading ? 'Upload en cours...' : 'Transcrire'}
+      </button>
+      {message && <p style={{ marginTop: '15px' }}>{message}</p>}
     </div>
   );
 };

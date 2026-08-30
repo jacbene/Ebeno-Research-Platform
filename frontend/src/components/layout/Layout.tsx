@@ -1,25 +1,19 @@
-// components/layout/Layout.tsx
-import { ReactNode } from 'react';
-import Navbar from './Navbar'; // Importation de la Navbar
-import CookieConsentBanner from '../common/CookieConsentBanner';
-import BackToTopButton from '../common/BackToTopButton';
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import { Navbar } from './Navbar';
 
 interface LayoutProps {
-  children: ReactNode;
+  user: any;
+  onLogout: () => void;
 }
 
-const Layout = ({ children }: LayoutProps) => {
-
+export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Navbar /> {/* Ajout de la Navbar */}
-      <main className="flex-1 p-6">
-        {children}
+    <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+      <Navbar user={user} onLogout={onLogout} />
+      <main style={{ padding: '20px' }}>
+        <Outlet />
       </main>
-      <CookieConsentBanner />
-      <BackToTopButton />
     </div>
   );
 };
-
-export default Layout;

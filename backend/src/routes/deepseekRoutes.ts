@@ -1,179 +1,123 @@
 import { Router, Request, Response } from 'express';
-import deepseekService from '../services/deepseekService';
-
-// Define a type for the chat messages
-interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-class DeepSeekController {
-  async chat(req: Request, res: Response) {
-    try {
-      const { messages, model = 'deepseek-chat', temperature = 0.7, max_tokens = 2000 } = req.body;
-
-      if (!messages || !Array.isArray(messages) || messages.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Le champ "messages" est requis et doit être un tableau non vide',
-        });
-      }
-
-      // Validation des messages
-      for (const msg of messages) {
-        if (!msg.role || !['user', 'assistant', 'system'].includes(msg.role)) {
-          return res.status(400).json({
-            success: false,
-            error: 'Chaque message doit avoir un rôle valide (user, assistant, system)',
-          });
-        }
-        if (!msg.content || typeof msg.content !== 'string') {
-          return res.status(400).json({
-            success: false,
-            error: 'Chaque message doit avoir un contenu de type string',
-          });
-        }
-      }
-
-      const result = await deepseekService.chatCompletion(messages as ChatMessage[]);
-      
-      if (!result.success) {
-        return res.status(500).json({
-          success: false,
-          error: result.error,
-          details: result.details
-        });
-      }
-
-      res.json({
-        success: true,
-        message: result.data,
-        usage: result.usage,
-        model: result.model,
-      });
-    } catch (error: any) {
-      console.error('Chat controller error:', error);
-      res.status(500).json({ 
-        success: false,
-        error: 'Erreur lors du traitement de la requête',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
-      });
-    }
-  }
-
-  async streamChat(req: Request, res: Response) {
-    try {
-      const { messages } = req.body;
-
-      if (!messages || !Array.isArray(messages)) {
-        res.status(400).json({ error: 'Messages invalides' });
-        return;
-      }
-
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
-      const stream = await deepseekService.chatCompletionStream(messages as ChatMessage[]);
-      
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) {
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
-        }
-      }
-      
-      res.write('data: [DONE]\n\n');
-      res.end();
-    } catch (error: any) {
-      console.error('Stream error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Erreur de streaming' });
-      } else {
-        res.write(`data: ${JSON.stringify({ error: 'Erreur de streaming' })}\n\n`);
-        res.write('data: [DONE]\n\n');
-        res.end();
-      }
-    }
-  }
-
-  async checkHealth(req: Request, res: Response) {
-    try {
-      const result = await deepseekService.checkAPIKey();
-      
-      res.json({
-        success: result.valid,
-        provider: 'DeepSeek',
-        status: result.valid ? 'connecté' : 'déconnecté',
-        models: result.models,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        error: (error as Error).message,
-        provider: 'DeepSeek'
-      });
-    }
-  }
-
-  async analyzeResearch(req: Request, res: Response) {
-    try {
-      const { researchText, analysisType = 'summary' } = req.body;
-
-      if (!researchText) {
-        return res.status(400).json({
-          success: false,
-          error: 'Le texte de recherche est requis',
-        });
-      }
-
-      const systemPrompt = `Tu es un expert en analyse de recherche scientifique. 
-      Analyse le texte suivant de manière approfondie et fournis une réponse structurée.`;
-
-      const userPrompt = `Texte de recherche à analyser:
-      ${researchText}
-
-      Type d'analyse demandé: ${analysisType}
-      
-      Fournis une analyse complète et détaillée.`;
-
-      const messages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ];
-
-      const result = await deepseekService.chatCompletion(messages);
-      
-      if (!result.success) {
-        return res.status(500).json({
-          success: false,
-          error: result.error,
-        });
-      }
-
-      res.json({
-        success: true,
-        analysis: result.data,
-        type: analysisType,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      console.error('Analyze error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erreur lors de l\'analyse',
-      });
-    }
-  }
-}
 
 const router = Router();
-const deepSeekController = new DeepSeekController();
 
-router.post('/chat', deepSeekController.chat);
-router.post('/chat-stream', deepSeekController.streamChat);
-router.get('/health', deepSeekController.checkHealth);
-router.post('/analyze', deepSeekController.analyzeResearch);
+// Base de connaissances pour la recherche qualitative
+const knowledgeBase: Record<string, string> = {
+  'analyse qualitative': `L'analyse qualitative est une méthode de recherche qui vise à comprendre en profondeur des phénomènes sociaux, culturels ou humains. Elle repose sur l'interprétation de données non numériques (entretiens, observations, documents) pour en dégager des thèmes, des patterns et des significations. Contrairement à l'approche quantitative, elle privilégie la compréhension contextuelle et subjective.
+
+📌 **Méthodes principales** :
+- Entretiens semi-directifs
+- Observations participantes
+- Analyse de contenu
+- Études de cas
+- Recherche-action
+
+🔧 **Outils utiles** : NVivo, ATLAS.ti, ou la plateforme Ebeno pour coder et analyser vos données.`,
+
+  'entretien': `L'entretien est une technique de collecte de données qualitative très utilisée en sciences humaines et sociales. Il permet d'accéder aux représentations, aux expériences et aux perspectives des participants.
+
+📌 **Types d'entretiens** :
+- **Directif** : questions fermées, peu de liberté
+- **Semi-directif** : guide de thèmes, liberté d'expression
+- **Non-directif** : liberté totale, peu d'intervention
+
+💡 **Conseils pratiques** :
+- Préparez un guide d'entretien
+- Enregistrez et transcrivez (utilisez la fonction transcription d'Ebeno)
+- Analysez les verbatims par thèmes`,
+
+  'codage': `Le codage est une étape clé de l'analyse qualitative. Il consiste à attribuer des étiquettes (codes) à des segments de données (textes, images, sons) pour les regrouper par thèmes ou concepts.
+
+📌 **Types de codage** :
+- **Codage ouvert** : identification des thèmes émergents
+- **Codage axial** : mise en relation des catégories
+- **Codage sélectif** : intégration autour d'un thème central
+
+🔧 **Bonnes pratiques** :
+- Commencez par un codage ouvert
+- Utilisez des codes courts et significatifs
+- Créez un dictionnaire des codes pour la cohérence
+- La plateforme Ebeno vous permet de coder facilement vos transcriptions.`,
+
+  'méthodologie': `La méthodologie est le cadre qui guide votre recherche. Elle définit comment vous allez collecter et analyser vos données.
+
+📌 **Éléments clés d'une méthodologie qualitative** :
+1. **Question de recherche** : claire et précise
+2. **Terrain** : où et avec qui ?
+3. **Méthodes de collecte** : entretiens, observations, documents
+4. **Méthodes d'analyse** : codage, analyse thématique, analyse de discours
+5. **Considérations éthiques** : consentement, anonymat
+
+📚 **Références utiles** : Miles & Huberman (1994), Paillé & Mucchielli (2012).`,
+
+  'transcription': `La transcription est la conversion d'un enregistrement audio ou vidéo en texte écrit. C'est une étape fondamentale pour l'analyse qualitative.
+
+📌 **Conseils pour une bonne transcription** :
+- Utilisez un logiciel de transcription (comme celui d'Ebeno)
+- Indiquez les pauses, les rires, les hésitations si pertinent
+- Respectez l'anonymat des participants
+
+🔧 **La plateforme Ebeno propose un outil de transcription automatique pour vous faciliter cette étape.`,
+
+  'default': `Merci pour votre question. Je suis votre assistant de recherche sur la plateforme Ebeno.
+
+📌 **Voici quelques conseils généraux** :
+1. **Définissez clairement votre question de recherche**
+2. **Choisissez une méthodologie adaptée** (qualitative, quantitative, mixte)
+3. **Collectez vos données** avec rigueur (entretiens, observations, documents)
+4. **Analysez en profondeur** (codage, analyse thématique)
+5. **Structurez vos résultats** pour répondre à votre question
+
+💡 **N'hésitez pas à me poser des questions spécifiques sur** :
+- L'analyse qualitative
+- Les entretiens
+- Le codage
+- La méthodologie
+- La transcription
+
+Je suis là pour vous aider dans votre recherche !`
+};
+
+router.post('/chat', async (req: Request, res: Response) => {
+  try {
+    const { messages } = req.body;
+    
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ success: false, message: 'Messages requis' });
+    }
+
+    const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    
+    // Recherche d'un mot-clé dans la question
+    let response = knowledgeBase.default;
+    for (const [key, value] of Object.entries(knowledgeBase)) {
+      if (lastMessage.includes(key) && key !== 'default') {
+        response = value;
+        break;
+      }
+    }
+
+    // Ajouter une introduction personnalisée
+    const intro = `🤖 **Assistant de recherche Ebeno**\n\n`;
+    
+    // Ajouter une conclusion interactive
+    const outro = `\n\n❓ **Avez-vous besoin de précisions ?** Je peux approfondir sur :\n- Les méthodes qualitatives\n- Les entretiens\n- Le codage\n- La méthodologie\n- La transcription\n\n💡 **Conseil** : Utilisez la plateforme Ebeno pour gérer vos projets, transcrire vos entretiens et analyser vos données en collaboration.`;
+
+    return res.json({
+      success: true,
+      data: {
+        content: intro + response + outro
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Erreur DeepSeek:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur interne du serveur'
+    });
+  }
+});
 
 export default router;

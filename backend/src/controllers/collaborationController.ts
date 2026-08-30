@@ -1,317 +1,128 @@
-
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { ProjectRole } from '@prisma/client';
+import { db } from '../db/knex';
 
-class CollaborationController {
-  async createCollaboration(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
+// Types pour les rôles
+const ProjectRole = {
+  OWNER: 'OWNER',
+  EDITOR: 'EDITOR',
+  VIEWER: 'VIEWER',
+  MEMBER: 'MEMBER'
+};
 
-      const { title, projectId, collaborators = [] } = req.body;
-
-      if (!title || !title.trim() || !projectId) {
-        return res.status(400).json({ success: false, message: 'Le titre et le projet sont requis' });
-      }
-
-      const projectMember = await prisma.projectMember.findFirst({
-        where: { projectId, userId, role: { in: [ProjectRole.OWNER, ProjectRole.EDITOR] } },
-      });
-
-      if (!projectMember) {
-        return res.status(403).json({ success: false, message: 'Non autorisé' });
-      }
-      
-      const participantIds = [userId, ...collaborators.map((c: { userId: string }) => c.userId)];
-
-      const collaboration = await prisma.collaborationSession.create({
-        data: {
-          title: title.trim(),
-          project: { connect: { id: projectId } },
-          createdBy: { connect: { id: userId } },
-          participants: { connect: participantIds.map(id => ({ id })) },
-          type: 'DOCUMENT', // Type par défaut
-        },
-        include: {
-          project: { select: { id: true, title: true } },
-          createdBy: { select: { profile: { select: { firstName: true, lastName: true } } } },
-          participants: { select: { profile: { select: { firstName: true, lastName: true } } } },
-        },
-      });
-
-      return res.status(201).json({ success: true, data: collaboration });
-    } catch (error: any) {
-      console.error('Error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+// Créer un document collaboratif
+export const createDocument = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
-  }
 
-  async getCollaborationsByProject(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
+    const { title, projectId, content } = req.body;
 
-      const { projectId } = req.params;
-      const { page = 1, limit = 20 } = req.query;
-
-      const where: any = {
-        projectId: projectId as string,
-        participants: { some: { id: userId } },
-      };
-
-      const [collaborations, total] = await Promise.all([
-        prisma.collaborationSession.findMany({
-          where,
-          include: {
-            project: { select: { id: true, title: true } },
-            createdBy: { select: { profile: { select: { firstName: true, lastName: true } } } },
-            _count: { select: { participants: true, comments: true } },
-          },
-          orderBy: { updatedAt: 'desc' },
-          skip: (Number(page) - 1) * Number(limit),
-          take: Number(limit),
-        }),
-        prisma.collaborationSession.count({ where }),
-      ]);
-
-      return res.status(200).json({ 
-        success: true, 
-        data: collaborations, 
-        pagination: { 
-          page: Number(page), 
-          limit: Number(limit), 
-          total, 
-          pages: Math.ceil(total / Number(limit))
-        }
-      });
-    } catch (error: any) {
-      console.error('Error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!title || !title.trim() || !projectId) {
+      return res.status(400).json({ success: false, message: 'Le titre et le projet sont requis' });
     }
-  }
-  
-  async getCollaborationById(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { id } = req.params;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
 
-      const collaboration = await prisma.collaborationSession.findFirst({
-        where: { id, participants: { some: { id: userId } } },
-        include: {
-          project: { select: { id: true, title: true } },
-          createdBy: { select: { id: true, profile: true } },
-          participants: { select: { id: true, email: true, profile: true } },
-          comments: { 
-            include: { user: {select: { profile: true } } },
-            orderBy: { createdAt: 'desc' }
-          },
-          _count: { select: { participants: true, comments: true } }
-        },
-      });
+    // Vérifier que l'utilisateur est membre du projet
+    const member = await db('project_members')
+      .where({ projectId, userId })
+      .first();
 
-      if (!collaboration) {
-        return res.status(404).json({ success: false, message: 'Non trouvé' });
-      }
-
-      return res.status(200).json({ success: true, data: collaboration });
-    } catch (error: any) {
-      console.error('Error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!member) {
+      return res.status(403).json({ success: false, message: 'Non autorisé' });
     }
+
+    const id = Date.now().toString();
+    await db('collaboration_documents').insert({
+      id,
+      title: title.trim(),
+      content: content || '',
+      projectId,
+      createdBy: userId,
+      version: 1,
+      created_at: Date.now(),
+      updated_at: Date.now()
+    });
+
+    const document = await db('collaboration_documents').where({ id }).first();
+
+    return res.status(201).json({ success: true, data: document });
+  } catch (error: any) {
+    console.error('Error:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
+};
 
-  async updateCollaborationContent(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { id } = req.params;
-      const { title, content } = req.body;
-
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
-
-      const canUpdate = await prisma.collaborationSession.findFirst({
-          where: {
-              id,
-              participants: { some: { id: userId } }
-          }
-      });
-
-      if (!canUpdate) {
-        return res.status(403).json({ success: false, message: 'Non autorisé' });
-      }
-
-      const updated = await prisma.collaborationSession.update({
-        where: { id },
-        data: {
-          ...(title && { title: title.trim() }),
-          ...(content && { content: content, version: { increment: 1 } }),
-        },
-      });
-
-      return res.status(200).json({ success: true, data: updated });
-    } catch (error: any) {
-      console.error('Error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+// Récupérer les documents d'un projet
+export const getDocuments = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
+
+    const { projectId } = req.params;
+
+    const documents = await db('collaboration_documents')
+      .where({ projectId })
+      .orderBy('updated_at', 'desc')
+      .select('*');
+
+    return res.status(200).json({ success: true, data: documents });
+  } catch (error: any) {
+    console.error('Error:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
+};
 
-  async deleteCollaboration(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { id } = req.params;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
+// Récupérer un document par ID
+export const getDocument = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
 
-      const collaboration = await prisma.collaborationSession.findFirst({
-        where: { id, createdById: userId },
-      });
-
-      if (!collaboration) {
-        return res.status(403).json({ success: false, message: 'Non autorisé' });
-      }
-
-      await prisma.collaborationSession.delete({ where: { id } });
-
-      return res.status(200).json({ success: true, message: 'Supprimé' });
-    } catch (error: any) {
-      console.error('Error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
-  }
 
-  async manageCollaborationParticipants(req: Request, res: Response) {
-    try {
-        const userId = req.user?.id;
-        const { id } = req.params;
-        const { userIds, action } = req.body; // userIds: string[], action: 'add' | 'remove'
+    const document = await db('collaboration_documents')
+      .where({ id })
+      .first();
 
-        if (!userId) {
-            return res.status(401).json({ success: false, message: 'Non authentifié' });
-        }
-
-        const collaboration = await prisma.collaborationSession.findFirst({
-            where: { id, createdById: userId },
-        });
-
-        if (!collaboration) {
-            return res.status(403).json({ success: false, message: 'Non autorisé à gérer les participants' });
-        }
-
-        if (action === 'add') {
-            await prisma.collaborationSession.update({
-                where: { id },
-                data: { participants: { connect: userIds.map((id: string) => ({ id })) } },
-            });
-        } else if (action === 'remove') {
-            const creatorId = collaboration.createdById;
-            const filteredUserIds = userIds.filter((id: string) => id !== creatorId);
-
-            await prisma.collaborationSession.update({
-                where: { id },
-                data: { participants: { disconnect: filteredUserIds.map((id: string) => ({ id })) } },
-            });
-        }
-
-        const updatedParticipants = await prisma.collaborationSession.findUnique({
-            where: { id },
-            select: {
-                participants: {
-                    select: { id: true, email: true, profile: true }
-                }
-            }
-        });
-
-        return res.status(200).json({ success: true, data: updatedParticipants?.participants });
-
-    } catch (error: any) {
-        console.error('Error:', error);
-        return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document non trouvé' });
     }
+
+    return res.status(200).json({ success: true, data: document });
+  } catch (error: any) {
+    console.error('Error:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
+};
 
-  async getCollaborationHistory(req: Request, res: Response) {
-    try {
-        const userId = req.user?.id;
-        const { id } = req.params;
+// Supprimer un document
+export const deleteDocument = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
 
-        if (!userId) {
-            return res.status(401).json({ success: false, message: 'Non authentifié' });
-        }
-
-        const isParticipant = await prisma.collaborationSession.findFirst({
-            where: { id, participants: { some: { id: userId } } }
-        });
-
-        if (!isParticipant) {
-            return res.status(403).json({ success: false, message: 'Non autorisé' });
-        }
-
-        const history = await prisma.collaborationHistory.findMany({
-            where: { sessionId: id },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        profile: { select: { firstName: true, lastName: true } }
-                    }
-                }
-            }
-        });
-
-        return res.status(200).json({ success: true, data: history });
-    } catch (error: any) {
-        console.error('Error:', error);
-        return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
-  }
 
-  async getCollaborationCursors(req: Request, res: Response) {
-    try {
-        const userId = req.user?.id;
-        const { id } = req.params;
+    const document = await db('collaboration_documents')
+      .where({ id, createdBy: userId })
+      .first();
 
-        if (!userId) {
-            return res.status(401).json({ success: false, message: 'Non authentifié' });
-        }
-
-        const isParticipant = await prisma.collaborationSession.findFirst({
-            where: { id, participants: { some: { id: userId } } }
-        });
-
-        if (!isParticipant) {
-            return res.status(403).json({ success: false, message: 'Non autorisé' });
-        }
-
-        const cursors = await prisma.collaborationCursor.findMany({
-            where: { sessionId: id, NOT: { userId: userId } },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        profile: { select: { firstName: true, lastName: true, avatar: true } }
-                    }
-                }
-            }
-        });
-
-        return res.status(200).json({ success: true, data: cursors });
-    } catch (error: any) {
-        console.error('Error:', error);
-        return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    if (!document) {
+      return res.status(403).json({ success: false, message: 'Non autorisé' });
     }
-  }
-}
 
-export const collaborationController = new CollaborationController();
-export default collaborationController;
+    await db('collaboration_documents').where({ id }).delete();
+
+    return res.status(200).json({ success: true, message: 'Document supprimé' });
+  } catch (error: any) {
+    console.error('Error:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+};

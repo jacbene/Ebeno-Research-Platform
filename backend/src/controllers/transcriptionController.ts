@@ -1,136 +1,227 @@
 import { Request, Response } from 'express';
-import { transcriptionService } from '../services/transcriptionService';
-import { ApiResponse } from '../utils/apiResponse';
-import { ApiError } from '../utils/apiError';
-import { logger } from '../utils/logger';
+import multer from 'multer';
+import path from 'path';
+import { uploadAndProcessDeepgram } from '../services/deepgramService';
+import { db } from '../db/knex';
 
-export class TranscriptionController {
-  async uploadTranscription(req: Request, res: Response) {
+// Configuration multer pour les fichiers audio
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/tmp/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    // Accepter les fichiers audio
+    const allowedTypes = [
+      'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/webm',
+      'audio/ogg', 'audio/x-m4a', 'audio/flac', 'audio/wave'
+    ];
+    if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(mp3|wav|m4a|flac|ogg|webm)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non supporté. Veuillez sélectionner un fichier audio.'));
+    }
+  }
+}).single('file');
+
+// ---------- Contrôleurs ----------
+
+export const uploadTranscription = async (req: Request, res: Response) => {
+  // Utiliser multer manuellement pour gérer l'upload
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
     try {
-      if (!req.file) {
-        return ApiResponse.error(res, 400, 'No file uploaded');
-      }
-
       const userId = (req as any).user?.id;
       if (!userId) {
-        return ApiResponse.error(res, 401, 'Authentication required');
+        return res.status(401).json({ success: false, message: 'Non authentifié' });
+      }
+
+      const file = (req as any).file;
+      if (!file) {
+        return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
       }
 
       const { projectId } = req.body;
-      const transcription = await transcriptionService.uploadAudioFile(req.file, userId, projectId);
 
-      // Démarrer le traitement en arrière-plan
-      transcriptionService.processTranscription(transcription.id)
-        .catch(error => {
-          logger.error('Background transcription failed:', error);
-        });
+      // Lancer l'upload et le traitement via le service
+      const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
-      return ApiResponse.created(res, {
-        transcriptionId: transcription.id,
-        message: 'Transcription started successfully',
-        status: 'PENDING',
+      return res.status(201).json({
+        success: true,
+        data: {
+          transcriptionId: result.id,
+          message: result.message,
+          status: result.status,
+        }
       });
-    } catch (error) {
-      logger.error('Upload transcription error:', error);
-      
-      if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, (error as Error).message);
-      }
-      
-      return ApiResponse.error(res, 500, 'Internal server error');
+
+    } catch (error: any) {
+      console.error('Erreur upload:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erreur serveur',
+        error: error.message
+      });
     }
-  }
-
-  async getTranscription(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = (req as any).user?.id;
-
-      const transcription = await transcriptionService.getTranscription(id);
-
-      // Vérifier les permissions
-      if (transcription.userId !== userId) {
-        return ApiResponse.error(res, 403, 'Not authorized to view this transcription');
-      }
-
-      return ApiResponse.success(res, transcription);
-    } catch (error) {
-      logger.error('Get transcription error:', error);
-      
-      if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, (error as Error).message);
-      }
-      
-      return ApiResponse.error(res, 500, 'Internal server error');
+  });
+};
+  
+export const getUserTranscriptions = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
-  }
 
-  async getUserTranscriptions(req: Request, res: Response) {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) {
-        return ApiResponse.error(res, 401, 'Authentication required');
+    const { projectId, type, status, from, to, page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    let query = db('transcriptions').where({ userId });
+    if (projectId) query = query.where({ projectId });
+    if (type) query = query.where({ type });
+    if (status) query = query.where({ status });
+    if (from) query = query.where('created_at', '>=', Number(from));
+    if (to) query = query.where('created_at', '<=', Number(to));
+
+    const transcriptions = await query
+      .orderBy('created_at', 'desc')
+      .limit(Number(limit))
+      .offset(skip);
+
+    const totalResult = await query.clone().count('id as count');
+    const total = Number(totalResult[0]?.count || 0);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        transcriptions,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          pages: Math.ceil(total / Number(limit))
+        }
       }
+    });
+  } catch (error: any) {
+    console.error('Erreur getUserTranscriptions:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message
+    });
+  }
+};            
 
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+// Récupérer une transcription par ID
+export const getTranscription = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
 
-      const result = await transcriptionService.getUserTranscriptions(userId, page, limit);
-
-      return ApiResponse.success(res, result);
-    } catch (error) {
-      logger.error('Get user transcriptions error:', error);
-      return ApiResponse.error(res, 500, 'Internal server error');
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
-  }
 
-  async deleteTranscription(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = (req as any).user?.id;
+    const transcription = await db('transcriptions')
+      .where({ id, userId })
+      .first();
 
-      await transcriptionService.deleteTranscription(id, userId);
-
-      return ApiResponse.success(res, null, 'Transcription deleted successfully');
-    } catch (error) {
-      logger.error('Delete transcription error:', error);
-      
-      if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, (error as Error).message);
-      }
-      
-      return ApiResponse.error(res, 500, 'Internal server error');
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
     }
+
+    return res.status(200).json({ success: true, data: transcription });
+
+  } catch (error: any) {
+    console.error('Erreur getTranscription:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message
+    });
   }
+};
 
-  async getTranscriptionProgress(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = (req as any).user?.id;
+// Supprimer une transcription
+export const deleteTranscription = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
 
-      const transcription = await transcriptionService.getTranscription(id);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
+    }
 
-      if (transcription.userId !== userId) {
-        return ApiResponse.error(res, 403, 'Not authorized');
-      }
+    const deleted = await db('transcriptions')
+      .where({ id, userId })
+      .delete();
 
-      return ApiResponse.success(res, {
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Transcription supprimée' });
+
+  } catch (error: any) {
+    console.error('Erreur deleteTranscription:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message
+    });
+  }
+};
+
+// Récupérer la progression d'une transcription
+export const getTranscriptionProgress = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
+    }
+
+    const transcription = await db('transcriptions')
+      .where({ id, userId })
+      .first();
+
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    const progress = transcription.status === 'PROCESSING' ? 50 :
+                     transcription.status === 'COMPLETED' ? 100 : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
         id: transcription.id,
         status: transcription.status,
-        progress: transcription.status === 'PROCESSING' ? 50 : 
-                 transcription.status === 'COMPLETED' ? 100 : 0,
+        progress,
         errorMessage: transcription.errorMessage,
-      });
-    } catch (error) {
-      logger.error('Get transcription progress error:', error);
-      
-      if (error instanceof ApiError) {
-        return ApiResponse.error(res, error.statusCode, (error as Error).message);
+        transcriptText: transcription.transcriptText
       }
-      
-      return ApiResponse.error(res, 500, 'Internal server error');
-    }
-  }
-}
+    });
 
-export const transcriptionController = new TranscriptionController();
+  } catch (error: any) {
+    console.error('Erreur getTranscriptionProgress:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message
+    });
+  }
+};

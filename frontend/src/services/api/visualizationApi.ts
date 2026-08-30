@@ -7,7 +7,7 @@ import {
     ProjectVisualizations,
   } from '../../types/visualization';
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   export class VisualizationApi {
     private static baseUrl = API_BASE_URL;

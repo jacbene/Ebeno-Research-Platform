@@ -1,41 +1,35 @@
-import express from 'express';
-import multer from 'multer';
-import { transcriptionController } from '../controllers/transcriptionController';
-import { authMiddleware } from '../middleware/auth';
+import { Router } from 'express';
+import {
+  uploadTranscription,
+  getUserTranscriptions,
+  getTranscription,
+  deleteTranscription,
+  getTranscriptionProgress
+} from '../controllers/transcriptionController';
+import { authenticate } from '../middleware/auth';
 
-const router = express.Router();
-const upload = multer({ 
-  dest: 'uploads/tmp/',
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB max
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'audio/mpeg',
-      'audio/wav',
-      'audio/mp4',
-      'audio/webm',
-      'audio/ogg',
-      'audio/x-m4a',
-      'audio/flac',
-    ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only audio files are allowed.'));
-    }
-  },
+const router = Router();
+
+router.post('/upload', authenticate, uploadTranscription);
+router.get('/', authenticate, getUserTranscriptions);
+router.get('/:id', authenticate, getTranscription);
+router.delete('/:id', authenticate, deleteTranscription);
+router.get('/:id/progress', authenticate, getTranscriptionProgress);
+// POST /api/transcriptions/:id/process
+router.post('/:id/process', authenticate, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+    const doc = await db('transcriptions').where({ id, userId }).first();
+    if (!doc) return res.status(404).json({ error: 'Transcription non trouvée' });
+    // Lancer le traitement (appel à Deepgram/OpenAI) - déjà fait via processTranscriptionReal
+    // Pour l'instant, on simule
+    await processTranscriptionReal(id);
+    const updated = await db('transcriptions').where({ id }).first();
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur' });
+  }
 });
-
-// Toutes les routes nécessitent une authentification
-router.use(authMiddleware);
-
-// Routes pour les transcriptions
-router.post('/upload', upload.single('file'), transcriptionController.uploadTranscription);
-router.get('/:id', transcriptionController.getTranscription);
-router.get('/:id/progress', transcriptionController.getTranscriptionProgress);
-router.get('/user/list', transcriptionController.getUserTranscriptions);
-router.delete('/:id', transcriptionController.deleteTranscription);
 
 export default router;

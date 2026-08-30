@@ -1,143 +1,280 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Brain, MessageSquare, BookOpen } from 'lucide-react';
-import DeepSeekChat from '../components/deepseek/DeepSeekChat';
-import './ChatPage.css';
+import React, { useState, useRef, useEffect } from 'react';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
 
 const ChatPage: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      role: 'system',
+      content: 'Bonjour ! Je suis l\'assistant IA de la plateforme Ebeno Research. Comment puis-je vous aider dans votre recherche aujourd\'hui ?',
+      timestamp: Date.now()
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput || loading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: trimmedInput,
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const response = await fetch('http://localhost:5001/api/deepseek/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          messages: [...conversationHistory, { role: 'user', content: trimmedInput }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.data?.content || 'Réponse reçue avec succès.',
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        const fallbackResponse = `Je comprends votre question : "${trimmedInput}".\n\nC'est une question intéressante pour votre recherche. Voici quelques pistes de réflexion :\n\n1. Analysez les sources primaires avec une approche qualitative\n2. Consultez les travaux récents dans ce domaine\n3. Structurez votre méthodologie autour des concepts clés\n\nN'hésitez pas à me poser des questions plus spécifiques.`;
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.message || fallbackResponse,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      }
+    } catch (err) {
+      const fallbackResponse = `Je comprends votre question : "${trimmedInput}".\n\nJe suis actuellement en mode hors ligne. Voici quelques conseils généraux pour votre recherche :\n\n1. Définissez clairement vos objectifs de recherche\n2. Identifiez les sources pertinentes\n3. Élaborez une méthodologie adaptée\n\nPour une aide plus précise, assurez-vous que le serveur backend est en cours d'exécution.`;
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: fallbackResponse,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setError('Mode hors ligne : le serveur est inaccessible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([
+      {
+        id: Date.now().toString(),
+        role: 'system',
+        content: 'Bonjour ! Je suis l\'assistant IA de la plateforme Ebeno Research. Comment puis-je vous aider dans votre recherche aujourd\'hui ?',
+        timestamp: Date.now()
+      }
+    ]);
+    setError(null);
+  };
+
   return (
-    <div className="chat-page">
-      {/* Sidebar */}
-      <aside className="chat-sidebar">
-        <div className="sidebar-header">
-          <Link to="/" className="back-button">
-            <ArrowLeft size={20} />
-            Retour au Dashboard
-          </Link>
-          <h2>
-            <Brain size={24} />
-            Assistant IA
-          </h2>
-        </div>
-
-        <div className="conversations-list">
-          <div className="conversation-header">
-            <MessageSquare size={18} />
-            <span>Conversations</span>
-          </div>
-          <div className="conversation-item active">
-            <div className="conversation-preview">Nouvelle conversation</div>
-            <div className="conversation-time">Maintenant</div>
-          </div>
-          {/* Vous pouvez ajouter plus de conversations ici */}
-        </div>
-
-        <div className="sidebar-actions">
-          <button className="new-chat-button">
-            + Nouvelle conversation
-          </button>
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="ai-info">
-            <div className="ai-model">
-              <span className="model-badge">DeepSeek-Chat</span>
-              <span className="model-status">Connecté</span>
-            </div>
-            <p className="ai-description">
-              Assistant IA spécialisé en recherche scientifique
-            </p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Chat principal */}
-      <main className="chat-main">
-        <DeepSeekChat />
-      </main>
-
-      {/* Sidebar droite (analyse/outils) */}
-      <aside className="tools-sidebar">
-        <div className="tools-header">
-          <h3>Outils d'analyse</h3>
-        </div>
-
-        <div className="tools-section">
-          <h4>
-            <BookOpen size={18} />
-            Analyse de recherche
-          </h4>
-          <p className="tools-description">
-            Collez votre texte de recherche pour une analyse approfondie
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: 'calc(100vh - 100px)',
+      maxWidth: '900px',
+      margin: '0 auto',
+      padding: '20px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid #e8e8e8',
+        marginBottom: '15px'
+      }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '24px' }}>🤖 Assistant IA</h1>
+          <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
+            DeepSeek - Analyse qualitative
           </p>
-          
-          <div className="analysis-tools">
-            <button className="tool-button">
-              Résumé automatique
-            </button>
-            <button className="tool-button">
-              Analyse de méthodologie
-            </button>
-            <button className="tool-button">
-              Vérification de sources
-            </button>
-            <button className="tool-button">
-              Suggestions d'amélioration
-            </button>
-          </div>
         </div>
+        <button
+          onClick={clearChat}
+          style={{
+            padding: '6px 14px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '13px'
+          }}
+        >
+          🗑️ Nouvelle conversation
+        </button>
+      </div>
 
-        <div className="tools-section">
-          <h4>Paramètres</h4>
-          <div className="settings">
-            <div className="setting-item">
-              <label>Modèle</label>
-              <select defaultValue="deepseek-chat" className="model-select">
-                <option value="deepseek-chat">DeepSeek-Chat (Général)</option>
-                <option value="deepseek-coder">DeepSeek-Coder (Code)</option>
-              </select>
-            </div>
-            <div className="setting-item">
-              <label>Température</label>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.1" 
-                defaultValue="0.7" 
-                className="temperature-slider"
-              />
-              <span className="temperature-value">0.7</span>
-            </div>
-            <div className="setting-item">
-              <label>Longueur maximale</label>
-              <select defaultValue="2000" className="length-select">
-                <option value="1000">1000 tokens</option>
-                <option value="2000">2000 tokens</option>
-                <option value="4000">4000 tokens</option>
-              </select>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        marginBottom: '15px',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '15px'
+      }}>
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            style={{
+              display: 'flex',
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              marginBottom: '12px'
+            }}
+          >
+            <div
+              style={{
+                maxWidth: '75%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                backgroundColor: msg.role === 'user' ? '#4A90D9' : (msg.role === 'system' ? '#f0f7ff' : '#f1f1f1'),
+                color: msg.role === 'user' ? 'white' : '#333',
+                border: msg.role === 'system' ? '1px solid #d0e0ff' : 'none',
+                fontStyle: msg.role === 'system' ? 'italic' : 'normal',
+                opacity: msg.role === 'system' ? 0.8 : 1,
+                fontSize: msg.role === 'system' ? '14px' : '15px'
+              }}
+            >
+              {msg.role === 'system' && <span style={{ fontWeight: 'bold' }}>🤖 Système : </span>}
+              {msg.role === 'user' && <span style={{ fontWeight: 'bold' }}>👤 Vous : </span>}
+              {msg.role === 'assistant' && <span style={{ fontWeight: 'bold' }}>🤖 Assistant : </span>}
+              <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+              <div style={{
+                fontSize: '10px',
+                opacity: 0.6,
+                marginTop: '5px',
+                textAlign: msg.role === 'user' ? 'right' : 'left'
+              }}>
+                {new Date(msg.timestamp).toLocaleTimeString()}
+              </div>
             </div>
           </div>
-        </div>
+        ))}
+        {loading && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '12px' }}>
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              backgroundColor: '#f1f1f1',
+              color: '#666'
+            }}>
+              ⏳ L'assistant réfléchit...
+            </div>
+          </div>
+        )}
+        {error && (
+          <div style={{
+            padding: '10px',
+            backgroundColor: '#fff3cd',
+            color: '#856404',
+            borderRadius: '4px',
+            marginTop: '10px',
+            textAlign: 'center',
+            fontSize: '14px'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div className="tools-section">
-          <h4>Statistiques</h4>
-          <div className="stats">
-            <div className="stat-item">
-              <div className="stat-label">Messages aujourd'hui</div>
-              <div className="stat-value">12</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">Tokens utilisés</div>
-              <div className="stat-value">4,532</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">Temps de réponse moyen</div>
-              <div className="stat-value">2.3s</div>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        padding: '10px 0',
+        borderTop: '1px solid #e8e8e8'
+      }}>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Posez votre question sur votre recherche..."
+          disabled={loading}
+          rows={1}
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            fontSize: '15px',
+            resize: 'none',
+            fontFamily: 'inherit',
+            minHeight: '50px',
+            maxHeight: '120px',
+            outline: 'none'
+          }}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={!input.trim() || loading}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#4A90D9',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            opacity: (!input.trim() || loading) ? 0.6 : 1,
+            alignSelf: 'flex-end',
+            height: '50px'
+          }}
+        >
+          {loading ? '⏳' : '📤'}
+        </button>
+      </div>
     </div>
   );
 };
