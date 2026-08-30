@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { prisma } from '../utils/prisma';
+//import { prisma } from '../utils/prisma';
 import { sendEmail } from '../services/emailService';
 
 export const registerUser = async (req: Request, res: Response) => {
