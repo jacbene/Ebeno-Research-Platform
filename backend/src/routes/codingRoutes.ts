@@ -5,7 +5,7 @@ import codingController from '../controllers/codingController';
 const router = express.Router();
 
 // Toutes les routes nécessitent une authentification
-router.use(protect);
+//router.use(protect);
 
 // === ROUTES POUR LES CODES ===
 router.post('/projects/:projectId/codes', codingController.createCode);

@@ -27,14 +27,9 @@ router.use('/coding', codingRoutes);
 router.use('/memos', memoRoutes);
 router.use('/transcriptions', transcriptionRoutes);
 router.use('/deepseek', deepseekRoutes);
-router.use('/visualizations', visualizationRoutes);
-router.use('/references', referenceRoutes);
-router.use('/surveys', surveyRoutes);
-router.use('/field-data', fieldDataRoutes);
+
 router.use('/collaboration', collaborationRoutes);
-router.use('/peer-review', peerReviewRoutes);
-router.use('/analytics', analyticsRoutes);
-router.use('/writing-assistant', writingAssistantRoutes);
+
 
 
 export default router;
