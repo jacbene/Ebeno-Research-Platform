@@ -29,15 +29,10 @@
     "types": ["node"],
     "noImplicitAny": false
   },
+  
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/__tests__",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "knexfile.ts"
-  ],
+  "exclude": ["node_modules", "dist"]
+
   "ts-node": {
     "esm": false,
     "transpileOnly": true

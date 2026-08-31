@@ -8,14 +8,14 @@ import codingRoutes from './codingRoutes';
 import memoRoutes from './memoRoutes';
 import transcriptionRoutes from './transcriptionRoutes';
 import deepseekRoutes from './deepseekRoutes';
-import visualizationRoutes from './visualizationRoutes';
-import referenceRoutes from './referenceRoutes';
-import surveyRoutes from './surveyRoutes';
-import fieldDataRoutes from './fieldDataRoutes';
+//import visualizationRoutes from './visualizationRoutes';
+//import referenceRoutes from './referenceRoutes';
+//import surveyRoutes from './surveyRoutes';
+//import fieldDataRoutes from './fieldDataRoutes';
 import collaborationRoutes from './collaborationRoutes';
-import peerReviewRoutes from './peerReviewRoutes';
-import analyticsRoutes from './analyticsRoutes';
-import writingAssistantRoutes from './writingAssistantRoutes';
+//import peerReviewRoutes from './peerReviewRoutes';
+//import analyticsRoutes from './analyticsRoutes';
+//import writingAssistantRoutes from './writingAssistantRoutes';
 
 
 const router = express.Router();
