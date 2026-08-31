@@ -39,12 +39,12 @@
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
+    "eslintConfig": {
+    "extends": "react-app",
+    "rules": {
+      "no-restricted-globals": "off"
+    }
+   },
   "browserslist": {
     "production": [
       ">0.2%",
