@@ -1,30 +1,30 @@
-import express from 'express';
-//import codingController from '../controllers/codingController';
-//import { protect } from '../middleware/authMiddleware';
+import { Router } from 'express';
+import {
+  getCodes,
+  createCode,
+  updateCode,
+  deleteCode,
+  assignCodeToDocument,
+  removeCodeFromDocument,
+  getDocumentCodes,
+  getCodeFrequencies
+} from '../controllers/codingController';
+import { authenticate } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
-// Toutes les routes nécessitent une authentification
-//router.use(protect);
+// Routes pour les codes (CRUD)
+router.get('/project/:projectId', authenticate, getCodes);
+router.post('/project/:projectId', authenticate, createCode);
+router.put('/project/:projectId/code/:codeId', authenticate, updateCode);
+router.delete('/project/:projectId/code/:codeId', authenticate, deleteCode);
 
-// === ROUTES POUR LES CODES ===
-router.post('/projects/:projectId/codes', codingController.createCode);
-router.get('/projects/:projectId/codes', codingController.getProjectCodes);
-router.get('/projects/:projectId/codes/tree', codingController.getCodeTree);
-router.put('/codes/:codeId', codingController.updateCode);
-router.delete('/codes/:codeId', codingController.deleteCode);
+// Routes pour les associations codes-documents
+router.post('/document/:documentId/assign', authenticate, assignCodeToDocument);
+router.delete('/document/:documentId/code/:codeId', authenticate, removeCodeFromDocument);
+router.get('/document/:documentId/codes', authenticate, getDocumentCodes);
 
-// === ROUTES POUR LES ANNOTATIONS ===
-router.post('/annotations', codingController.createAnnotation);
-router.get('/documents/:documentId/annotations', codingController.getDocumentAnnotations);
-router.get('/transcripts/:transcriptId/annotations', codingController.getTranscriptAnnotations);
-router.get('/codes/:codeId/annotations', codingController.getCodeAnnotations);
-router.delete('/annotations/:annotationId', codingController.deleteAnnotation);
-
-// === STATISTIQUES ===
-router.get('/projects/:projectId/coding-statistics', codingController.getCodingStatistics);
-
-// === ANALYSE IA (à venir) ===
-router.post('/projects/:projectId/suggest-codes', codingController.suggestCodes);
+// Route pour les fréquences d'utilisation
+router.get('/project/:projectId/frequencies', authenticate, getCodeFrequencies);
 
 export default router;
