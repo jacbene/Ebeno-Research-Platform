@@ -1,9 +1,9 @@
 // frontend/src/services/api.ts
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuration de l'API
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api';
+//const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = 'https://ebeno-backend.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,17 +12,29 @@ const api = axios.create({
   },
 });
 
-// Intercepteur pour ajouter le token d'authentification
+// Intercepteur pour ajouter le token d'authentification (localStorage pour le Web)
 api.interceptors.request.use(
-  async (config) => {
-    // Récupérer le token depuis AsyncStorage
-    const token = await AsyncStorage.getItem('auth_token');
+  (config) => {
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les erreurs 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
