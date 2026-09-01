@@ -34,14 +34,14 @@ export const createMemo = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Non authentifié' });
     }
 
-    const id = Date.now().toString();
+    const id = Math.floor(Date.now() / 1000).toString();
     await db('memos').insert({
       id,
       title,
       content,
       userId,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
+      createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000)
     });
 
     res.status(201).json({ 
@@ -69,7 +69,7 @@ export const updateMemo = async (req: Request, res: Response) => {
       .update({
         title: title || existing.title,
         content: content || existing.content,
-        updatedAt: Date.now()
+        updatedAt: Math.floor(Date.now() / 1000)
       });
 
     const updated = await db('memos').where({ id }).first();

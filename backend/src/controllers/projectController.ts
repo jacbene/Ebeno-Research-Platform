@@ -1,3 +1,4 @@
+// backend/src/controllers/projectController.ts
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
 
@@ -38,8 +39,8 @@ export const createProject = async (req: Request, res: Response) => {
       userId: userId,
       status: 'ACTIVE',
       visibility: 'PRIVATE',
-      createdAt: Date.now(),
-      updatedAt: Date.now()
+      createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000)
     });
 
     // Ajouter le membre (OWNER)
@@ -48,8 +49,8 @@ export const createProject = async (req: Request, res: Response) => {
       projectId: id,
       userId: userId,
       role: ProjectRole.OWNER,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
+      createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000)
     });
 
     // Ajouter les tags si présents
@@ -61,14 +62,14 @@ export const createProject = async (req: Request, res: Response) => {
           name: tagName.trim(),
           color: generateRandomColor(),
           category: 'user',
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          createdAt: Math.floor(Date.now() / 1000),
+          updatedAt: Math.floor(Date.now() / 1000)
         });
 
         await db('project_tags').insert({
           projectId: id,
           tagId: tagId,
-          createdAt: Date.now()
+          createdAt: Math.floor(Date.now() / 1000)
         });
       }
     }
@@ -207,7 +208,7 @@ export const updateProject = async (req: Request, res: Response) => {
       .update({
         title: title?.trim() || undefined,
         description: description?.trim() || undefined,
-        updatedAt: Date.now()
+        updatedAt: Math.floor(Date.now() / 1000)
       });
 
     const project = await db('projects')
@@ -280,8 +281,8 @@ export const addTag = async (req: Request, res: Response) => {
         name: name.trim(),
         color: color || generateRandomColor(),
         category: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+        createdAt: Math.floor(Date.now() / 1000),
+        updatedAt: Math.floor(Date.now() / 1000)
       });
       tag = await db('tags').where({ id: tagId }).first();
     }
@@ -297,7 +298,7 @@ export const addTag = async (req: Request, res: Response) => {
     await db('project_tags').insert({
       projectId: projectId,
       tagId: tag.id,
-      createdAt: Date.now()
+      createdAt: Math.floor(Date.now() / 1000)
     });
 
     return res.status(201).json({ success: true, data: tag });
