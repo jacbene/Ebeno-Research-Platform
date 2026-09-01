@@ -29,7 +29,7 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Le titre est requis (3 caractères min)' });
     }
 
-    const id = Date.now().toString();
+    const id = new Date().toISOString().toString();
     
     // Insérer le projet avec userId
     await db('projects').insert({
@@ -39,37 +39,37 @@ export const createProject = async (req: Request, res: Response) => {
       userId: userId,
       status: 'ACTIVE',
       visibility: 'PRIVATE',
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000)
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     // Ajouter le membre (OWNER)
     await db('project_members').insert({
-      id: Date.now().toString() + '_owner',
+      id: new Date().toISOString().toString() + '_owner',
       projectId: id,
       userId: userId,
       role: ProjectRole.OWNER,
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000)
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     // Ajouter les tags si présents
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
-        const tagId = Date.now().toString() + '_' + Math.random().toString(36).substring(7);
+        const tagId = new Date().toISOString().toString() + '_' + Math.random().toString(36).substring(7);
         await db('tags').insert({
           id: tagId,
           name: tagName.trim(),
           color: generateRandomColor(),
           category: 'user',
-          createdAt: Math.floor(Date.now() / 1000),
-          updatedAt: Math.floor(Date.now() / 1000)
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
 
         await db('project_tags').insert({
           projectId: id,
           tagId: tagId,
-          createdAt: Math.floor(Date.now() / 1000)
+          createdAt: new Date().toISOString()
         });
       }
     }
@@ -208,7 +208,7 @@ export const updateProject = async (req: Request, res: Response) => {
       .update({
         title: title?.trim() || undefined,
         description: description?.trim() || undefined,
-        updatedAt: Math.floor(Date.now() / 1000)
+        updatedAt: new Date().toISOString()
       });
 
     const project = await db('projects')
@@ -275,14 +275,14 @@ export const addTag = async (req: Request, res: Response) => {
       .first();
 
     if (!tag) {
-      const tagId = Date.now().toString() + '_' + Math.random().toString(36).substring(7);
+      const tagId = new Date().toISOString().toString() + '_' + Math.random().toString(36).substring(7);
       await db('tags').insert({
         id: tagId,
         name: name.trim(),
         color: color || generateRandomColor(),
         category: 'user',
-        createdAt: Math.floor(Date.now() / 1000),
-        updatedAt: Math.floor(Date.now() / 1000)
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
       tag = await db('tags').where({ id: tagId }).first();
     }
@@ -298,7 +298,7 @@ export const addTag = async (req: Request, res: Response) => {
     await db('project_tags').insert({
       projectId: projectId,
       tagId: tag.id,
-      createdAt: Math.floor(Date.now() / 1000)
+      createdAt: new Date().toISOString()
     });
 
     return res.status(201).json({ success: true, data: tag });

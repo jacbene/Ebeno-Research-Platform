@@ -49,7 +49,7 @@ export const updateUser = async (req: Request, res: Response) => {
         name: name || existing.name,
         role: role || existing.role,
         email: email || existing.email,
-        updatedAt: Math.floor(Date.now() / 1000)
+        updatedAt: new Date().toISOString()
       });
 
     const updated = await db('users')
@@ -87,7 +87,7 @@ export const createUser = async (req: Request, res: Response) => {
     const { email, password, name, role } = req.body;
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
-    const id = Math.floor(Date.now() / 1000).toString();
+    const id = new Date().toISOString().toString();
 
     await db('users').insert({
       id,
@@ -95,8 +95,8 @@ export const createUser = async (req: Request, res: Response) => {
       password: hashedPassword,
       name,
       role: role || 'RESEARCHER',
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000)
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     res.status(201).json({ 

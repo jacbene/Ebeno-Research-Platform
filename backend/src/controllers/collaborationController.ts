@@ -32,7 +32,7 @@ export const createDocument = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Non autorisé' });
     }
 
-    const id = Math.floor(Date.now() / 1000).toString();
+    const id = new Date().toISOString().toString();
     await db('collaboration_documents').insert({
       id,
       title: title.trim(),
@@ -40,8 +40,8 @@ export const createDocument = async (req: Request, res: Response) => {
       projectId,
       createdBy: userId,
       version: 1,
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000)
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     const document = await db('collaboration_documents').where({ id }).first();

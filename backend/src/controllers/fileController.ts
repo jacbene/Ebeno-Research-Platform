@@ -12,7 +12,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Math.floor(Date.now() / 1000) + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = new Date().toISOString() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);
   }
 });
@@ -36,7 +36,7 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
-      const id = Math.floor(Date.now() / 1000).toString();
+      const id = new Date().toISOString().toString();
       await db('project_files').insert({
         id,
         projectId,
@@ -45,7 +45,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         fileSize: file.size,
         mimeType: file.mimetype,
         filePath: file.path,
-        uploadedAt: Math.floor(Date.now() / 1000)
+        uploadedAt: new Date().toISOString()
       });
 
       const inserted = await db('project_files').where({ id }).first();

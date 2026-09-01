@@ -9,7 +9,7 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/texts/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Math.floor(Date.now() / 1000) + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = new Date().toISOString() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
@@ -52,7 +52,7 @@ export const uploadText = async (req: Request, res: Response) => {
       const filePath = file.path;
       const text = await extractText(filePath, file.mimetype);
 
-      const id = Math.floor(Date.now() / 1000).toString();
+      const id = new Date().toISOString().toString();
       await db('transcriptions').insert({
         id,
         userId,
@@ -64,8 +64,8 @@ export const uploadText = async (req: Request, res: Response) => {
         errorMessage: null,
         type: 'text',
         fileName: file.originalname,
-        createdAt: Math.floor(Date.now() / 1000),
-        updatedAt: Math.floor(Date.now() / 1000)
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
       return res.status(201).json({

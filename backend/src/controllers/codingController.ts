@@ -62,7 +62,7 @@ export const createCode = async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Un code avec ce nom existe déjà dans ce projet' });
     }
 
-    const id = Math.floor(Date.now() / 1000).toString();
+    const id = new Date().toISOString().toString();
     const newCode = {
       id,
       name: name.trim(),
@@ -70,8 +70,8 @@ export const createCode = async (req: Request, res: Response) => {
       color: color || '#4A6CF7',
       projectId,
       userId,
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     await db('codes').insert(newCode);
@@ -102,7 +102,7 @@ export const updateCode = async (req: Request, res: Response) => {
     if (name !== undefined) updates.name = name.trim();
     if (description !== undefined) updates.description = description.trim();
     if (color !== undefined) updates.color = color;
-    updates.updatedAt = Math.floor(Date.now() / 1000);
+    updates.updatedAt = new Date().toISOString();
 
     await db('codes')
       .where({ id: codeId })
@@ -190,7 +190,7 @@ export const assignCodeToDocument = async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Ce code est déjà assigné à ce document' });
     }
 
-    const id = Math.floor(Date.now() / 1000).toString() + '-' + Math.random().toString(36).substring(7);
+    const id = new Date().toISOString().toString() + '-' + Math.random().toString(36).substring(7);
     const association = {
       id,
       documentId,
@@ -199,8 +199,8 @@ export const assignCodeToDocument = async (req: Request, res: Response) => {
       startPosition: startPosition || null,
       endPosition: endPosition || null,
       comment: comment || null,
-      createdAt: Math.floor(Date.now() / 1000),
-      updatedAt: Math.floor(Date.now() / 1000),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     await db('document_codes').insert(association);
