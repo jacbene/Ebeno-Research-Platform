@@ -4,7 +4,7 @@ import { db } from '../db/knex';
 // Récupérer tous les utilisateurs
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const users = await db('users').select('id', 'email', 'name', 'role', 'created_at', 'updated_at');
+    const users = await db('users').select('id', 'email', 'name', 'role', 'createdAt', 'updatedAt');
     res.json(users);
   } catch (error) {
     console.error('Erreur getUsers:', error);
@@ -17,7 +17,7 @@ export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = await db('users')
-      .select('id', 'email', 'name', 'role', 'created_at', 'updated_at')
+      .select('id', 'email', 'name', 'role', 'createdAt', 'updatedAt')
       .where({ id })
       .first();
 
@@ -49,11 +49,11 @@ export const updateUser = async (req: Request, res: Response) => {
         name: name || existing.name,
         role: role || existing.role,
         email: email || existing.email,
-        updated_at: Date.now()
+        updatedAt: Date.now()
       });
 
     const updated = await db('users')
-      .select('id', 'email', 'name', 'role', 'created_at', 'updated_at')
+      .select('id', 'email', 'name', 'role', 'createdAt', 'updatedAt')
       .where({ id })
       .first();
 
@@ -95,8 +95,8 @@ export const createUser = async (req: Request, res: Response) => {
       password: hashedPassword,
       name,
       role: role || 'RESEARCHER',
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     res.status(201).json({ 

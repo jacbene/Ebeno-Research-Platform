@@ -29,7 +29,7 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
 
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.PROCESSING,
-      updated_at: Date.now()
+      updatedAt: Date.now()
     });
 
     const audioPath = path.join(__dirname, '../../uploads/tmp', path.basename(transcription.audioUrl || ''));
@@ -62,7 +62,7 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
-      updated_at: Date.now()
+      updatedAt: Date.now()
     });
 
     console.log(`✅ Transcription Deepgram ${transcriptionId} terminée`);
@@ -75,7 +75,7 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.FAILED,
       errorMessage: error.message || 'Erreur inconnue',
-      updated_at: Date.now()
+      updatedAt: Date.now()
     });
   }
 };
@@ -97,8 +97,8 @@ export const uploadAndProcessDeepgram = async (
     audioUrl,
     transcriptText: null,
     errorMessage: null,
-    created_at: Date.now(),
-    updated_at: Date.now()
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   });
 
   processTranscriptionDeepgram(id).catch(err => console.error('Erreur asynchrone:', err));

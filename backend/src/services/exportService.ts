@@ -21,12 +21,12 @@ export const exportProject = async (projectId: string, userId: string): Promise<
   const transcriptions = await db('transcriptions')
     .where({ projectId })
     .select('*')
-    .orderBy('created_at', 'desc');
+    .orderBy('createdAt', 'desc');
 
   const memos = await db('memos')
     .where({ projectId })
     .select('*')
-    .orderBy('created_at', 'desc');
+    .orderBy('createdAt', 'desc');
 
   const files = await db('project_files')
     .where({ projectId })
@@ -45,8 +45,8 @@ export const exportProject = async (projectId: string, userId: string): Promise<
       description: project.description,
       status: project.status,
       visibility: project.visibility,
-      created_at: project.created_at,
-      updated_at: project.updated_at,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
     },
     exported_at: new Date().toISOString(),
     stats: {
@@ -77,7 +77,7 @@ ${new Date().toLocaleDateString()}
   if (transcriptions.length > 0) {
     transcriptions.forEach((t) => {
       const safeTitle = t.title.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const content = `Titre : ${t.title}\nStatut : ${t.status}\nDate : ${new Date(t.created_at).toLocaleDateString()}\n\n---\n\n${t.transcriptText || 'Aucun texte'}`;
+      const content = `Titre : ${t.title}\nStatut : ${t.status}\nDate : ${new Date(t.createdAt).toLocaleDateString()}\n\n---\n\n${t.transcriptText || 'Aucun texte'}`;
       zip.addFile(`${projectFolder}/transcriptions/${safeTitle}.txt`, Buffer.from(content, 'utf-8'));
     });
   }
@@ -86,7 +86,7 @@ ${new Date().toLocaleDateString()}
   if (memos.length > 0) {
     memos.forEach((m) => {
       const safeTitle = m.title.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const content = `Titre : ${m.title}\nDate : ${new Date(m.created_at).toLocaleDateString()}\n\n---\n\n${m.content}`;
+      const content = `Titre : ${m.title}\nDate : ${new Date(m.createdAt).toLocaleDateString()}\n\n---\n\n${m.content}`;
       zip.addFile(`${projectFolder}/memos/${safeTitle}.txt`, Buffer.from(content, 'utf-8'));
     });
   }

@@ -12,14 +12,14 @@ export const saveVersion = async (documentId: string, content: string, userId: s
     document_id: documentId,
     content,
     version_number: versionNumber,
-    user_id: userId,
-    created_at: Date.now()
+    userId: userId,
+    createdAt: Date.now()
   });
 };
 
 export const getVersions = async (documentId: string) => {
   return db('document_versions')
-    .join('users', 'document_versions.user_id', 'users.id')
+    .join('users', 'document_versions.userId', 'users.id')
     .where('document_versions.document_id', documentId)
     .select('document_versions.*', 'users.name as userName')
     .orderBy('document_versions.version_number', 'asc');
@@ -34,7 +34,7 @@ export const restoreVersion = async (documentId: string, versionNumber: number) 
   // Mettre à jour le document
   await db('collaboration_documents')
     .where({ id: documentId })
-    .update({ content: version.content, updated_at: Date.now() });
+    .update({ content: version.content, updatedAt: Date.now() });
 
   return version.content;
 };

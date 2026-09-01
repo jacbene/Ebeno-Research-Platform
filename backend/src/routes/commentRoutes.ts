@@ -26,7 +26,7 @@ router.post('/:transcriptionId', authenticate, async (req, res) => {
 
     const commentId = await addComment(transcriptionId, userId, content.trim());
     const newComment = await db('comments')
-      .join('users', 'comments.user_id', 'users.id')
+      .join('users', 'comments.userId', 'users.id')
       .where('comments.id', commentId)
       .select('comments.*', 'users.name as userName', 'users.email as userEmail')
       .first();

@@ -54,8 +54,8 @@ router.get('/:id/search', authenticate, async (req, res) => {
         this.where('title', 'like', `%${q}%`)
           .orWhere('transcriptText', 'like', `%${q}%`);
       })
-      .select('id', 'title', 'transcriptText', 'type', 'created_at', db.raw("'transcription' as source"))
-      .orderBy('created_at', 'desc');
+      .select('id', 'title', 'transcriptText', 'type', 'createdAt', db.raw("'transcription' as source"))
+      .orderBy('createdAt', 'desc');
 
     // Recherche dans les mémos
     const memos = await db('memos')
@@ -64,8 +64,8 @@ router.get('/:id/search', authenticate, async (req, res) => {
         this.where('title', 'like', `%${q}%`)
           .orWhere('content', 'like', `%${q}%`);
       })
-      .select('id', 'title', 'content', 'created_at', db.raw("'memo' as source"))
-      .orderBy('created_at', 'desc');
+      .select('id', 'title', 'content', 'createdAt', db.raw("'memo' as source"))
+      .orderBy('createdAt', 'desc');
 
     // Recherche dans les fichiers uploadés
     const files = await db('project_files')

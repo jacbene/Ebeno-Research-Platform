@@ -70,8 +70,8 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
         code,
         frequency: freq[code] || 1,
         status: 'pending',
-        created_at: now,
-        updated_at: now,
+        createdAt: now,
+        updatedAt: now,
       });
     }
   }
@@ -89,6 +89,6 @@ export const getSuggestedCodes = async (projectId: string): Promise<any[]> => {
 export const updateCodeStatus = async (codeId: string, status: 'accepted' | 'rejected'): Promise<void> => {
   await db('suggested_codes')
     .where({ id: codeId })
-    .update({ status, updated_at: Date.now() });
+    .update({ status, updatedAt: Date.now() });
 };
 

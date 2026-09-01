@@ -9,8 +9,8 @@ type Code = {
   color?: string;
   projectId: string;
   userId: string;
-  created_at: number;
-  updated_at: number;
+  createdAt: number;
+  updatedAt: number;
 };
 
 type DocumentType = 'transcription' | 'file' | 'memo';
@@ -70,8 +70,8 @@ export const createCode = async (req: Request, res: Response) => {
       color: color || '#4A6CF7',
       projectId,
       userId,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
     await db('codes').insert(newCode);
@@ -102,7 +102,7 @@ export const updateCode = async (req: Request, res: Response) => {
     if (name !== undefined) updates.name = name.trim();
     if (description !== undefined) updates.description = description.trim();
     if (color !== undefined) updates.color = color;
-    updates.updated_at = Date.now();
+    updates.updatedAt = Date.now();
 
     await db('codes')
       .where({ id: codeId })
@@ -199,8 +199,8 @@ export const assignCodeToDocument = async (req: Request, res: Response) => {
       startPosition: startPosition || null,
       endPosition: endPosition || null,
       comment: comment || null,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
     await db('document_codes').insert(association);

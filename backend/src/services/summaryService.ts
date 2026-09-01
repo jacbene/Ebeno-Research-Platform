@@ -97,15 +97,15 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
   if (existing) {
     await db('document_summaries')
       .where({ documentId, type })
-      .update({ summary, updated_at: Date.now() });
+      .update({ summary, updatedAt: Date.now() });
   } else {
     await db('document_summaries').insert({
       id: Date.now().toString(),
       documentId,
       type,
       summary,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   }
 

@@ -91,11 +91,11 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
     if (projectId) query = query.where({ projectId });
     if (type) query = query.where({ type });
     if (status) query = query.where({ status });
-    if (from) query = query.where('created_at', '>=', Number(from));
-    if (to) query = query.where('created_at', '<=', Number(to));
+    if (from) query = query.where('createdAt', '>=', Number(from));
+    if (to) query = query.where('createdAt', '<=', Number(to));
 
     const transcriptions = await query
-      .orderBy('created_at', 'desc')
+      .orderBy('createdAt', 'desc')
       .limit(Number(limit))
       .offset(skip);
 

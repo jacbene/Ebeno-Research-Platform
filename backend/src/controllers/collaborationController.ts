@@ -40,8 +40,8 @@ export const createDocument = async (req: Request, res: Response) => {
       projectId,
       createdBy: userId,
       version: 1,
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     const document = await db('collaboration_documents').where({ id }).first();
@@ -65,7 +65,7 @@ export const getDocuments = async (req: Request, res: Response) => {
 
     const documents = await db('collaboration_documents')
       .where({ projectId })
-      .orderBy('updated_at', 'desc')
+      .orderBy('updatedAt', 'desc')
       .select('*');
 
     return res.status(200).json({ success: true, data: documents });

@@ -56,7 +56,7 @@ export class CollaborationSocketHandler {
               title: dbDoc.title,
               content: dbDoc.content || '',
               version: dbDoc.version || 1,
-              updatedAt: dbDoc.updated_at || Date.now()
+              updatedAt: dbDoc.updatedAt || Date.now()
             };
             this.documents.set(documentId, document);
           } else {
@@ -74,8 +74,8 @@ export class CollaborationSocketHandler {
               title: document.title,
               content: document.content,
               version: document.version,
-              created_at: Date.now(),
-              updated_at: Date.now()
+              createdAt: Date.now(),
+              updatedAt: Date.now()
             });
           }
         }
@@ -135,7 +135,7 @@ export class CollaborationSocketHandler {
             .update({
               content: content,
               version: document.version,
-              updated_at: Date.now()
+              updatedAt: Date.now()
             });
 
           // Diffuser aux autres utilisateurs

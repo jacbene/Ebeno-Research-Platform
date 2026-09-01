@@ -64,8 +64,8 @@ export const uploadText = async (req: Request, res: Response) => {
         errorMessage: null,
         type: 'text',
         fileName: file.originalname,
-        created_at: Date.now(),
-        updated_at: Date.now()
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       });
 
       return res.status(201).json({
@@ -97,7 +97,7 @@ export const getTexts = async (req: Request, res: Response) => {
 
     const texts = await db('transcriptions')
       .where({ userId, type: 'text' })
-      .orderBy('created_at', 'desc')
+      .orderBy('createdAt', 'desc')
       .select('*');
 
     return res.status(200).json({ success: true, data: texts });

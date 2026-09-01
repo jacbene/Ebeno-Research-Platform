@@ -112,7 +112,7 @@ export const getProjects = async (req: Request, res: Response) => {
       .where('project_members.userId', userId);
 
     const [projects, totalResult] = await Promise.all([
-      query.orderBy('projects.updated_at', 'desc')
+      query.orderBy('projects.updatedAt', 'desc')
         .limit(Number(limit))
         .offset(skip),
       countQuery.count('projects.id as count')

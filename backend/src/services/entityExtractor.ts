@@ -100,8 +100,8 @@ export const extractAndStoreEntities = async (
           entityType,
           entityValue: value.trim(),
           occurrenceCount: 1,
-          created_at: now,
-          updated_at: now,
+          createdAt: now,
+          updatedAt: now,
         });
       }
     }

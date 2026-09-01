@@ -39,8 +39,8 @@ router.post('/:projectId/members', authenticate, async (req, res) => {
       projectId,
       userId: userToAdd.id,
       role: role || 'MEMBER',
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     res.status(201).json({ message: 'Membre ajouté avec succès' });

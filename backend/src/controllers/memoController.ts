@@ -40,8 +40,8 @@ export const createMemo = async (req: Request, res: Response) => {
       title,
       content,
       userId,
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     res.status(201).json({ 
@@ -69,7 +69,7 @@ export const updateMemo = async (req: Request, res: Response) => {
       .update({
         title: title || existing.title,
         content: content || existing.content,
-        updated_at: Date.now()
+        updatedAt: Date.now()
       });
 
     const updated = await db('memos').where({ id }).first();
