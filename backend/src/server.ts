@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { db } from './db/knex';
+
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
@@ -23,6 +23,7 @@ import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
 
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
+import { db } from './db/knex';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -97,15 +98,21 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Erreur interne du serveur' });
 });
 
-// Exécuter les migrations au démarrage
-db.migrate.latest()
-  .then(() => console.log('✅ Migrations appliquées'))
-  .catch(err => console.error('❌ Erreur migration:', err));
-
-// Démarrer le serveur HTTP avec Socket.IO
-httpServer.listen(port, () => {
-  console.log(`🚀 Serveur démarré sur le port ${port}`);
-  console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
-});
+// Exécuter les migrations avant de démarrer le serveur
+db.migrate
+  .latest()
+  .then(() => {
+    console.log('✅ Migrations appliquées avec succès');
+    // Démarrer le serveur HTTP avec Socket.IO
+    httpServer.listen(port, () => {
+      console.log(`🚀 Serveur démarré sur le port ${port}`);
+      console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Erreur lors des migrations:', err);
+    process.exit(1);
+  });
 
 export { io };
+export default app;
