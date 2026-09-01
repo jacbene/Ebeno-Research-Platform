@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-
+import { db } from './db/knex';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
@@ -96,6 +96,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   console.error('Erreur:', err.message);
   res.status(500).json({ error: 'Erreur interne du serveur' });
 });
+
+// Exécuter les migrations au démarrage
+db.migrate.latest()
+  .then(() => console.log('✅ Migrations appliquées'))
+  .catch(err => console.error('❌ Erreur migration:', err));
 
 // Démarrer le serveur HTTP avec Socket.IO
 httpServer.listen(port, () => {
