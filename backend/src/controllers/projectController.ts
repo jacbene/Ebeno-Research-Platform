@@ -38,8 +38,8 @@ export const createProject = async (req: Request, res: Response) => {
       userId: userId,
       status: 'ACTIVE',
       visibility: 'PRIVATE',
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     // Ajouter le membre (OWNER)
@@ -48,8 +48,8 @@ export const createProject = async (req: Request, res: Response) => {
       projectId: id,
       userId: userId,
       role: ProjectRole.OWNER,
-      created_at: Date.now(),
-      updated_at: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     });
 
     // Ajouter les tags si présents
@@ -61,14 +61,14 @@ export const createProject = async (req: Request, res: Response) => {
           name: tagName.trim(),
           color: generateRandomColor(),
           category: 'user',
-          created_at: Date.now(),
-          updated_at: Date.now()
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         });
 
         await db('project_tags').insert({
           projectId: id,
           tagId: tagId,
-          created_at: Date.now()
+          createdAt: Date.now()
         });
       }
     }
@@ -207,7 +207,7 @@ export const updateProject = async (req: Request, res: Response) => {
       .update({
         title: title?.trim() || undefined,
         description: description?.trim() || undefined,
-        updated_at: Date.now()
+        updatedAt: Date.now()
       });
 
     const project = await db('projects')
@@ -280,8 +280,8 @@ export const addTag = async (req: Request, res: Response) => {
         name: name.trim(),
         color: color || generateRandomColor(),
         category: 'user',
-        created_at: Date.now(),
-        updated_at: Date.now()
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       });
       tag = await db('tags').where({ id: tagId }).first();
     }
@@ -297,7 +297,7 @@ export const addTag = async (req: Request, res: Response) => {
     await db('project_tags').insert({
       projectId: projectId,
       tagId: tag.id,
-      created_at: Date.now()
+      createdAt: Date.now()
     });
 
     return res.status(201).json({ success: true, data: tag });
