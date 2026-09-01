@@ -1,6 +1,8 @@
+// src/App.tsx
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { api } from './services/api';
 import Dashboard from './pages/Dashboard';
 import ChatPage from './pages/ChatPage';
 import TranscriptionPage from './pages/TranscriptionPage';
@@ -30,21 +32,20 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      // Utilisation de l'instance api (axios) avec la baseURL dynamique
+      const response = await api.post('/auth/login', { email, password });
+      // Axios renvoie directement les données dans response.data
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         onLogin();
       } else {
-        setError(data.message || 'Erreur de connexion');
+        setError(response.data.message || 'Erreur de connexion');
       }
-    } catch (err) {
-      setError('Erreur de connexion au serveur');
+    } catch (err: any) {
+      // Gestion des erreurs (réseau, 401, etc.)
+      const message = err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -86,6 +87,11 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
     </div>
   );
 };
+
+// ============ COMPOSANT DASHBOARD ============
+// (On garde l'ancien composant Dashboard, il n'utilise pas api pour l'instant,
+// mais on pourrait l'adapter plus tard. Pour l'instant, il est fonctionnel tel quel.)
+// Le code du Dashboard est inchangé par rapport à la version précédente.
 
 // ============ APP PRINCIPALE ============
 const App: React.FC = () => {
