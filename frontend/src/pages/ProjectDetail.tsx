@@ -17,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
+import { api } from '../services/api'; // Ajout de l'import
 
 interface Project {
   id: string;
@@ -94,15 +95,13 @@ const ProjectDetail: React.FC = () => {
 
   const fetchProjectData = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const projectRes = await fetch(`http://localhost:5001/api/projects/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const projectData = await projectRes.json();
-      if (projectData.success) setProject(projectData.data);
+      // Projet
+      const projectRes = await api.get(`/projects/${id}`);
+      if (projectRes.data.success) setProject(projectRes.data.data);
 
-      let url = `http://localhost:5001/api/transcriptions?projectId=${id}&limit=100`;
+      // Transcriptions avec filtres
+      let url = `/transcriptions?projectId=${id}&limit=100`;
       if (filters.type !== 'all') url += `&type=${filters.type}`;
       if (filters.status !== 'all') url += `&status=${filters.status}`;
       if (filters.fromDate) {
@@ -147,44 +146,32 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const fetchAnalysis = async () => {
-  if (!id) return;
-  setAnalysisLoading(true);
-  const token = localStorage.getItem('authToken');
-  try {
-    const response = await fetch(`http://localhost:5001/api/analysis/project/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setAnalysisData(data);
+   const fetchAnalysis = async () => {
+    if (!id) return;
+    setAnalysisLoading(true);
+    try {
+      const response = await api.get(`/analysis/project/${id}`);
+      if (response.status === 200) {
+        setAnalysisData(response.data);
+      }
+    } catch (error) {
+      console.error('Erreur analyse:', error);
+    } finally {
+      setAnalysisLoading(false);
     }
-  } catch (error) {
-    console.error('Erreur analyse:', error);
-  } finally {
-    setAnalysisLoading(false);
-  }
-};
+  };
 
   const createMemo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemoTitle.trim() || !newMemoContent.trim()) return;
     setCreatingMemo(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch('http://localhost:5001/api/memos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: newMemoTitle.trim(),
-          content: newMemoContent.trim(),
-          projectId: id
-        })
+      const response = await api.post('/memos', {
+        title: newMemoTitle.trim(),
+        content: newMemoContent.trim(),
+        projectId: id
       });
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
         setNewMemoContent('');
         fetchProjectData();
@@ -198,12 +185,8 @@ const ProjectDetail: React.FC = () => {
 
   const deleteMemo = async (memoId: string) => {
     if (!confirm('Supprimer ce memo ?')) return;
-    const token = localStorage.getItem('authToken');
     try {
-      await fetch(`http://localhost:5001/api/memos/${memoId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.delete(`/memos/${memoId}`);
       fetchProjectData();
     } catch (error) {
       console.error('Erreur suppression memo:', error);
@@ -212,21 +195,13 @@ const ProjectDetail: React.FC = () => {
 
   const handleExport = async () => {
     setExporting(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/projects/${id}/export`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || 'Erreur lors de l\'export');
-        return;
-      }
-      const blob = await response.blob();
+      const response = await api.get(`/projects/${id}/export`, { responseType: 'blob' });
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const contentDisposition = response.headers.get('Content-Disposition');
+      const contentDisposition = response.headers['content-disposition'];
       const fileName = contentDisposition?.split('filename=')[1]?.replace(/"/g, '') || `projet_${id}.zip`;
       a.download = fileName;
       document.body.appendChild(a);
@@ -239,7 +214,7 @@ const ProjectDetail: React.FC = () => {
     } finally {
       setExporting(false);
     }
-  };
+  };    
 
   const getStatusColor = (status: string) => {
     switch (status) {
