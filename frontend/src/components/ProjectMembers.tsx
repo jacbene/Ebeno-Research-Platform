@@ -1,4 +1,9 @@
+// frontend/src/components/ProjectMembers.tsx
 import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
+import { theme } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { Button } from './ui/Button';
 
 interface Member {
   id: string;
@@ -12,29 +17,31 @@ interface ProjectMembersProps {
 }
 
 export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => {
+  const { colors } = useTheme();
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('MEMBER');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fetching, setFetching] = useState(true);
 
   const fetchMembers = async () => {
-    const token = localStorage.getItem('authToken');
+    setFetching(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/projects/${projectId}/members`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setMembers(data);
-      }
+      const response = await api.get(`/projects/${projectId}/members`);
+      setMembers(response.data);
     } catch (error) {
       console.error('Erreur chargement membres:', error);
+      setError('Impossible de charger les membres');
+    } finally {
+      setFetching(false);
     }
   };
 
   useEffect(() => {
-    if (projectId) fetchMembers();
+    if (projectId) {
+      fetchMembers();
+    }
   }, [projectId]);
 
   const addMember = async (e: React.FormEvent) => {
@@ -42,26 +49,13 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
     if (!email.trim()) return;
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/projects/${projectId}/members`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email: email.trim(), role })
-      });
-      if (response.ok) {
-        setEmail('');
-        setRole('MEMBER');
-        fetchMembers();
-      } else {
-        const err = await response.json();
-        setError(err.error || 'Erreur lors de l\'ajout');
-      }
-    } catch (error) {
-      setError('Erreur de connexion');
+      await api.post(`/projects/${projectId}/members`, { email: email.trim(), role });
+      setEmail('');
+      setRole('MEMBER');
+      await fetchMembers();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur lors de l\'ajout');
     } finally {
       setLoading(false);
     }
@@ -69,53 +63,57 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
 
   const removeMember = async (memberId: string) => {
     if (!confirm('Retirer ce membre du projet ?')) return;
-    const token = localStorage.getItem('authToken');
     try {
-      await fetch(`http://localhost:5001/api/projects/${projectId}/members/${memberId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      fetchMembers();
+      await api.delete(`/projects/${projectId}/members/${memberId}`);
+      await fetchMembers();
     } catch (error) {
       console.error('Erreur suppression:', error);
+      setError('Erreur lors de la suppression');
     }
   };
 
+  const isOwner = members.some(m => m.role === 'OWNER' && m.id === 'currentUserId'); // À adapter avec le vrai userId
+
   return (
-    <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+    <div style={{ marginTop: theme.spacing.md, padding: theme.spacing.md, backgroundColor: colors.gray[100], borderRadius: theme.borderRadius.md }}>
       <h4 style={{ margin: '0 0 12px 0' }}>👥 Membres du projet</h4>
 
       {error && (
-        <div style={{ color: '#dc3545', fontSize: '14px', marginBottom: '8px' }}>
+        <div style={{ color: colors.danger, fontSize: theme.typography.fontSize.sm, marginBottom: theme.spacing.sm }}>
           ❌ {error}
         </div>
       )}
 
-      <form onSubmit={addMember} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+      <form onSubmit={addMember} style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', marginBottom: theme.spacing.md }}>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email du membre"
           required
+          disabled={loading}
           style={{
             flex: 1,
             minWidth: '180px',
-            padding: '8px 12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '14px'
+            padding: theme.spacing.sm,
+            border: `1px solid ${colors.gray[300]}`,
+            borderRadius: theme.borderRadius.sm,
+            fontSize: theme.typography.fontSize.sm,
+            backgroundColor: colors.white,
+            color: colors.dark,
           }}
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
+          disabled={loading}
           style={{
-            padding: '8px 12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '14px',
-            backgroundColor: 'white'
+            padding: theme.spacing.sm,
+            border: `1px solid ${colors.gray[300]}`,
+            borderRadius: theme.borderRadius.sm,
+            fontSize: theme.typography.fontSize.sm,
+            backgroundColor: colors.white,
+            color: colors.dark,
           }}
         >
           <option value="VIEWER">👁️ Viewer</option>
@@ -123,25 +121,15 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
           <option value="EDITOR">✏️ Editor</option>
           <option value="OWNER">👑 Owner</option>
         </select>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '14px'
-          }}
-        >
+        <Button type="submit" disabled={loading} size="sm" variant="primary">
           {loading ? '...' : '➕ Ajouter'}
-        </button>
+        </Button>
       </form>
 
-      {members.length === 0 ? (
-        <p style={{ color: '#999', fontSize: '14px' }}>Aucun membre pour l'instant.</p>
+      {fetching ? (
+        <p style={{ color: colors.gray[500], fontSize: theme.typography.fontSize.sm }}>Chargement...</p>
+      ) : members.length === 0 ? (
+        <p style={{ color: colors.gray[500], fontSize: theme.typography.fontSize.sm }}>Aucun membre pour l'instant.</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {members.map((m) => {
@@ -153,26 +141,16 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '6px 0',
-                  borderBottom: '1px solid #eee',
-                  fontSize: '14px'
+                  padding: '4px 0',
+                  borderBottom: `1px solid ${colors.gray[200]}`,
+                  fontSize: theme.typography.fontSize.sm,
                 }}
               >
                 <span>
                   <strong>{m.name || m.email}</strong>
-                  <span style={{ color: '#666', marginLeft: '8px' }}>
-                    ({m.role})
-                  </span>
+                  <span style={{ color: colors.gray[600], marginLeft: theme.spacing.sm }}>({m.role})</span>
                   {isOwner && (
-                    <span style={{
-                      marginLeft: '8px',
-                      backgroundColor: '#ffc107',
-                      color: '#333',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: 'bold'
-                    }}>
+                    <span style={{ marginLeft: theme.spacing.sm, backgroundColor: colors.warning, color: colors.dark, padding: '0 8px', borderRadius: theme.borderRadius.sm, fontSize: '11px', fontWeight: 'bold' }}>
                       👑 Propriétaire
                     </span>
                   )}
@@ -181,19 +159,17 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
                   <button
                     onClick={() => removeMember(m.id)}
                     style={{
-                      color: '#dc3545',
+                      color: colors.danger,
                       border: 'none',
                       background: 'none',
                       cursor: 'pointer',
-                      fontSize: '14px'
+                      fontSize: theme.typography.fontSize.sm,
                     }}
                   >
                     ✕
                   </button>
                 ) : (
-                  <span style={{ color: '#999', fontSize: '12px' }}>
-                    ⛔ Non supprimable
-                  </span>
+                  <span style={{ color: colors.gray[500], fontSize: '12px' }}>⛔ Non supprimable</span>
                 )}
               </li>
             );
