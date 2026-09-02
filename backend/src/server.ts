@@ -104,7 +104,7 @@ db.migrate
   .then(() => {
     console.log('✅ Migrations appliquées avec succès');
     // Démarrer le serveur HTTP avec Socket.IO
-    httpServer.listen(port, () => {
+    httpServer.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Serveur démarré sur le port ${port}`);
       console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
