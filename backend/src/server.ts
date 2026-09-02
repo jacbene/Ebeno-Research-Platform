@@ -28,7 +28,8 @@ import { db } from './db/knex';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = Number(process.env.PORT) || 5001;
+
 const httpServer = createServer(app);
 
 // Configurer Socket.IO
