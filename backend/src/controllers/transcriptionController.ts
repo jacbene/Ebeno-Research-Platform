@@ -76,7 +76,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
     }
   });
 };
-  
+
 export const getUserTranscriptions = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -87,20 +87,25 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
     const { projectId, type, status, from, to, page = 1, limit = 10 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    let query = db('transcriptions').where({ userId });
-    if (projectId) query = query.where({ projectId });
-    if (type) query = query.where({ type });
-    if (status) query = query.where({ status });
-    if (from) query = query.where('createdAt', '>=', Number(from));
-    if (to) query = query.where('createdAt', '<=', Number(to));
+    // Construire la requête de base (sans order/limit/offset)
+    let baseQuery = db('transcriptions')
+      .where({ userId });
 
-    const transcriptions = await query
+    if (projectId) baseQuery = baseQuery.where({ projectId });
+    if (type) baseQuery = baseQuery.where({ type });
+    if (status) baseQuery = baseQuery.where({ status });
+    if (from) baseQuery = baseQuery.where('createdAt', '>=', Number(from));
+    if (to) baseQuery = baseQuery.where('createdAt', '<=', Number(to));
+
+    // Compter le total (sans order/limit/offset)
+    const totalResult = await baseQuery.clone().count('id as count');
+    const total = Number(totalResult[0]?.count || 0);
+
+    // Récupérer les données paginées
+    const transcriptions = await baseQuery
       .orderBy('createdAt', 'desc')
       .limit(Number(limit))
       .offset(skip);
-
-    const totalResult = await query.clone().count('id as count');
-    const total = Number(totalResult[0]?.count || 0);
 
     return res.status(200).json({
       success: true,
@@ -122,7 +127,7 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
       error: error.message
     });
   }
-};            
+};              
 
 // Récupérer une transcription par ID
 export const getTranscription = async (req: Request, res: Response) => {
