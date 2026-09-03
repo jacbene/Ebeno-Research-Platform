@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../services/api';
 
 const TextUploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -21,21 +22,17 @@ const TextUploadPage: React.FC = () => {
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5001/api/texts/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+      const response = await api.post('/texts/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const data = await response.json();
-      if (response.ok) {
-        setMessage(`✅ Texte importé avec succès ! ID: ${data.data.transcriptionId}`);
+      if (response.data.success) {
+        setMessage(`✅ Texte importé avec succès ! ID: ${response.data.data.transcriptionId}`);
         setFile(null);
       } else {
-        setMessage(`❌ Erreur: ${data.message}`);
+        setMessage(`❌ Erreur: ${response.data.message}`);
       }
-    } catch (error) {
-      setMessage('❌ Erreur de connexion au serveur');
+    } catch (error: any) {
+      setMessage(error.response?.data?.message || '❌ Erreur de connexion au serveur');
     } finally {
       setUploading(false);
     }

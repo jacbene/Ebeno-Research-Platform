@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { api } from '../services/api';
 import './TranscriptionUploader.css';
 
 interface TranscriptionUploaderProps {
@@ -70,54 +71,37 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
       formData.append('projectId', projectId);
     }
 
-    const token = localStorage.getItem('authToken');
-
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', 'http://localhost:5001/api/transcriptions/upload', true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      const response = await api.post('/transcriptions/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percent);
+          }
+        },
+      });
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        }
-      };
-
-      xhr.onload = () => {
-        const data = JSON.parse(xhr.responseText);
-        if (xhr.status === 201) {
-          const transcriptionId = data.data?.transcriptionId;
-          setTranscriptionId(transcriptionId);
-          trackProgress(transcriptionId);
-        } else {
-          setError(data.message || 'Erreur lors de l\'upload');
-          setUploading(false);
-        }
-      };
-
-      xhr.onerror = () => {
-        setError('Erreur de connexion au serveur');
+      if (response.data.success) {
+        const transcriptionId = response.data.data?.transcriptionId;
+        setTranscriptionId(transcriptionId);
+        trackProgress(transcriptionId);
+      } else {
+        setError(response.data.message || 'Erreur lors de l\'upload');
         setUploading(false);
-      };
-
-      xhr.send(formData);
-    } catch (err) {
-      setError('Erreur de connexion au serveur');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur de connexion au serveur');
       setUploading(false);
     }
   };
 
   const trackProgress = (id: string) => {
-    const token = localStorage.getItem('authToken');
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:5001/api/transcriptions/${id}/progress`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await response.json();
-        if (data.success) {
-          const { status, progress } = data.data;
+        const response = await api.get(`/transcriptions/${id}/progress`);
+        if (response.data.success) {
+          const { status, progress } = response.data.data;
           setProgress(progress || 0);
 
           if (status === 'COMPLETED' || status === 'FAILED') {
@@ -173,6 +157,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   };
 
   return (
+    // ... JSX inchangé
     <div className="transcription-uploader">
       <div
         className="upload-area"

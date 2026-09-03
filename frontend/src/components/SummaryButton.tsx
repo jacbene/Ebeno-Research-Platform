@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from './ui/Button';
+import { api } from '../services/api';
 
 interface SummaryButtonProps {
   documentId: string;
@@ -22,19 +23,14 @@ export const SummaryButton: React.FC<SummaryButtonProps> = ({
 
   const generateSummary = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/summaries/${type}/${documentId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setSummary(data.summary);
-        onSummaryGenerated(data.summary);
+      const response = await api.post(`/summaries/${type}/${documentId}`);
+      if (response.data.success) {
+        setSummary(response.data.summary);
+        onSummaryGenerated(response.data.summary);
         setExpanded(true);
       } else {
-        alert(data.error || 'Erreur lors de la génération du résumé');
+        alert(response.data.error || 'Erreur lors de la génération du résumé');
       }
     } catch (error) {
       console.error('Erreur:', error);

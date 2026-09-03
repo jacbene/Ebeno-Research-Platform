@@ -1,7 +1,7 @@
-// frontend/src/components/FileUpload.tsx
 import React, { useState, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
+import { api } from '../services/api';
 
 interface FileUploadProps {
   projectId: string;
@@ -29,47 +29,30 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     setUploading(true);
     setError('');
     setProgress(0);
-    const token = localStorage.getItem('authToken');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `http://localhost:5001/api/projects/${projectId}/files`, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 201) {
-          setFile(null);
-          setProgress(0);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          onUploadSuccess();
-        } else {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            setError(data.error || 'Erreur lors de l\'upload');
-          } catch {
-            setError('Erreur lors de l\'upload');
+      const response = await api.post(`/projects/${projectId}/files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percent);
           }
-        }
-        setUploading(false);
-      };
-
-      xhr.onerror = () => {
-        setError('Erreur de connexion au serveur');
-        setUploading(false);
-      };
-
-      xhr.send(formData);
-    } catch (err) {
-      setError('Erreur de connexion au serveur');
+        },
+      });
+      if (response.status === 201) {
+        setFile(null);
+        setProgress(0);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        onUploadSuccess();
+      } else {
+        setError(response.data.error || 'Erreur lors de l\'upload');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erreur de connexion au serveur');
+    } finally {
       setUploading(false);
     }
   };

@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import { api } from '../services/api';
 
 interface SuggestedCode {
   id: string;
@@ -23,14 +24,10 @@ export const SuggestedCodes: React.FC<SuggestedCodesProps> = ({ projectId }) => 
 
   const fetchCodes = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/codes/project/${projectId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCodes(data.data || []);
+      const response = await api.get(`/codes/project/${projectId}`);
+      if (response.data.success) {
+        setCodes(response.data.data || []);
       }
     } catch (error) {
       console.error('Erreur chargement codes:', error);
@@ -41,14 +38,9 @@ export const SuggestedCodes: React.FC<SuggestedCodesProps> = ({ projectId }) => 
 
   const generateSuggestions = async () => {
     setGenerating(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/codes/suggest/${projectId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
+      const response = await api.post(`/codes/suggest/${projectId}`);
+      if (response.data.success) {
         await fetchCodes();
       }
     } catch (error) {
@@ -59,16 +51,8 @@ export const SuggestedCodes: React.FC<SuggestedCodesProps> = ({ projectId }) => 
   };
 
   const updateStatus = async (codeId: string, status: 'accepted' | 'rejected') => {
-    const token = localStorage.getItem('authToken');
     try {
-      await fetch(`http://localhost:5001/api/codes/${codeId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
+      await api.put(`/codes/${codeId}`, { status });
       await fetchCodes();
     } catch (error) {
       console.error('Erreur mise à jour:', error);

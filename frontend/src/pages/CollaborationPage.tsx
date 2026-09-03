@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
+import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 
 interface Document {
@@ -34,20 +35,17 @@ const CollaborationPage: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ebeno-backend.onrender.com';
+
   // Charger les documents du projet
   useEffect(() => {
     if (!projectId) return;
     const fetchDocuments = async () => {
       setLoading(true);
-      const token = localStorage.getItem('authToken');
       try {
-        const response = await fetch(`http://localhost:5001/api/collaboration/project/${projectId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        console.log('📦 Documents récupérés:', data);
-        if (data.success) {
-          setDocuments(data.data || []);
+        const response = await api.get(`/collaboration/project/${projectId}`);
+        if (response.data.success) {
+          setDocuments(response.data.data || []);
         }
       } catch (error) {
         console.error('❌ Erreur chargement documents:', error);
@@ -62,7 +60,7 @@ const CollaborationPage: React.FC = () => {
   useEffect(() => {
     if (!selectedDoc || !user.id) return;
 
-    const newSocket = io('http://localhost:5001');
+    const newSocket = io(API_BASE_URL);
     setSocket(newSocket);
     setIsConnected(true);
 
@@ -120,26 +118,16 @@ const CollaborationPage: React.FC = () => {
       alert('Veuillez sélectionner un projet');
       return;
     }
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch('http://localhost:5001/api/collaboration', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: `Document ${documents.length + 1}`,
-          projectId,
-          content: 'Contenu initial...'
-        })
+      const response = await api.post('/collaboration', {
+        title: `Document ${documents.length + 1}`,
+        projectId,
+        content: 'Contenu initial...'
       });
-      const data = await response.json();
-      console.log('📦 Document créé:', data);
-      if (data.success) {
-        setDocuments([...documents, data.data]);
-        setSelectedDoc(data.data);
-        setContent(data.data.content || '');
+      if (response.data.success) {
+        setDocuments([...documents, response.data.data]);
+        setSelectedDoc(response.data.data);
+        setContent(response.data.data.content || '');
       }
     } catch (error) {
       console.error('❌ Erreur création document:', error);

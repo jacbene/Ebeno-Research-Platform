@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const TranscriptionPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -6,25 +7,22 @@ const TranscriptionPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [transcriptions, setTranscriptions] = useState([]);
 
+  const fetchTranscriptions = async () => {
+    try {
+      const response = await api.get('/transcriptions');
+      if (response.data.success) {
+        setTranscriptions(response.data.data.transcriptions || []);
+      }
+    } catch (error) {
+      console.error('Erreur fetch transcriptions:', error);
+    }
+  };
 
-// Fonction pour charger les transcriptions
-const fetchTranscriptions = async () => {
-  const token = localStorage.getItem('authToken');
-  const response = await fetch('http://localhost:5001/api/transcriptions', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const data = await response.json();
-  if (data.success) {
-    setTranscriptions(data.data.transcriptions || []);
-  }
-};
+  useEffect(() => {
+    fetchTranscriptions();
+  }, []);
 
-// Appeler fetchTranscriptions au chargement de la page
-useEffect(() => {
-  fetchTranscriptions();
-}, []);  
-
-const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setMessage('');
@@ -40,26 +38,20 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5001/api/transcriptions/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+      const response = await api.post('/transcriptions/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const data = await response.json();
       
-      // Afficher la réponse complète pour déboguer
-      console.log('Réponse du backend:', data);
-
-      if (response.ok) {
-        const transcriptionId = data.data?.transcriptionId || data.transcriptionId || 'ID inconnu';
+      if (response.data.success) {
+        const transcriptionId = response.data.data?.transcriptionId || 'ID inconnu';
         setMessage(`✅ Transcription réussie ! ID: ${transcriptionId}`);
+        fetchTranscriptions();
       } else {
-        setMessage(`❌ Erreur: ${data.message || data.error || 'Erreur inconnue'}`);
+        setMessage(`❌ Erreur: ${response.data.message || 'Erreur inconnue'}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur fetch:', error);
-      setMessage('❌ Erreur de connexion au serveur');
+      setMessage(error.response?.data?.message || '❌ Erreur de connexion au serveur');
     } finally {
       setUploading(false);
     }

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ebeno-backend.onrender.com';
+
 interface FilePreviewModalProps {
   file: {
     id: string;
@@ -19,10 +21,9 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fileUrl = `http://localhost:5001/${file.filePath}`;
+  const fileUrl = `${API_BASE_URL}/${file.filePath}`;
   const fileExtension = file.fileName.split('.').pop()?.toLowerCase() || '';
 
-  // Pour les fichiers texte, on les charge via fetch
   useEffect(() => {
     const textExtensions = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'ts'];
     if (textExtensions.includes(fileExtension)) {
@@ -53,7 +54,6 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClos
   const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExtension);
   const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension);
 
-  // Fermer avec Echap
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -186,7 +186,6 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClos
           )}
         </div>
 
-        {/* Footer avec infos */}
         <div style={{ marginTop: theme.spacing.sm, fontSize: '12px', color: colors.gray[500], textAlign: 'right' }}>
           Taille : {(file.fileSize / 1024).toFixed(1)} KB • Type : {file.mimeType}
         </div>

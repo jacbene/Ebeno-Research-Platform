@@ -1,6 +1,6 @@
-// frontend/src/components/SearchBar.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { api } from '../services/api';
 
 interface SearchResult {
   id: string;
@@ -36,14 +36,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({ projectId, onResults, plac
   const performSearch = async () => {
     if (query.length < 2) return;
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/projects/${projectId}/search?q=${encodeURIComponent(query)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        onResults(data.data);
+      const response = await api.get(`/projects/${projectId}/search?q=${encodeURIComponent(query)}`);
+      if (response.data.success) {
+        onResults(response.data.data);
       } else {
         onResults([]);
       }
@@ -52,35 +48,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ projectId, onResults, plac
       onResults([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getIcon = (result: SearchResult) => {
-    if (result.source === 'transcription') {
-      return result.type === 'audio' ? '🎙️' : '📄';
-    }
-    if (result.source === 'memo') return '📝';
-    if (result.source === 'file') return '📎';
-    return '📄';
-  };
-
-  const getContentPreview = (result: SearchResult) => {
-    const text = result.transcriptText || result.content || result.fileName || '';
-    const index = text.toLowerCase().indexOf(query.toLowerCase());
-    if (index !== -1) {
-      const start = Math.max(0, index - 40);
-      const end = Math.min(text.length, index + query.length + 40);
-      return '...' + text.substring(start, end) + '...';
-    }
-    return text.substring(0, 80) + '...';
-  };
-
-  const getSourceLabel = (source: string) => {
-    switch (source) {
-      case 'transcription': return 'Transcription';
-      case 'memo': return 'Memo';
-      case 'file': return 'Fichier';
-      default: return '';
     }
   };
 

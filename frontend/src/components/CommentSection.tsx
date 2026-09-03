@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 interface Comment {
   id: string;
@@ -20,14 +21,10 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ transcriptionId 
 
   const fetchComments = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/comments/${transcriptionId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data);
+      const response = await api.get(`/comments/${transcriptionId}`);
+      if (response.status === 200) {
+        setComments(response.data);
       }
     } catch (error) {
       console.error('Erreur chargement commentaires:', error);
@@ -44,19 +41,10 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ transcriptionId 
     e.preventDefault();
     if (!newComment.trim()) return;
     setSubmitting(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/comments/${transcriptionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ content: newComment.trim() })
-      });
-      if (response.ok) {
-        const comment = await response.json();
-        setComments([...comments, comment]);
+      const response = await api.post(`/comments/${transcriptionId}`, { content: newComment.trim() });
+      if (response.status === 201) {
+        setComments([...comments, response.data]);
         setNewComment('');
       }
     } catch (error) {
@@ -68,15 +56,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ transcriptionId 
 
   const handleDelete = async (commentId: string) => {
     if (!confirm('Supprimer ce commentaire ?')) return;
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        setComments(comments.filter(c => c.id !== commentId));
-      }
+      await api.delete(`/comments/${commentId}`);
+      setComments(comments.filter(c => c.id !== commentId));
     } catch (error) {
       console.error('Erreur suppression:', error);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 interface FileItem {
   id: string;
@@ -31,6 +32,8 @@ const formatFileSize = (bytes: number) => {
   return (bytes / 1048576).toFixed(1) + ' MB';
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ebeno-backend.onrender.com';
+
 export const FileList: React.FC<FileListProps> = ({ projectId, onRefresh }) => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [grouped, setGrouped] = useState<Record<string, FileItem[]>>({});
@@ -42,15 +45,11 @@ export const FileList: React.FC<FileListProps> = ({ projectId, onRefresh }) => {
 
   const fetchFiles = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/projects/${projectId}/files`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setFiles(data.files || []);
-        setGrouped(data.grouped || {});
+      const response = await api.get(`/projects/${projectId}/files`);
+      if (response.status === 200) {
+        setFiles(response.data.files || []);
+        setGrouped(response.data.grouped || {});
       }
     } catch (error) {
       console.error('Erreur chargement fichiers:', error);
@@ -61,12 +60,8 @@ export const FileList: React.FC<FileListProps> = ({ projectId, onRefresh }) => {
 
   const deleteFile = async (fileId: string) => {
     if (!confirm('Supprimer ce fichier ?')) return;
-    const token = localStorage.getItem('authToken');
     try {
-      await fetch(`http://localhost:5001/api/projects/${projectId}/files/${fileId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.delete(`/projects/${projectId}/files/${fileId}`);
       fetchFiles();
       onRefresh();
     } catch (error) {
@@ -107,7 +102,7 @@ export const FileList: React.FC<FileListProps> = ({ projectId, onRefresh }) => {
                 </span>
               </div>
               <div>
-                <a href={`http://localhost:5001/${file.filePath}`} download style={{ marginRight: '8px', textDecoration: 'none', color: '#007bff' }}>⬇️</a>
+                <a href={`${API_BASE_URL}/${file.filePath}`} download style={{ marginRight: '8px', textDecoration: 'none', color: '#007bff' }}>⬇️</a>
                 <button onClick={() => deleteFile(file.id)} style={{ border: 'none', background: 'none', color: '#dc3545', cursor: 'pointer' }}>✕</button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { WordCloudComponent } from '../components/WordCloud';
-import { CommentSection } from '../components/CommentSection';
+import { api } from '../services/api';
 
 interface Transcription {
   id: string;
@@ -37,19 +37,14 @@ const TranscriptionList: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
 
   const fetchTranscriptions = async () => {
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch('http://localhost:5001/api/transcriptions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-
+      const response = await api.get('/transcriptions');
       let items: Transcription[] = [];
-      if (data.success && data.data) {
-        if (Array.isArray(data.data)) {
-          items = data.data;
-        } else if (data.data.transcriptions) {
-          items = data.data.transcriptions;
+      if (response.data.success && response.data.data) {
+        if (Array.isArray(response.data.data)) {
+          items = response.data.data;
+        } else if (response.data.data.transcriptions) {
+          items = response.data.data.transcriptions;
         }
       }
       items = items.map(item => ({
@@ -66,14 +61,11 @@ const TranscriptionList: React.FC = () => {
 
   const fetchAnalysis = async (id: string) => {
     setAnalysisLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/analysis/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      setAnalysis(data);
+      const response = await api.get(`/analysis/${id}`);
+      if (response.status === 200) {
+        setAnalysis(response.data);
+      }
     } catch (error) {
       console.error('❌ Erreur analyse:', error);
       setAnalysis(null);
@@ -274,9 +266,6 @@ const TranscriptionList: React.FC = () => {
                         <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#333' }}>
                           ☁️ Analyse qualitative
                         </h4>
-
-		   {/* Commentaires */}
-   			 <CommentSection transcriptionId={t.id} />
 
                         {analysisLoading ? (
                           <p style={{ fontSize: '14px', color: '#666' }}>Chargement de l'analyse...</p>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Button } from './ui/Button';
+import { api } from '../services/api';
 
 interface EntityListProps {
   projectId: string;
@@ -35,14 +36,10 @@ export const EntityList: React.FC<EntityListProps> = ({ projectId }) => {
 
   const fetchEntities = async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`http://localhost:5001/api/entities/project/${projectId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setEntities(data.entities);
+      const response = await api.get(`/entities/project/${projectId}`);
+      if (response.data.success) {
+        setEntities(response.data.entities);
       }
     } catch (error) {
       console.error('Erreur chargement entités:', error);
@@ -53,12 +50,8 @@ export const EntityList: React.FC<EntityListProps> = ({ projectId }) => {
 
   const extractAllEntities = async () => {
     setExtracting(true);
-    const token = localStorage.getItem('authToken');
     try {
-      // On extrait les entités de tous les documents du projet
-      // Pour simplifier, on appelle l'API par document, mais on pourrait aussi avoir une route batch
-      // Ici, on va simplement recharger les entités après extraction
-      // L'extraction est déjà faite dans getProjectEntities via le service
+      await api.post(`/entities/extract-project/${projectId}`);
       await fetchEntities();
     } catch (error) {
       console.error('Erreur extraction:', error);

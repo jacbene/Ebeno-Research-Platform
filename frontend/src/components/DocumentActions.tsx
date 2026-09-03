@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { WordCloudComponent } from './WordCloud';
 import html2pdf from 'html2pdf.js';
+import { api } from '../services/api';
 
 interface Document {
   id: string;
@@ -41,7 +42,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     setServiceType(service);
     setAnalysisData(null);
 
-    const token = localStorage.getItem('authToken');
     const docId = document.id;
     const docType = document.type === 'memo' ? 'memo' : (document.type === 'file' ? 'file' : 'transcription');
 
@@ -51,23 +51,23 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
 
       switch (service) {
         case 'transcribe':
-          url = `http://localhost:5001/api/transcriptions/upload`;
+          url = '/transcriptions/upload';
           method = 'POST';
           break;
         case 'summarize':
-          url = `http://localhost:5001/api/summaries/${docType}/${docId}`;
+          url = `/summaries/${docType}/${docId}`;
           method = 'POST';
           break;
         case 'entities':
-          url = `http://localhost:5001/api/entities/extract/${docType}/${docId}`;
+          url = `/entities/extract/${docType}/${docId}`;
           method = 'POST';
           break;
         case 'codes':
-          url = `http://localhost:5001/api/codes/suggest/${projectId}`;
+          url = `/codes/suggest/${projectId}`;
           method = 'POST';
           break;
         case 'analyze':
-          url = `http://localhost:5001/api/analysis/document/${docType}/${docId}`;
+          url = `/analysis/document/${docType}/${docId}`;
           method = 'GET';
           break;
         default:
@@ -76,24 +76,16 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           return;
       }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
+      const response = await api({ method, url });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         let formattedResult = '';
         switch (service) {
           case 'summarize':
-            formattedResult = data.summary || data.data?.summary || data.data?.content || 'Aucun résumé disponible.';
+            formattedResult = response.data.summary || response.data.data?.summary || response.data.data?.content || 'Aucun résumé disponible.';
             break;
           case 'entities':
-            const entities = data.entities || data.data || {};
+            const entities = response.data.entities || response.data.data || {};
             const entries = Object.entries(entities)
               .filter(([key, value]) => Array.isArray(value) && value.length > 0);
             if (entries.length === 0) {
@@ -105,25 +97,25 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
             }
             break;
           case 'codes':
-            const suggestions = data.suggestions || data.data || [];
+            const suggestions = response.data.suggestions || response.data.data || [];
             formattedResult = suggestions.length > 0
               ? `Codes suggérés :\n${suggestions.map((c: string) => `  - ${c}`).join('\n')}`
               : 'Aucun code suggéré.';
             break;
           case 'analyze':
-            const analysis = data;
+            const analysis = response.data;
             setAnalysisData(analysis);
             formattedResult = `📊 Total mots : ${analysis.totalWords}\n🔤 Mots uniques : ${analysis.uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${analysis.topKeywords.map((k: any) => `  - ${k.word} (${k.count})`).join('\n')}`;
             break;
           case 'transcribe':
-            formattedResult = data.message || 'Transcription en cours...';
+            formattedResult = response.data.message || 'Transcription en cours...';
             break;
           default:
-            formattedResult = data.message || 'Service exécuté avec succès';
+            formattedResult = response.data.message || 'Service exécuté avec succès';
         }
         setResult(formattedResult);
       } else {
-        setError(data.error || data.message || 'Erreur lors du service');
+        setError(response.data.error || response.data.message || 'Erreur lors du service');
       }
     } catch (err: any) {
       console.error('❌ Erreur service:', err);
