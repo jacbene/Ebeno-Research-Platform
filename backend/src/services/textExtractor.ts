@@ -1,13 +1,20 @@
-// backend/src/services/textExtractor.ts
 import fs from 'fs';
 import path from 'path';
 import PDFParser from 'pdf2json';
 import mammoth from 'mammoth';
 
+// Fonction de décodage sécurisée
+const safeDecode = (str: string): string => {
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    return str;
+  }
+};
+
 export const extractText = async (filePath: string, mimeType?: string): Promise<string> => {
   const ext = path.extname(filePath).toLowerCase();
 
-  // Formats texte simples
   if (ext === '.txt' || ext === '.md' || ext === '.csv' || ext === '.json' || ext === '.xml' || ext === '.html' || ext === '.css' || ext === '.js' || ext === '.ts') {
     try {
       return fs.readFileSync(filePath, 'utf8');
@@ -16,7 +23,6 @@ export const extractText = async (filePath: string, mimeType?: string): Promise<
     }
   }
 
-  // PDF
   if (ext === '.pdf') {
     try {
       const dataBuffer = fs.readFileSync(filePath);
@@ -27,7 +33,7 @@ export const extractText = async (filePath: string, mimeType?: string): Promise<
           let text = '';
           if (data && data.Pages) {
             text = data.Pages.map((page: any) =>
-              page.Texts.map((t: any) => decodeURIComponent(t.R[0].T)).join(' ')
+              page.Texts.map((t: any) => safeDecode(t.R[0].T)).join(' ')
             ).join('\n');
           }
           resolve(text);
@@ -40,7 +46,6 @@ export const extractText = async (filePath: string, mimeType?: string): Promise<
     }
   }
 
-  // DOCX
   if (ext === '.docx') {
     try {
       const result = await mammoth.extractRawText({ path: filePath });
@@ -51,8 +56,6 @@ export const extractText = async (filePath: string, mimeType?: string): Promise<
     }
   }
 
-  // Pour tous les autres formats (images, vidéos, audio, etc.) => retourner une chaîne vide
   console.warn(`⚠️ Format non supporté : ${ext}, ignoré`);
   return '';
 };
-
