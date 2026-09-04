@@ -12,7 +12,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = new Date().toISOString() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);
   }
 });
@@ -36,7 +36,7 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
-      const id = new Date().toISOString().toString();
+      const id = Date.now().toString();
       await db('project_files').insert({
         id,
         projectId,
@@ -45,7 +45,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         fileSize: file.size,
         mimeType: file.mimetype,
         filePath: file.path,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: Date.now() // ✅ nombre
       });
 
       const inserted = await db('project_files').where({ id }).first();
@@ -67,7 +67,6 @@ export const getFiles = async (req: Request, res: Response) => {
       .where({ projectId, userId })
       .orderBy('uploadedAt', 'desc');
 
-    // Grouper par type (extension)
     const grouped = files.reduce((acc, file) => {
       const ext = path.extname(file.fileName).toLowerCase().slice(1) || 'fichier';
       if (!acc[ext]) acc[ext] = [];
@@ -94,7 +93,6 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    // Supprimer le fichier physique
     if (fs.existsSync(file.filePath)) {
       fs.unlinkSync(file.filePath);
     }
