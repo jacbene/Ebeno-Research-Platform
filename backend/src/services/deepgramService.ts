@@ -29,18 +29,16 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
 
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.PROCESSING,
-      updatedAt: Date.now()
+      updatedAt: new Date().toISOString()
     });
 
     const audioPath = path.join(__dirname, '../../uploads/tmp', path.basename(transcription.audioUrl || ''));
     if (!fs.existsSync(audioPath)) throw new Error(`Fichier introuvable: ${audioPath}`);
 
-    // Lire le fichier et créer un FormData
     const audioFile = fs.createReadStream(audioPath);
     const formData = new FormData();
     formData.append('audio', audioFile);
 
-    // Appel à l'API Deepgram avec axios
     const response = await axios.post(DEEPGRAM_URL, formData, {
       params: {
         model: 'nova-2',
@@ -62,7 +60,7 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
-      updatedAt: Date.now()
+      updatedAt: new Date().toISOString()
     });
 
     console.log(`✅ Transcription Deepgram ${transcriptionId} terminée`);
@@ -75,7 +73,7 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.FAILED,
       errorMessage: error.message || 'Erreur inconnue',
-      updatedAt: Date.now()
+      updatedAt: new Date().toISOString()
     });
   }
 };
@@ -97,8 +95,8 @@ export const uploadAndProcessDeepgram = async (
     audioUrl,
     transcriptText: null,
     errorMessage: null,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   });
 
   processTranscriptionDeepgram(id).catch(err => console.error('Erreur asynchrone:', err));
