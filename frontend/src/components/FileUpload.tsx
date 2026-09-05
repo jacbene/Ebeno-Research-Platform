@@ -30,32 +30,53 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    // Logs de diagnostic
+    // Vérifier et convertir le fichier si nécessaire
+    let fileToUpload = file;
+    if (!(file instanceof File)) {
+      console.warn('⚠️ [FileUpload] file n\'est pas un File, conversion...');
+      try {
+        // Si c'est un Blob, on le convertit en File avec un nom
+        const blob = file as Blob;
+        const fileName = (file as any).name || 'fichier';
+        const fileType = (file as any).type || 'application/octet-stream';
+        fileToUpload = new File([blob], fileName, { type: fileType });
+        console.log('✅ [FileUpload] Conversion réussie');
+      } catch (e) {
+        console.error('❌ [FileUpload] Erreur conversion:', e);
+        setError('Erreur de conversion du fichier');
+        setUploading(false);
+        return;
+      }
+    }
+
+    console.log('📌 [FileUpload] fileToUpload instanceof File :', fileToUpload instanceof File);
+    console.log('📌 [FileUpload] fileToUpload.name :', fileToUpload.name);
+    console.log('📌 [FileUpload] fileToUpload.size :', fileToUpload.size);
     console.log('📌 [FileUpload] projectId reçu :', projectId);
-    console.log('📌 [FileUpload] Type de projectId :', typeof projectId);
-    console.log('📌 [FileUpload] file instanceof File :', file instanceof File);
-    console.log('📌 [FileUpload] file.name :', file.name);
-    console.log('📌 [FileUpload] file.size :', file.size);
 
     setUploading(true);
     setError('');
     setProgress(0);
 
     const formData = new FormData();
-    // Ajouter le fichier avec son nom pour garantir l'envoi
-    formData.append('file', file, file.name);
+    formData.append('file', fileToUpload, fileToUpload.name);
 
     // Vérifier que le FormData contient bien le fichier
-    console.log('📦 [FileUpload] Contenu FormData après append :', formData.get('file'));
+    const testFile = formData.get('file');
+    console.log('📦 [FileUpload] Contenu FormData après append :', testFile);
+    if (!testFile) {
+      console.error('❌ [FileUpload] FormData est vide après append');
+      setError('Erreur de préparation du fichier');
+      setUploading(false);
+      return;
+    }
 
     const encodedProjectId = encodeURIComponent(projectId);
     console.log('📌 [FileUpload] projectId encodé :', encodedProjectId);
+    console.log('📤 [FileUpload] URL appelée :', `/projects/${encodedProjectId}/files`);
 
     try {
-      const url = `/projects/${encodedProjectId}/files`;
-      console.log('📤 [FileUpload] URL appelée :', url);
-
-      const response = await api.post(url, formData, {
+      const response = await api.post(`/projects/${encodedProjectId}/files`, formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -76,9 +97,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       }
     } catch (err: any) {
       console.error('❌ [FileUpload] Erreur avec axios :', err);
-
       // Fallback avec fetch
-      console.log('🔄 [FileUpload] Tentative avec fetch...');
       try {
         const token = localStorage.getItem('authToken');
         const fetchResponse = await fetch(
