@@ -71,7 +71,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    const encodedProjectId = encodeURIComponent(projectId);
+    const encodedProjectId = projectId;
     console.log('📌 [FileUpload] projectId encodé :', encodedProjectId);
     console.log('📤 [FileUpload] URL appelée :', `/projects/${encodedProjectId}/files`);
 
