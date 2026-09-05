@@ -25,23 +25,36 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
   };
 
   const handleUpload = async () => {
-    if (!file) return;
-    setUploading(true);
-    setError('');
-    setProgress(0);
-    const formData = new FormData();
-    formData.append('file', file);
+    if (!file) {
+      console.warn('⚠️ Aucun fichier sélectionné');
+      return;
+    }
 
-    // Logs pour déboguer
+    // Logs de diagnostic
     console.log('📌 [FileUpload] projectId reçu :', projectId);
     console.log('📌 [FileUpload] Type de projectId :', typeof projectId);
     console.log('📌 [FileUpload] Nom du fichier :', file.name);
     console.log('📌 [FileUpload] Taille du fichier :', file.size);
 
+    setUploading(true);
+    setError('');
+    setProgress(0);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Vérifier que le fichier est bien dans le FormData
+    console.log('📦 [FileUpload] Contenu du FormData :', formData.get('file'));
+
+    // Encoder le projectId pour les caractères spéciaux (ex: ':', '.')
+    const encodedProjectId = encodeURIComponent(projectId);
+    console.log('📌 [FileUpload] projectId encodé :', encodedProjectId);
+
     try {
-      const url = `/projects/${projectId}/files`;
+      const url = `/projects/${encodedProjectId}/files`;
       console.log('📤 [FileUpload] URL appelée :', url);
-      
+
+      // Tenter avec axios (sans Content-Type, géré automatiquement)
       const response = await api.post(url, formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -50,9 +63,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
           }
         },
       });
-      
+
       console.log('✅ [FileUpload] Réponse reçue :', response.status, response.data);
-      
+
       if (response.status === 201) {
         setFile(null);
         setProgress(0);
@@ -62,17 +75,35 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
         setError(response.data.error || 'Erreur lors de l\'upload');
       }
     } catch (err: any) {
-      console.error('❌ [FileUpload] Erreur détaillée :', err);
-      if (err.response) {
-        console.error('📦 [FileUpload] Réponse serveur :', err.response.data);
-        console.error('📄 [FileUpload] Statut :', err.response.status);
-        setError(err.response.data?.error || 'Erreur serveur');
-      } else if (err.request) {
-        console.error('📡 [FileUpload] Pas de réponse du serveur');
+      console.error('❌ [FileUpload] Erreur avec axios :', err);
+
+      // Fallback : tenter avec fetch si axios échoue
+      console.log('🔄 [FileUpload] Tentative avec fetch...');
+      try {
+        const token = localStorage.getItem('authToken');
+        const fetchResponse = await fetch(
+          `https://ebeno-backend.onrender.com/api/projects/${encodeURIComponent(projectId)}/files`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
+        const data = await fetchResponse.json();
+        console.log('✅ [FileUpload] Réponse fetch :', fetchResponse.status, data);
+        if (fetchResponse.status === 201) {
+          setFile(null);
+          setProgress(0);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          onUploadSuccess();
+        } else {
+          setError(data.error || 'Erreur lors de l\'upload');
+        }
+      } catch (fetchErr: any) {
+        console.error('❌ [FileUpload] Erreur avec fetch :', fetchErr);
         setError('Erreur de connexion au serveur');
-      } else {
-        console.error('⚙️ [FileUpload] Erreur de configuration :', err.message);
-        setError('Erreur de configuration');
       }
     } finally {
       setUploading(false);
