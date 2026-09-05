@@ -33,20 +33,21 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     // Logs de diagnostic
     console.log('📌 [FileUpload] projectId reçu :', projectId);
     console.log('📌 [FileUpload] Type de projectId :', typeof projectId);
-    console.log('📌 [FileUpload] Nom du fichier :', file.name);
-    console.log('📌 [FileUpload] Taille du fichier :', file.size);
+    console.log('📌 [FileUpload] file instanceof File :', file instanceof File);
+    console.log('📌 [FileUpload] file.name :', file.name);
+    console.log('📌 [FileUpload] file.size :', file.size);
 
     setUploading(true);
     setError('');
     setProgress(0);
 
     const formData = new FormData();
-    formData.append('file', file);
+    // Ajouter le fichier avec son nom pour garantir l'envoi
+    formData.append('file', file, file.name);
 
-    // Vérifier que le fichier est bien dans le FormData
-    console.log('📦 [FileUpload] Contenu du FormData :', formData.get('file'));
+    // Vérifier que le FormData contient bien le fichier
+    console.log('📦 [FileUpload] Contenu FormData après append :', formData.get('file'));
 
-    // Encoder le projectId pour les caractères spéciaux (ex: ':', '.')
     const encodedProjectId = encodeURIComponent(projectId);
     console.log('📌 [FileUpload] projectId encodé :', encodedProjectId);
 
@@ -54,7 +55,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       const url = `/projects/${encodedProjectId}/files`;
       console.log('📤 [FileUpload] URL appelée :', url);
 
-      // Tenter avec axios (sans Content-Type, géré automatiquement)
       const response = await api.post(url, formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -77,12 +77,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     } catch (err: any) {
       console.error('❌ [FileUpload] Erreur avec axios :', err);
 
-      // Fallback : tenter avec fetch si axios échoue
+      // Fallback avec fetch
       console.log('🔄 [FileUpload] Tentative avec fetch...');
       try {
         const token = localStorage.getItem('authToken');
         const fetchResponse = await fetch(
-          `https://ebeno-backend.onrender.com/api/projects/${encodeURIComponent(projectId)}/files`,
+          `https://ebeno-backend.onrender.com/api/projects/${encodedProjectId}/files`,
           {
             method: 'POST',
             headers: {
