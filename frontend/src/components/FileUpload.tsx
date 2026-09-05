@@ -34,7 +34,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
 
     try {
       const response = await api.post(`/projects/${projectId}/files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -51,7 +50,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
         setError(response.data.error || 'Erreur lors de l\'upload');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur de connexion au serveur');
+      console.error('❌ Erreur upload détaillée :', err);
+      if (err.response) {
+        console.error('📦 Réponse serveur :', err.response.data);
+        console.error('📄 Statut :', err.response.status);
+        setError(err.response.data?.error || 'Erreur serveur');
+      } else if (err.request) {
+        console.error('📡 Pas de réponse du serveur');
+        setError('Erreur de connexion au serveur');
+      } else {
+        console.error('⚙️ Erreur de configuration :', err.message);
+        setError('Erreur de configuration');
+      }
     } finally {
       setUploading(false);
     }
