@@ -32,8 +32,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     const formData = new FormData();
     formData.append('file', file);
 
+    // Logs pour déboguer
+    console.log('📌 [FileUpload] projectId reçu :', projectId);
+    console.log('📌 [FileUpload] Type de projectId :', typeof projectId);
+    console.log('📌 [FileUpload] Nom du fichier :', file.name);
+    console.log('📌 [FileUpload] Taille du fichier :', file.size);
+
     try {
-      const response = await api.post(`/projects/${projectId}/files`, formData, {
+      const url = `/projects/${projectId}/files`;
+      console.log('📤 [FileUpload] URL appelée :', url);
+      
+      const response = await api.post(url, formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -41,6 +50,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
           }
         },
       });
+      
+      console.log('✅ [FileUpload] Réponse reçue :', response.status, response.data);
+      
       if (response.status === 201) {
         setFile(null);
         setProgress(0);
@@ -50,16 +62,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
         setError(response.data.error || 'Erreur lors de l\'upload');
       }
     } catch (err: any) {
-      console.error('❌ Erreur upload détaillée :', err);
+      console.error('❌ [FileUpload] Erreur détaillée :', err);
       if (err.response) {
-        console.error('📦 Réponse serveur :', err.response.data);
-        console.error('📄 Statut :', err.response.status);
+        console.error('📦 [FileUpload] Réponse serveur :', err.response.data);
+        console.error('📄 [FileUpload] Statut :', err.response.status);
         setError(err.response.data?.error || 'Erreur serveur');
       } else if (err.request) {
-        console.error('📡 Pas de réponse du serveur');
+        console.error('📡 [FileUpload] Pas de réponse du serveur');
         setError('Erreur de connexion au serveur');
       } else {
-        console.error('⚙️ Erreur de configuration :', err.message);
+        console.error('⚙️ [FileUpload] Erreur de configuration :', err.message);
         setError('Erreur de configuration');
       }
     } finally {
