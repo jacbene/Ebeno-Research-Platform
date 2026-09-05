@@ -87,7 +87,9 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-  // Chargement des données
+  // Encoder l'ID pour les URLs
+  const encodedId = id ? encodeURIComponent(id) : '';
+
   useEffect(() => {
     if (!id) return;
     fetchProjectData();
@@ -96,12 +98,14 @@ const ProjectDetail: React.FC = () => {
   const fetchProjectData = async () => {
     setLoading(true);
     try {
+      console.log('📁 [fetchProjectData] ID encodé :', encodedId);
+
       // Projet
-      const projectRes = await api.get(`/projects/${id}`);
+      const projectRes = await api.get(`/projects/${encodedId}`);
       if (projectRes.data.success) setProject(projectRes.data.data);
 
       // Transcriptions avec filtres
-      let url = `/transcriptions?projectId=${id}&limit=100`;
+      let url = `/transcriptions?projectId=${encodedId}&limit=100`;
       if (filters.type !== 'all') url += `&type=${filters.type}`;
       if (filters.status !== 'all') url += `&status=${filters.status}`;
       if (filters.fromDate) {
@@ -121,19 +125,24 @@ const ProjectDetail: React.FC = () => {
       }
 
       // Mémos
-      const memoRes = await api.get(`/memos?projectId=${id}`);
+      const memoRes = await api.get(`/memos?projectId=${encodedId}`);
       if (memoRes.status === 200) {
         setMemos(memoRes.data);
       }
 
       // Fichiers uploadés
-      const filesRes = await api.get(`/projects/${id}/files`);
+      console.log('📁 [fetchProjectData] Récupération des fichiers...');
+      const filesRes = await api.get(`/projects/${encodedId}/files`);
+      console.log('📁 [fetchProjectData] filesRes status:', filesRes.status);
+      console.log('📁 [fetchProjectData] filesRes data:', filesRes.data);
       if (filesRes.status === 200) {
         setProjectFiles(filesRes.data.files || []);
+      } else {
+        console.error('❌ Erreur récupération fichiers:', filesRes.status, filesRes.data);
       }
 
     } catch (error) {
-      console.error('Erreur chargement projet:', error);
+      console.error('❌ Erreur chargement projet:', error);
     } finally {
       setLoading(false);
     }
@@ -143,7 +152,7 @@ const ProjectDetail: React.FC = () => {
     if (!id) return;
     setAnalysisLoading(true);
     try {
-      const response = await api.get(`/analysis/project/${id}`);
+      const response = await api.get(`/analysis/project/${encodedId}`);
       if (response.status === 200) {
         setAnalysisData(response.data);
       }
@@ -162,7 +171,7 @@ const ProjectDetail: React.FC = () => {
       const response = await api.post('/memos', {
         title: newMemoTitle.trim(),
         content: newMemoContent.trim(),
-        projectId: id
+        projectId: encodedId
       });
       if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
@@ -189,7 +198,7 @@ const ProjectDetail: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const response = await api.get(`/projects/${id}/export`, { responseType: 'blob' });
+      const response = await api.get(`/projects/${encodedId}/export`, { responseType: 'blob' });
       const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -322,10 +331,10 @@ const ProjectDetail: React.FC = () => {
             flexWrap: 'wrap',
             width: isMobile ? '100%' : 'auto',
           }}>
-            <Button variant="primary" onClick={() => navigate(`/transcription?projectId=${project.id}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
+            <Button variant="primary" onClick={() => navigate(`/transcription?projectId=${encodedId}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
               🎙️ Nouvelle transcription
             </Button>
-            <Button variant="outline" onClick={() => navigate(`/text-upload?projectId=${project.id}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
+            <Button variant="outline" onClick={() => navigate(`/text-upload?projectId=${encodedId}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
               📄 Importer un texte
             </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting} style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -337,7 +346,7 @@ const ProjectDetail: React.FC = () => {
 
       {/* Barre de recherche */}
       <div style={{ marginTop: theme.spacing.lg }}>
-        <SearchBar projectId={project.id} onResults={setSearchResults} placeholder="Rechercher dans ce projet..." />
+        <SearchBar projectId={encodedId} onResults={setSearchResults} placeholder="Rechercher dans ce projet..." />
       </div>
 
       {/* Filtres */}
@@ -458,7 +467,7 @@ const ProjectDetail: React.FC = () => {
         {activeTab === 'audio' && (
           <Card title="Transcriptions audio">
             <TranscriptionUploader
-              projectId={project.id}
+              projectId={encodedId}
               onUploadComplete={() => fetchProjectData()}
             />
             <hr style={{ margin: '16px 0' }} />
@@ -576,13 +585,13 @@ const ProjectDetail: React.FC = () => {
 
         {activeTab === 'members' && (
           <Card title="Gestion des membres">
-            <ProjectMembers projectId={project.id} />
+            <ProjectMembers projectId={encodedId} />
           </Card>
         )}
 
         {activeTab === 'documents' && (
           <Card title="📁 Documents du projet">
-            <FileUpload projectId={project.id} onUploadSuccess={fetchProjectData} />
+            <FileUpload projectId={encodedId} onUploadSuccess={fetchProjectData} />
 
             <div style={{ marginTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: theme.spacing.sm }}>
@@ -655,7 +664,7 @@ const ProjectDetail: React.FC = () => {
             {selectedDocument && (
               <DocumentActions
                 document={selectedDocument}
-                projectId={project.id}
+                projectId={encodedId}
                 onRefresh={fetchProjectData}
               />
             )}
