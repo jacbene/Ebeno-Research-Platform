@@ -51,9 +51,9 @@ export const uploadFile = async (req: Request, res: Response) => {
       const inserted = await db('project_files').where({ id }).first();
       res.status(201).json(inserted);
     } catch (error) {
-      console.error('Erreur upload file:', error);
-      res.status(500).json({ error: 'Erreur serveur' });
-    }
+  console.error('Erreur upload file:', error);
+  res.status(500).json({ error: 'Erreur serveur', details: error.message });
+}
   });
 };
 

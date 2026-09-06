@@ -1,10 +1,11 @@
+// frontend/src/components/FileUpload.tsx
 import React, { useState, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { api } from '../services/api';
 
 interface FileUploadProps {
-  projectId: string;
+  projectId: string; // ID brut (non encodé) – passé directement depuis ProjectDetail
   onUploadSuccess: () => void;
 }
 
@@ -30,12 +31,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    // Vérifier et convertir le fichier si nécessaire
+    // Vérification et conversion si nécessaire
     let fileToUpload = file;
     if (!(file instanceof File)) {
       console.warn('⚠️ [FileUpload] file n\'est pas un File, conversion...');
       try {
-        // Si c'est un Blob, on le convertit en File avec un nom
         const blob = file as Blob;
         const fileName = (file as any).name || 'fichier';
         const fileType = (file as any).type || 'application/octet-stream';
@@ -52,7 +52,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     console.log('📌 [FileUpload] fileToUpload instanceof File :', fileToUpload instanceof File);
     console.log('📌 [FileUpload] fileToUpload.name :', fileToUpload.name);
     console.log('📌 [FileUpload] fileToUpload.size :', fileToUpload.size);
-    console.log('📌 [FileUpload] projectId reçu :', projectId);
+    console.log('📌 [FileUpload] projectId reçu (brut) :', projectId);
 
     setUploading(true);
     setError('');
@@ -60,8 +60,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
 
     const formData = new FormData();
     formData.append('file', fileToUpload, fileToUpload.name);
+    formData.append('projectId', projectId); // ✅ Envoi du projectId dans le body
 
-    // Vérifier que le FormData contient bien le fichier
+    // Vérification que le FormData contient bien le fichier
     const testFile = formData.get('file');
     console.log('📦 [FileUpload] Contenu FormData après append :', testFile);
     if (!testFile) {
@@ -71,12 +72,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    const encodedProjectId = projectId;
-    console.log('📌 [FileUpload] projectId encodé :', encodedProjectId);
-    console.log('📤 [FileUpload] URL appelée :', `/projects/${encodedProjectId}/files`);
+    console.log('📤 [FileUpload] Appel vers /upload');
 
     try {
-      const response = await api.post(`/projects/${encodedProjectId}/files`, formData, {
+      const response = await api.post('/upload', formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -97,11 +96,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       }
     } catch (err: any) {
       console.error('❌ [FileUpload] Erreur avec axios :', err);
-      // Fallback avec fetch
+      
+      // Fallback avec fetch (au cas où axios échoue)
       try {
         const token = localStorage.getItem('authToken');
         const fetchResponse = await fetch(
-          `https://ebeno-backend.onrender.com/api/projects/${encodedProjectId}/files`,
+          'https://ebeno-backend.onrender.com/api/upload',
           {
             method: 'POST',
             headers: {

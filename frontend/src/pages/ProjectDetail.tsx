@@ -87,7 +87,7 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-  // Encoder l'ID pour les URLs
+  // Encoder l'ID pour les URLs (GET, etc.)
   const encodedId = id ? encodeURIComponent(id) : '';
 
   useEffect(() => {
@@ -591,7 +591,8 @@ const ProjectDetail: React.FC = () => {
 
         {activeTab === 'documents' && (
           <Card title="📁 Documents du projet">
-            <FileUpload projectId={encodedId} onUploadSuccess={fetchProjectData} />
+            {/* ✅ Modification : on passe l'ID brut (non encodé) */}
+            <FileUpload projectId={id} onUploadSuccess={fetchProjectData} />
 
             <div style={{ marginTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: theme.spacing.sm }}>
