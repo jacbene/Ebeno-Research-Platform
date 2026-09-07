@@ -4,15 +4,15 @@ export async function up(knex: any): Promise<void> {
     table.string('id').primary();
     table.string('documentId').notNullable();
     table.string('documentType').notNullable();
-    table.string('entity').notNullable();
-    table.string('type').notNullable();
-    table.integer('count').defaultTo(1);
+    table.string('entityValue').notNullable();     // ✅ colonne attendue par le code
+    table.string('entityType').notNullable();      // ✅ colonne attendue par le code
+    table.integer('occurrenceCount').defaultTo(1); // ✅ colonne attendue par le code
     table.timestamp('createdAt').defaultTo(knex.fn.now());
     table.timestamp('updatedAt').defaultTo(knex.fn.now());
 
     table.index(['documentId', 'documentType']);
-    table.index('entity');
-    table.index('type');
+    table.index('entityValue');
+    table.index('entityType');
   });
 }
 
