@@ -102,48 +102,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Erreur interne du serveur' });
 });
 
-// ---------- DÉMARRAGE AVEC CRÉATION AUTOMATIQUE DE document_entities ----------
+// Exécuter les migrations avant de démarrer le serveur
 db.migrate
   .latest()
-  .then(async () => {
+  .then(() => {
     console.log('✅ Migrations appliquées avec succès');
-
-    // Création de la table document_entities si elle n'existe pas (SQL direct)
-    try {
-      const result = await db.raw(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'document_entities'
-        ) as exists
-      `);
-      const exists = result.rows[0]?.exists || false;
-      
-      if (!exists) {
-        console.log('📦 Création de la table document_entities (SQL direct)...');
-        await db.raw(`
-          CREATE TABLE document_entities (
-            id VARCHAR(255) PRIMARY KEY,
-            "documentId" VARCHAR(255) NOT NULL,
-            "documentType" VARCHAR(50) NOT NULL,
-            entity VARCHAR(255) NOT NULL,
-            type VARCHAR(50) NOT NULL,
-            count INTEGER DEFAULT 1,
-            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          CREATE INDEX idx_doc_entities_doc ON document_entities("documentId", "documentType");
-          CREATE INDEX idx_doc_entities_entity ON document_entities(entity);
-          CREATE INDEX idx_doc_entities_type ON document_entities(type);
-        `);
-        console.log('✅ Table document_entities créée avec succès (SQL direct)');
-      } else {
-        console.log('ℹ️ Table document_entities existe déjà');
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors de la création SQL de document_entities:', error);
-    }
-
-    // Démarrer le serveur HTTP avec Socket.IO
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Serveur démarré sur le port ${port}`);
       console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
