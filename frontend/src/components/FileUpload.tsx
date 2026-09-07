@@ -5,7 +5,7 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 
 interface FileUploadProps {
-  projectId: string; // ID brut (non encodé)
+  projectId: string;
   onUploadSuccess: () => void;
 }
 
@@ -17,21 +17,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Fonction de sanitisation du nom de fichier
+  // Sanitisation du nom de fichier
   const sanitizeFileName = (name: string): string => {
     return name
-      .normalize('NFD') // décompose les accents (é -> e + ́)
-      .replace(/[\u0300-\u036f]/g, '') // supprime les diacritiques
-      .replace(/[^a-zA-Z0-9.\-_]/g, '_') // remplace tout autre caractère par '_'
-      .replace(/_+/g, '_') // évite les underscores multiples
-      .replace(/^_+|_+$/g, ''); // supprime les underscores en début/fin
-  };
-
-  // ✅ Génère un nom unique pour éviter les problèmes d'encodage
-  const generateUniqueFileName = (originalName: string): string => {
-    const ext = originalName.split('.').pop() || 'bin';
-    const baseName = sanitizeFileName(originalName.replace(/\.[^.]+$/, ''));
-    return `${baseName}_${Date.now()}.${ext}`;
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,112 +41,60 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    // Vérification et conversion si nécessaire
-    let fileToUpload = file;
-    if (!(file instanceof File)) {
-      console.warn('⚠️ [FileUpload] file n\'est pas un File, conversion...');
-      try {
-        const blob = file as Blob;
-        const fileName = (file as any).name || 'fichier';
-        const fileType = (file as any).type || 'application/octet-stream';
-        fileToUpload = new File([blob], fileName, { type: fileType });
-        console.log('✅ [FileUpload] Conversion réussie');
-      } catch (e) {
-        console.error('❌ [FileUpload] Erreur conversion:', e);
-        setError('Erreur de conversion du fichier');
-        setUploading(false);
-        return;
-      }
-    }
-
-    console.log('📌 [FileUpload] fileToUpload instanceof File :', fileToUpload instanceof File);
-    console.log('📌 [FileUpload] fileToUpload.name (original) :', fileToUpload.name);
-    console.log('📌 [FileUpload] fileToUpload.size :', fileToUpload.size);
-    console.log('📌 [FileUpload] projectId reçu (brut) :', projectId);
-
     setUploading(true);
     setError('');
     setProgress(0);
 
-    const formData = new FormData();
-    
-    // ✅ Solution 1 : Sanitiser le nom
-    const safeFileName = sanitizeFileName(fileToUpload.name);
-    console.log('📌 [FileUpload] Nom sanitisé :', safeFileName);
-    
-    // ✅ Solution 2 (fallback) : Nom unique si la sanitisation échoue
-    // On utilise le nom sanitisé, mais s'il est vide, on génère un nom unique
-    const finalFileName = safeFileName || generateUniqueFileName(fileToUpload.name);
-    console.log('📌 [FileUpload] Nom final envoyé :', finalFileName);
-    
-    formData.append('file', fileToUpload, finalFileName);
-    formData.append('projectId', projectId);
-
-    // Vérification du contenu du FormData
-    const testFile = formData.get('file');
-    console.log('📦 [FileUpload] Contenu FormData après append :', testFile);
-    if (!testFile) {
-      console.error('❌ [FileUpload] FormData est vide après append');
-      setError('Erreur de préparation du fichier');
-      setUploading(false);
-      return;
-    }
-
-    console.log('📤 [FileUpload] Appel vers /upload');
-
     try {
-      const response = await api.post('/upload', formData, {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setProgress(percent);
-          }
+      const originalFile = file;
+      const safeName = sanitizeFileName(originalFile.name);
+
+      console.log('📌 [FileUpload] Nom original :', originalFile.name);
+      console.log('📌 [FileUpload] Nom sanitisé :', safeName);
+
+      // Lire le contenu du fichier
+      const arrayBuffer = await originalFile.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: originalFile.type });
+
+      // Créer un nouveau fichier avec le nom sanitisé
+      const cleanFile = new File([blob], safeName, { type: originalFile.type });
+
+      console.log('📌 [FileUpload] Nouveau fichier créé :', cleanFile.name, cleanFile.size);
+
+      const formData = new FormData();
+      formData.append('file', cleanFile);
+      formData.append('projectId', projectId);
+
+      // Vérification
+      console.log('📦 [FileUpload] FormData entries :', [...formData.entries()]);
+
+      const token = localStorage.getItem('authToken');
+
+      // Utilisation de fetch directement (comme dans le test réussi)
+      const response = await fetch('https://ebeno-backend.onrender.com/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
         },
+        body: formData,
       });
 
-      console.log('✅ [FileUpload] Réponse reçue :', response.status, response.data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de l\'upload');
+      }
 
-      if (response.status === 201) {
-        setFile(null);
-        setProgress(0);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        onUploadSuccess();
-      } else {
-        setError(response.data.error || 'Erreur lors de l\'upload');
-      }
+      const data = await response.json();
+      console.log('✅ [FileUpload] Succès :', data);
+
+      // Réinitialiser
+      setFile(null);
+      setProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      onUploadSuccess();
     } catch (err: any) {
-      console.error('❌ [FileUpload] Erreur avec axios :', err);
-      
-      // Fallback avec fetch (si axios échoue)
-      try {
-        const token = localStorage.getItem('authToken');
-        console.log('🔑 [FileUpload] Token présent :', token ? 'Oui' : 'Non');
-        
-        const fetchResponse = await fetch(
-          'https://ebeno-backend.onrender.com/api/upload',
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            body: formData,
-          }
-        );
-        const data = await fetchResponse.json();
-        console.log('✅ [FileUpload] Réponse fetch :', fetchResponse.status, data);
-        
-        if (fetchResponse.status === 201) {
-          setFile(null);
-          setProgress(0);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          onUploadSuccess();
-        } else {
-          setError(data.error || 'Erreur lors de l\'upload');
-        }
-      } catch (fetchErr: any) {
-        console.error('❌ [FileUpload] Erreur avec fetch :', fetchErr);
-        setError('Erreur de connexion au serveur');
-      }
+      console.error('❌ [FileUpload] Erreur :', err);
+      setError(err.message || 'Erreur de connexion au serveur');
     } finally {
       setUploading(false);
     }
