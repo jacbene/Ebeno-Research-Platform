@@ -5,7 +5,7 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 
 interface FileUploadProps {
-  projectId: string; // ID brut (non encodé) – passé directement depuis ProjectDetail
+  projectId: string;
   onUploadSuccess: () => void;
 }
 
@@ -16,6 +16,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ Fonction de sanitisation du nom de fichier
+  const sanitizeFileName = (name: string): string => {
+    return name
+      .normalize('NFD') // décompose les accents (é -> e + ́)
+      .replace(/[\u0300-\u036f]/g, '') // supprime les diacritiques
+      .replace(/[^a-zA-Z0-9.\-_]/g, '_') // remplace tout autre caractère par '_'
+      .replace(/_+/g, '_') // évite les underscores multiples
+      .replace(/^_+|_+$/g, ''); // supprime les underscores en début/fin
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -31,7 +41,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
-    // Vérification et conversion si nécessaire
     let fileToUpload = file;
     if (!(file instanceof File)) {
       console.warn('⚠️ [FileUpload] file n\'est pas un File, conversion...');
@@ -59,10 +68,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     setProgress(0);
 
     const formData = new FormData();
-    formData.append('file', fileToUpload, fileToUpload.name);
-    formData.append('projectId', projectId); // ✅ Envoi du projectId dans le body
+    // ✅ Utiliser le nom sanitisé
+    const safeFileName = sanitizeFileName(fileToUpload.name);
+    formData.append('file', fileToUpload, safeFileName);
+    formData.append('projectId', projectId);
 
-    // Vérification que le FormData contient bien le fichier
+    console.log('📦 [FileUpload] Nom sanitisé :', safeFileName);
+
     const testFile = formData.get('file');
     console.log('📦 [FileUpload] Contenu FormData après append :', testFile);
     if (!testFile) {
@@ -96,8 +108,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       }
     } catch (err: any) {
       console.error('❌ [FileUpload] Erreur avec axios :', err);
-      
-      // Fallback avec fetch (au cas où axios échoue)
+      // Fallback avec fetch
       try {
         const token = localStorage.getItem('authToken');
         const fetchResponse = await fetch(
