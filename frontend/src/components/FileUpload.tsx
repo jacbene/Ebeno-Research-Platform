@@ -5,7 +5,7 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 
 interface FileUploadProps {
-  projectId: string;
+  projectId: string; // ID brut (non encodé)
   onUploadSuccess: () => void;
 }
 
@@ -27,6 +27,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       .replace(/^_+|_+$/g, ''); // supprime les underscores en début/fin
   };
 
+  // ✅ Génère un nom unique pour éviter les problèmes d'encodage
+  const generateUniqueFileName = (originalName: string): string => {
+    const ext = originalName.split('.').pop() || 'bin';
+    const baseName = sanitizeFileName(originalName.replace(/\.[^.]+$/, ''));
+    return `${baseName}_${Date.now()}.${ext}`;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -41,6 +48,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       return;
     }
 
+    // Vérification et conversion si nécessaire
     let fileToUpload = file;
     if (!(file instanceof File)) {
       console.warn('⚠️ [FileUpload] file n\'est pas un File, conversion...');
@@ -59,7 +67,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     }
 
     console.log('📌 [FileUpload] fileToUpload instanceof File :', fileToUpload instanceof File);
-    console.log('📌 [FileUpload] fileToUpload.name :', fileToUpload.name);
+    console.log('📌 [FileUpload] fileToUpload.name (original) :', fileToUpload.name);
     console.log('📌 [FileUpload] fileToUpload.size :', fileToUpload.size);
     console.log('📌 [FileUpload] projectId reçu (brut) :', projectId);
 
@@ -68,13 +76,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
     setProgress(0);
 
     const formData = new FormData();
-    // ✅ Utiliser le nom sanitisé
+    
+    // ✅ Solution 1 : Sanitiser le nom
     const safeFileName = sanitizeFileName(fileToUpload.name);
-    formData.append('file', fileToUpload, safeFileName);
+    console.log('📌 [FileUpload] Nom sanitisé :', safeFileName);
+    
+    // ✅ Solution 2 (fallback) : Nom unique si la sanitisation échoue
+    // On utilise le nom sanitisé, mais s'il est vide, on génère un nom unique
+    const finalFileName = safeFileName || generateUniqueFileName(fileToUpload.name);
+    console.log('📌 [FileUpload] Nom final envoyé :', finalFileName);
+    
+    formData.append('file', fileToUpload, finalFileName);
     formData.append('projectId', projectId);
 
-    console.log('📦 [FileUpload] Nom sanitisé :', safeFileName);
-
+    // Vérification du contenu du FormData
     const testFile = formData.get('file');
     console.log('📦 [FileUpload] Contenu FormData après append :', testFile);
     if (!testFile) {
@@ -108,9 +123,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       }
     } catch (err: any) {
       console.error('❌ [FileUpload] Erreur avec axios :', err);
-      // Fallback avec fetch
+      
+      // Fallback avec fetch (si axios échoue)
       try {
         const token = localStorage.getItem('authToken');
+        console.log('🔑 [FileUpload] Token présent :', token ? 'Oui' : 'Non');
+        
         const fetchResponse = await fetch(
           'https://ebeno-backend.onrender.com/api/upload',
           {
@@ -123,6 +141,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
         );
         const data = await fetchResponse.json();
         console.log('✅ [FileUpload] Réponse fetch :', fetchResponse.status, data);
+        
         if (fetchResponse.status === 201) {
           setFile(null);
           setProgress(0);
