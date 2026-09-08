@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { api } from '../services/api';
+import { computeFileHash } from '../utils/hash';
 
 interface FileUploadProps {
   projectId: string;
@@ -17,7 +18,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sanitisation du nom de fichier
   const sanitizeFileName = (name: string): string => {
     return name
       .normalize('NFD')
@@ -52,25 +52,24 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       console.log('📌 [FileUpload] Nom original :', originalFile.name);
       console.log('📌 [FileUpload] Nom sanitisé :', safeName);
 
-      // Lire le contenu du fichier
+      // Calcul du hash
+      const fileHash = await computeFileHash(originalFile);
+      console.log('🔐 Hash SHA-256 :', fileHash);
+
+      // Créer un nouveau fichier avec nom sanitisé
       const arrayBuffer = await originalFile.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: originalFile.type });
-
-      // Créer un nouveau fichier avec le nom sanitisé
       const cleanFile = new File([blob], safeName, { type: originalFile.type });
-
-      console.log('📌 [FileUpload] Nouveau fichier créé :', cleanFile.name, cleanFile.size);
 
       const formData = new FormData();
       formData.append('file', cleanFile);
       formData.append('projectId', projectId);
+      formData.append('fileHash', fileHash);
 
-      // Vérification
       console.log('📦 [FileUpload] FormData entries :', [...formData.entries()]);
 
       const token = localStorage.getItem('authToken');
 
-      // Utilisation de fetch directement (comme dans le test réussi)
       const response = await fetch('https://ebeno-backend.onrender.com/api/upload', {
         method: 'POST',
         headers: {
@@ -78,6 +77,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
         },
         body: formData,
       });
+
+      if (response.status === 409) {
+        const data = await response.json();
+        setError(`⚠️ Ce fichier existe déjà : ${data.file.fileName}`);
+        setUploading(false);
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -87,7 +93,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ projectId, onUploadSucce
       const data = await response.json();
       console.log('✅ [FileUpload] Succès :', data);
 
-      // Réinitialiser
       setFile(null);
       setProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
