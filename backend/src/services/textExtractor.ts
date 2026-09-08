@@ -1,10 +1,9 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
 import path from 'path';
-
-// Utilisation de require pour node-fetch (version 2) – compatible CommonJS
-// @ts-ignore
-const fetch = require('node-fetch');
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
+import fetch from 'node-fetch';
 
 // Fonction existante pour extraire depuis un fichier local (si nécessaire)
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
@@ -37,11 +36,10 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     return buffer.toString('utf-8');
   }
 
-  // Pour PDF (nécessite pdf-parse)
+  // Pour PDF
   if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
-      const pdfParse = await import('pdf-parse');
-      const data = await pdfParse.default(buffer);
+      const data = await pdfParse(buffer);
       return data.text;
     } catch (error) {
       console.error('❌ Erreur extraction PDF:', error);
@@ -49,11 +47,10 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOCX (nécessite mammoth)
+  // Pour DOCX
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
       mimeType.includes('word') || mimeType.includes('docx')) {
     try {
-      const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     } catch (error) {
@@ -62,10 +59,9 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOC (ancien format) – essayer via mammoth aussi (support limité)
+  // Pour DOC (ancien format)
   if (mimeType === 'application/msword' || mimeType.includes('doc')) {
     try {
-      const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     } catch (error) {
