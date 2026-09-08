@@ -1,3 +1,4 @@
+// backend/src/controllers/transcriptionController.ts
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -19,7 +20,6 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    // Accepter les fichiers audio
     const allowedTypes = [
       'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/webm',
       'audio/ogg', 'audio/x-m4a', 'audio/flac', 'audio/wave'
@@ -35,7 +35,6 @@ const upload = multer({
 // ---------- Contrôleurs ----------
 
 export const uploadTranscription = async (req: Request, res: Response) => {
-  // Utiliser multer manuellement pour gérer l'upload
   upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ success: false, message: err.message });
@@ -54,7 +53,6 @@ export const uploadTranscription = async (req: Request, res: Response) => {
 
       const { projectId } = req.body;
 
-      // Lancer l'upload et le traitement via le service
       const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
       return res.status(201).json({
@@ -87,21 +85,30 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
     const { projectId, type, status, from, to, page = 1, limit = 10 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    // Construire la requête de base (sans order/limit/offset)
+    // ✅ Convertir les filtres de dates en ISO string
+    let fromDate: string | undefined;
+    let toDate: string | undefined;
+    if (from) {
+      const ts = Number(from);
+      if (!isNaN(ts)) fromDate = new Date(ts).toISOString();
+    }
+    if (to) {
+      const ts = Number(to);
+      if (!isNaN(ts)) toDate = new Date(ts).toISOString();
+    }
+
     let baseQuery = db('transcriptions')
       .where({ userId });
 
     if (projectId) baseQuery = baseQuery.where({ projectId });
     if (type) baseQuery = baseQuery.where({ type });
     if (status) baseQuery = baseQuery.where({ status });
-    if (from) baseQuery = baseQuery.where('createdAt', '>=', Number(from));
-    if (to) baseQuery = baseQuery.where('createdAt', '<=', Number(to));
+    if (fromDate) baseQuery = baseQuery.where('createdAt', '>=', fromDate);
+    if (toDate) baseQuery = baseQuery.where('createdAt', '<=', toDate);
 
-    // Compter le total (sans order/limit/offset)
     const totalResult = await baseQuery.clone().count('id as count');
     const total = Number(totalResult[0]?.count || 0);
 
-    // Récupérer les données paginées
     const transcriptions = await baseQuery
       .orderBy('createdAt', 'desc')
       .limit(Number(limit))
@@ -127,7 +134,7 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
       error: error.message
     });
   }
-};              
+};
 
 // Récupérer une transcription par ID
 export const getTranscription = async (req: Request, res: Response) => {
@@ -230,3 +237,4 @@ export const getTranscriptionProgress = async (req: Request, res: Response) => {
     });
   }
 };
+
