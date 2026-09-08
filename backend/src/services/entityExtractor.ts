@@ -88,7 +88,8 @@ export const extractAndStoreEntities = async (
     .where({ documentId, documentType })
     .delete();
 
-  const now = Date.now();
+  // ✅ Correction : utiliser une chaîne ISO pour les dates
+  const now = new Date().toISOString();
   const rows = [];
   for (const [entityType, values] of Object.entries(entities)) {
     for (const value of values) {
