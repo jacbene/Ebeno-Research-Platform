@@ -1,10 +1,18 @@
 // backend/src/services/analysisService.ts
 import { db } from '../db/knex';
 import { extractText, extractTextFromUrl } from './textExtractor';
+import { getProjectEntities } from './entityExtractor';
 import fs from 'fs';
 import path from 'path';
 
-export const getDocumentAnalysis = async (documentId: string, type: string, userId: string) => {
+/**
+ * Analyse un document (transcription, memo ou fichier)
+ */
+export const getDocumentAnalysis = async (
+  documentId: string,
+  type: string,
+  userId: string
+): Promise<any> => {
   let text = '';
 
   if (type === 'transcription') {
@@ -18,12 +26,11 @@ export const getDocumentAnalysis = async (documentId: string, type: string, user
   } else if (type === 'file') {
     const doc = await db('project_files').where({ id: documentId, userId }).first();
     if (!doc) throw new Error('Fichier non trouvé');
-    
-    // ✅ Vérifier si c'est une URL Cloudinary
+
+    // ✅ Support Cloudinary
     if (doc.filePath && doc.filePath.startsWith('http')) {
       text = await extractTextFromUrl(doc.filePath, doc.mimeType);
     } else {
-      // Fallback vers le fichier local
       const filePath = path.join(__dirname, '../../', doc.filePath);
       if (!fs.existsSync(filePath)) throw new Error('Fichier physique introuvable');
       text = await extractText(filePath, doc.mimeType);
@@ -36,7 +43,43 @@ export const getDocumentAnalysis = async (documentId: string, type: string, user
     return { message: 'Texte trop court pour une analyse.' };
   }
 
-  // ... Le reste de votre logique d'analyse (word count, sentiment, etc.)
+  // Statistiques simples
   const wordCount = text.split(/\s+/).length;
-  return { wordCount, text: text.substring(0, 500) };
+  const charCount = text.length;
+  const sentences = text.match(/[^.!?]+[.!?]+/g)?.length || 0;
+
+  return {
+    documentId,
+    type,
+    wordCount,
+    charCount,
+    sentences,
+    text: text.substring(0, 500), // Extrait
+  };
+};
+
+/**
+ * Analyse un projet complet (entités, statistiques globales)
+ */
+export const getProjectAnalysis = async (projectId: string, userId: string) => {
+  console.log(`🔍 Analyse du projet ${projectId}`);
+
+  // Récupérer les entités du projet via entityExtractor
+  const entities = await getProjectEntities(projectId, userId);
+
+  // Compter le total d'entités
+  const totalEntities = Object.values(entities).reduce(
+    (acc, arr) => acc + arr.length,
+    0
+  );
+
+  // Récupérer les statistiques de tous les documents du projet (optionnel)
+  // On peut ajouter d'autres métriques ici
+
+  return {
+    projectId,
+    totalEntities,
+    entities,
+    message: 'Analyse du projet terminée avec succès',
+  };
 };
