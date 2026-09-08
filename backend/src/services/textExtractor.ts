@@ -1,7 +1,6 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
-import path from 'path';
-import pdfParse from 'pdf-parse';
+import * as pdfParse from 'pdf-parse';   // ✅ Import corrigé
 import mammoth from 'mammoth';
 import fetch from 'node-fetch';
 
@@ -39,7 +38,7 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
   // Pour PDF
   if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
-      const data = await pdfParse(buffer);
+      const data = await pdfParse.default(buffer); // ✅ Appel corrigé
       return data.text;
     } catch (error) {
       console.error('❌ Erreur extraction PDF:', error);
