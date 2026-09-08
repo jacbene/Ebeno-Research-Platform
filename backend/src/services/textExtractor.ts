@@ -1,6 +1,7 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
 import path from 'path';
+import fetch from 'node-fetch';
 
 // Fonction existante pour extraire depuis un fichier local (si nécessaire)
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
@@ -18,8 +19,7 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
     if (!response.ok) {
       throw new Error(`Erreur HTTP ${response.status} lors du téléchargement de ${url}`);
     }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = await response.buffer();
     return extractTextFromBuffer(buffer, mimeType);
   } catch (error) {
     console.error(`❌ Erreur téléchargement depuis ${url}:`, error);
@@ -29,12 +29,10 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
 
 // Extraction depuis un buffer
 export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): Promise<string> => {
-  // Pour TXT
   if (mimeType === 'text/plain' || mimeType.includes('text')) {
     return buffer.toString('utf-8');
   }
 
-  // Pour PDF (nécessite pdf-parse)
   if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
       const pdfParse = await import('pdf-parse');
@@ -46,7 +44,6 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOCX (nécessite mammoth)
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
       mimeType.includes('word') || mimeType.includes('docx')) {
     try {
@@ -59,7 +56,6 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOC (ancien format) – essayer via mammoth aussi (support limité)
   if (mimeType === 'application/msword' || mimeType.includes('doc')) {
     try {
       const mammoth = await import('mammoth');
