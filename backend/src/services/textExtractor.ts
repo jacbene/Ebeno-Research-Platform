@@ -1,8 +1,11 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
-import * as pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import fetch from 'node-fetch';
+
+// Utilisation de require pour pdf-parse (CommonJS, pas d'export nommé)
+// @ts-ignore
+const pdfParse = require('pdf-parse');
 
 // Fonction existante pour extraire depuis un fichier local (si nécessaire)
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
@@ -58,7 +61,7 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // ❌ DOC (ancien format) – non supporté, on renvoie une erreur explicite
+  // ❌ DOC (ancien format) – non supporté
   if (mimeType === 'application/msword' || mimeType.includes('doc')) {
     console.warn('⚠️ Les fichiers .doc (ancien format) ne sont pas supportés. Veuillez utiliser .docx.');
     throw new Error('Format .doc non supporté. Veuillez utiliser .docx, .pdf ou .txt.');

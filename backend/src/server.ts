@@ -1,3 +1,4 @@
+// backend/src/server.ts
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,6 +7,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
 import uploadRoutes from './routes/uploadRoutes';
+
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
@@ -26,7 +28,7 @@ import codeRoutes from './routes/codeRoutes';
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
 import { db } from './db/knex';
 
-// Chargement des variables d'environnement (sans fichier .env sur Render)
+// Chargement des variables d'environnement
 dotenv.config();
 
 // Gestion des erreurs non capturées
@@ -132,8 +134,12 @@ const startServer = async () => {
 
     // Vérification que le serveur écoute bien
     httpServer.on('listening', () => {
-      const address = httpServer.address();
-      console.log(`✅ Serveur en écoute sur ${address?.port}`);
+      const addr = httpServer.address();
+      if (addr && typeof addr !== 'string') {
+        console.log(`✅ Serveur en écoute sur le port ${addr.port}`);
+      } else {
+        console.log('✅ Serveur en écoute (adresse non numérique)');
+      }
     });
 
     httpServer.on('error', (err) => {
