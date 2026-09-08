@@ -6,7 +6,6 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
 import uploadRoutes from './routes/uploadRoutes';
-
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
@@ -27,7 +26,19 @@ import codeRoutes from './routes/codeRoutes';
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
 import { db } from './db/knex';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Chargement des variables d'environnement (sans fichier .env sur Render)
+dotenv.config();
+
+// Gestion des erreurs non capturées
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 
 const app = express();
 const port = Number(process.env.PORT) || 5001;
@@ -39,8 +50,8 @@ const io = new SocketIOServer(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 new CollaborationSocketHandler(io);
@@ -86,8 +97,8 @@ app.get('/', (req, res) => {
       projects: '/api/projects',
       deepseek: '/api/deepseek',
       collaboration: '/api/collaboration',
-      health: '/api/health'
-    }
+      health: '/api/health',
+    },
   });
 });
 
@@ -98,24 +109,44 @@ app.use('*', (req, res) => {
 
 // Gestion d'erreurs
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Erreur:', err.message);
+  console.error('❌ Erreur:', err.message);
   res.status(500).json({ error: 'Erreur interne du serveur' });
 });
 
-// Exécuter les migrations avant de démarrer le serveur
-db.migrate
-  .latest()
-  .then(() => {
+// Fonction de démarrage avec logs explicites
+const startServer = async () => {
+  try {
+    console.log('⏳ Connexion à la base de données...');
+    await db.raw('SELECT 1');
+    console.log('✅ Base de données connectée');
+
+    console.log('⏳ Exécution des migrations...');
+    await db.migrate.latest();
     console.log('✅ Migrations appliquées avec succès');
+
+    console.log(`⏳ Démarrage du serveur sur le port ${port}...`);
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Serveur démarré sur le port ${port}`);
       console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
-  })
-  .catch((err) => {
-    console.error('❌ Erreur lors des migrations:', err);
+
+    // Vérification que le serveur écoute bien
+    httpServer.on('listening', () => {
+      const address = httpServer.address();
+      console.log(`✅ Serveur en écoute sur ${address?.port}`);
+    });
+
+    httpServer.on('error', (err) => {
+      console.error('❌ Erreur du serveur HTTP:', err);
+    });
+  } catch (err) {
+    console.error('❌ Erreur lors du démarrage:', err);
     process.exit(1);
-  });
+  }
+};
+
+// Lancer le serveur
+startServer();
 
 export { io };
 export default app;
