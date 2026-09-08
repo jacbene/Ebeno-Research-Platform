@@ -1,9 +1,10 @@
+// backend/src/controllers/uploadController.ts
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
-import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Ajout
+import { uploadToCloudinary } from '../services/cloudinaryService';
 
 // Configuration multer (stockage temporaire local)
 const storage = multer.diskStorage({
@@ -69,7 +70,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         filePath: secureUrl, // URL Cloudinary
         fileHash,
         cloudinaryPublicId: publicId,
-        uploadedAt: new Date().toISOString(), // Chaîne ISO
+        uploadedAt: Date.now(), // ✅ bigint – timestamp en millisecondes
       });
 
       const inserted = await db('project_files').where({ id }).first();
