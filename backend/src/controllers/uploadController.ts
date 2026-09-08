@@ -1,13 +1,14 @@
-// backend/src/controllers/uploadController.ts
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
+import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Ajout
 
+// Configuration multer (stockage temporaire local)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/projects/';
+    const uploadDir = 'uploads/temp/';
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -39,28 +40,24 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
-      // Vérifier si le fichier existe déjà
+      // 1. Vérifier les doublons
       const existing = await db('project_files')
         .where({ projectId, fileHash })
         .first();
 
       if (existing) {
-        // Supprimer le fichier temporaire
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
         return res.status(409).json({
           error: 'Ce fichier existe déjà dans ce projet',
-          file: {
-            id: existing.id,
-            fileName: existing.fileName,
-            fileSize: existing.fileSize,
-            uploadedAt: existing.uploadedAt
-          }
+          file: existing
         });
       }
 
-      // Insérer le nouveau fichier
+      // 2. Upload vers Cloudinary
+      const folder = `projects/${projectId}`;
+      const { publicId, secureUrl } = await uploadToCloudinary(file.path, folder);
+
+      // 3. Insérer dans la base
       const id = Date.now().toString();
       await db('project_files').insert({
         id,
@@ -69,9 +66,10 @@ export const uploadFile = async (req: Request, res: Response) => {
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
-        filePath: file.path,
+        filePath: secureUrl, // URL Cloudinary
         fileHash,
-        uploadedAt: Date.now()
+        cloudinaryPublicId: publicId,
+        uploadedAt: new Date().toISOString(), // Chaîne ISO
       });
 
       const inserted = await db('project_files').where({ id }).first();
