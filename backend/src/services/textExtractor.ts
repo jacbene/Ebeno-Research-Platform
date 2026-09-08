@@ -1,14 +1,8 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
-import path from 'path';
-
-// Utilisation de require pour les modules CommonJS (compatibilité Node)
-// @ts-ignore – ignore les erreurs de typage (les modules existent)
-const pdfParse = require('pdf-parse');
-// @ts-ignore
-const mammoth = require('mammoth');
-// @ts-ignore
-const fetch = require('node-fetch');
+import * as pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
+import fetch from 'node-fetch';
 
 // Fonction existante pour extraire depuis un fichier local (si nécessaire)
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
@@ -52,7 +46,7 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOCX
+  // Pour DOCX (moderne) – supporté
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
       mimeType.includes('word') || mimeType.includes('docx')) {
     try {
@@ -64,15 +58,10 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // Pour DOC (ancien format)
+  // ❌ DOC (ancien format) – non supporté, on renvoie une erreur explicite
   if (mimeType === 'application/msword' || mimeType.includes('doc')) {
-    try {
-      const result = await mammoth.extractRawText({ buffer });
-      return result.value;
-    } catch (error) {
-      console.error('❌ Erreur extraction DOC:', error);
-      return 'Impossible d\'extraire le texte du DOC.';
-    }
+    console.warn('⚠️ Les fichiers .doc (ancien format) ne sont pas supportés. Veuillez utiliser .docx.');
+    throw new Error('Format .doc non supporté. Veuillez utiliser .docx, .pdf ou .txt.');
   }
 
   throw new Error(`Type MIME non supporté pour l'extraction de texte: ${mimeType}`);
