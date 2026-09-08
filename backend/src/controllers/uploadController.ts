@@ -1,3 +1,4 @@
+// backend/src/controllers/uploadController.ts
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -30,29 +31,57 @@ export const uploadFile = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
-    const { projectId } = req.body;
+    const { projectId, fileHash } = req.body;
     if (!projectId) return res.status(400).json({ error: 'projectId manquant' });
+    if (!fileHash) return res.status(400).json({ error: 'fileHash manquant' });
 
     const file = (req as any).file;
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
+      // Vérifier si le fichier existe déjà
+      const existing = await db('project_files')
+        .where({ projectId, fileHash })
+        .first();
+
+      if (existing) {
+        // Supprimer le fichier temporaire
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+        return res.status(409).json({
+          error: 'Ce fichier existe déjà dans ce projet',
+          file: {
+            id: existing.id,
+            fileName: existing.fileName,
+            fileSize: existing.fileSize,
+            uploadedAt: existing.uploadedAt
+          }
+        });
+      }
+
+      // Insérer le nouveau fichier
       const id = Date.now().toString();
       await db('project_files').insert({
         id,
-        projectId, // projectId brut (non encodé)
+        projectId,
         userId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
         filePath: file.path,
+        fileHash,
         uploadedAt: Date.now()
       });
 
       const inserted = await db('project_files').where({ id }).first();
       res.status(201).json(inserted);
+
     } catch (error: any) {
-      console.error('Erreur upload file:', error);
+      console.error('❌ Erreur upload file:', error);
+      if (file && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
       res.status(500).json({ error: 'Erreur serveur', details: error.message });
     }
   });
