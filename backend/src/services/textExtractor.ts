@@ -1,8 +1,14 @@
 // backend/src/services/textExtractor.ts
 import fs from 'fs';
-import * as pdfParse from 'pdf-parse';   // ✅ Import en tant qu'objet module
-import mammoth from 'mammoth';
-import fetch from 'node-fetch';
+import path from 'path';
+
+// Utilisation de require pour les modules CommonJS (compatibilité Node)
+// @ts-ignore – ignore les erreurs de typage (les modules existent)
+const pdfParse = require('pdf-parse');
+// @ts-ignore
+const mammoth = require('mammoth');
+// @ts-ignore
+const fetch = require('node-fetch');
 
 // Fonction existante pour extraire depuis un fichier local (si nécessaire)
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
@@ -38,7 +44,6 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
   // Pour PDF
   if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
-      // ✅ Appel direct : pdfParse est la fonction
       const data = await pdfParse(buffer);
       return data.text;
     } catch (error) {
