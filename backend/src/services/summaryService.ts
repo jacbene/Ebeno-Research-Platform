@@ -1,7 +1,8 @@
+// backend/src/services/summaryService.ts
 import { db } from '../db/knex';
-import { extractText } from './textExtractor';
-import fs from 'fs';
+import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
 import path from 'path';
+import fs from 'fs';
 
 // Utiliser Deepgram (recommandé) ou OpenAI
 const useDeepgram = true;
@@ -76,9 +77,25 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
   } else if (type === 'file') {
     const doc = await db('project_files').where({ id: documentId, userId }).first();
     if (!doc) throw new Error('Fichier non trouvé');
-    const filePath = path.join(__dirname, '../../', doc.filePath);
-    if (!fs.existsSync(filePath)) throw new Error('Fichier physique introuvable');
-    text = await extractText(filePath, doc.mimeType);
+    
+    // ✅ Utiliser Cloudinary URL (ou chemin local en fallback)
+    if (doc.filePath && doc.filePath.startsWith('http')) {
+      // C'est une URL Cloudinary
+      console.log(`📂 [summary] Téléchargement depuis Cloudinary : ${doc.filePath}`);
+      text = await extractTextFromUrl(doc.filePath, doc.mimeType);
+    } else {
+      // Fallback vers le fichier local (pour compatibilité)
+      const filePath = path.join(__dirname, '../../', doc.filePath);
+      console.log(`📂 [summary] Chemin local : ${filePath}`);
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Fichier physique introuvable : ${filePath}`);
+      }
+      // Utiliser la fonction d'extraction locale (à importer si besoin)
+      // text = await extractText(filePath, doc.mimeType);
+      // Pour éviter du code dupliqué, on peut utiliser extractTextFromBuffer
+      const buffer = await fs.promises.readFile(filePath);
+      text = await extractTextFromBuffer(buffer, doc.mimeType);
+    }
   } else {
     throw new Error('Type de document inconnu');
   }
@@ -99,7 +116,7 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
       .where({ documentId, type })
       .update({ 
         summary, 
-        updatedAt: new Date().toISOString()   // ✅ Correction
+        updatedAt: new Date().toISOString()
       });
   } else {
     await db('document_summaries').insert({
@@ -107,8 +124,8 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
       documentId,
       type,
       summary,
-      createdAt: new Date().toISOString(),    // ✅ Correction
-      updatedAt: new Date().toISOString(),    // ✅ Correction
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   }
 

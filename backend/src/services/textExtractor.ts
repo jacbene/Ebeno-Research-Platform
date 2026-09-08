@@ -1,61 +1,75 @@
+// backend/src/services/textExtractor.ts
 import fs from 'fs';
 import path from 'path';
-import PDFParser from 'pdf2json';
-import mammoth from 'mammoth';
 
-// Fonction de décodage sécurisée
-const safeDecode = (str: string): string => {
+// Fonction existante pour extraire depuis un fichier local (si nécessaire)
+export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Fichier introuvable: ${filePath}`);
+  }
+  const buffer = await fs.promises.readFile(filePath);
+  return extractTextFromBuffer(buffer, mimeType);
+};
+
+// Extraction depuis une URL (Cloudinary)
+export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
-    return decodeURIComponent(str);
-  } catch {
-    return str;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP ${response.status} lors du téléchargement de ${url}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return extractTextFromBuffer(buffer, mimeType);
+  } catch (error) {
+    console.error(`❌ Erreur téléchargement depuis ${url}:`, error);
+    throw new Error(`Impossible de télécharger le fichier depuis ${url}`);
   }
 };
 
-export const extractText = async (filePath: string, mimeType?: string): Promise<string> => {
-  const ext = path.extname(filePath).toLowerCase();
+// Extraction depuis un buffer
+export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): Promise<string> => {
+  // Pour TXT
+  if (mimeType === 'text/plain' || mimeType.includes('text')) {
+    return buffer.toString('utf-8');
+  }
 
-  if (ext === '.txt' || ext === '.md' || ext === '.csv' || ext === '.json' || ext === '.xml' || ext === '.html' || ext === '.css' || ext === '.js' || ext === '.ts') {
+  // Pour PDF (nécessite pdf-parse)
+  if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
-      return fs.readFileSync(filePath, 'utf8');
-    } catch {
-      return '';
+      const pdfParse = await import('pdf-parse');
+      const data = await pdfParse.default(buffer);
+      return data.text;
+    } catch (error) {
+      console.error('❌ Erreur extraction PDF:', error);
+      return 'Impossible d\'extraire le texte du PDF.';
     }
   }
 
-  if (ext === '.pdf') {
+  // Pour DOCX (nécessite mammoth)
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+      mimeType.includes('word') || mimeType.includes('docx')) {
     try {
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfParser = new PDFParser();
-      return new Promise((resolve, reject) => {
-        pdfParser.on('pdfParser_dataError', (err: any) => reject(err));
-        pdfParser.on('pdfParser_dataReady', (data: any) => {
-          let text = '';
-          if (data && data.Pages) {
-            text = data.Pages.map((page: any) =>
-              page.Texts.map((t: any) => safeDecode(t.R[0].T)).join(' ')
-            ).join('\n');
-          }
-          resolve(text);
-        });
-        pdfParser.parseBuffer(dataBuffer);
-      });
-    } catch (err) {
-      console.warn(`⚠️ Erreur lecture PDF ${filePath}:`, err);
-      return '';
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    } catch (error) {
+      console.error('❌ Erreur extraction DOCX:', error);
+      return 'Impossible d\'extraire le texte du DOCX.';
     }
   }
 
-  if (ext === '.docx') {
+  // Pour DOC (ancien format) – essayer via mammoth aussi (support limité)
+  if (mimeType === 'application/msword' || mimeType.includes('doc')) {
     try {
-      const result = await mammoth.extractRawText({ path: filePath });
-      return result.value || '';
-    } catch (err) {
-      console.warn(`⚠️ Erreur lecture DOCX ${filePath}:`, err);
-      return '';
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    } catch (error) {
+      console.error('❌ Erreur extraction DOC:', error);
+      return 'Impossible d\'extraire le texte du DOC.';
     }
   }
 
-  console.warn(`⚠️ Format non supporté : ${ext}, ignoré`);
-  return '';
+  throw new Error(`Type MIME non supporté pour l'extraction de texte: ${mimeType}`);
 };
