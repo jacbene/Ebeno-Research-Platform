@@ -104,13 +104,17 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
             break;
           case 'analyze':
             const analysis = response.data;
-            // Transformation pour le WordCloud
+            
+            // ✅ Transformation pour le WordCloud
             if (analysis.wordCloud && Array.isArray(analysis.wordCloud)) {
               analysis.wordCloud = analysis.wordCloud.map((item: any) => ({
                 text: item.word || item.text,
                 value: item.count || item.value || 1,
               }));
             }
+            
+            console.log('☁️ WordCloud data:', analysis.wordCloud); // Debug
+            
             setAnalysisData(analysis);
             const totalWords = analysis?.totalWords || 0;
             const uniqueWords = analysis?.uniqueWords || 0;
@@ -223,11 +227,31 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           {serviceType && <Badge variant="info" style={{ marginBottom: '8px' }}>{serviceType}</Badge>}
           <div style={{ marginTop: '8px' }}>{displayContent}</div>
 
+          {/* ✅ Nuage de mots avec fallback en tags si le composant est absent */}
           {analysisData && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0' }}>☁️ Nuage de mots</h5>
               {analysisData.wordCloud && analysisData.wordCloud.length > 0 ? (
-                <WordCloudComponent words={analysisData.wordCloud} width={500} height={300} />
+                <>
+                  {/* Essayer d'utiliser WordCloudComponent */}
+                  <div style={{ display: 'block' }}>
+                    <WordCloudComponent words={analysisData.wordCloud} width={500} height={300} />
+                  </div>
+                  {/* Fallback tags (visible en dessous si le composant ne s'affiche pas) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                    {analysisData.wordCloud.slice(0, 30).map((item: any, idx: number) => (
+                      <span key={idx} style={{
+                        backgroundColor: colors.primary + '20',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        color: colors.primary,
+                      }}>
+                        {item.text || item.word} ({item.value || item.count})
+                      </span>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <p style={{ color: colors.gray[500], fontSize: '14px' }}>
                   ⚠️ Aucun mot‑clé pour le nuage.
