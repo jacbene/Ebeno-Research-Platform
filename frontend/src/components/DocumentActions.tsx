@@ -104,6 +104,13 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
             break;
           case 'analyze':
             const analysis = response.data;
+            // Transformation pour le WordCloud
+            if (analysis.wordCloud && Array.isArray(analysis.wordCloud)) {
+              analysis.wordCloud = analysis.wordCloud.map((item: any) => ({
+                text: item.word || item.text,
+                value: item.count || item.value || 1,
+              }));
+            }
             setAnalysisData(analysis);
             const totalWords = analysis?.totalWords || 0;
             const uniqueWords = analysis?.uniqueWords || 0;
@@ -216,7 +223,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           {serviceType && <Badge variant="info" style={{ marginBottom: '8px' }}>{serviceType}</Badge>}
           <div style={{ marginTop: '8px' }}>{displayContent}</div>
 
-          {/* ✅ Nuage de mots avec fallback */}
           {analysisData && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0' }}>☁️ Nuage de mots</h5>
