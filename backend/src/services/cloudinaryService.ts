@@ -12,7 +12,8 @@ export const uploadToCloudinary = async (
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
-      resource_type: resourceType, // ✅ Utiliser le paramètre passé
+      resource_type: resourceType,
+      access_mode: 'public', // ✅ Rendre le fichier accessible publiquement
     });
 
     // Supprimer le fichier local après l'upload
