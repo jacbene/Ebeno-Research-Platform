@@ -56,7 +56,20 @@ export const uploadFile = async (req: Request, res: Response) => {
 
       // 2. Upload vers Cloudinary
       const folder = `projects/${projectId}`;
-      const { publicId, secureUrl } = await uploadToCloudinary(file.path, folder);
+      
+      // ✅ Déterminer le resource_type en fonction du MIME
+      let resourceType: 'raw' | 'auto' | 'image' | 'video' = 'auto';
+      if (file.mimetype === 'application/pdf') {
+        resourceType = 'raw';
+      } else if (file.mimetype.startsWith('image/')) {
+        resourceType = 'image';
+      } else if (file.mimetype.startsWith('video/')) {
+        resourceType = 'video';
+      } else {
+        resourceType = 'raw';
+      }
+
+      const { publicId, secureUrl } = await uploadToCloudinary(file.path, folder, resourceType);
 
       // 3. Insérer dans la base
       const id = Date.now().toString();
@@ -70,7 +83,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         filePath: secureUrl, // URL Cloudinary
         fileHash,
         cloudinaryPublicId: publicId,
-        uploadedAt: Date.now(), // ✅ bigint – timestamp en millisecondes
+        uploadedAt: Date.now(),
       });
 
       const inserted = await db('project_files').where({ id }).first();

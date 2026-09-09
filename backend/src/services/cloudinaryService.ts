@@ -1,3 +1,4 @@
+// backend/src/services/cloudinaryService.ts
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
@@ -5,12 +6,13 @@ cloudinary.config();
 
 export const uploadToCloudinary = async (
   filePath: string,
-  folder: string
+  folder: string,
+  resourceType: 'raw' | 'auto' | 'image' | 'video' = 'auto'
 ): Promise<{ publicId: string; secureUrl: string }> => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
-      resource_type: 'auto',
+      resource_type: resourceType, // ✅ Utiliser le paramètre passé
     });
 
     // Supprimer le fichier local après l'upload
@@ -18,7 +20,7 @@ export const uploadToCloudinary = async (
       fs.unlinkSync(filePath);
     }
 
-    console.log(`✅ Fichier uploadé sur Cloudinary : ${result.secure_url}`);
+    console.log(`✅ Fichier uploadé sur Cloudinary (${resourceType}) : ${result.secure_url}`);
     return { publicId: result.public_id, secureUrl: result.secure_url };
   } catch (error) {
     console.error('❌ Erreur upload Cloudinary:', error);
