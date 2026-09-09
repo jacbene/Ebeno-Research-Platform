@@ -1,6 +1,6 @@
 // backend/src/services/codeSuggestionService.ts
 import { db } from '../db/knex';
-import { extractText } from './textExtractor';
+import { extractText, extractTextFromUrl } from './textExtractor';
 import path from 'path';
 import fs from 'fs';
 import nlp from 'compromise';
@@ -23,26 +23,40 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
 
   const memos = await db('memos').where({ projectId }).select('content');
   const transcriptions = await db('transcriptions').where({ projectId }).select('transcriptText');
-  const files = await db('project_files').where({ projectId }).select('filePath', 'mimeType');
+  const files = await db('project_files').where({ projectId }).select('filePath', 'mimeType', 'id');
 
   let allText = '';
 
+  // Mémos
   memos.forEach(m => { if (m.content) allText += ' ' + m.content; });
+  // Transcriptions
   transcriptions.forEach(t => { if (t.transcriptText) allText += ' ' + t.transcriptText; });
 
+  // Fichiers (support Cloudinary)
   for (const f of files) {
-    const filePath = path.join(__dirname, '../../', f.filePath);
-    if (fs.existsSync(filePath)) {
-      try {
-        const text = await extractText(filePath, f.mimeType);
-        if (text && text.trim().length > 10) {
-          allText += ' ' + text;
+    try {
+      let text = '';
+      if (f.filePath && f.filePath.startsWith('http')) {
+        // ✅ Cloudinary
+        console.log(`📂 [codes] Téléchargement depuis Cloudinary : ${f.filePath}`);
+        text = await extractTextFromUrl(f.filePath, f.mimeType);
+      } else {
+        // Local
+        const filePath = path.join(__dirname, '../../', f.filePath);
+        if (fs.existsSync(filePath)) {
+          text = await extractText(filePath, f.mimeType);
         }
-      } catch (err) {
-        console.error(`Erreur extraction fichier ${f.filePath}:`, err.message);
       }
+      if (text && text.trim().length > 10) {
+        allText += ' ' + text;
+        console.log(`✅ [codes] ${f.id} : ${text.length} caractères ajoutés`);
+      }
+    } catch (err) {
+      console.error(`❌ Erreur extraction fichier ${f.id}:`, err.message);
     }
   }
+
+  console.log(`📝 [codes] Texte total collecté : ${allText.length} caractères`);
 
   if (allText.trim().length < 50) {
     console.log('⚠️ Pas assez de texte pour générer des suggestions.');
@@ -53,8 +67,11 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
   const freq: Record<string, number> = {};
   keywords.forEach(k => { freq[k] = (freq[k] || 0) + 1; });
 
+  // On garde les mots qui apparaissent au moins 2 fois (ou 1 si peu de textes)
+  const minCount = allText.trim().split(/\s+/).length > 200 ? 2 : 1;
+
   const suggestions = Object.entries(freq)
-    .filter(([word, count]) => count >= 2)
+    .filter(([word, count]) => count >= minCount)
     .sort((a, b) => b[1] - a[1])
     .map(([word, count]) => word);
 
@@ -91,4 +108,3 @@ export const updateCodeStatus = async (codeId: string, status: 'accepted' | 'rej
     .where({ id: codeId })
     .update({ status, updatedAt: Date.now() });
 };
-
