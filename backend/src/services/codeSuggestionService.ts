@@ -3,19 +3,21 @@ import { db } from '../db/knex';
 import { extractText, extractTextFromUrl } from './textExtractor';
 import path from 'path';
 import fs from 'fs';
-import nlp from 'compromise';
 
 const stopwords = new Set([
   'le', 'la', 'les', 'de', 'des', 'et', 'ou', 'que', 'qui', 'dans', 'pour', 'sur', 'avec', 'sans', 'par', 'chez', 'entre', 'avant', 'après', 'pendant', 'depuis', 'dont', 'où', 'lui', 'elle', 'nous', 'vous', 'ils', 'elles', 'même', 'très', 'plus', 'moins', 'aussi', 'encore', 'toujours', 'jamais', 'alors', 'ainsi', 'donc', 'enfin', 'mais', 'ou', 'et', 'donc', 'or', 'ni', 'car',
-  'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'le', 'la', 'les', 'lui', 'leur', 'y', 'en', 'ce', 'cette', 'ces', 'mon', 'ton', 'son', 'notre', 'votre', 'leur', 'ma', 'ta', 'sa', 'nos', 'vos', 'leurs'
+  'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'le', 'la', 'les', 'lui', 'leur', 'y', 'en', 'ce', 'cette', 'ces', 'mon', 'ton', 'son', 'notre', 'votre', 'leur', 'ma', 'ta', 'sa', 'nos', 'vos', 'leurs',
+  'dans', 'hors', 'avec', 'sans', 'par', 'pour', 'chez', 'entre', 'en', 'à', 'au', 'aux', 'du', 'des',
+  'est', 'sont', 'était', 'étaient', 'sera', 'seront', 'être', 'avoir', 'faire', 'dire', 'voir', 'vouloir',
+  'un', 'une', 'des', 'ce', 'cet', 'cette', 'ces'
 ]);
 
 const extractKeywords = (text: string): string[] => {
-  const doc = nlp(text);
-  const terms = doc.match('#Noun+|#Adjective').out('array');
-  return terms
-    .map(t => t.toLowerCase().trim())
-    .filter(t => t.length > 2 && !stopwords.has(t));
+  // Extraction de tous les mots de plus de 2 caractères, hors stopwords
+  const words = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
+  return words
+    .map(w => w.trim())
+    .filter(w => w.length > 2 && !stopwords.has(w));
 };
 
 export const suggestCodesForProject = async (projectId: string): Promise<string[]> => {
@@ -27,21 +29,16 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
 
   let allText = '';
 
-  // Mémos
   memos.forEach(m => { if (m.content) allText += ' ' + m.content; });
-  // Transcriptions
   transcriptions.forEach(t => { if (t.transcriptText) allText += ' ' + t.transcriptText; });
 
-  // Fichiers (support Cloudinary)
   for (const f of files) {
     try {
       let text = '';
       if (f.filePath && f.filePath.startsWith('http')) {
-        // ✅ Cloudinary
         console.log(`📂 [codes] Téléchargement depuis Cloudinary : ${f.filePath}`);
         text = await extractTextFromUrl(f.filePath, f.mimeType);
       } else {
-        // Local
         const filePath = path.join(__dirname, '../../', f.filePath);
         if (fs.existsSync(filePath)) {
           text = await extractText(filePath, f.mimeType);
@@ -64,16 +61,25 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
   }
 
   const keywords = extractKeywords(allText);
+  console.log(`🔑 [codes] ${keywords.length} mots-clés extraits (ex: ${keywords.slice(0, 15).join(', ')})`);
+
+  if (keywords.length < 3) {
+    console.log('⚠️ Pas assez de mots-clés pour générer des suggestions.');
+    return [];
+  }
+
   const freq: Record<string, number> = {};
   keywords.forEach(k => { freq[k] = (freq[k] || 0) + 1; });
 
-  // On garde les mots qui apparaissent au moins 2 fois (ou 1 si peu de textes)
   const minCount = allText.trim().split(/\s+/).length > 200 ? 2 : 1;
+  console.log(`📊 [codes] Seuil de fréquence : ${minCount}`);
 
   const suggestions = Object.entries(freq)
     .filter(([word, count]) => count >= minCount)
     .sort((a, b) => b[1] - a[1])
     .map(([word, count]) => word);
+
+  console.log(`💡 [codes] ${suggestions.length} suggestions générées (ex: ${suggestions.slice(0, 10).join(', ')})`);
 
   const now = Date.now();
   for (const code of suggestions) {
