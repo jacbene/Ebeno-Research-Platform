@@ -105,7 +105,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           case 'analyze':
             const analysis = response.data;
             setAnalysisData(analysis);
-            formattedResult = `📊 Total mots : ${analysis.totalWords}\n🔤 Mots uniques : ${analysis.uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${analysis.topKeywords.map((k: any) => `  - ${k.word} (${k.count})`).join('\n')}`;
+            const totalWords = analysis?.totalWords || 0;
+            const uniqueWords = analysis?.uniqueWords || 0;
+            const topKeywords = analysis?.topKeywords || [];
+            formattedResult = `📊 Total mots : ${totalWords}\n🔤 Mots uniques : ${uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${topKeywords.map((k: any) => `  - ${k.word} (${k.count})`).join('\n')}`;
             break;
           case 'transcribe':
             formattedResult = response.data.message || 'Transcription en cours...';
