@@ -216,10 +216,17 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           {serviceType && <Badge variant="info" style={{ marginBottom: '8px' }}>{serviceType}</Badge>}
           <div style={{ marginTop: '8px' }}>{displayContent}</div>
 
-          {analysisData && analysisData.wordCloud && analysisData.wordCloud.length > 0 && (
+          {/* ✅ Nuage de mots avec fallback */}
+          {analysisData && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0' }}>☁️ Nuage de mots</h5>
-              <WordCloudComponent words={analysisData.wordCloud} width={500} height={300} />
+              {analysisData.wordCloud && analysisData.wordCloud.length > 0 ? (
+                <WordCloudComponent words={analysisData.wordCloud} width={500} height={300} />
+              ) : (
+                <p style={{ color: colors.gray[500], fontSize: '14px' }}>
+                  ⚠️ Aucun mot‑clé pour le nuage.
+                </p>
+              )}
             </div>
           )}
         </div>
