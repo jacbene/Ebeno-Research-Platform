@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { db } from '../db/knex';
 import { extractAndStoreEntities, getDocumentEntities, getProjectEntities } from '../services/entityExtractor';
-import { extractText } from '../services/textExtractor';
+import { extractText, extractTextFromUrl } from '../services/textExtractor'; // ✅ Ajout
 import path from 'path';
 import fs from 'fs';
 
@@ -68,9 +68,14 @@ router.post('/extract/:type/:id', authenticate, async (req, res) => {
     } else if (type === 'file') {
       const doc = await db('project_files').where({ id, userId }).first();
       if (!doc) return res.status(404).json({ error: 'Fichier non trouvé' });
-      const filePath = path.join(__dirname, '../../', doc.filePath);
-      if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Fichier physique introuvable' });
-      text = await extractText(filePath, doc.mimeType);
+      // ✅ Support Cloudinary
+      if (doc.filePath && doc.filePath.startsWith('http')) {
+        text = await extractTextFromUrl(doc.filePath, doc.mimeType);
+      } else {
+        const filePath = path.join(__dirname, '../../', doc.filePath);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Fichier physique introuvable' });
+        text = await extractText(filePath, doc.mimeType);
+      }
     }
 
     if (!text || text.trim().length < 10) {
@@ -111,16 +116,21 @@ router.post('/extract-project/:projectId', authenticate, async (req, res) => {
 
     const files = await db('project_files').where({ projectId }).select('id', 'filePath', 'mimeType');
     for (const f of files) {
-      const filePath = path.join(__dirname, '../../', f.filePath);
-      if (fs.existsSync(filePath)) {
-        try {
-          const text = await extractText(filePath, f.mimeType);
-          if (text && text.trim().length > 10) {
-            await extractAndStoreEntities(f.id, 'file', text);
+      let text = '';
+      try {
+        if (f.filePath && f.filePath.startsWith('http')) {
+          text = await extractTextFromUrl(f.filePath, f.mimeType);
+        } else {
+          const filePath = path.join(__dirname, '../../', f.filePath);
+          if (fs.existsSync(filePath)) {
+            text = await extractText(filePath, f.mimeType);
           }
-        } catch (err) {
-          console.warn(`⚠️ Ignoré fichier ${f.id} (${f.filePath}):`, err.message);
         }
+        if (text && text.trim().length > 10) {
+          await extractAndStoreEntities(f.id, 'file', text);
+        }
+      } catch (err) {
+        console.warn(`⚠️ Ignoré fichier ${f.id}:`, err.message);
       }
     }
 
