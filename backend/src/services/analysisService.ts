@@ -6,6 +6,20 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Extrait les mots d'un texte, nettoie et retourne les fréquences
+ */
+function getWordFrequencies(text: string): Map<string, number> {
+  const words = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
+  const freq = new Map<string, number>();
+  for (const w of words) {
+    if (w.length > 2) { // ignorer les mots trop courts
+      freq.set(w, (freq.get(w) || 0) + 1);
+    }
+  }
+  return freq;
+}
+
+/**
  * Analyse un document (transcription, memo ou fichier)
  */
 export const getDocumentAnalysis = async (
@@ -39,19 +53,41 @@ export const getDocumentAnalysis = async (
     throw new Error('Type de document inconnu');
   }
 
+  // Log du texte extrait (pour déboguer)
+  console.log(`📝 [analysis] Texte extrait pour ${documentId} : ${text?.length || 0} caractères`);
+
   if (!text || text.trim().length < 50) {
-    return { message: 'Texte trop court pour une analyse.' };
+    return { message: 'Texte trop court pour une analyse.', totalWords: 0, uniqueWords: 0, topKeywords: [], wordCloud: [] };
   }
 
-  // Statistiques simples
+  // Statistiques
   const wordCount = text.split(/\s+/).length;
   const charCount = text.length;
   const sentences = text.match(/[^.!?]+[.!?]+/g)?.length || 0;
 
+  // Fréquence des mots
+  const freq = getWordFrequencies(text);
+  const uniqueWords = freq.size;
+
+  // Top keywords (20 premiers)
+  const topKeywords = Array.from(freq.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([word, count]) => ({ word, count }));
+
+  // WordCloud (50 mots pour le nuage)
+  const wordCloud = Array.from(freq.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 50)
+    .map(([word, count]) => ({ word, count }));
+
   return {
     documentId,
     type,
-    wordCount,
+    totalWords: wordCount,
+    uniqueWords,
+    topKeywords,
+    wordCloud,
     charCount,
     sentences,
     text: text.substring(0, 500), // Extrait
@@ -64,17 +100,12 @@ export const getDocumentAnalysis = async (
 export const getProjectAnalysis = async (projectId: string, userId: string) => {
   console.log(`🔍 Analyse du projet ${projectId}`);
 
-  // Récupérer les entités du projet via entityExtractor
   const entities = await getProjectEntities(projectId, userId);
 
-  // Compter le total d'entités
   const totalEntities = Object.values(entities).reduce(
     (acc, arr) => acc + arr.length,
     0
   );
-
-  // Récupérer les statistiques de tous les documents du projet (optionnel)
-  // On peut ajouter d'autres métriques ici
 
   return {
     projectId,
