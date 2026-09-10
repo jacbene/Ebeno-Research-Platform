@@ -4,57 +4,65 @@ import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
 import fs from 'fs';
 import path from 'path';
 
-// Configuration Deepgram
-const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
+// Configuration OpenAI
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
 /**
- * Résumé via Deepgram Text Intelligence (/v1/read)
- * Note : Deepgram ne supporte que l'anglais pour la summarization.
+ * Résumé via OpenAI (recommandé pour le français)
  */
-const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
-  // Limiter la longueur pour éviter les dépassements
-  const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
+const generateSummaryWithOpenAI = async (text: string): Promise<string> => {
+  const truncatedText = text.length > 12000 ? text.substring(0, 12000) + '...' : text;
 
   try {
-    // ✅ Pas de paramètre language=fr (non supporté)
-    const response = await fetch(
-      'https://api.deepgram.com/v1/read?summarize=true',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${DEEPGRAM_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: truncatedText }),
-      }
-    );
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: `Vous êtes un assistant de recherche en sciences humaines et sociales.
+Résumez le texte suivant de manière structurée et académique :
+- Identifiez la thèse principale
+- Extrayez les arguments clés
+- Mentionnez les concepts importants
+- Soyez concis (3 à 5 phrases maximum)
+- Rédigez en français`,
+          },
+          { role: 'user', content: truncatedText },
+        ],
+        temperature: 0.5,
+        max_tokens: 400,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Erreur Deepgram:', response.status, errorText);
-      throw new Error(`Erreur Deepgram: ${response.status}`);
+      console.error('❌ Erreur OpenAI:', response.status, errorText);
+      throw new Error('Erreur OpenAI');
     }
 
-    // ✅ Typage any pour éviter l'erreur TS2339
     const data: any = await response.json();
-
-    const summary = data?.results?.summary?.text;
+    const summary = data?.choices?.[0]?.message?.content;
 
     if (summary) {
-      console.log(`✅ Résumé Deepgram généré : ${summary.length} caractères`);
+      console.log(`✅ Résumé OpenAI généré : ${summary.length} caractères`);
       return summary;
     }
 
-    console.warn('⚠️ Réponse Deepgram vide, fallback heuristique');
     return generateHeuristicSummary(truncatedText);
   } catch (error) {
-    console.error('❌ Erreur Deepgram, fallback heuristique:', error);
+    console.error('❌ Erreur OpenAI, fallback heuristique:', error);
     return generateHeuristicSummary(truncatedText);
   }
 };
 
 /**
- * Résumé heuristique (sans API) - fallback
+ * Résumé heuristique (fallback sans API)
  */
 const generateHeuristicSummary = (text: string): string => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
@@ -82,18 +90,19 @@ const generateHeuristicSummary = (text: string): string => {
 };
 
 /**
- * Fonction de résumé principale (Deepgram si dispo, sinon heuristique)
+ * Fonction de résumé principale
+ * → OpenAI si disponible (français), sinon heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
-  if (DEEPGRAM_API_KEY) {
-    return generateSummaryWithDeepgram(text);
+  if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
+    return generateSummaryWithOpenAI(text);
   }
-  console.log('⚠️ Deepgram non configuré, utilisation de l\'heuristique');
+  console.log('⚠️ OpenAI non configuré, utilisation de l\'heuristique');
   return generateHeuristicSummary(text);
 };
 
 /**
- * Génère le résumé d'un document
+ * Génère le résumé d'un document (transcription, memo ou fichier)
  */
 export const generateDocumentSummary = async (
   documentId: string,
@@ -138,6 +147,7 @@ export const generateDocumentSummary = async (
 
   const summary = await generateSummary(text);
 
+  // Sauvegarder
   const existing = await db('document_summaries')
     .where({ documentId, type })
     .first();
@@ -209,7 +219,7 @@ export const getProjectSummaries = async (
 };
 
 /**
- * Résumé global d'un projet entier
+ * Résumé global d'un projet
  */
 export const generateProjectSummary = async (
   projectId: string,
