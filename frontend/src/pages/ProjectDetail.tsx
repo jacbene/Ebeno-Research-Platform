@@ -47,6 +47,7 @@ interface UploadedFile {
   mimeType: string;
   filePath: string;
   uploadedAt: number;
+  deletedAt?: number | null;
 }
 
 interface Filters {
@@ -57,7 +58,7 @@ interface Filters {
 }
 
 // ============================================================
-// ✅ Utilitaires d'affichage
+// Utilitaires d'affichage
 // ============================================================
 
 const formatFileSize = (bytes: number | null | undefined): string => {
@@ -129,9 +130,11 @@ const ProjectDetail: React.FC = () => {
   const [transcriptions, setTranscriptions] = useState<ContentItem[]>([]);
   const [memos, setMemos] = useState<ContentItem[]>([]);
   const [projectFiles, setProjectFiles] = useState<UploadedFile[]>([]);
+  const [trashedFiles, setTrashedFiles] = useState<UploadedFile[]>([]);
+  const [trashedTranscriptions, setTrashedTranscriptions] = useState<ContentItem[]>([]);
   const [textDocuments, setTextDocuments] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'trash'>('audio');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
@@ -186,13 +189,33 @@ const ProjectDetail: React.FC = () => {
       if (memoRes.status === 200) setMemos(memoRes.data);
 
       const filesRes = await api.get(`/projects/${encodedId}/files`);
-      if (filesRes.status === 200) {
-        setProjectFiles(filesRes.data.files || []);
-      }
+      if (filesRes.status === 200) setProjectFiles(filesRes.data.files || []);
+
+      // ✅ Charger la corbeille
+      await fetchTrashedData();
     } catch (error) {
       console.error('❌ Erreur chargement projet:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Récupérer tous les éléments en corbeille
+  const fetchTrashedData = async () => {
+    try {
+      // Fichiers en corbeille
+      const filesRes = await api.get(`/projects/${encodedId}/files/trash`);
+      if (filesRes.status === 200) {
+        setTrashedFiles(filesRes.data.files || []);
+      }
+
+      // Transcriptions en corbeille
+      const transRes = await api.get(`/transcriptions/trash?projectId=${encodedId}`);
+      if (transRes.status === 200) {
+        setTrashedTranscriptions(transRes.data.data || []);
+      }
+    } catch (error) {
+      console.error('❌ Erreur chargement corbeille:', error);
     }
   };
 
@@ -241,34 +264,67 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Suppression d'un document (fichier uploadé ou texte importé)
+  // ✅ Suppression (soft delete) d'un document
   const deleteDocument = async (doc: any) => {
     const confirmMsg = doc.type === 'file'
-      ? `Supprimer le fichier "${doc.name}" ?\n\nCette action est irréversible. Le fichier sera supprimé de Cloudinary, ses entités et son résumé seront également supprimés.`
-      : `Supprimer le document "${doc.name}" ?\n\nCette action est irréversible.`;
+      ? `Déplacer "${doc.name}" à la corbeille ?\n\nVous pourrez le restaurer plus tard.`
+      : `Déplacer "${doc.name}" à la corbeille ?`;
 
     if (!confirm(confirmMsg)) return;
 
     setDeletingId(doc.id);
-
     try {
       if (doc.type === 'file') {
         await api.delete(`/projects/${encodedId}/files/${doc.id}`);
-        console.log(`✅ Fichier supprimé : ${doc.name}`);
       } else {
         await api.delete(`/transcriptions/${doc.id}`);
-        console.log(`✅ Document texte supprimé : ${doc.name}`);
       }
 
-      // Si le document supprimé était sélectionné, désélectionner
-      if (selectedDocument?.id === doc.id) {
-        setSelectedDocument(null);
-      }
-
-      // Rafraîchir la liste
+      if (selectedDocument?.id === doc.id) setSelectedDocument(null);
       await fetchProjectData();
     } catch (error: any) {
       console.error('❌ Erreur suppression:', error);
+      alert(error.response?.data?.error || 'Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // ✅ Restaurer un fichier ou une transcription
+  const restoreItem = async (item: any, kind: 'file' | 'transcription') => {
+    if (!confirm(`Restaurer "${item.fileName || item.title}" ?`)) return;
+
+    setDeletingId(item.id);
+    try {
+      if (kind === 'file') {
+        await api.patch(`/projects/${encodedId}/files/${item.id}/restore`);
+      } else {
+        await api.patch(`/transcriptions/${item.id}/restore`);
+      }
+      await fetchProjectData();
+    } catch (error: any) {
+      console.error('❌ Erreur restauration:', error);
+      alert(error.response?.data?.error || 'Erreur lors de la restauration');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // ✅ Suppression définitive
+  const permanentlyDeleteItem = async (item: any, kind: 'file' | 'transcription') => {
+    const name = item.fileName || item.title;
+    if (!confirm(`⚠️ Supprimer DÉFINITIVEMENT "${name}" ?\n\nCette action est IRRÉVERSIBLE.`)) return;
+
+    setDeletingId(item.id);
+    try {
+      if (kind === 'file') {
+        await api.delete(`/projects/${encodedId}/files/${item.id}/permanent`);
+      } else {
+        await api.delete(`/transcriptions/${item.id}/permanent`);
+      }
+      await fetchProjectData();
+    } catch (error: any) {
+      console.error('❌ Erreur suppression définitive:', error);
       alert(error.response?.data?.error || 'Erreur lors de la suppression');
     } finally {
       setDeletingId(null);
@@ -319,6 +375,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   const totalDocuments = projectFiles.length + textDocuments.length;
+  const totalTrashed = trashedFiles.length + trashedTranscriptions.length;
 
   const allDocuments = useMemo(() => {
     const docs = [
@@ -345,16 +402,11 @@ const ProjectDetail: React.FC = () => {
     ];
 
     switch (sortBy) {
-      case 'name':
-        return docs.sort((a, b) => a.name.localeCompare(b.name));
-      case 'date':
-        return docs.sort((a, b) => b.date - a.date);
-      case 'size':
-        return docs.sort((a, b) => (b.size || 0) - (a.size || 0));
-      case 'type':
-        return docs.sort((a, b) => a.type.localeCompare(b.type));
-      default:
-        return docs;
+      case 'name': return docs.sort((a, b) => a.name.localeCompare(b.name));
+      case 'date': return docs.sort((a, b) => b.date - a.date);
+      case 'size': return docs.sort((a, b) => (b.size || 0) - (a.size || 0));
+      case 'type': return docs.sort((a, b) => a.type.localeCompare(b.type));
+      default: return docs;
     }
   }, [projectFiles, textDocuments, sortBy]);
 
@@ -371,6 +423,7 @@ const ProjectDetail: React.FC = () => {
     { key: 'analysis', label: '📊 Analyse' },
     { key: 'members', label: '👥 Membres' },
     { key: 'documents', label: `📁 Documents (${totalDocuments})` },
+    { key: 'trash', label: `🗑️ Corbeille (${totalTrashed})` },
   ];
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Chargement...</div>;
@@ -500,7 +553,7 @@ const ProjectDetail: React.FC = () => {
           </select>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: theme.spacing.sm, marginTop: theme.spacing.lg, borderBottom: `1px solid ${colors.gray[200]}` }}>
+        <div style={{ display: 'flex', gap: theme.spacing.sm, marginTop: theme.spacing.lg, borderBottom: `1px solid ${colors.gray[200]}`, flexWrap: 'wrap' }}>
           {tabs.map(tab => (
             <button
               key={tab.key}
@@ -707,12 +760,8 @@ const ProjectDetail: React.FC = () => {
                         }
                       }}
                     >
-                      {/* Icône du fichier */}
-                      <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>
-                        {doc.icon}
-                      </div>
+                      <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>{doc.icon}</div>
 
-                      {/* Nom + métadonnées */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
                           fontWeight: '600',
@@ -727,7 +776,6 @@ const ProjectDetail: React.FC = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                          {/* Badge type */}
                           <span style={{
                             padding: '2px 8px',
                             borderRadius: '10px',
@@ -740,24 +788,20 @@ const ProjectDetail: React.FC = () => {
                             {getFileTypeLabel(doc.name)}
                           </span>
 
-                          {/* Taille */}
                           <span style={{ fontSize: '12px', color: colors.gray[600] }}>
                             💾 {doc.size !== null ? formatFileSize(doc.size) : 'N/A'}
                           </span>
 
-                          {/* Source */}
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
                             {doc.type === 'text' ? '📄 Texte importé' : '📎 Fichier uploadé'}
                           </span>
                         </div>
 
-                        {/* Date d'insertion */}
                         <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
                           📅 Ajouté le {formatDate(doc.date)}
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div
                         style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
                         onClick={(e) => e.stopPropagation()}
@@ -770,7 +814,7 @@ const ProjectDetail: React.FC = () => {
                         <button
                           onClick={() => deleteDocument(doc)}
                           disabled={isDeleting}
-                          title="Supprimer ce document"
+                          title="Déplacer à la corbeille"
                           style={{
                             padding: '6px 10px',
                             backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
@@ -780,10 +824,7 @@ const ProjectDetail: React.FC = () => {
                             cursor: isDeleting ? 'not-allowed' : 'pointer',
                             fontSize: '13px',
                             lineHeight: 1,
-                            transition: 'opacity 0.15s',
                           }}
-                          onMouseEnter={(e) => { if (!isDeleting) e.currentTarget.style.opacity = '0.85'; }}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                         >
                           {isDeleting ? '⏳' : '🗑️'}
                         </button>
@@ -800,6 +841,241 @@ const ProjectDetail: React.FC = () => {
                 projectId={encodedId}
                 onRefresh={fetchProjectData}
               />
+            )}
+          </Card>
+        )}
+
+        {/* ✅ Onglet Corbeille */}
+        {activeTab === 'trash' && (
+          <Card title="🗑️ Corbeille">
+            {totalTrashed === 0 ? (
+              <div style={{
+                padding: '40px 20px',
+                textAlign: 'center',
+                color: colors.gray[500],
+                border: `2px dashed ${colors.gray[300]}`,
+                borderRadius: theme.borderRadius.md,
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '8px' }}>🗑️</div>
+                <p style={{ margin: 0 }}>La corbeille est vide.</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
+                  Les éléments supprimés apparaîtront ici.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  padding: '10px 14px',
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffc107',
+                  borderRadius: '6px',
+                  marginBottom: '16px',
+                  fontSize: '13px',
+                  color: '#856404',
+                }}>
+                  ⚠️ Les éléments dans la corbeille peuvent être restaurés ou supprimés définitivement.
+                </div>
+
+                {/* Fichiers en corbeille */}
+                {trashedFiles.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
+                      📎 Fichiers ({trashedFiles.length})
+                    </h4>
+                    {trashedFiles.map((doc) => {
+                      const isDeleting = deletingId === doc.id;
+                      const typeColor = getFileTypeColor(doc.fileName);
+                      const icon = getFileIcon(doc.fileName);
+
+                      return (
+                        <div
+                          key={doc.id}
+                          style={{
+                            padding: '12px 14px',
+                            marginBottom: '8px',
+                            border: `1px solid ${colors.gray[200]}`,
+                            borderRadius: theme.borderRadius.md,
+                            backgroundColor: '#fafafa',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            opacity: isDeleting ? 0.5 : 0.9,
+                          }}
+                        >
+                          <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1, filter: 'grayscale(0.4)' }}>
+                            {icon}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              color: colors.gray[600],
+                              textDecoration: 'line-through',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              marginBottom: '4px',
+                            }}>
+                              {doc.fileName}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                backgroundColor: typeColor.bg,
+                                color: typeColor.color,
+                              }}>
+                                {getFileTypeLabel(doc.fileName)}
+                              </span>
+                              <span style={{ fontSize: '12px', color: colors.gray[600] }}>
+                                💾 {formatFileSize(doc.fileSize)}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+                              🗑️ Supprimé le {formatDate(doc.deletedAt)}
+                            </div>
+                          </div>
+
+                          <div style={{ flexShrink: 0, display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => restoreItem(doc, 'file')}
+                              disabled={isDeleting}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: theme.borderRadius.sm,
+                                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              ♻️ Restaurer
+                            </button>
+                            <button
+                              onClick={() => permanentlyDeleteItem(doc, 'file')}
+                              disabled={isDeleting}
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: theme.borderRadius.sm,
+                                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                fontSize: '13px',
+                              }}
+                            >
+                              {isDeleting ? '⏳' : '💥'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Transcriptions en corbeille */}
+                {trashedTranscriptions.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
+                      🎙️ Transcriptions ({trashedTranscriptions.length})
+                    </h4>
+                    {trashedTranscriptions.map((t) => {
+                      const isDeleting = deletingId === t.id;
+                      const icon = t.type === 'audio' ? '🎙️' : '📄';
+
+                      return (
+                        <div
+                          key={t.id}
+                          style={{
+                            padding: '12px 14px',
+                            marginBottom: '8px',
+                            border: `1px solid ${colors.gray[200]}`,
+                            borderRadius: theme.borderRadius.md,
+                            backgroundColor: '#fafafa',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            opacity: isDeleting ? 0.5 : 0.9,
+                          }}
+                        >
+                          <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1, filter: 'grayscale(0.4)' }}>
+                            {icon}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              color: colors.gray[600],
+                              textDecoration: 'line-through',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              marginBottom: '4px',
+                            }}>
+                              {t.title}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                backgroundColor: '#e6f0ff',
+                                color: '#0052cc',
+                              }}>
+                                {t.type === 'audio' ? 'AUDIO' : 'TEXTE'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+                              🗑️ Supprimé le {formatDate(t.deletedAt)}
+                            </div>
+                          </div>
+
+                          <div style={{ flexShrink: 0, display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => restoreItem(t, 'transcription')}
+                              disabled={isDeleting}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: theme.borderRadius.sm,
+                                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              ♻️ Restaurer
+                            </button>
+                            <button
+                              onClick={() => permanentlyDeleteItem(t, 'transcription')}
+                              disabled={isDeleting}
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: theme.borderRadius.sm,
+                                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                fontSize: '13px',
+                              }}
+                            >
+                              {isDeleting ? '⏳' : '💥'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </Card>
         )}
