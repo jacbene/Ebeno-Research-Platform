@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { setIO } from './socketManager';
 
+// Routes
 import uploadRoutes from './routes/uploadRoutes';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
@@ -25,26 +25,42 @@ import summaryRoutes from './routes/summaryRoutes';
 import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
 
-import { globalLimiter, authLimiter, uploadLimiter, aiLimiter } from './middleware/rateLimiter';
+// Socket + DB
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
+import { setIO } from './socketManager';
 import { db } from './db/knex';
+
+// ✅ Middleware de rate limiting
+import {
+  globalLimiter,
+  authLimiter,
+  uploadLimiter,
+  aiLimiter,
+} from './middleware/rateLimiter';
+
+// ✅ Middleware de logs + logger
+import { requestLogger } from './middleware/requestLogger';
+import { logger, logError } from './utils/logger';
 
 // Chargement des variables d'environnement
 dotenv.config();
 
 // Gestion des erreurs non capturées
 process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
+  logError('❌ Uncaught Exception', err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  logError('❌ Unhandled Rejection', reason, { promise: String(promise) });
   process.exit(1);
 });
 
 const app = express();
 const port = Number(process.env.PORT) || 5001;
+
+// ✅ Faire confiance au proxy (nécessaire pour rate limiting sur Render)
+app.set('trust proxy', 1);
 
 const httpServer = createServer(app);
 
@@ -58,24 +74,42 @@ const io = new SocketIOServer(httpServer, {
 });
 
 new CollaborationSocketHandler(io);
-setIO(io);  // ✅ Enregistrer IO pour les contrôleurs
+setIO(io); // ✅ Enregistrer IO pour les contrôleurs
 
-// Middleware
+// ============================================================
+// MIDDLEWARES
+// ============================================================
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-// ✅ Appliquer le limiteur global AVANT les routes
+
+// ✅ Logs de requêtes HTTP (avant les routes)
+app.use(requestLogger);
+
+// ============================================================
+// RATE LIMITING
+// ============================================================
+
+// Limiteur global (100 req/min)
 app.use('/api', globalLimiter);
-// ✅ Limiteurs spécifiques
+
+// Limiteurs spécifiques (AVANT les routes concernées)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/upload', uploadLimiter);
+
+// Limiteur IA (résumés, analyse, entités, codes)
 app.use('/api/summaries', aiLimiter);
 app.use('/api/analysis', aiLimiter);
 app.use('/api/entities', aiLimiter);
 app.use('/api/codes', aiLimiter);
 
-// Routes
+// ============================================================
+// ROUTES
+// ============================================================
+
 app.use('/api/upload', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -94,8 +128,9 @@ app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
 
-// ✅ IMPORTANT sur Render : faire confiance au proxy
-app.set('trust proxy', 1);
+// ============================================================
+// ROUTES UTILITAIRES
+// ============================================================
 
 // Route de santé
 app.get('/api/health', (req, res) => {
@@ -119,54 +154,71 @@ app.get('/', (req, res) => {
   });
 });
 
-// Gestion 404
+// ============================================================
+// GESTION 404
+// ============================================================
+
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route non trouvée', path: req.originalUrl });
 });
 
-// Gestion d'erreurs
+// ============================================================
+// GESTION D'ERREURS
+// ============================================================
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('❌ Erreur:', err.message);
-  res.status(500).json({ error: 'Erreur interne du serveur' });
+  logError('❌ Erreur serveur', err, {
+    method: req.method,
+    url: req.originalUrl,
+    userId: (req as any).user?.id,
+  });
+
+  // Ne pas exposer les détails en production
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Erreur interne du serveur'
+    : err.message;
+
+  res.status(err.status || 500).json({ error: message });
 });
 
-// Fonction de démarrage avec logs explicites
+// ============================================================
+// DÉMARRAGE DU SERVEUR
+// ============================================================
+
 const startServer = async () => {
   try {
-    console.log('⏳ Connexion à la base de données...');
+    logger.info('⏳ Connexion à la base de données...');
     await db.raw('SELECT 1');
-    console.log('✅ Base de données connectée');
+    logger.info('✅ Base de données connectée');
 
-    console.log('⏳ Exécution des migrations...');
+    logger.info('⏳ Exécution des migrations...');
     await db.migrate.latest();
-    console.log('✅ Migrations appliquées avec succès');
+    logger.info('✅ Migrations appliquées avec succès');
 
-    console.log(`⏳ Démarrage du serveur sur le port ${port}...`);
+    logger.info(`⏳ Démarrage du serveur sur le port ${port}...`);
     httpServer.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Serveur démarré sur le port ${port}`);
-      console.log(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🚀 Serveur démarré sur le port ${port}`);
+      logger.info(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
 
-    // Vérification que le serveur écoute bien
     httpServer.on('listening', () => {
       const addr = httpServer.address();
       if (addr && typeof addr !== 'string') {
-        console.log(`✅ Serveur en écoute sur le port ${addr.port}`);
+        logger.info(`✅ Serveur en écoute sur le port ${addr.port}`);
       } else {
-        console.log('✅ Serveur en écoute (adresse non numérique)');
+        logger.info('✅ Serveur en écoute (adresse non numérique)');
       }
     });
 
     httpServer.on('error', (err) => {
-      console.error('❌ Erreur du serveur HTTP:', err);
+      logError('❌ Erreur du serveur HTTP', err);
     });
   } catch (err) {
-    console.error('❌ Erreur lors du démarrage:', err);
+    logError('❌ Erreur lors du démarrage', err);
     process.exit(1);
   }
 };
 
-// Lancer le serveur
 startServer();
 
 export { io };
