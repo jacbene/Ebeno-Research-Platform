@@ -6,6 +6,7 @@ import fs from 'fs';
 import { db } from '../db/knex';
 import { deleteFromCloudinary } from '../services/cloudinaryService';
 import { emitGlobal } from '../socketManager';
+import { logActivity } from '../services/activityService';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -26,8 +27,11 @@ export const uploadFile = async (req: Request, res: Response) => {
   upload(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
 
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const projectId = req.params.projectId;
+
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const file = (req as any).file;
@@ -36,7 +40,9 @@ export const uploadFile = async (req: Request, res: Response) => {
     try {
       const id = Date.now().toString();
       await db('project_files').insert({
-        id, projectId, userId,
+        id,
+        projectId,
+        userId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -47,8 +53,20 @@ export const uploadFile = async (req: Request, res: Response) => {
 
       const inserted = await db('project_files').where({ id }).first();
 
-      // 📡 Émettre l'événement
+      // 📡 Socket.IO
       emitGlobal('file-uploaded', { projectId, file: inserted });
+
+      // 📋 Activité
+      await logActivity({
+        projectId,
+        userId,
+        userName,
+        action: 'file-uploaded',
+        targetType: 'file',
+        targetId: id,
+        targetName: file.originalname,
+        metadata: { size: file.size, mimeType: file.mimetype },
+      });
 
       res.status(201).json(inserted);
     } catch (error: any) {
@@ -87,8 +105,11 @@ export const getFiles = async (req: Request, res: Response) => {
 // ---------- Soft delete ----------
 export const deleteFile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const { projectId, fileId } = req.params;
+
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const file = await db('project_files')
@@ -101,6 +122,17 @@ export const deleteFile = async (req: Request, res: Response) => {
     await db('project_files').where({ id: fileId }).update({ deletedAt: Date.now() });
 
     emitGlobal('file-trashed', { projectId, fileId, fileName: file.fileName });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-trashed',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: file.fileName,
+    });
+
     res.json({ success: true, message: 'Fichier déplacé à la corbeille' });
   } catch (error: any) {
     console.error('Erreur deleteFile:', error);
@@ -130,8 +162,11 @@ export const getTrashedFiles = async (req: Request, res: Response) => {
 // ---------- Restaurer ----------
 export const restoreFile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const { projectId, fileId } = req.params;
+
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const file = await db('project_files')
@@ -144,6 +179,17 @@ export const restoreFile = async (req: Request, res: Response) => {
     await db('project_files').where({ id: fileId }).update({ deletedAt: null });
 
     emitGlobal('file-restored', { projectId, fileId, fileName: file.fileName });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-restored',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: file.fileName,
+    });
+
     res.json({ success: true, message: 'Fichier restauré' });
   } catch (error: any) {
     console.error('Erreur restoreFile:', error);
@@ -154,8 +200,11 @@ export const restoreFile = async (req: Request, res: Response) => {
 // ---------- Suppression définitive ----------
 export const permanentlyDeleteFile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const { projectId, fileId } = req.params;
+
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const file = await db('project_files').where({ id: fileId, projectId, userId }).first();
@@ -173,6 +222,17 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
     await db('project_files').where({ id: fileId }).delete();
 
     emitGlobal('file-deleted-permanently', { projectId, fileId, fileName: file.fileName });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-deleted-permanently',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: file.fileName,
+    });
+
     res.json({ success: true, message: 'Fichier supprimé définitivement' });
   } catch (error: any) {
     console.error('Erreur permanentlyDeleteFile:', error);
@@ -180,11 +240,14 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- ✅ Vider la corbeille d'un projet ----------
+// ---------- Vider la corbeille ----------
 export const emptyTrash = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const { projectId } = req.params;
+
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const trashedFiles = await db('project_files')
@@ -199,21 +262,14 @@ export const emptyTrash = async (req: Request, res: Response) => {
 
     for (const file of trashedFiles) {
       try {
-        // Cloudinary
         if (file.cloudinaryPublicId) {
           try { await deleteFromCloudinary(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
         }
-
-        // Local
         if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
           try { fs.unlinkSync(file.filePath); } catch (err) {}
         }
-
-        // Entités + résumés
         await db('document_entities').where({ documentId: file.id, documentType: 'file' }).delete();
         await db('document_summaries').where({ documentId: file.id, type: 'file' }).delete();
-
-        // DB
         await db('project_files').where({ id: file.id }).delete();
         deletedCount++;
       } catch (err: any) {
@@ -222,6 +278,15 @@ export const emptyTrash = async (req: Request, res: Response) => {
     }
 
     emitGlobal('trash-emptied', { projectId, type: 'files', count: deletedCount });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'trash-emptied',
+      targetType: 'file',
+      metadata: { count: deletedCount },
+    });
 
     res.json({
       success: true,

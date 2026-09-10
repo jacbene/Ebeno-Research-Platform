@@ -25,6 +25,7 @@ import fileRoutes from './routes/fileRoutes';
 import summaryRoutes from './routes/summaryRoutes';
 import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
+import activityRoutes from './routes/activityRoutes';
 
 // Socket + DB
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -137,6 +138,7 @@ app.use('/api/projects/:projectId/files', fileRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
+app.use('/api/activity', activityRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES
