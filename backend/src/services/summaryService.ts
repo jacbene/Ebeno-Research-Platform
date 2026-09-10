@@ -1,69 +1,108 @@
 // backend/src/services/summaryService.ts
 import { db } from '../db/knex';
 import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
-// Utiliser Deepgram (recommandé) ou OpenAI
-const useDeepgram = true;
+// Configuration Deepgram
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 
-// Si vous utilisez OpenAI
-// const OpenAI = require('openai');
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+/**
+ * Résumé via Deepgram Text Intelligence (/v1/read)
+ */
+const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
+  // Limiter la longueur pour éviter les dépassements (150k tokens max)
+  const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
 
-// Fonction de résumé via Deepgram (ou OpenAI)
-const generateSummary = async (text: string): Promise<string> => {
-  // Limiter la longueur du texte pour éviter les dépassements
-  const truncatedText = text.length > 8000 ? text.substring(0, 8000) + '...' : text;
+  try {
+    const response = await fetch(
+      'https://api.deepgram.com/v1/read?summarize=true&language=fr',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${DEEPGRAM_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: truncatedText }),
+      }
+    );
 
-  if (useDeepgram) {
-    // Appel à Deepgram pour le résumé
-    // Note : Deepgram propose le résumé via le paramètre 'summarize'
-    // Mais cela nécessite une configuration spécifique
-    // Pour l'instant, nous utilisons une approche simplifiée avec OpenAI si disponible
-    // OU nous faisons une simulation améliorée
-
-    // Solution de repli : utiliser une approche heuristique simple
-    // (extraction des phrases les plus importantes)
-    return generateHeuristicSummary(truncatedText);
-  } else {
-    // Utiliser OpenAI
-    try {
-      const openai = require('openai');
-      const client = new openai.OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const response = await client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'Vous êtes un assistant de recherche. Résumez le texte suivant de manière concise et structurée (3-5 phrases).' },
-          { role: 'user', content: truncatedText }
-        ],
-        temperature: 0.5,
-        max_tokens: 300,
-      });
-      return response.choices[0]?.message?.content || 'Résumé non disponible.';
-    } catch (error) {
-      console.error('Erreur OpenAI:', error);
-      return generateHeuristicSummary(truncatedText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erreur Deepgram:', response.status, errorText);
+      throw new Error(`Erreur Deepgram: ${response.status}`);
     }
+
+    const data = await response.json();
+
+    // Structure de réponse Deepgram Text Intelligence :
+    // data.results.summary.text
+    const summary = data?.results?.summary?.text;
+
+    if (summary) {
+      console.log(`✅ Résumé Deepgram généré : ${summary.length} caractères`);
+      return summary;
+    }
+
+    console.warn('⚠️ Réponse Deepgram vide, fallback heuristique');
+    return generateHeuristicSummary(truncatedText);
+  } catch (error) {
+    console.error('❌ Erreur Deepgram, fallback heuristique:', error);
+    return generateHeuristicSummary(truncatedText);
   }
 };
 
-// Résumé heuristique simple (sans API)
+/**
+ * Résumé heuristique (sans API) - fallback
+ */
 const generateHeuristicSummary = (text: string): string => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   if (sentences.length <= 3) return text;
 
-  // Sélectionner les phrases les plus longues (considérées comme plus informatives)
-  const sorted = sentences.sort((a, b) => b.length - a.length);
-  const topSentences = sorted.slice(0, 5).sort((a, b) => {
-    // Réordonner selon l'apparition dans le texte
-    return text.indexOf(a) - text.indexOf(b);
+  // Filtrer les phrases trop courtes
+  const filtered = sentences.filter(s => s.trim().split(/\s+/).length > 5);
+  if (filtered.length === 0) return text.substring(0, 500);
+
+  // Calculer un score pour chaque phrase
+  const scored = filtered.map(sentence => {
+    const words = sentence.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const uniqueWords = new Set(words);
+    const score = (uniqueWords.size / words.length) * words.length;
+    return { sentence, score };
   });
 
-  return topSentences.join(' ');
+  // Sélectionner les 5 meilleures phrases
+  const top = scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  // Réordonner selon l'ordre d'apparition dans le texte original
+  const ordered = top.sort((a, b) =>
+    text.indexOf(a.sentence) - text.indexOf(b.sentence)
+  );
+
+  return ordered.map(item => item.sentence.trim()).join(' ');
 };
 
-export const generateDocumentSummary = async (documentId: string, type: 'transcription' | 'memo' | 'file', userId: string): Promise<string> => {
+/**
+ * Fonction de résumé principale (Deepgram si dispo, sinon heuristique)
+ */
+const generateSummary = async (text: string): Promise<string> => {
+  if (DEEPGRAM_API_KEY) {
+    return generateSummaryWithDeepgram(text);
+  }
+  console.log('⚠️ Deepgram non configuré, utilisation de l\'heuristique');
+  return generateHeuristicSummary(text);
+};
+
+/**
+ * Génère le résumé d'un document (transcription, memo ou fichier)
+ */
+export const generateDocumentSummary = async (
+  documentId: string,
+  type: 'transcription' | 'memo' | 'file',
+  userId: string
+): Promise<string> => {
   let text = '';
 
   if (type === 'transcription') {
@@ -77,22 +116,17 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
   } else if (type === 'file') {
     const doc = await db('project_files').where({ id: documentId, userId }).first();
     if (!doc) throw new Error('Fichier non trouvé');
-    
-    // ✅ Utiliser Cloudinary URL (ou chemin local en fallback)
+
+    // Support Cloudinary
     if (doc.filePath && doc.filePath.startsWith('http')) {
-      // C'est une URL Cloudinary
       console.log(`📂 [summary] Téléchargement depuis Cloudinary : ${doc.filePath}`);
       text = await extractTextFromUrl(doc.filePath, doc.mimeType);
     } else {
-      // Fallback vers le fichier local (pour compatibilité)
       const filePath = path.join(__dirname, '../../', doc.filePath);
       console.log(`📂 [summary] Chemin local : ${filePath}`);
       if (!fs.existsSync(filePath)) {
         throw new Error(`Fichier physique introuvable : ${filePath}`);
       }
-      // Utiliser la fonction d'extraction locale (à importer si besoin)
-      // text = await extractText(filePath, doc.mimeType);
-      // Pour éviter du code dupliqué, on peut utiliser extractTextFromBuffer
       const buffer = await fs.promises.readFile(filePath);
       text = await extractTextFromBuffer(buffer, doc.mimeType);
     }
@@ -104,6 +138,8 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
     return 'Texte trop court pour générer un résumé.';
   }
 
+  console.log(`📝 [summary] Texte extrait : ${text.length} caractères`);
+
   const summary = await generateSummary(text);
 
   // Sauvegarder le résumé
@@ -114,9 +150,9 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
   if (existing) {
     await db('document_summaries')
       .where({ documentId, type })
-      .update({ 
-        summary, 
-        updatedAt: new Date().toISOString()
+      .update({
+        summary,
+        updatedAt: new Date().toISOString(),
       });
   } else {
     await db('document_summaries').insert({
@@ -132,15 +168,26 @@ export const generateDocumentSummary = async (documentId: string, type: 'transcr
   return summary;
 };
 
-export const getDocumentSummary = async (documentId: string, type: string): Promise<string | null> => {
+/**
+ * Récupère un résumé existant
+ */
+export const getDocumentSummary = async (
+  documentId: string,
+  type: string
+): Promise<string | null> => {
   const record = await db('document_summaries')
     .where({ documentId, type })
     .first();
   return record?.summary || null;
 };
 
-export const getProjectSummaries = async (projectId: string, userId: string): Promise<any[]> => {
-  // Récupérer tous les documents du projet avec leurs résumés
+/**
+ * Récupère les résumés de tous les documents d'un projet
+ */
+export const getProjectSummaries = async (
+  projectId: string,
+  userId: string
+): Promise<any[]> => {
   const transcriptions = await db('transcriptions')
     .where({ projectId, userId })
     .select('id', 'title', 'type');
@@ -164,4 +211,60 @@ export const getProjectSummaries = async (projectId: string, userId: string): Pr
   }
 
   return results;
+};
+
+/**
+ * Génère un résumé global pour un projet entier
+ */
+export const generateProjectSummary = async (
+  projectId: string,
+  userId: string
+): Promise<string> => {
+  console.log(`🔍 [summary] Résumé global du projet ${projectId}`);
+
+  const transcriptions = await db('transcriptions')
+    .where({ projectId, userId })
+    .select('transcriptText');
+  const memos = await db('memos')
+    .where({ projectId, userId })
+    .select('content');
+  const files = await db('project_files')
+    .where({ projectId, userId })
+    .select('filePath', 'mimeType');
+
+  let allText = '';
+
+  transcriptions.forEach(t => {
+    if (t.transcriptText) allText += ' ' + t.transcriptText;
+  });
+  memos.forEach(m => {
+    if (m.content) allText += ' ' + m.content;
+  });
+
+  for (const f of files) {
+    try {
+      let text = '';
+      if (f.filePath && f.filePath.startsWith('http')) {
+        text = await extractTextFromUrl(f.filePath, f.mimeType);
+      } else {
+        const filePath = path.join(__dirname, '../../', f.filePath);
+        if (fs.existsSync(filePath)) {
+          const buffer = await fs.promises.readFile(filePath);
+          text = await extractTextFromBuffer(buffer, f.mimeType);
+        }
+      }
+      if (text) allText += ' ' + text;
+    } catch (err) {
+      console.warn(`⚠️ Fichier ignoré : ${err.message}`);
+    }
+  }
+
+  if (allText.trim().length < 200) {
+    return 'Pas assez de contenu pour générer un résumé de projet.';
+  }
+
+  console.log(`📝 [summary] Texte total collecté : ${allText.length} caractères`);
+
+  const summary = await generateSummary(allText);
+  return summary;
 };
