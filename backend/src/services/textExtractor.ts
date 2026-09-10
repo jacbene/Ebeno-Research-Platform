@@ -3,7 +3,7 @@ import fs from 'fs';
 import mammoth from 'mammoth';
 import { v2 as cloudinary } from 'cloudinary';
 
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
 const fetch = require('node-fetch');
 
 // Configuration Cloudinary
@@ -13,15 +13,19 @@ cloudinary.config();
  * Wrapper pour pdf-parse (compatible v1 et v2)
  */
 const parsePDF = async (buffer: Buffer) => {
-  if (typeof pdfParse === 'function') {
-    return await pdfParse(buffer);
+  // pdf-parse v2.x expose la fonction sous .pdf
+  if (pdfParseModule?.pdf && typeof pdfParseModule.pdf === 'function') {
+    return await pdfParseModule.pdf(buffer);
   }
-  if (pdfParse.pdf && typeof pdfParse.pdf === 'function') {
-    return await pdfParse.pdf(buffer);
+  // pdf-parse v1.x : la fonction est exportée directement
+  if (typeof pdfParseModule === 'function') {
+    return await pdfParseModule(buffer);
   }
-  if (pdfParse.default && typeof pdfParse.default === 'function') {
-    return await pdfParse.default(buffer);
+  // Parfois exporté sous .default
+  if (pdfParseModule?.default && typeof pdfParseModule.default === 'function') {
+    return await pdfParseModule.default(buffer);
   }
+  console.error('❌ pdf-parse exports :', Object.keys(pdfParseModule));
   throw new Error('pdf-parse: aucune méthode callable trouvée');
 };
 
