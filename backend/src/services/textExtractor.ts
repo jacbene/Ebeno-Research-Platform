@@ -3,20 +3,21 @@ import fs from 'fs';
 import mammoth from 'mammoth';
 import { v2 as cloudinary } from 'cloudinary';
 
-const pdfParse = require('pdf-parse');
+// ⚠️ IMPORTANT : ne PAS require('pdf-parse') ici (bug connu : plante au démarrage)
 const fetch = require('node-fetch');
 
 cloudinary.config();
 
 /**
- * Wrapper simple pour pdf-parse v1.1.1
+ * ⚠️ Require paresseux de pdf-parse (évite le crash au chargement du module)
  */
 const parsePDF = async (buffer: Buffer) => {
+  const pdfParse = require('pdf-parse');
   return await pdfParse(buffer);
 };
 
 /**
- * Génère une URL signée Cloudinary en gardant le resource_type d'origine
+ * Génère une URL signée Cloudinary
  */
 const getDownloadUrl = (url: string): string => {
   if (!url.includes('res.cloudinary.com')) return url;
@@ -58,10 +59,9 @@ export const extractText = async (filePath: string, mimeType: string): Promise<s
 export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
     const downloadUrl = getDownloadUrl(url);
-
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      if (response.status === 401 || response.status === 400 || response.status === 404) {
+      if ([400, 401, 404].includes(response.status)) {
         console.warn(`⚠️ Accès refusé (${response.status}) : ${url}`);
         return '';
       }
@@ -105,7 +105,7 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
     }
   }
 
-  // DOC (non supporté)
+  // DOC non supporté
   if (mimeType === 'application/msword' || mimeType.includes('doc')) {
     console.warn('⚠️ Format .doc non supporté. Veuillez utiliser .docx.');
     throw new Error('Format .doc non supporté. Veuillez utiliser .docx, .pdf ou .txt.');

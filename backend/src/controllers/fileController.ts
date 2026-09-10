@@ -15,11 +15,15 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);
-  }
+  },
 });
 
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).single('file');
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+}).single('file');
 
+// ---------- Upload ----------
 export const uploadFile = async (req: Request, res: Response) => {
   upload(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
@@ -34,7 +38,9 @@ export const uploadFile = async (req: Request, res: Response) => {
     try {
       const id = Date.now().toString();
       await db('project_files').insert({
-        id, projectId, userId,
+        id,
+        projectId,
+        userId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -52,7 +58,7 @@ export const uploadFile = async (req: Request, res: Response) => {
   });
 };
 
-// ✅ Exclure les fichiers en corbeille
+// ---------- Liste des fichiers actifs ----------
 export const getFiles = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -78,7 +84,7 @@ export const getFiles = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Soft delete : place le fichier à la corbeille
+// ---------- Soft delete : mettre à la corbeille ----------
 export const deleteFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -104,11 +110,11 @@ export const deleteFile = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Récupérer les fichiers en corbeille d'un projet
+// ---------- Liste des fichiers en corbeille ----------
 export const getTrashedFiles = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { projectId } = req.params;
+    const projectId = req.params.projectId;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const files = await db('project_files')
@@ -123,7 +129,7 @@ export const getTrashedFiles = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Restaurer un fichier depuis la corbeille
+// ---------- Restaurer un fichier ----------
 export const restoreFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -149,7 +155,7 @@ export const restoreFile = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Suppression définitive (Cloudinary + DB + entités + résumés)
+// ---------- Suppression définitive ----------
 export const permanentlyDeleteFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -176,7 +182,7 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
       try { fs.unlinkSync(file.filePath); } catch (err) {}
     }
 
-    // Entités + résumés
+    // Entités + résumés liés
     await db('document_entities').where({ documentId: fileId, documentType: 'file' }).delete();
     await db('document_summaries').where({ documentId: fileId, type: 'file' }).delete();
 
