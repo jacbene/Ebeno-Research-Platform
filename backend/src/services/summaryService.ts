@@ -33,7 +33,8 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
       throw new Error(`Erreur Deepgram: ${response.status}`);
     }
 
-    const data = await response.json();
+    // ✅ Correction : typage en any pour éviter l'erreur TS2339
+    const data: any = await response.json();
 
     // Structure de réponse Deepgram Text Intelligence :
     // data.results.summary.text
@@ -254,7 +255,7 @@ export const generateProjectSummary = async (
         }
       }
       if (text) allText += ' ' + text;
-    } catch (err) {
+    } catch (err: any) {
       console.warn(`⚠️ Fichier ignoré : ${err.message}`);
     }
   }
