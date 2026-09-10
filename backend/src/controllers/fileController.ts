@@ -6,7 +6,6 @@ import fs from 'fs';
 import { db } from '../db/knex';
 import { deleteFromCloudinary } from '../services/cloudinaryService';
 
-// Configuration multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/projects/';
@@ -19,16 +18,11 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 },
-}).single('file');
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).single('file');
 
 export const uploadFile = async (req: Request, res: Response) => {
   upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ error: err.message });
-    }
+    if (err) return res.status(400).json({ error: err.message });
 
     const userId = (req as any).user?.id;
     const projectId = req.params.projectId;
@@ -40,14 +34,13 @@ export const uploadFile = async (req: Request, res: Response) => {
     try {
       const id = Date.now().toString();
       await db('project_files').insert({
-        id,
-        projectId,
-        userId,
+        id, projectId, userId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
         filePath: file.path,
         uploadedAt: Date.now(),
+        deletedAt: null,
       });
 
       const inserted = await db('project_files').where({ id }).first();
@@ -59,6 +52,7 @@ export const uploadFile = async (req: Request, res: Response) => {
   });
 };
 
+// ✅ Exclure les fichiers en corbeille
 export const getFiles = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -67,6 +61,7 @@ export const getFiles = async (req: Request, res: Response) => {
 
     const files = await db('project_files')
       .where({ projectId, userId })
+      .whereNull('deletedAt')
       .orderBy('uploadedAt', 'desc');
 
     const grouped = files.reduce((acc, file) => {
@@ -83,10 +78,79 @@ export const getFiles = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * ✅ Suppression d'un fichier (Cloudinary + base + fichier local si présent)
- */
+// ✅ Soft delete : place le fichier à la corbeille
 export const deleteFile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, fileId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const file = await db('project_files')
+      .where({ id: fileId, projectId, userId })
+      .whereNull('deletedAt')
+      .first();
+
+    if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
+
+    await db('project_files')
+      .where({ id: fileId })
+      .update({ deletedAt: Date.now() });
+
+    console.log(`🗑️ Fichier déplacé à la corbeille : ${file.fileName}`);
+    res.json({ success: true, message: 'Fichier déplacé à la corbeille' });
+  } catch (error: any) {
+    console.error('Erreur deleteFile:', error);
+    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+  }
+};
+
+// ✅ Récupérer les fichiers en corbeille d'un projet
+export const getTrashedFiles = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const files = await db('project_files')
+      .where({ projectId, userId })
+      .whereNotNull('deletedAt')
+      .orderBy('deletedAt', 'desc');
+
+    res.json({ files });
+  } catch (error) {
+    console.error('Erreur getTrashedFiles:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// ✅ Restaurer un fichier depuis la corbeille
+export const restoreFile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, fileId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const file = await db('project_files')
+      .where({ id: fileId, projectId, userId })
+      .whereNotNull('deletedAt')
+      .first();
+
+    if (!file) return res.status(404).json({ error: 'Fichier non trouvé dans la corbeille' });
+
+    await db('project_files')
+      .where({ id: fileId })
+      .update({ deletedAt: null });
+
+    console.log(`♻️ Fichier restauré : ${file.fileName}`);
+    res.json({ success: true, message: 'Fichier restauré' });
+  } catch (error: any) {
+    console.error('Erreur restoreFile:', error);
+    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+  }
+};
+
+// ✅ Suppression définitive (Cloudinary + DB + entités + résumés)
+export const permanentlyDeleteFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { projectId, fileId } = req.params;
@@ -98,43 +162,31 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    // ✅ 1. Supprimer de Cloudinary (si cloudinaryPublicId présent)
+    // Cloudinary
     if (file.cloudinaryPublicId) {
       try {
         await deleteFromCloudinary(file.cloudinaryPublicId);
-        console.log(`🗑️ Cloudinary : ${file.cloudinaryPublicId} supprimé`);
       } catch (err: any) {
-        console.warn(`⚠️ Impossible de supprimer de Cloudinary : ${err.message}`);
-        // On continue quand même la suppression en base
+        console.warn(`⚠️ Cloudinary: ${err.message}`);
       }
     }
 
-    // ✅ 2. Supprimer le fichier local s'il existe (anciens uploads)
+    // Fichier local
     if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
-      try {
-        fs.unlinkSync(file.filePath);
-        console.log(`🗑️ Fichier local : ${file.filePath} supprimé`);
-      } catch (err: any) {
-        console.warn(`⚠️ Impossible de supprimer le fichier local : ${err.message}`);
-      }
+      try { fs.unlinkSync(file.filePath); } catch (err) {}
     }
 
-    // ✅ 3. Supprimer les entités liées
-    await db('document_entities')
-      .where({ documentId: fileId, documentType: 'file' })
-      .delete();
+    // Entités + résumés
+    await db('document_entities').where({ documentId: fileId, documentType: 'file' }).delete();
+    await db('document_summaries').where({ documentId: fileId, type: 'file' }).delete();
 
-    // ✅ 4. Supprimer le résumé lié
-    await db('document_summaries')
-      .where({ documentId: fileId, type: 'file' })
-      .delete();
-
-    // ✅ 5. Supprimer l'entrée en base
+    // DB
     await db('project_files').where({ id: fileId }).delete();
 
-    res.json({ success: true, message: 'Fichier supprimé avec succès' });
+    console.log(`💥 Fichier supprimé définitivement : ${file.fileName}`);
+    res.json({ success: true, message: 'Fichier supprimé définitivement' });
   } catch (error: any) {
-    console.error('Erreur deleteFile:', error);
+    console.error('Erreur permanentlyDeleteFile:', error);
     res.status(500).json({ error: 'Erreur serveur', details: error.message });
   }
 };
