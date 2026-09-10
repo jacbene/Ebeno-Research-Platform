@@ -3,38 +3,24 @@ import fs from 'fs';
 import mammoth from 'mammoth';
 import { v2 as cloudinary } from 'cloudinary';
 
-const pdfParseModule = require('pdf-parse');
+// ✅ pdf-parse v1.1.1 exporte une fonction unique
+const pdfParse = require('pdf-parse');
 const fetch = require('node-fetch');
 
-// Configuration Cloudinary
 cloudinary.config();
 
 /**
- * Wrapper pour pdf-parse (compatible v1 et v2)
+ * Wrapper simple pour pdf-parse v1
  */
 const parsePDF = async (buffer: Buffer) => {
-  // pdf-parse v2.x expose la fonction sous .pdf
-  if (pdfParseModule?.pdf && typeof pdfParseModule.pdf === 'function') {
-    return await pdfParseModule.pdf(buffer);
-  }
-  // pdf-parse v1.x : la fonction est exportée directement
-  if (typeof pdfParseModule === 'function') {
-    return await pdfParseModule(buffer);
-  }
-  // Parfois exporté sous .default
-  if (pdfParseModule?.default && typeof pdfParseModule.default === 'function') {
-    return await pdfParseModule.default(buffer);
-  }
-  console.error('❌ pdf-parse exports :', Object.keys(pdfParseModule));
-  throw new Error('pdf-parse: aucune méthode callable trouvée');
+  return await pdfParse(buffer);
 };
 
 /**
- * Génère une URL signée Cloudinary si nécessaire
+ * Génère une URL signée Cloudinary
  */
 const getDownloadUrl = (url: string): string => {
   if (!url.includes('res.cloudinary.com')) return url;
-
   const match = url.match(/res\.cloudinary\.com\/[^/]+\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
   if (!match) return url;
 
@@ -59,7 +45,6 @@ const getDownloadUrl = (url: string): string => {
   }
 };
 
-// Extraction depuis un fichier local
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Fichier introuvable: ${filePath}`);
@@ -68,11 +53,9 @@ export const extractText = async (filePath: string, mimeType: string): Promise<s
   return extractTextFromBuffer(buffer, mimeType);
 };
 
-// Extraction depuis une URL (Cloudinary)
 export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
     const downloadUrl = getDownloadUrl(url);
-
     const response = await fetch(downloadUrl);
     if (!response.ok) {
       if (response.status === 401) {
@@ -89,7 +72,6 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
   }
 };
 
-// Extraction depuis un buffer
 export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): Promise<string> => {
   // TXT
   if (mimeType === 'text/plain' || mimeType.includes('text')) {
