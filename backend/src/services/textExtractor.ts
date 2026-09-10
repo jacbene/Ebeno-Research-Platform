@@ -6,24 +6,37 @@ import { v2 as cloudinary } from 'cloudinary';
 const pdfParse = require('pdf-parse');
 const fetch = require('node-fetch');
 
-// Configuration Cloudinary (via CLOUDINARY_URL ou variables d'env)
+// Configuration Cloudinary
 cloudinary.config();
 
 /**
- * Télécharge un fichier depuis une URL Cloudinary, en utilisant une URL signée si nécessaire
+ * Wrapper pour pdf-parse (compatible v1 et v2)
+ */
+const parsePDF = async (buffer: Buffer) => {
+  if (typeof pdfParse === 'function') {
+    return await pdfParse(buffer);
+  }
+  if (pdfParse.pdf && typeof pdfParse.pdf === 'function') {
+    return await pdfParse.pdf(buffer);
+  }
+  if (pdfParse.default && typeof pdfParse.default === 'function') {
+    return await pdfParse.default(buffer);
+  }
+  throw new Error('pdf-parse: aucune méthode callable trouvée');
+};
+
+/**
+ * Génère une URL signée Cloudinary si nécessaire
  */
 const getDownloadUrl = (url: string): string => {
   if (!url.includes('res.cloudinary.com')) return url;
 
-  // Extraire le type de ressource et le public_id
-  // Format : https://res.cloudinary.com/<cloud>/<type>/upload/v<version>/<public_id>
   const match = url.match(/res\.cloudinary\.com\/[^/]+\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
   if (!match) return url;
 
-  const resourceType = match[1]; // 'image', 'raw', 'video'
-  const publicId = match[2];     // 'projects/xxx/file.pdf'
+  const resourceType = match[1];
+  const publicId = match[2];
 
-  // Générer une URL signée (valide 1 heure)
   try {
     const signedUrl = cloudinary.utils.private_download_url(
       publicId,
@@ -54,7 +67,6 @@ export const extractText = async (filePath: string, mimeType: string): Promise<s
 // Extraction depuis une URL (Cloudinary)
 export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
-    // ✅ Générer une URL signée si nécessaire
     const downloadUrl = getDownloadUrl(url);
 
     const response = await fetch(downloadUrl);
@@ -83,7 +95,7 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
   // PDF
   if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
     try {
-      const data = await pdfParse(buffer);
+      const data = await parsePDF(buffer);
       return data.text;
     } catch (error) {
       console.error('❌ Erreur extraction PDF:', error);

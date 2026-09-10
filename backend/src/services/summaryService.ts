@@ -9,14 +9,16 @@ const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 
 /**
  * Résumé via Deepgram Text Intelligence (/v1/read)
+ * Note : Deepgram ne supporte que l'anglais pour la summarization.
  */
 const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
-  // Limiter la longueur pour éviter les dépassements (150k tokens max)
+  // Limiter la longueur pour éviter les dépassements
   const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
 
   try {
+    // ✅ Pas de paramètre language=fr (non supporté)
     const response = await fetch(
-      'https://api.deepgram.com/v1/read?summarize=true&language=fr',
+      'https://api.deepgram.com/v1/read?summarize=true',
       {
         method: 'POST',
         headers: {
@@ -33,11 +35,9 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
       throw new Error(`Erreur Deepgram: ${response.status}`);
     }
 
-    // ✅ Correction : typage en any pour éviter l'erreur TS2339
+    // ✅ Typage any pour éviter l'erreur TS2339
     const data: any = await response.json();
 
-    // Structure de réponse Deepgram Text Intelligence :
-    // data.results.summary.text
     const summary = data?.results?.summary?.text;
 
     if (summary) {
@@ -60,11 +60,9 @@ const generateHeuristicSummary = (text: string): string => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   if (sentences.length <= 3) return text;
 
-  // Filtrer les phrases trop courtes
   const filtered = sentences.filter(s => s.trim().split(/\s+/).length > 5);
   if (filtered.length === 0) return text.substring(0, 500);
 
-  // Calculer un score pour chaque phrase
   const scored = filtered.map(sentence => {
     const words = sentence.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const uniqueWords = new Set(words);
@@ -72,12 +70,10 @@ const generateHeuristicSummary = (text: string): string => {
     return { sentence, score };
   });
 
-  // Sélectionner les 5 meilleures phrases
   const top = scored
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
-  // Réordonner selon l'ordre d'apparition dans le texte original
   const ordered = top.sort((a, b) =>
     text.indexOf(a.sentence) - text.indexOf(b.sentence)
   );
@@ -97,7 +93,7 @@ const generateSummary = async (text: string): Promise<string> => {
 };
 
 /**
- * Génère le résumé d'un document (transcription, memo ou fichier)
+ * Génère le résumé d'un document
  */
 export const generateDocumentSummary = async (
   documentId: string,
@@ -118,7 +114,6 @@ export const generateDocumentSummary = async (
     const doc = await db('project_files').where({ id: documentId, userId }).first();
     if (!doc) throw new Error('Fichier non trouvé');
 
-    // Support Cloudinary
     if (doc.filePath && doc.filePath.startsWith('http')) {
       console.log(`📂 [summary] Téléchargement depuis Cloudinary : ${doc.filePath}`);
       text = await extractTextFromUrl(doc.filePath, doc.mimeType);
@@ -143,7 +138,6 @@ export const generateDocumentSummary = async (
 
   const summary = await generateSummary(text);
 
-  // Sauvegarder le résumé
   const existing = await db('document_summaries')
     .where({ documentId, type })
     .first();
@@ -183,7 +177,7 @@ export const getDocumentSummary = async (
 };
 
 /**
- * Récupère les résumés de tous les documents d'un projet
+ * Récupère les résumés d'un projet
  */
 export const getProjectSummaries = async (
   projectId: string,
@@ -215,7 +209,7 @@ export const getProjectSummaries = async (
 };
 
 /**
- * Génère un résumé global pour un projet entier
+ * Résumé global d'un projet entier
  */
 export const generateProjectSummary = async (
   projectId: string,
