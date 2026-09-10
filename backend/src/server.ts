@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import requestIp from 'request-ip';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -59,8 +60,15 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 const port = Number(process.env.PORT) || 5001;
 
-// ✅ Faire confiance au proxy (nécessaire pour rate limiting sur Render)
-app.set('trust proxy', 1);
+// ✅ Faire confiance au proxy (Render + Cloudflare = 2 hops)
+// On utilise une fonction pour accepter les IPs internes
+app.set('trust proxy', (ip: string) => {
+  // Accepter les IPs locales et Cloudflare
+  if (ip === '127.0.0.1' || ip === '::1') return true;
+  // Accepter les plages Cloudflare
+  if (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return true;
+  return true; // En production derrière Cloudflare, toujours faire confiance
+});
 
 const httpServer = createServer(app);
 
@@ -87,6 +95,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ✅ Logs de requêtes HTTP (avant les routes)
 app.use(requestLogger);
+// ✅ Extraire l'IP réelle du client (derrière Cloudflare)
+app.use(requestIp.mw());
 
 // ============================================================
 // RATE LIMITING
