@@ -46,7 +46,7 @@ interface UploadedFile {
   fileSize: number;
   mimeType: string;
   filePath: string;
-  uploaded_at: number;
+  uploadedAt: number;
 }
 
 interface Filters {
@@ -55,6 +55,68 @@ interface Filters {
   fromDate: string;
   toDate: string;
 }
+
+// ============================================================
+// ✅ Utilitaires d'affichage
+// ============================================================
+
+const formatFileSize = (bytes: number | null | undefined): string => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+const formatDate = (timestamp: number | string | null | undefined): string => {
+  if (!timestamp) return '-';
+  const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+  if (!ts || isNaN(ts)) return '-';
+  const date = new Date(ts);
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getFileIcon = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  if (ext === 'pdf') return '📕';
+  if (['doc', 'docx'].includes(ext)) return '📘';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return '📗';
+  if (['ppt', 'pptx'].includes(ext)) return '📙';
+  if (['txt', 'md', 'rtf'].includes(ext)) return '📄';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return '🖼️';
+  if (['mp3', 'wav', 'm4a', 'ogg', 'flac'].includes(ext)) return '🎵';
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return '🎬';
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '🗜️';
+  return '📎';
+};
+
+const getFileTypeLabel = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split('.').pop() || 'FICHIER';
+  return ext.toUpperCase();
+};
+
+const getFileTypeColor = (fileName: string): { bg: string; color: string } => {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  if (ext === 'pdf') return { bg: '#fdecea', color: '#c0392b' };
+  if (['doc', 'docx'].includes(ext)) return { bg: '#e6f0ff', color: '#0052cc' };
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return { bg: '#e6f5e6', color: '#1a7a1a' };
+  if (['ppt', 'pptx'].includes(ext)) return { bg: '#fff0e6', color: '#d35400' };
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return { bg: '#fce6ff', color: '#8000a0' };
+  if (['mp3', 'wav', 'm4a'].includes(ext)) return { bg: '#e6f9ff', color: '#0080a0' };
+  if (['mp4', 'mov', 'avi'].includes(ext)) return { bg: '#ffe6f0', color: '#c00060' };
+  if (['txt', 'md'].includes(ext)) return { bg: '#f0f0f0', color: '#555' };
+  return { bg: '#f0f0f0', color: '#666' };
+};
+
+// ============================================================
+// Composant principal
+// ============================================================
 
 const ProjectDetail: React.FC = () => {
   const { colors } = useTheme();
@@ -80,6 +142,7 @@ const ProjectDetail: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [previewFile, setPreviewFile] = useState<any>(null);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>({
     type: 'all',
     status: 'all',
@@ -87,7 +150,6 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-  // Encoder l'ID pour les URLs (GET, etc.)
   const encodedId = id ? encodeURIComponent(id) : '';
 
   useEffect(() => {
@@ -98,13 +160,9 @@ const ProjectDetail: React.FC = () => {
   const fetchProjectData = async () => {
     setLoading(true);
     try {
-      console.log('📁 [fetchProjectData] ID encodé :', encodedId);
-
-      // Projet
       const projectRes = await api.get(`/projects/${encodedId}`);
       if (projectRes.data.success) setProject(projectRes.data.data);
 
-      // Transcriptions avec filtres
       let url = `/transcriptions?projectId=${encodedId}&limit=100`;
       if (filters.type !== 'all') url += `&type=${filters.type}`;
       if (filters.status !== 'all') url += `&status=${filters.status}`;
@@ -124,23 +182,13 @@ const ProjectDetail: React.FC = () => {
         setTextDocuments(all.filter((t: any) => t.type === 'text'));
       }
 
-      // Mémos
       const memoRes = await api.get(`/memos?projectId=${encodedId}`);
-      if (memoRes.status === 200) {
-        setMemos(memoRes.data);
-      }
+      if (memoRes.status === 200) setMemos(memoRes.data);
 
-      // Fichiers uploadés
-      console.log('📁 [fetchProjectData] Récupération des fichiers...');
       const filesRes = await api.get(`/projects/${encodedId}/files`);
-      console.log('📁 [fetchProjectData] filesRes status:', filesRes.status);
-      console.log('📁 [fetchProjectData] filesRes data:', filesRes.data);
       if (filesRes.status === 200) {
         setProjectFiles(filesRes.data.files || []);
-      } else {
-        console.error('❌ Erreur récupération fichiers:', filesRes.status, filesRes.data);
       }
-
     } catch (error) {
       console.error('❌ Erreur chargement projet:', error);
     } finally {
@@ -153,9 +201,7 @@ const ProjectDetail: React.FC = () => {
     setAnalysisLoading(true);
     try {
       const response = await api.get(`/analysis/project/${encodedId}`);
-      if (response.status === 200) {
-        setAnalysisData(response.data);
-      }
+      if (response.status === 200) setAnalysisData(response.data);
     } catch (error) {
       console.error('Erreur analyse:', error);
     } finally {
@@ -171,7 +217,7 @@ const ProjectDetail: React.FC = () => {
       const response = await api.post('/memos', {
         title: newMemoTitle.trim(),
         content: newMemoContent.trim(),
-        projectId: encodedId
+        projectId: encodedId,
       });
       if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
@@ -192,6 +238,40 @@ const ProjectDetail: React.FC = () => {
       fetchProjectData();
     } catch (error) {
       console.error('Erreur suppression memo:', error);
+    }
+  };
+
+  // ✅ Suppression d'un document (fichier uploadé ou texte importé)
+  const deleteDocument = async (doc: any) => {
+    const confirmMsg = doc.type === 'file'
+      ? `Supprimer le fichier "${doc.name}" ?\n\nCette action est irréversible. Le fichier sera supprimé de Cloudinary, ses entités et son résumé seront également supprimés.`
+      : `Supprimer le document "${doc.name}" ?\n\nCette action est irréversible.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setDeletingId(doc.id);
+
+    try {
+      if (doc.type === 'file') {
+        await api.delete(`/projects/${encodedId}/files/${doc.id}`);
+        console.log(`✅ Fichier supprimé : ${doc.name}`);
+      } else {
+        await api.delete(`/transcriptions/${doc.id}`);
+        console.log(`✅ Document texte supprimé : ${doc.name}`);
+      }
+
+      // Si le document supprimé était sélectionné, désélectionner
+      if (selectedDocument?.id === doc.id) {
+        setSelectedDocument(null);
+      }
+
+      // Rafraîchir la liste
+      await fetchProjectData();
+    } catch (error: any) {
+      console.error('❌ Erreur suppression:', error);
+      alert(error.response?.data?.error || 'Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -245,10 +325,11 @@ const ProjectDetail: React.FC = () => {
       ...projectFiles.map(f => ({
         id: f.id,
         name: f.fileName,
-        date: f.uploaded_at,
+        date: f.uploadedAt,
         size: f.fileSize,
+        mimeType: f.mimeType,
         type: 'file' as const,
-        icon: '📎',
+        icon: getFileIcon(f.fileName),
         raw: f,
       })),
       ...textDocuments.map(d => ({
@@ -256,6 +337,7 @@ const ProjectDetail: React.FC = () => {
         name: d.title,
         date: d.createdAt,
         size: null,
+        mimeType: 'text/plain',
         type: 'text' as const,
         icon: '📄',
         raw: d,
@@ -277,15 +359,10 @@ const ProjectDetail: React.FC = () => {
   }, [projectFiles, textDocuments, sortBy]);
 
   const handleResultClick = (result: any) => {
-    if (result.source === 'transcription') {
-      navigate(`/transcription/${result.id}`);
-    } else if (result.source === 'memo') {
-      navigate(`/memo/${result.id}`);
-    } else if (result.source === 'file') {
-      setPreviewFile(result);
-    } else {
-      alert(`ID: ${result.id}\nSource: ${result.source}`);
-    }
+    if (result.source === 'transcription') navigate(`/transcription/${result.id}`);
+    else if (result.source === 'memo') navigate(`/memo/${result.id}`);
+    else if (result.source === 'file') setPreviewFile(result);
+    else alert(`ID: ${result.id}\nSource: ${result.source}`);
   };
 
   const tabs = [
@@ -320,7 +397,7 @@ const ProjectDetail: React.FC = () => {
               <Badge variant="info">{project.status}</Badge>
               <Badge variant="secondary">{project.visibility}</Badge>
               <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                Créé le {new Date(project.createdAt).toLocaleDateString()}
+                Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
               </span>
             </div>
           </div>
@@ -377,28 +454,17 @@ const ProjectDetail: React.FC = () => {
                   borderRadius: theme.borderRadius.md,
                   backgroundColor: colors.white,
                   cursor: 'pointer',
-                  transition: 'background-color 0.15s ease',
                 }}
                 onClick={() => handleResultClick(result)}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.gray[100]}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.white}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: theme.spacing.sm }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-                    <span>
-                      {result.source === 'transcription'
-                        ? result.type === 'audio' ? '🎙️' : '📄'
-                        : result.source === 'memo'
-                        ? '📝'
-                        : '📎'}
-                    </span>
+                    <span>{result.source === 'transcription' ? (result.type === 'audio' ? '🎙️' : '📄') : result.source === 'memo' ? '📝' : '📎'}</span>
                     <strong>{result.title || result.fileName}</strong>
-                    <Badge variant="info">
-                      {result.source === 'transcription' ? 'Transcription' : result.source === 'memo' ? 'Memo' : 'Fichier'}
-                    </Badge>
+                    <Badge variant="info">{result.source === 'transcription' ? 'Transcription' : result.source === 'memo' ? 'Memo' : 'Fichier'}</Badge>
                   </div>
                   <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-                    {new Date(result.createdAt || result.uploaded_at).toLocaleDateString()}
+                    {formatDate(result.createdAt || result.uploadedAt)}
                   </span>
                 </div>
                 <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: colors.gray[600] }}>
@@ -410,7 +476,7 @@ const ProjectDetail: React.FC = () => {
         </Card>
       )}
 
-      {/* Sélecteur d'onglets (mobile) */}
+      {/* Sélecteur d'onglets */}
       {isMobile ? (
         <div style={{ marginTop: theme.spacing.lg }}>
           <select
@@ -428,12 +494,9 @@ const ProjectDetail: React.FC = () => {
               fontSize: theme.typography.fontSize.md,
               backgroundColor: colors.white,
               color: colors.dark,
-              outline: 'none',
             }}
           >
-            {tabs.map(tab => (
-              <option key={tab.key} value={tab.key}>{tab.label}</option>
-            ))}
+            {tabs.map(tab => <option key={tab.key} value={tab.key}>{tab.label}</option>)}
           </select>
         </div>
       ) : (
@@ -466,10 +529,7 @@ const ProjectDetail: React.FC = () => {
       <div style={{ marginTop: theme.spacing.lg }}>
         {activeTab === 'audio' && (
           <Card title="Transcriptions audio">
-            <TranscriptionUploader
-              projectId={encodedId}
-              onUploadComplete={() => fetchProjectData()}
-            />
+            <TranscriptionUploader projectId={encodedId} onUploadComplete={() => fetchProjectData()} />
             <hr style={{ margin: '16px 0' }} />
             {transcriptions.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>Aucune transcription audio.</p>
@@ -511,28 +571,21 @@ const ProjectDetail: React.FC = () => {
             {memos.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>Aucun memo.</p>
             ) : (
-              memos.map(m => {
-                const memoType = 'memo';
-                return (
-                  <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                      <div>
-                        <strong>{m.title}</strong>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
-                        <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString()}</small>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
-                        <SummaryButton
-                          documentId={m.id}
-                          type="memo"
-                          onSummaryGenerated={() => {}}
-                        />
-                      </div>
+              memos.map(m => (
+                <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+                    <div>
+                      <strong>{m.title}</strong>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
+                      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString('fr-FR')}</small>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
+                      <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
                     </div>
                   </div>
-                );
-              })
+                </div>
+              ))
             )}
           </Card>
         )}
@@ -551,7 +604,7 @@ const ProjectDetail: React.FC = () => {
                 <div style={{ marginTop: '16px' }}>
                   <h4 style={{ margin: '0 0 8px 0' }}>🏷️ Mots-clés les plus fréquents</h4>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {analysisData.topKeywords?.slice(0, 20).map(k => (
+                    {analysisData.topKeywords?.slice(0, 20).map((k: any) => (
                       <span key={k.word} style={{
                         padding: '4px 12px',
                         backgroundColor: colors.gray[100],
@@ -568,14 +621,7 @@ const ProjectDetail: React.FC = () => {
             ) : (
               <div>
                 <p>Aucune donnée d'analyse disponible pour ce projet.</p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setAnalysisLoading(true);
-                    fetchAnalysis();
-                  }}
-                >
+                <Button variant="primary" size="sm" onClick={() => { setAnalysisLoading(true); fetchAnalysis(); }}>
                   🔄 Générer l'analyse
                 </Button>
               </div>
@@ -591,16 +637,18 @@ const ProjectDetail: React.FC = () => {
 
         {activeTab === 'documents' && (
           <Card title="📁 Documents du projet">
-            {/* ✅ Modification : on passe l'ID brut (non encodé) */}
             <FileUpload projectId={id} onUploadSuccess={fetchProjectData} />
 
             <div style={{ marginTop: '16px' }}>
+              {/* En-tête tri */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                <span style={{ fontWeight: 'bold' }}>Liste des documents</span>
+                <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                  📚 Liste des documents ({allDocuments.length})
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  style={{ padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
+                  style={{ padding: '6px 12px', border: `1px solid ${colors.gray[300]}`, borderRadius: '6px', fontSize: '14px', backgroundColor: colors.white }}
                 >
                   <option value="date">📅 Trier par date</option>
                   <option value="name">🔤 Trier par nom</option>
@@ -609,52 +657,136 @@ const ProjectDetail: React.FC = () => {
                 </select>
               </div>
 
+              {/* Liste des documents */}
               {allDocuments.length === 0 ? (
-                <p style={{ color: '#999' }}>Aucun document dans ce projet.</p>
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: colors.gray[500],
+                  border: `2px dashed ${colors.gray[300]}`,
+                  borderRadius: theme.borderRadius.md,
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '8px' }}>📭</div>
+                  <p style={{ margin: 0 }}>Aucun document dans ce projet.</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>Uploadez un fichier pour commencer.</p>
+                </div>
               ) : (
                 allDocuments.map((doc) => {
-                  const docType = doc.type === 'file' ? 'file' : 'transcription';
                   const isSelected = selectedDocument?.id === doc.id;
+                  const typeColor = getFileTypeColor(doc.name);
+                  const isDeleting = deletingId === doc.id;
+
                   return (
                     <div
                       key={doc.id}
                       onClick={() => setSelectedDocument(doc)}
                       style={{
-                        padding: '8px 0',
-                        borderBottom: '1px solid #eee',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: theme.spacing.sm,
+                        padding: '12px 14px',
+                        marginBottom: '8px',
+                        border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
+                        borderRadius: theme.borderRadius.md,
+                        backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? colors.gray[100] : 'transparent',
-                        transition: 'background-color 0.15s ease',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        opacity: isDeleting ? 0.5 : 1,
+                        boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
                       }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.gray[50]; }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = colors.gray[50];
+                          e.currentTarget.style.borderColor = colors.gray[300];
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = colors.white;
+                          e.currentTarget.style.borderColor = colors.gray[200];
+                        }
+                      }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                        <span style={{ marginRight: '4px' }}>{doc.icon}</span>
-                        <span>{doc.name}</span>
-                        {doc.size !== null && (
-                          <span style={{ marginLeft: '4px', fontSize: '12px', color: '#999' }}>
-                            {(doc.size / 1024).toFixed(1)} KB
-                          </span>
-                        )}
-                        <span style={{ marginLeft: '4px', fontSize: '12px', color: '#999' }}>
-                          {doc.type === 'text' ? '📄 texte importé' : '📎 fichier uploadé'}
-                        </span>
+                      {/* Icône du fichier */}
+                      <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>
+                        {doc.icon}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', color: '#999' }}>
-                          {new Date(doc.date).toLocaleDateString()}
-                        </span>
+
+                      {/* Nom + métadonnées */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          color: colors.dark,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginBottom: '4px',
+                        }}>
+                          {doc.name}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {/* Badge type */}
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            backgroundColor: typeColor.bg,
+                            color: typeColor.color,
+                            letterSpacing: '0.5px',
+                          }}>
+                            {getFileTypeLabel(doc.name)}
+                          </span>
+
+                          {/* Taille */}
+                          <span style={{ fontSize: '12px', color: colors.gray[600] }}>
+                            💾 {doc.size !== null ? formatFileSize(doc.size) : 'N/A'}
+                          </span>
+
+                          {/* Source */}
+                          <span style={{ fontSize: '12px', color: colors.gray[500] }}>
+                            {doc.type === 'text' ? '📄 Texte importé' : '📎 Fichier uploadé'}
+                          </span>
+                        </div>
+
+                        {/* Date d'insertion */}
+                        <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+                          📅 Ajouté le {formatDate(doc.date)}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div
+                        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <SummaryButton
                           documentId={doc.id}
-                          type={docType}
+                          type={doc.type === 'file' ? 'file' : 'transcription'}
                           onSummaryGenerated={() => {}}
                         />
+                        <button
+                          onClick={() => deleteDocument(doc)}
+                          disabled={isDeleting}
+                          title="Supprimer ce document"
+                          style={{
+                            padding: '6px 10px',
+                            backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: theme.borderRadius.sm,
+                            cursor: isDeleting ? 'not-allowed' : 'pointer',
+                            fontSize: '13px',
+                            lineHeight: 1,
+                            transition: 'opacity 0.15s',
+                          }}
+                          onMouseEnter={(e) => { if (!isDeleting) e.currentTarget.style.opacity = '0.85'; }}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        >
+                          {isDeleting ? '⏳' : '🗑️'}
+                        </button>
                       </div>
                     </div>
                   );
@@ -673,7 +805,7 @@ const ProjectDetail: React.FC = () => {
         )}
       </div>
 
-      {/* Modal d'aperçu des fichiers */}
+      {/* Modal d'aperçu */}
       {previewFile && (
         <FilePreviewModal
           file={{
