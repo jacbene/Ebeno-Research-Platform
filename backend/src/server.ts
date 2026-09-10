@@ -6,8 +6,8 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { setIO } from './socketManager';
-import uploadRoutes from './routes/uploadRoutes';
 
+import uploadRoutes from './routes/uploadRoutes';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
@@ -25,6 +25,7 @@ import summaryRoutes from './routes/summaryRoutes';
 import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
 
+import { globalLimiter, authLimiter, uploadLimiter, aiLimiter } from './middleware/rateLimiter';
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
 import { db } from './db/knex';
 
@@ -63,6 +64,16 @@ setIO(io);  // ✅ Enregistrer IO pour les contrôleurs
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// ✅ Appliquer le limiteur global AVANT les routes
+app.use('/api', globalLimiter);
+// ✅ Limiteurs spécifiques
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/upload', uploadLimiter);
+app.use('/api/summaries', aiLimiter);
+app.use('/api/analysis', aiLimiter);
+app.use('/api/entities', aiLimiter);
+app.use('/api/codes', aiLimiter);
 
 // Routes
 app.use('/api/upload', uploadRoutes);
@@ -82,6 +93,9 @@ app.use('/api/projects/:projectId/files', fileRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
+
+// ✅ IMPORTANT sur Render : faire confiance au proxy
+app.set('trust proxy', 1);
 
 // Route de santé
 app.get('/api/health', (req, res) => {
