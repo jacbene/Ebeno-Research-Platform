@@ -1,8 +1,10 @@
+// backend/src/controllers/fileController.ts
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
+import { deleteFromCloudinary } from '../services/cloudinaryService';
 
 // Configuration multer
 const storage = multer.diskStorage({
@@ -19,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB max
+  limits: { fileSize: 50 * 1024 * 1024 },
 }).single('file');
 
 export const uploadFile = async (req: Request, res: Response) => {
@@ -45,15 +47,15 @@ export const uploadFile = async (req: Request, res: Response) => {
         fileSize: file.size,
         mimeType: file.mimetype,
         filePath: file.path,
-        uploadedAt: Date.now() // ✅ nombre
+        uploadedAt: Date.now(),
       });
 
       const inserted = await db('project_files').where({ id }).first();
       res.status(201).json(inserted);
-    } catch (error) {
-  console.error('Erreur upload file:', error);
-  res.status(500).json({ error: 'Erreur serveur', details: error.message });
-}
+    } catch (error: any) {
+      console.error('Erreur upload file:', error);
+      res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    }
   });
 };
 
@@ -81,6 +83,9 @@ export const getFiles = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * ✅ Suppression d'un fichier (Cloudinary + base + fichier local si présent)
+ */
 export const deleteFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -93,14 +98,43 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    if (fs.existsSync(file.filePath)) {
-      fs.unlinkSync(file.filePath);
+    // ✅ 1. Supprimer de Cloudinary (si cloudinaryPublicId présent)
+    if (file.cloudinaryPublicId) {
+      try {
+        await deleteFromCloudinary(file.cloudinaryPublicId);
+        console.log(`🗑️ Cloudinary : ${file.cloudinaryPublicId} supprimé`);
+      } catch (err: any) {
+        console.warn(`⚠️ Impossible de supprimer de Cloudinary : ${err.message}`);
+        // On continue quand même la suppression en base
+      }
     }
 
+    // ✅ 2. Supprimer le fichier local s'il existe (anciens uploads)
+    if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
+      try {
+        fs.unlinkSync(file.filePath);
+        console.log(`🗑️ Fichier local : ${file.filePath} supprimé`);
+      } catch (err: any) {
+        console.warn(`⚠️ Impossible de supprimer le fichier local : ${err.message}`);
+      }
+    }
+
+    // ✅ 3. Supprimer les entités liées
+    await db('document_entities')
+      .where({ documentId: fileId, documentType: 'file' })
+      .delete();
+
+    // ✅ 4. Supprimer le résumé lié
+    await db('document_summaries')
+      .where({ documentId: fileId, type: 'file' })
+      .delete();
+
+    // ✅ 5. Supprimer l'entrée en base
     await db('project_files').where({ id: fileId }).delete();
-    res.json({ message: 'Fichier supprimé' });
-  } catch (error) {
+
+    res.json({ success: true, message: 'Fichier supprimé avec succès' });
+  } catch (error: any) {
     console.error('Erreur deleteFile:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: 'Erreur serveur', details: error.message });
   }
 };
