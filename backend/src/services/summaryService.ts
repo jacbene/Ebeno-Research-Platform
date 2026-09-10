@@ -1,65 +1,9 @@
 // backend/src/services/summaryService.ts
 import { db } from '../db/knex';
 import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
+import { generateSummaryWithOpenAI, isOpenAIConfigured } from './openaiService';
 import fs from 'fs';
 import path from 'path';
-
-// Configuration OpenAI
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-
-/**
- * Résumé via OpenAI (recommandé pour le français)
- */
-const generateSummaryWithOpenAI = async (text: string): Promise<string> => {
-  const truncatedText = text.length > 12000 ? text.substring(0, 12000) + '...' : text;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `Vous êtes un assistant de recherche en sciences humaines et sociales.
-Résumez le texte suivant de manière structurée et académique :
-- Identifiez la thèse principale
-- Extrayez les arguments clés
-- Mentionnez les concepts importants
-- Soyez concis (3 à 5 phrases maximum)
-- Rédigez en français`,
-          },
-          { role: 'user', content: truncatedText },
-        ],
-        temperature: 0.5,
-        max_tokens: 400,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erreur OpenAI:', response.status, errorText);
-      throw new Error('Erreur OpenAI');
-    }
-
-    const data: any = await response.json();
-    const summary = data?.choices?.[0]?.message?.content;
-
-    if (summary) {
-      console.log(`✅ Résumé OpenAI généré : ${summary.length} caractères`);
-      return summary;
-    }
-
-    return generateHeuristicSummary(truncatedText);
-  } catch (error) {
-    console.error('❌ Erreur OpenAI, fallback heuristique:', error);
-    return generateHeuristicSummary(truncatedText);
-  }
-};
 
 /**
  * Résumé heuristique (fallback sans API)
@@ -78,24 +22,24 @@ const generateHeuristicSummary = (text: string): string => {
     return { sentence, score };
   });
 
-  const top = scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-
-  const ordered = top.sort((a, b) =>
-    text.indexOf(a.sentence) - text.indexOf(b.sentence)
-  );
+  const top = scored.sort((a, b) => b.score - a.score).slice(0, 5);
+  const ordered = top.sort((a, b) => text.indexOf(a.sentence) - text.indexOf(b.sentence));
 
   return ordered.map(item => item.sentence.trim()).join(' ');
 };
 
 /**
  * Fonction de résumé principale
- * → OpenAI si disponible (français), sinon heuristique
+ * → OpenAI en priorité (français), sinon heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
-  if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
-    return generateSummaryWithOpenAI(text);
+  if (isOpenAIConfigured()) {
+    try {
+      return await generateSummaryWithOpenAI(text);
+    } catch (error) {
+      console.warn('⚠️ Échec OpenAI, fallback heuristique');
+      return generateHeuristicSummary(text);
+    }
   }
   console.log('⚠️ OpenAI non configuré, utilisation de l\'heuristique');
   return generateHeuristicSummary(text);
@@ -147,7 +91,6 @@ export const generateDocumentSummary = async (
 
   const summary = await generateSummary(text);
 
-  // Sauvegarder
   const existing = await db('document_summaries')
     .where({ documentId, type })
     .first();
@@ -155,10 +98,7 @@ export const generateDocumentSummary = async (
   if (existing) {
     await db('document_summaries')
       .where({ documentId, type })
-      .update({
-        summary,
-        updatedAt: new Date().toISOString(),
-      });
+      .update({ summary, updatedAt: new Date().toISOString() });
   } else {
     await db('document_summaries').insert({
       id: Date.now().toString(),
@@ -173,78 +113,38 @@ export const generateDocumentSummary = async (
   return summary;
 };
 
-/**
- * Récupère un résumé existant
- */
 export const getDocumentSummary = async (
   documentId: string,
   type: string
 ): Promise<string | null> => {
-  const record = await db('document_summaries')
-    .where({ documentId, type })
-    .first();
+  const record = await db('document_summaries').where({ documentId, type }).first();
   return record?.summary || null;
 };
 
-/**
- * Récupère les résumés d'un projet
- */
-export const getProjectSummaries = async (
-  projectId: string,
-  userId: string
-): Promise<any[]> => {
-  const transcriptions = await db('transcriptions')
-    .where({ projectId, userId })
-    .select('id', 'title', 'type');
-  const memos = await db('memos')
-    .where({ projectId, userId })
-    .select('id', 'title', db.raw("'memo' as type"));
-  const files = await db('project_files')
-    .where({ projectId, userId })
-    .select('id', 'fileName as title', db.raw("'file' as type"));
+export const getProjectSummaries = async (projectId: string, userId: string): Promise<any[]> => {
+  const transcriptions = await db('transcriptions').where({ projectId, userId }).select('id', 'title', 'type');
+  const memos = await db('memos').where({ projectId, userId }).select('id', 'title', db.raw("'memo' as type"));
+  const files = await db('project_files').where({ projectId, userId }).select('id', 'fileName as title', db.raw("'file' as type"));
 
   const allDocs = [...transcriptions, ...memos, ...files];
-
   const results = [];
   for (const doc of allDocs) {
     const summary = await getDocumentSummary(doc.id, doc.type);
-    results.push({
-      ...doc,
-      hasSummary: !!summary,
-      summary,
-    });
+    results.push({ ...doc, hasSummary: !!summary, summary });
   }
-
   return results;
 };
 
-/**
- * Résumé global d'un projet
- */
-export const generateProjectSummary = async (
-  projectId: string,
-  userId: string
-): Promise<string> => {
+export const generateProjectSummary = async (projectId: string, userId: string): Promise<string> => {
   console.log(`🔍 [summary] Résumé global du projet ${projectId}`);
 
-  const transcriptions = await db('transcriptions')
-    .where({ projectId, userId })
-    .select('transcriptText');
-  const memos = await db('memos')
-    .where({ projectId, userId })
-    .select('content');
-  const files = await db('project_files')
-    .where({ projectId, userId })
-    .select('filePath', 'mimeType');
+  const transcriptions = await db('transcriptions').where({ projectId, userId }).select('transcriptText');
+  const memos = await db('memos').where({ projectId, userId }).select('content');
+  const files = await db('project_files').where({ projectId, userId }).select('filePath', 'mimeType');
 
   let allText = '';
-
-  transcriptions.forEach(t => {
-    if (t.transcriptText) allText += ' ' + t.transcriptText;
-  });
-  memos.forEach(m => {
-    if (m.content) allText += ' ' + m.content;
-  });
+  transcriptions.forEach(t => { if (t.transcriptText) allText += ' ' + t.transcriptText; });
+  memos.forEach(m => { if (m.content) allText += ' ' + m.content; });
 
   for (const f of files) {
     try {
@@ -269,7 +169,5 @@ export const generateProjectSummary = async (
   }
 
   console.log(`📝 [summary] Texte total collecté : ${allText.length} caractères`);
-
-  const summary = await generateSummary(allText);
-  return summary;
+  return generateSummary(allText);
 };

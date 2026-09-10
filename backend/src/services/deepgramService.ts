@@ -1,3 +1,4 @@
+// backend/src/services/deepgramService.ts
 import dotenv from 'dotenv';
 import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -35,17 +36,20 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const audioPath = path.join(__dirname, '../../uploads/tmp', path.basename(transcription.audioUrl || ''));
     if (!fs.existsSync(audioPath)) throw new Error(`Fichier introuvable: ${audioPath}`);
 
+    console.log(`🎙️ [Deepgram] Transcription en cours pour ${transcriptionId}...`);
+
     const audioFile = fs.createReadStream(audioPath);
     const formData = new FormData();
     formData.append('audio', audioFile);
 
     const response = await axios.post(DEEPGRAM_URL, formData, {
       params: {
-        model: 'nova-2',
-        language: 'fr',
-        smart_format: 'true',
-        punctuate: 'true',
-        diarize: 'false',
+        model: 'nova-2',           // ✅ Modèle Nova-2 (meilleure précision FR)
+        language: 'fr',            // ✅ Français
+        smart_format: 'true',      // ✅ Ponctuation + paragraphes
+        punctuate: 'true',         // ✅ Ponctuation
+        diarize: 'false',          // ✅ Pas de distinction des locuteurs
+        filler_words: 'false',     // ✅ Pas de "euh", "hum", etc.
       },
       headers: {
         'Authorization': `Token ${DEEPGRAM_API_KEY}`,
@@ -63,10 +67,10 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
       updatedAt: new Date().toISOString()
     });
 
-    console.log(`✅ Transcription Deepgram ${transcriptionId} terminée`);
+    console.log(`✅ [Deepgram] Transcription ${transcriptionId} terminée : ${transcriptText.length} caractères`);
 
   } catch (error: any) {
-    console.error(`❌ Erreur Deepgram ${transcriptionId}:`, error.message);
+    console.error(`❌ [Deepgram] Erreur ${transcriptionId}:`, error.message);
     if (error.response) {
       console.error('Détails Deepgram:', error.response.data);
     }
@@ -98,6 +102,8 @@ export const uploadAndProcessDeepgram = async (
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+
+  console.log(`📥 [Deepgram] Nouvelle transcription ${id} : ${file.originalname}`);
 
   processTranscriptionDeepgram(id).catch(err => console.error('Erreur asynchrone:', err));
   return { id, message: 'Transcription démarrée', status: 'PENDING' };
