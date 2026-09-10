@@ -5,8 +5,50 @@ import { generateSummaryWithOpenAI, isOpenAIConfigured } from './openaiService';
 import fs from 'fs';
 import path from 'path';
 
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
+
 /**
- * Résumé heuristique (fallback sans API)
+ * Résumé via Deepgram Text Intelligence (/v1/read)
+ * NOTE : Deepgram ne supporte que l'anglais pour la summarization.
+ */
+const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
+  if (!DEEPGRAM_API_KEY) {
+    throw new Error('DEEPGRAM_API_KEY non configurée');
+  }
+
+  const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
+
+  const response = await fetch(
+    'https://api.deepgram.com/v1/read?summarize=true',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${DEEPGRAM_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: truncatedText }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Erreur Deepgram:', response.status, errorText);
+    throw new Error(`Erreur Deepgram: ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  const summary = data?.results?.summary?.text;
+
+  if (!summary) {
+    throw new Error('Réponse Deepgram vide');
+  }
+
+  console.log(`✅ Résumé Deepgram généré : ${summary.length} caractères`);
+  return summary;
+};
+
+/**
+ * Résumé heuristique (fallback ultime, toujours disponible)
  */
 const generateHeuristicSummary = (text: string): string => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
@@ -23,25 +65,43 @@ const generateHeuristicSummary = (text: string): string => {
   });
 
   const top = scored.sort((a, b) => b.score - a.score).slice(0, 5);
-  const ordered = top.sort((a, b) => text.indexOf(a.sentence) - text.indexOf(b.sentence));
+  const ordered = top.sort((a, b) =>
+    text.indexOf(a.sentence) - text.indexOf(b.sentence)
+  );
 
   return ordered.map(item => item.sentence.trim()).join(' ');
 };
 
 /**
- * Fonction de résumé principale
- * → OpenAI en priorité (français), sinon heuristique
+ * ✅ Fonction principale : cascade OpenAI → Deepgram → Heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
+  // 1️⃣ Tentative OpenAI (français, meilleure qualité)
   if (isOpenAIConfigured()) {
     try {
+      console.log('🔵 [summary] Tentative OpenAI...');
       return await generateSummaryWithOpenAI(text);
-    } catch (error) {
-      console.warn('⚠️ Échec OpenAI, fallback heuristique');
-      return generateHeuristicSummary(text);
+    } catch (error: any) {
+      console.warn(`⚠️ [summary] OpenAI échoué (${error.message}), bascule vers Deepgram`);
     }
+  } else {
+    console.log('⚠️ [summary] OpenAI non configuré');
   }
-  console.log('⚠️ OpenAI non configuré, utilisation de l\'heuristique');
+
+  // 2️⃣ Tentative Deepgram (anglais uniquement)
+  if (DEEPGRAM_API_KEY) {
+    try {
+      console.log('🟢 [summary] Tentative Deepgram...');
+      return await generateSummaryWithDeepgram(text);
+    } catch (error: any) {
+      console.warn(`⚠️ [summary] Deepgram échoué (${error.message}), bascule vers heuristique`);
+    }
+  } else {
+    console.log('⚠️ [summary] Deepgram non configuré');
+  }
+
+  // 3️⃣ Fallback heuristique (toujours disponible)
+  console.log('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
   return generateHeuristicSummary(text);
 };
 
@@ -91,6 +151,7 @@ export const generateDocumentSummary = async (
 
   const summary = await generateSummary(text);
 
+  // Sauvegarder le résumé
   const existing = await db('document_summaries')
     .where({ documentId, type })
     .first();

@@ -3,14 +3,13 @@ import fs from 'fs';
 import mammoth from 'mammoth';
 import { v2 as cloudinary } from 'cloudinary';
 
-// ✅ pdf-parse v1.1.1 exporte une fonction unique
 const pdfParse = require('pdf-parse');
 const fetch = require('node-fetch');
 
 cloudinary.config();
 
 /**
- * Wrapper simple pour pdf-parse v1
+ * Wrapper simple pour pdf-parse v1.1.1
  */
 const parsePDF = async (buffer: Buffer) => {
   return await pdfParse(buffer);
@@ -18,14 +17,22 @@ const parsePDF = async (buffer: Buffer) => {
 
 /**
  * Génère une URL signée Cloudinary
+ * ✅ Corrige les PDF uploadés en image/upload (utilise raw pour la signature)
  */
 const getDownloadUrl = (url: string): string => {
   if (!url.includes('res.cloudinary.com')) return url;
+
   const match = url.match(/res\.cloudinary\.com\/[^/]+\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
   if (!match) return url;
 
-  const resourceType = match[1];
+  let resourceType = match[1];
   const publicId = match[2];
+
+  // ✅ Si c'est un PDF stocké comme "image", forcer raw pour la signature
+  if (publicId.toLowerCase().endsWith('.pdf') && resourceType === 'image') {
+    console.log(`⚠️ PDF stocké comme image, utilisation de raw pour la signature`);
+    resourceType = 'raw';
+  }
 
   try {
     const signedUrl = cloudinary.utils.private_download_url(
@@ -45,6 +52,7 @@ const getDownloadUrl = (url: string): string => {
   }
 };
 
+// Extraction depuis un fichier local
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Fichier introuvable: ${filePath}`);
@@ -53,13 +61,15 @@ export const extractText = async (filePath: string, mimeType: string): Promise<s
   return extractTextFromBuffer(buffer, mimeType);
 };
 
+// Extraction depuis une URL (Cloudinary)
 export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
     const downloadUrl = getDownloadUrl(url);
+
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      if (response.status === 401) {
-        console.warn(`⚠️ Accès refusé (401) : ${url}`);
+      if (response.status === 401 || response.status === 400) {
+        console.warn(`⚠️ Accès refusé (${response.status}) : ${url}`);
         return '';
       }
       throw new Error(`Erreur HTTP ${response.status} lors du téléchargement de ${url}`);
@@ -72,6 +82,7 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
   }
 };
 
+// Extraction depuis un buffer
 export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): Promise<string> => {
   // TXT
   if (mimeType === 'text/plain' || mimeType.includes('text')) {
