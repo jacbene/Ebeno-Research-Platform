@@ -15,6 +15,7 @@ import { SummaryButton } from '../components/SummaryButton';
 import { DocumentActions } from '../components/DocumentActions';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useProjectSocket } from '../hooks/useProjectSocket';
 import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
 import { api } from '../services/api';
@@ -38,6 +39,7 @@ interface ContentItem {
   content?: string;
   createdAt: number;
   type?: 'audio' | 'text' | 'memo';
+  deletedAt?: string | null;
 }
 
 interface UploadedFile {
@@ -71,7 +73,7 @@ const formatFileSize = (bytes: number | null | undefined): string => {
 
 const formatDate = (timestamp: number | string | null | undefined): string => {
   if (!timestamp) return '-';
-  const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+  const ts = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
   if (!ts || isNaN(ts)) return '-';
   const date = new Date(ts);
   return date.toLocaleDateString('fr-FR', {
@@ -160,6 +162,15 @@ const ProjectDetail: React.FC = () => {
     fetchProjectData();
   }, [id]);
 
+  // ✅ Socket.IO : notifications temps réel
+  useProjectSocket({
+    projectId: encodedId,
+    onEvent: (event, data) => {
+      console.log('🔄 [ProjectDetail] Rafraîchissement automatique suite à :', event);
+      fetchProjectData();
+    },
+  });
+
   const fetchProjectData = async () => {
     setLoading(true);
     try {
@@ -200,20 +211,13 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Récupérer tous les éléments en corbeille
   const fetchTrashedData = async () => {
     try {
-      // Fichiers en corbeille
       const filesRes = await api.get(`/projects/${encodedId}/files/trash`);
-      if (filesRes.status === 200) {
-        setTrashedFiles(filesRes.data.files || []);
-      }
+      if (filesRes.status === 200) setTrashedFiles(filesRes.data.files || []);
 
-      // Transcriptions en corbeille
       const transRes = await api.get(`/transcriptions/trash?projectId=${encodedId}`);
-      if (transRes.status === 200) {
-        setTrashedTranscriptions(transRes.data.data || []);
-      }
+      if (transRes.status === 200) setTrashedTranscriptions(transRes.data.data || []);
     } catch (error) {
       console.error('❌ Erreur chargement corbeille:', error);
     }
@@ -264,7 +268,6 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Suppression (soft delete) d'un document
   const deleteDocument = async (doc: any) => {
     const confirmMsg = doc.type === 'file'
       ? `Déplacer "${doc.name}" à la corbeille ?\n\nVous pourrez le restaurer plus tard.`
@@ -279,7 +282,6 @@ const ProjectDetail: React.FC = () => {
       } else {
         await api.delete(`/transcriptions/${doc.id}`);
       }
-
       if (selectedDocument?.id === doc.id) setSelectedDocument(null);
       await fetchProjectData();
     } catch (error: any) {
@@ -290,7 +292,6 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Restaurer un fichier ou une transcription
   const restoreItem = async (item: any, kind: 'file' | 'transcription') => {
     if (!confirm(`Restaurer "${item.fileName || item.title}" ?`)) return;
 
@@ -310,7 +311,6 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Suppression définitive
   const permanentlyDeleteItem = async (item: any, kind: 'file' | 'transcription') => {
     const name = item.fileName || item.title;
     if (!confirm(`⚠️ Supprimer DÉFINITIVEMENT "${name}" ?\n\nCette action est IRRÉVERSIBLE.`)) return;
@@ -328,6 +328,33 @@ const ProjectDetail: React.FC = () => {
       alert(error.response?.data?.error || 'Erreur lors de la suppression');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // ✅ Vider toute la corbeille du projet
+  const emptyTrash = async () => {
+    const total = trashedFiles.length + trashedTranscriptions.length;
+    if (total === 0) {
+      alert('La corbeille est déjà vide.');
+      return;
+    }
+
+    if (!confirm(`⚠️ Vider complètement la corbeille ?\n\n${total} élément(s) seront supprimés DÉFINITIVEMENT (Cloudinary inclus).\n\nCette action est IRRÉVERSIBLE.`)) {
+      return;
+    }
+
+    try {
+      if (trashedFiles.length > 0) {
+        await api.delete(`/projects/${encodedId}/files/trash/empty`);
+      }
+      if (trashedTranscriptions.length > 0) {
+        await api.delete(`/transcriptions/trash/empty?projectId=${encodedId}`);
+      }
+      await fetchProjectData();
+      alert('✅ Corbeille vidée avec succès.');
+    } catch (error: any) {
+      console.error('❌ Erreur vidage corbeille:', error);
+      alert(error.response?.data?.error || 'Erreur lors du vidage de la corbeille');
     }
   };
 
@@ -693,7 +720,6 @@ const ProjectDetail: React.FC = () => {
             <FileUpload projectId={id} onUploadSuccess={fetchProjectData} />
 
             <div style={{ marginTop: '16px' }}>
-              {/* En-tête tri */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: theme.spacing.sm }}>
                 <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
                   📚 Liste des documents ({allDocuments.length})
@@ -710,7 +736,6 @@ const ProjectDetail: React.FC = () => {
                 </select>
               </div>
 
-              {/* Liste des documents */}
               {allDocuments.length === 0 ? (
                 <div style={{
                   padding: '40px 20px',
@@ -787,11 +812,9 @@ const ProjectDetail: React.FC = () => {
                           }}>
                             {getFileTypeLabel(doc.name)}
                           </span>
-
                           <span style={{ fontSize: '12px', color: colors.gray[600] }}>
                             💾 {doc.size !== null ? formatFileSize(doc.size) : 'N/A'}
                           </span>
-
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
                             {doc.type === 'text' ? '📄 Texte importé' : '📎 Fichier uploadé'}
                           </span>
@@ -864,16 +887,40 @@ const ProjectDetail: React.FC = () => {
               </div>
             ) : (
               <>
+                {/* Barre d'action : vider la corbeille */}
                 <div style={{
-                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 16px',
                   backgroundColor: '#fff3cd',
                   border: '1px solid #ffc107',
                   borderRadius: '6px',
                   marginBottom: '16px',
-                  fontSize: '13px',
-                  color: '#856404',
+                  flexWrap: 'wrap',
+                  gap: '10px',
                 }}>
-                  ⚠️ Les éléments dans la corbeille peuvent être restaurés ou supprimés définitivement.
+                  <div style={{ fontSize: '13px', color: '#856404', flex: 1 }}>
+                    ⚠️ <strong>{totalTrashed}</strong> élément(s) dans la corbeille. Les éléments peuvent être restaurés ou supprimés définitivement.
+                  </div>
+                  <button
+                    onClick={emptyTrash}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: theme.borderRadius.sm,
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                  >
+                    💥 Vider la corbeille
+                  </button>
                 </div>
 
                 {/* Fichiers en corbeille */}
