@@ -16,8 +16,7 @@ const parsePDF = async (buffer: Buffer) => {
 };
 
 /**
- * Génère une URL signée Cloudinary
- * ✅ Corrige les PDF uploadés en image/upload (utilise raw pour la signature)
+ * Génère une URL signée Cloudinary en gardant le resource_type d'origine
  */
 const getDownloadUrl = (url: string): string => {
   if (!url.includes('res.cloudinary.com')) return url;
@@ -25,14 +24,8 @@ const getDownloadUrl = (url: string): string => {
   const match = url.match(/res\.cloudinary\.com\/[^/]+\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
   if (!match) return url;
 
-  let resourceType = match[1];
+  const resourceType = match[1];
   const publicId = match[2];
-
-  // ✅ Si c'est un PDF stocké comme "image", forcer raw pour la signature
-  if (publicId.toLowerCase().endsWith('.pdf') && resourceType === 'image') {
-    console.log(`⚠️ PDF stocké comme image, utilisation de raw pour la signature`);
-    resourceType = 'raw';
-  }
 
   try {
     const signedUrl = cloudinary.utils.private_download_url(
@@ -68,7 +61,7 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
 
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      if (response.status === 401 || response.status === 400) {
+      if (response.status === 401 || response.status === 400 || response.status === 404) {
         console.warn(`⚠️ Accès refusé (${response.status}) : ${url}`);
         return '';
       }

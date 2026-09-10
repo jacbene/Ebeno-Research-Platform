@@ -9,7 +9,7 @@ const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 
 /**
  * Résumé via Deepgram Text Intelligence (/v1/read)
- * NOTE : Deepgram ne supporte que l'anglais pour la summarization.
+ * ⚠️ Deepgram summarization ne supporte QUE l'anglais.
  */
 const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
   if (!DEEPGRAM_API_KEY) {
@@ -18,8 +18,9 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
 
   const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
 
+  // ✅ language=en obligatoire
   const response = await fetch(
-    'https://api.deepgram.com/v1/read?summarize=true',
+    'https://api.deepgram.com/v1/read?summarize=true&language=en',
     {
       method: 'POST',
       headers: {
@@ -48,7 +49,7 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
 };
 
 /**
- * Résumé heuristique (fallback ultime, toujours disponible)
+ * Résumé heuristique (fallback ultime)
  */
 const generateHeuristicSummary = (text: string): string => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
@@ -73,10 +74,10 @@ const generateHeuristicSummary = (text: string): string => {
 };
 
 /**
- * ✅ Fonction principale : cascade OpenAI → Deepgram → Heuristique
+ * ✅ Cascade : OpenAI → Deepgram → Heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
-  // 1️⃣ Tentative OpenAI (français, meilleure qualité)
+  // 1️⃣ OpenAI (français)
   if (isOpenAIConfigured()) {
     try {
       console.log('🔵 [summary] Tentative OpenAI...');
@@ -88,7 +89,7 @@ const generateSummary = async (text: string): Promise<string> => {
     console.log('⚠️ [summary] OpenAI non configuré');
   }
 
-  // 2️⃣ Tentative Deepgram (anglais uniquement)
+  // 2️⃣ Deepgram (anglais)
   if (DEEPGRAM_API_KEY) {
     try {
       console.log('🟢 [summary] Tentative Deepgram...');
@@ -100,13 +101,13 @@ const generateSummary = async (text: string): Promise<string> => {
     console.log('⚠️ [summary] Deepgram non configuré');
   }
 
-  // 3️⃣ Fallback heuristique (toujours disponible)
+  // 3️⃣ Heuristique (toujours dispo)
   console.log('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
   return generateHeuristicSummary(text);
 };
 
 /**
- * Génère le résumé d'un document (transcription, memo ou fichier)
+ * Génère le résumé d'un document
  */
 export const generateDocumentSummary = async (
   documentId: string,
@@ -151,7 +152,6 @@ export const generateDocumentSummary = async (
 
   const summary = await generateSummary(text);
 
-  // Sauvegarder le résumé
   const existing = await db('document_summaries')
     .where({ documentId, type })
     .first();
