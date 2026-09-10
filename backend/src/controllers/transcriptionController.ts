@@ -5,7 +5,6 @@ import path from 'path';
 import { uploadAndProcessDeepgram } from '../services/deepgramService';
 import { db } from '../db/knex';
 
-// Configuration multer pour les fichiers audio
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/tmp/');
@@ -17,7 +16,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
+  storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -32,60 +31,41 @@ const upload = multer({
   }
 }).single('file');
 
-// ---------- Contrôleurs ----------
-
+// ---------- Upload ----------
 export const uploadTranscription = async (req: Request, res: Response) => {
   upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ success: false, message: err.message });
-    }
+    if (err) return res.status(400).json({ success: false, message: err.message });
 
     try {
       const userId = (req as any).user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Non authentifié' });
-      }
+      if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
       const file = (req as any).file;
-      if (!file) {
-        return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
-      }
+      if (!file) return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
 
       const { projectId } = req.body;
-
       const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
       return res.status(201).json({
         success: true,
-        data: {
-          transcriptionId: result.id,
-          message: result.message,
-          status: result.status,
-        }
+        data: { transcriptionId: result.id, message: result.message, status: result.status }
       });
-
     } catch (error: any) {
       console.error('Erreur upload:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Erreur serveur',
-        error: error.message
-      });
+      return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
     }
   });
 };
 
+// ---------- Liste des transcriptions (hors corbeille) ----------
 export const getUserTranscriptions = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Non authentifié' });
-    }
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
     const { projectId, type, status, from, to, page = 1, limit = 10 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    // ✅ Convertir les filtres de dates en ISO string
     let fromDate: string | undefined;
     let toDate: string | undefined;
     if (from) {
@@ -97,8 +77,8 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
       if (!isNaN(ts)) toDate = new Date(ts).toISOString();
     }
 
-    let baseQuery = db('transcriptions')
-      .where({ userId });
+    // ✅ Exclure les supprimés
+    let baseQuery = db('transcriptions').where({ userId }).whereNull('deletedAt');
 
     if (projectId) baseQuery = baseQuery.where({ projectId });
     if (type) baseQuery = baseQuery.where({ type });
@@ -128,91 +108,117 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Erreur getUserTranscriptions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur serveur',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };
 
-// Récupérer une transcription par ID
+// ---------- Récupérer une transcription par ID ----------
 export const getTranscription = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Non authentifié' });
-    }
-
-    const transcription = await db('transcriptions')
-      .where({ id, userId })
-      .first();
-
-    if (!transcription) {
-      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
-    }
+    const transcription = await db('transcriptions').where({ id, userId }).first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
 
     return res.status(200).json({ success: true, data: transcription });
-
   } catch (error: any) {
     console.error('Erreur getTranscription:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur serveur',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };
 
-// Supprimer une transcription
+// ---------- Soft delete : mettre à la corbeille ----------
 export const deleteTranscription = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Non authentifié' });
-    }
-
-    const deleted = await db('transcriptions')
+    const updated = await db('transcriptions')
       .where({ id, userId })
-      .delete();
+      .whereNull('deletedAt')
+      .update({ deletedAt: new Date().toISOString() });
 
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
-    }
+    if (!updated) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
 
-    return res.status(200).json({ success: true, message: 'Transcription supprimée' });
-
+    console.log(`🗑️ Transcription déplacée à la corbeille : ${id}`);
+    return res.status(200).json({ success: true, message: 'Transcription déplacée à la corbeille' });
   } catch (error: any) {
     console.error('Erreur deleteTranscription:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur serveur',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };
 
-// Récupérer la progression d'une transcription
+// ---------- Liste des transcriptions en corbeille ----------
+export const getTrashedTranscriptions = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId } = req.query;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
+
+    let query = db('transcriptions').where({ userId }).whereNotNull('deletedAt');
+    if (projectId) query = query.where({ projectId });
+
+    const trashed = await query.orderBy('deletedAt', 'desc');
+    return res.status(200).json({ success: true, data: trashed });
+  } catch (error) {
+    console.error('Erreur getTrashedTranscriptions:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// ---------- Restaurer une transcription ----------
+export const restoreTranscription = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
+
+    const updated = await db('transcriptions')
+      .where({ id, userId })
+      .whereNotNull('deletedAt')
+      .update({ deletedAt: null });
+
+    if (!updated) return res.status(404).json({ success: false, message: 'Transcription non trouvée dans la corbeille' });
+
+    console.log(`♻️ Transcription restaurée : ${id}`);
+    return res.status(200).json({ success: true, message: 'Transcription restaurée' });
+  } catch (error: any) {
+    console.error('Erreur restoreTranscription:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+};
+
+// ---------- Suppression définitive ----------
+export const permanentlyDeleteTranscription = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
+
+    await db('document_entities').where({ documentId: id, documentType: 'transcription' }).delete();
+    await db('document_summaries').where({ documentId: id, type: 'transcription' }).delete();
+    await db('transcriptions').where({ id, userId }).delete();
+
+    console.log(`💥 Transcription supprimée définitivement : ${id}`);
+    return res.status(200).json({ success: true, message: 'Transcription supprimée définitivement' });
+  } catch (error: any) {
+    console.error('Erreur permanentlyDeleteTranscription:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+};
+
+// ---------- Progression ----------
 export const getTranscriptionProgress = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Non authentifié' });
-    }
-
-    const transcription = await db('transcriptions')
-      .where({ id, userId })
-      .first();
-
-    if (!transcription) {
-      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
-    }
+    const transcription = await db('transcriptions').where({ id, userId }).first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
 
     const progress = transcription.status === 'PROCESSING' ? 50 :
                      transcription.status === 'COMPLETED' ? 100 : 0;
@@ -227,14 +233,8 @@ export const getTranscriptionProgress = async (req: Request, res: Response) => {
         transcriptText: transcription.transcriptText
       }
     });
-
   } catch (error: any) {
     console.error('Erreur getTranscriptionProgress:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur serveur',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };
-

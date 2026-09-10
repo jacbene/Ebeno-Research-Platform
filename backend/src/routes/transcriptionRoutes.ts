@@ -1,9 +1,13 @@
+// backend/src/routes/transcriptionRoutes.ts
 import { Router } from 'express';
 import {
   uploadTranscription,
   getUserTranscriptions,
   getTranscription,
   deleteTranscription,
+  getTrashedTranscriptions,
+  restoreTranscription,
+  permanentlyDeleteTranscription,
   getTranscriptionProgress
 } from '../controllers/transcriptionController';
 import { authenticate } from '../middleware/auth';
@@ -12,12 +16,14 @@ const router = Router();
 
 router.post('/upload', authenticate, uploadTranscription);
 router.get('/', authenticate, getUserTranscriptions);
-router.get('/:id', authenticate, getTranscription);
-router.delete('/:id', authenticate, deleteTranscription);
-router.get('/:id/progress', authenticate, getTranscriptionProgress);
 
-// La route suivante est supprimée car elle utilise des imports manquants.
-// Si vous en avez besoin, décommentez et ajoutez les imports appropriés.
-// router.post('/:id/process', authenticate, async (req, res) => { ... });
+// ⚠️ Routes spécifiques AVANT /:id pour éviter les conflits
+router.get('/trash', authenticate, getTrashedTranscriptions);
+router.patch('/:id/restore', authenticate, restoreTranscription);
+router.delete('/:id/permanent', authenticate, permanentlyDeleteTranscription);
+
+router.get('/:id', authenticate, getTranscription);
+router.get('/:id/progress', authenticate, getTranscriptionProgress);
+router.delete('/:id', authenticate, deleteTranscription);
 
 export default router;
