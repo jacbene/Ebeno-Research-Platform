@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import { uploadAndProcessDeepgram } from '../services/deepgramService';
 import { db } from '../db/knex';
+import { emitGlobal } from '../socketManager';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -12,7 +13,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = new Date().toISOString() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
@@ -21,14 +22,14 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/webm',
-      'audio/ogg', 'audio/x-m4a', 'audio/flac', 'audio/wave'
+      'audio/ogg', 'audio/x-m4a', 'audio/flac', 'audio/wave',
     ];
     if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(mp3|wav|m4a|flac|ogg|webm)$/i)) {
       cb(null, true);
     } else {
       cb(new Error('Type de fichier non supporté. Veuillez sélectionner un fichier audio.'));
     }
-  }
+  },
 }).single('file');
 
 // ---------- Upload ----------
@@ -46,9 +47,12 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       const { projectId } = req.body;
       const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
+      // 📡 Notifier les clients
+      emitGlobal('transcription-uploaded', { projectId, transcriptionId: result.id });
+
       return res.status(201).json({
         success: true,
-        data: { transcriptionId: result.id, message: result.message, status: result.status }
+        data: { transcriptionId: result.id, message: result.message, status: result.status },
       });
     } catch (error: any) {
       console.error('Erreur upload:', error);
@@ -57,7 +61,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
   });
 };
 
-// ---------- Liste des transcriptions (hors corbeille) ----------
+// ---------- Liste des transcriptions actives ----------
 export const getUserTranscriptions = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -102,9 +106,9 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
           page: Number(page),
           limit: Number(limit),
           total,
-          pages: Math.ceil(total / Number(limit))
-        }
-      }
+          pages: Math.ceil(total / Number(limit)),
+        },
+      },
     });
   } catch (error: any) {
     console.error('Erreur getUserTranscriptions:', error);
@@ -136,14 +140,21 @@ export const deleteTranscription = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const updated = await db('transcriptions')
+    const transcription = await db('transcriptions').where({ id, userId }).whereNull('deletedAt').first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+
+    await db('transcriptions')
       .where({ id, userId })
-      .whereNull('deletedAt')
       .update({ deletedAt: new Date().toISOString() });
 
-    if (!updated) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
-
     console.log(`🗑️ Transcription déplacée à la corbeille : ${id}`);
+
+    emitGlobal('transcription-trashed', {
+      projectId: transcription.projectId,
+      id,
+      title: transcription.title,
+    });
+
     return res.status(200).json({ success: true, message: 'Transcription déplacée à la corbeille' });
   } catch (error: any) {
     console.error('Erreur deleteTranscription:', error);
@@ -176,14 +187,20 @@ export const restoreTranscription = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const updated = await db('transcriptions')
+    const transcription = await db('transcriptions').where({ id, userId }).whereNotNull('deletedAt').first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée dans la corbeille' });
+
+    await db('transcriptions')
       .where({ id, userId })
-      .whereNotNull('deletedAt')
       .update({ deletedAt: null });
 
-    if (!updated) return res.status(404).json({ success: false, message: 'Transcription non trouvée dans la corbeille' });
-
     console.log(`♻️ Transcription restaurée : ${id}`);
+
+    emitGlobal('transcription-restored', {
+      projectId: transcription.projectId,
+      id,
+    });
+
     return res.status(200).json({ success: true, message: 'Transcription restaurée' });
   } catch (error: any) {
     console.error('Erreur restoreTranscription:', error);
@@ -198,14 +215,67 @@ export const permanentlyDeleteTranscription = async (req: Request, res: Response
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
+    const transcription = await db('transcriptions').where({ id, userId }).first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+
+    // Entités + résumés liés
     await db('document_entities').where({ documentId: id, documentType: 'transcription' }).delete();
     await db('document_summaries').where({ documentId: id, type: 'transcription' }).delete();
+
+    // DB
     await db('transcriptions').where({ id, userId }).delete();
 
     console.log(`💥 Transcription supprimée définitivement : ${id}`);
+
+    emitGlobal('transcription-deleted-permanently', {
+      projectId: transcription.projectId,
+      id,
+    });
+
     return res.status(200).json({ success: true, message: 'Transcription supprimée définitivement' });
   } catch (error: any) {
     console.error('Erreur permanentlyDeleteTranscription:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+};
+
+// ---------- ✅ Vider la corbeille des transcriptions ----------
+export const emptyTrashTranscriptions = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId } = req.query;
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
+
+    let query = db('transcriptions').where({ userId }).whereNotNull('deletedAt');
+    if (projectId) query = query.where({ projectId });
+
+    const trashed = await query;
+    if (trashed.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Corbeille déjà vide' });
+    }
+
+    let deletedCount = 0;
+
+    for (const t of trashed) {
+      try {
+        await db('document_entities').where({ documentId: t.id, documentType: 'transcription' }).delete();
+        await db('document_summaries').where({ documentId: t.id, type: 'transcription' }).delete();
+        await db('transcriptions').where({ id: t.id }).delete();
+        deletedCount++;
+      } catch (err: any) {
+        console.error(`⚠️ Échec suppression ${t.id}:`, err.message);
+      }
+    }
+
+    emitGlobal('trash-emptied', { projectId, type: 'transcriptions', count: deletedCount });
+
+    res.json({
+      success: true,
+      count: deletedCount,
+      message: `${deletedCount} transcription(s) supprimée(s) définitivement`,
+    });
+  } catch (error: any) {
+    console.error('Erreur emptyTrashTranscriptions:', error);
     return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };
@@ -220,8 +290,9 @@ export const getTranscriptionProgress = async (req: Request, res: Response) => {
     const transcription = await db('transcriptions').where({ id, userId }).first();
     if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
 
-    const progress = transcription.status === 'PROCESSING' ? 50 :
-                     transcription.status === 'COMPLETED' ? 100 : 0;
+    const progress =
+      transcription.status === 'PROCESSING' ? 50 :
+      transcription.status === 'COMPLETED' ? 100 : 0;
 
     return res.status(200).json({
       success: true,
@@ -230,8 +301,8 @@ export const getTranscriptionProgress = async (req: Request, res: Response) => {
         status: transcription.status,
         progress,
         errorMessage: transcription.errorMessage,
-        transcriptText: transcription.transcriptText
-      }
+        transcriptText: transcription.transcriptText,
+      },
     });
   } catch (error: any) {
     console.error('Erreur getTranscriptionProgress:', error);

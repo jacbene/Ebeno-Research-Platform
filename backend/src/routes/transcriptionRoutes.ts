@@ -8,7 +8,8 @@ import {
   getTrashedTranscriptions,
   restoreTranscription,
   permanentlyDeleteTranscription,
-  getTranscriptionProgress
+  emptyTrashTranscriptions,  // ✅
+  getTranscriptionProgress,
 } from '../controllers/transcriptionController';
 import { authenticate } from '../middleware/auth';
 
@@ -17,8 +18,9 @@ const router = Router();
 router.post('/upload', authenticate, uploadTranscription);
 router.get('/', authenticate, getUserTranscriptions);
 
-// ⚠️ Routes spécifiques AVANT /:id pour éviter les conflits
+// Corbeille
 router.get('/trash', authenticate, getTrashedTranscriptions);
+router.delete('/trash/empty', authenticate, emptyTrashTranscriptions);  // ✅
 router.patch('/:id/restore', authenticate, restoreTranscription);
 router.delete('/:id/permanent', authenticate, permanentlyDeleteTranscription);
 

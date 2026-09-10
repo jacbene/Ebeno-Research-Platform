@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
 import { deleteFromCloudinary } from '../services/cloudinaryService';
+import { emitGlobal } from '../socketManager';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -18,10 +19,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 },
-}).single('file');
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).single('file');
 
 // ---------- Upload ----------
 export const uploadFile = async (req: Request, res: Response) => {
@@ -38,9 +36,7 @@ export const uploadFile = async (req: Request, res: Response) => {
     try {
       const id = Date.now().toString();
       await db('project_files').insert({
-        id,
-        projectId,
-        userId,
+        id, projectId, userId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -50,6 +46,10 @@ export const uploadFile = async (req: Request, res: Response) => {
       });
 
       const inserted = await db('project_files').where({ id }).first();
+
+      // 📡 Émettre l'événement
+      emitGlobal('file-uploaded', { projectId, file: inserted });
+
       res.status(201).json(inserted);
     } catch (error: any) {
       console.error('Erreur upload file:', error);
@@ -84,7 +84,7 @@ export const getFiles = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Soft delete : mettre à la corbeille ----------
+// ---------- Soft delete ----------
 export const deleteFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -98,11 +98,9 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    await db('project_files')
-      .where({ id: fileId })
-      .update({ deletedAt: Date.now() });
+    await db('project_files').where({ id: fileId }).update({ deletedAt: Date.now() });
 
-    console.log(`🗑️ Fichier déplacé à la corbeille : ${file.fileName}`);
+    emitGlobal('file-trashed', { projectId, fileId, fileName: file.fileName });
     res.json({ success: true, message: 'Fichier déplacé à la corbeille' });
   } catch (error: any) {
     console.error('Erreur deleteFile:', error);
@@ -110,7 +108,7 @@ export const deleteFile = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Liste des fichiers en corbeille ----------
+// ---------- Corbeille ----------
 export const getTrashedFiles = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -129,7 +127,7 @@ export const getTrashedFiles = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Restaurer un fichier ----------
+// ---------- Restaurer ----------
 export const restoreFile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -143,11 +141,9 @@ export const restoreFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé dans la corbeille' });
 
-    await db('project_files')
-      .where({ id: fileId })
-      .update({ deletedAt: null });
+    await db('project_files').where({ id: fileId }).update({ deletedAt: null });
 
-    console.log(`♻️ Fichier restauré : ${file.fileName}`);
+    emitGlobal('file-restored', { projectId, fileId, fileName: file.fileName });
     res.json({ success: true, message: 'Fichier restauré' });
   } catch (error: any) {
     console.error('Erreur restoreFile:', error);
@@ -162,37 +158,78 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
     const { projectId, fileId } = req.params;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
-    const file = await db('project_files')
-      .where({ id: fileId, projectId, userId })
-      .first();
-
+    const file = await db('project_files').where({ id: fileId, projectId, userId }).first();
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    // Cloudinary
     if (file.cloudinaryPublicId) {
-      try {
-        await deleteFromCloudinary(file.cloudinaryPublicId);
-      } catch (err: any) {
-        console.warn(`⚠️ Cloudinary: ${err.message}`);
-      }
+      try { await deleteFromCloudinary(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
     }
-
-    // Fichier local
     if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
       try { fs.unlinkSync(file.filePath); } catch (err) {}
     }
 
-    // Entités + résumés liés
     await db('document_entities').where({ documentId: fileId, documentType: 'file' }).delete();
     await db('document_summaries').where({ documentId: fileId, type: 'file' }).delete();
-
-    // DB
     await db('project_files').where({ id: fileId }).delete();
 
-    console.log(`💥 Fichier supprimé définitivement : ${file.fileName}`);
+    emitGlobal('file-deleted-permanently', { projectId, fileId, fileName: file.fileName });
     res.json({ success: true, message: 'Fichier supprimé définitivement' });
   } catch (error: any) {
     console.error('Erreur permanentlyDeleteFile:', error);
+    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+  }
+};
+
+// ---------- ✅ Vider la corbeille d'un projet ----------
+export const emptyTrash = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const trashedFiles = await db('project_files')
+      .where({ projectId, userId })
+      .whereNotNull('deletedAt');
+
+    if (trashedFiles.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Corbeille déjà vide' });
+    }
+
+    let deletedCount = 0;
+
+    for (const file of trashedFiles) {
+      try {
+        // Cloudinary
+        if (file.cloudinaryPublicId) {
+          try { await deleteFromCloudinary(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
+        }
+
+        // Local
+        if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
+          try { fs.unlinkSync(file.filePath); } catch (err) {}
+        }
+
+        // Entités + résumés
+        await db('document_entities').where({ documentId: file.id, documentType: 'file' }).delete();
+        await db('document_summaries').where({ documentId: file.id, type: 'file' }).delete();
+
+        // DB
+        await db('project_files').where({ id: file.id }).delete();
+        deletedCount++;
+      } catch (err: any) {
+        console.error(`⚠️ Échec suppression ${file.id}:`, err.message);
+      }
+    }
+
+    emitGlobal('trash-emptied', { projectId, type: 'files', count: deletedCount });
+
+    res.json({
+      success: true,
+      count: deletedCount,
+      message: `${deletedCount} fichier(s) supprimé(s) définitivement`,
+    });
+  } catch (error: any) {
+    console.error('Erreur emptyTrash:', error);
     res.status(500).json({ error: 'Erreur serveur', details: error.message });
   }
 };

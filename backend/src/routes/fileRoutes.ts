@@ -7,23 +7,22 @@ import {
   getTrashedFiles,
   restoreFile,
   permanentlyDeleteFile,
+  emptyTrash,   // ✅
 } from '../controllers/fileController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router({ mergeParams: true });
 
-// Upload et liste
 router.post('/', authenticate, uploadFile);
 router.get('/', authenticate, getFiles);
 
-// ⚠️ IMPORTANT : les routes spécifiques (trash) doivent être AVANT /:fileId
+// Corbeille
 router.get('/trash', authenticate, getTrashedFiles);
-
-// Restauration et suppression définitive
+router.delete('/trash/empty', authenticate, emptyTrash);  // ✅ Vider
 router.patch('/:fileId/restore', authenticate, restoreFile);
 router.delete('/:fileId/permanent', authenticate, permanentlyDeleteFile);
 
-// Soft delete (déplacer à la corbeille)
+// Soft delete
 router.delete('/:fileId', authenticate, deleteFile);
 
 export default router;

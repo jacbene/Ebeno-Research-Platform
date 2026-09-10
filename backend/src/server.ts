@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-
+import { setIO } from './socketManager';
 import uploadRoutes from './routes/uploadRoutes';
 
 import authRoutes from './routes/authRoutes';
@@ -57,6 +57,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 new CollaborationSocketHandler(io);
+setIO(io);  // ✅ Enregistrer IO pour les contrôleurs
 
 // Middleware
 app.use(cors());
