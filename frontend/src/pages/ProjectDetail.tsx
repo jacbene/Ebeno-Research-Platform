@@ -13,6 +13,9 @@ import { FiltersPanel } from '../components/FiltersPanel';
 import { FilePreviewModal } from '../components/FilePreviewModal';
 import { SummaryButton } from '../components/SummaryButton';
 import { DocumentActions } from '../components/DocumentActions';
+import { PresenceBar } from '../components/PresenceBar';
+import { ActivityFeed } from '../components/ActivityFeed';
+import { TypingIndicator } from '../components/TypingIndicator';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useProjectSocket } from '../hooks/useProjectSocket';
@@ -39,7 +42,6 @@ interface ContentItem {
   content?: string;
   createdAt: number;
   type?: 'audio' | 'text' | 'memo';
-  deletedAt?: string | null;
 }
 
 interface UploadedFile {
@@ -73,7 +75,7 @@ const formatFileSize = (bytes: number | null | undefined): string => {
 
 const formatDate = (timestamp: number | string | null | undefined): string => {
   if (!timestamp) return '-';
-  const ts = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
+  const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
   if (!ts || isNaN(ts)) return '-';
   const date = new Date(ts);
   return date.toLocaleDateString('fr-FR', {
@@ -127,6 +129,15 @@ const ProjectDetail: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
 
+  // Utilisateur courant
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
+
   // États
   const [project, setProject] = useState<Project | null>(null);
   const [transcriptions, setTranscriptions] = useState<ContentItem[]>([]);
@@ -136,7 +147,7 @@ const ProjectDetail: React.FC = () => {
   const [trashedTranscriptions, setTrashedTranscriptions] = useState<ContentItem[]>([]);
   const [textDocuments, setTextDocuments] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'trash'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'activity' | 'trash'>('audio');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
@@ -162,14 +173,40 @@ const ProjectDetail: React.FC = () => {
     fetchProjectData();
   }, [id]);
 
-  // ✅ Socket.IO : notifications temps réel
-  useProjectSocket({
+  // ✅ Socket.IO : collaboration temps réel
+  const {
+    connected,
+    users,
+    activities,
+    setActivities,
+    typingUsers,
+    emitTyping,
+  } = useProjectSocket({
     projectId: encodedId,
-    onEvent: (event, data) => {
-      console.log('🔄 [ProjectDetail] Rafraîchissement automatique suite à :', event);
+    userId: currentUser?.id,
+    userName: currentUser?.name || currentUser?.email || 'Utilisateur',
+    userEmail: currentUser?.email,
+    onDataChange: (event, data) => {
+      console.log('🔄 Rafraîchissement auto suite à :', event);
       fetchProjectData();
     },
   });
+
+  // ✅ Charger l'activité initiale
+  useEffect(() => {
+    const loadActivity = async () => {
+      if (!encodedId) return;
+      try {
+        const res = await api.get(`/activity/project/${encodedId}?limit=50`);
+        if (res.data.success) {
+          setActivities(res.data.activity || []);
+        }
+      } catch (error) {
+        console.error('❌ Erreur chargement activité:', error);
+      }
+    };
+    loadActivity();
+  }, [encodedId, setActivities]);
 
   const fetchProjectData = async () => {
     setLoading(true);
@@ -202,7 +239,6 @@ const ProjectDetail: React.FC = () => {
       const filesRes = await api.get(`/projects/${encodedId}/files`);
       if (filesRes.status === 200) setProjectFiles(filesRes.data.files || []);
 
-      // ✅ Charger la corbeille
       await fetchTrashedData();
     } catch (error) {
       console.error('❌ Erreur chargement projet:', error);
@@ -272,7 +308,6 @@ const ProjectDetail: React.FC = () => {
     const confirmMsg = doc.type === 'file'
       ? `Déplacer "${doc.name}" à la corbeille ?\n\nVous pourrez le restaurer plus tard.`
       : `Déplacer "${doc.name}" à la corbeille ?`;
-
     if (!confirm(confirmMsg)) return;
 
     setDeletingId(doc.id);
@@ -294,7 +329,6 @@ const ProjectDetail: React.FC = () => {
 
   const restoreItem = async (item: any, kind: 'file' | 'transcription') => {
     if (!confirm(`Restaurer "${item.fileName || item.title}" ?`)) return;
-
     setDeletingId(item.id);
     try {
       if (kind === 'file') {
@@ -331,18 +365,15 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Vider toute la corbeille du projet
   const emptyTrash = async () => {
     const total = trashedFiles.length + trashedTranscriptions.length;
     if (total === 0) {
       alert('La corbeille est déjà vide.');
       return;
     }
-
     if (!confirm(`⚠️ Vider complètement la corbeille ?\n\n${total} élément(s) seront supprimés DÉFINITIVEMENT (Cloudinary inclus).\n\nCette action est IRRÉVERSIBLE.`)) {
       return;
     }
-
     try {
       if (trashedFiles.length > 0) {
         await api.delete(`/projects/${encodedId}/files/trash/empty`);
@@ -351,7 +382,7 @@ const ProjectDetail: React.FC = () => {
         await api.delete(`/transcriptions/trash/empty?projectId=${encodedId}`);
       }
       await fetchProjectData();
-      alert('✅ Corbeille vidée avec succès.');
+      alert(`✅ Corbeille vidée avec succès.`);
     } catch (error: any) {
       console.error('❌ Erreur vidage corbeille:', error);
       alert(error.response?.data?.error || 'Erreur lors du vidage de la corbeille');
@@ -450,6 +481,7 @@ const ProjectDetail: React.FC = () => {
     { key: 'analysis', label: '📊 Analyse' },
     { key: 'members', label: '👥 Membres' },
     { key: 'documents', label: `📁 Documents (${totalDocuments})` },
+    { key: 'activity', label: `📋 Activité (${activities.length})` },
     { key: 'trash', label: `🗑️ Corbeille (${totalTrashed})` },
   ];
 
@@ -500,6 +532,9 @@ const ProjectDetail: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* ✅ Barre de présence temps réel */}
+      <PresenceBar users={users} connected={connected} />
 
       {/* Barre de recherche */}
       <div style={{ marginTop: theme.spacing.lg }}>
@@ -632,13 +667,26 @@ const ProjectDetail: React.FC = () => {
                 placeholder="Titre du memo"
                 value={newMemoTitle}
                 onChange={(e) => setNewMemoTitle(e.target.value)}
+                onFocus={() => emitTyping('memo-title', true)}
+                onBlur={() => emitTyping('memo-title', false)}
                 style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 required
               />
               <textarea
                 placeholder="Contenu du memo..."
                 value={newMemoContent}
-                onChange={(e) => setNewMemoContent(e.target.value)}
+                onChange={(e) => {
+                  setNewMemoContent(e.target.value);
+                  emitTyping('memo', true);
+                  if ((window as any).__typingTimeout) {
+                    clearTimeout((window as any).__typingTimeout);
+                  }
+                  (window as any).__typingTimeout = setTimeout(() => {
+                    emitTyping('memo', false);
+                  }, 1500);
+                }}
+                onFocus={() => emitTyping('memo', true)}
+                onBlur={() => emitTyping('memo', false)}
                 rows={3}
                 style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 required
@@ -647,6 +695,9 @@ const ProjectDetail: React.FC = () => {
                 {creatingMemo ? 'Création...' : '+ Ajouter un memo'}
               </Button>
             </form>
+
+            {/* ✅ Indicateur de frappe */}
+            <TypingIndicator typingUsers={typingUsers} context="memo" />
 
             {memos.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>Aucun memo.</p>
@@ -712,6 +763,12 @@ const ProjectDetail: React.FC = () => {
         {activeTab === 'members' && (
           <Card title="Gestion des membres">
             <ProjectMembers projectId={encodedId} />
+          </Card>
+        )}
+
+        {activeTab === 'activity' && (
+          <Card title="📋 Activité récente du projet">
+            <ActivityFeed activities={activities} />
           </Card>
         )}
 
@@ -812,9 +869,11 @@ const ProjectDetail: React.FC = () => {
                           }}>
                             {getFileTypeLabel(doc.name)}
                           </span>
+
                           <span style={{ fontSize: '12px', color: colors.gray[600] }}>
                             💾 {doc.size !== null ? formatFileSize(doc.size) : 'N/A'}
                           </span>
+
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
                             {doc.type === 'text' ? '📄 Texte importé' : '📎 Fichier uploadé'}
                           </span>
@@ -868,7 +927,6 @@ const ProjectDetail: React.FC = () => {
           </Card>
         )}
 
-        {/* ✅ Onglet Corbeille */}
         {activeTab === 'trash' && (
           <Card title="🗑️ Corbeille">
             {totalTrashed === 0 ? (
@@ -887,7 +945,6 @@ const ProjectDetail: React.FC = () => {
               </div>
             ) : (
               <>
-                {/* Barre d'action : vider la corbeille */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -916,14 +973,11 @@ const ProjectDetail: React.FC = () => {
                       fontWeight: 'bold',
                       whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                   >
                     💥 Vider la corbeille
                   </button>
                 </div>
 
-                {/* Fichiers en corbeille */}
                 {trashedFiles.length > 0 && (
                   <div style={{ marginBottom: '20px' }}>
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
@@ -1025,7 +1079,6 @@ const ProjectDetail: React.FC = () => {
                   </div>
                 )}
 
-                {/* Transcriptions en corbeille */}
                 {trashedTranscriptions.length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
