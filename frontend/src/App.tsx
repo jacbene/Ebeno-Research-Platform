@@ -34,9 +34,7 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      // Utilisation de l'instance api (axios) avec la baseURL dynamique
       const response = await api.post('/auth/login', { email, password });
-      // Axios renvoie directement les données dans response.data
       if (response.data.token) {
         localStorage.setItem('authToken', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -45,7 +43,6 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
         setError(response.data.message || 'Erreur de connexion');
       }
     } catch (err: any) {
-      // Gestion des erreurs (réseau, 401, etc.)
       const message = err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
       setError(message);
     } finally {
@@ -90,11 +87,6 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
   );
 };
 
-// ============ COMPOSANT DASHBOARD ============
-// (On garde l'ancien composant Dashboard, il n'utilise pas api pour l'instant,
-// mais on pourrait l'adapter plus tard. Pour l'instant, il est fonctionnel tel quel.)
-// Le code du Dashboard est inchangé par rapport à la version précédente.
-
 // ============ APP PRINCIPALE ============
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -124,6 +116,7 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
+      {/* ✅ ToastProvider enveloppe tout, pour que useToast fonctionne partout */}
       <ToastProvider>
         {!isAuthenticated ? (
           <Login onLogin={handleLogin} />
@@ -146,14 +139,12 @@ const App: React.FC = () => {
             </ErrorBoundary>
           </Router>
         )}
+
         {/* ✅ ToastContainer global, toujours monté */}
         <ToastContainer />
       </ToastProvider>
     </ThemeProvider>
   );
 };
-    
-
-  
 
 export default App;

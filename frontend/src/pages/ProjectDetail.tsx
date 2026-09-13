@@ -16,13 +16,13 @@ import { DocumentActions } from '../components/DocumentActions';
 import { PresenceBar } from '../components/PresenceBar';
 import { ActivityFeed } from '../components/ActivityFeed';
 import { TypingIndicator } from '../components/TypingIndicator';
+import { PresenceDetail } from '../components/PresenceDetail';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useProjectSocket } from '../hooks/useProjectSocket';
+import { useToast } from '../context/ToastContext';
 import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
-import { PresenceDetail } from '../components/PresenceDetail';
-import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 interface Project {
@@ -150,7 +150,7 @@ const ProjectDetail: React.FC = () => {
   const [trashedTranscriptions, setTrashedTranscriptions] = useState<ContentItem[]>([]);
   const [textDocuments, setTextDocuments] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'activity' | 'trash'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'activity' | 'trash' | 'presence'>('audio');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
@@ -184,35 +184,35 @@ const ProjectDetail: React.FC = () => {
     setActivities,
     typingUsers,
     emitTyping,
-    myColor,
+    myColor,   // ✅ AJOUTÉ
   } = useProjectSocket({
     projectId: encodedId,
     userId: currentUser?.id,
     userName: currentUser?.name || currentUser?.email || 'Utilisateur',
     userEmail: currentUser?.email,
     onDataChange: (event, data) => {
-  console.log('🔄 Rafraîchissement auto suite à :', event);
+      console.log('🔄 Rafraîchissement auto suite à :', event);
 
-  // ✅ Notifications visuelles
-  const eventMessages: Record<string, { title: string; type: any }> = {
-    'file-uploaded': { title: `📤 ${data?.file?.fileName || 'Un fichier'} a été uploadé`, type: 'info' },
-    'file-trashed': { title: `🗑️ ${data?.fileName || 'Un fichier'} a été mis à la corbeille`, type: 'warning' },
-    'file-restored': { title: `♻️ ${data?.fileName || 'Un fichier'} a été restauré`, type: 'success' },
-    'file-deleted-permanently': { title: `💥 ${data?.fileName || 'Un fichier'} a été supprimé définitivement`, type: 'error' },
-    'transcription-uploaded': { title: `🎙️ Nouvelle transcription : ${data?.title || ''}`, type: 'info' },
-    'transcription-trashed': { title: `🗑️ Transcription mise à la corbeille`, type: 'warning' },
-    'transcription-restored': { title: `♻️ Transcription restaurée`, type: 'success' },
-    'transcription-deleted-permanently': { title: `💥 Transcription supprimée`, type: 'error' },
-    'trash-emptied': { title: `🧹 Corbeille vidée (${data?.count || 0} éléments)`, type: 'warning' },
-  };
+      // ✅ Notifications visuelles
+      const eventMessages: Record<string, { title: string; type: any }> = {
+        'file-uploaded': { title: `📤 ${data?.file?.fileName || 'Un fichier'} a été uploadé`, type: 'info' },
+        'file-trashed': { title: `🗑️ ${data?.fileName || 'Un fichier'} a été mis à la corbeille`, type: 'warning' },
+        'file-restored': { title: `♻️ ${data?.fileName || 'Un fichier'} a été restauré`, type: 'success' },
+        'file-deleted-permanently': { title: `💥 ${data?.fileName || 'Un fichier'} a été supprimé définitivement`, type: 'error' },
+        'transcription-uploaded': { title: `🎙️ Nouvelle transcription : ${data?.title || ''}`, type: 'info' },
+        'transcription-trashed': { title: `🗑️ Transcription mise à la corbeille`, type: 'warning' },
+        'transcription-restored': { title: `♻️ Transcription restaurée`, type: 'success' },
+        'transcription-deleted-permanently': { title: `💥 Transcription supprimée`, type: 'error' },
+        'trash-emptied': { title: `🧹 Corbeille vidée (${data?.count || 0} éléments)`, type: 'warning' },
+      };
 
-  const msg = eventMessages[event];
-  if (msg) {
-    toast.addToast({ type: msg.type, title: msg.title, duration: 3000 });
-  }
+      const msg = eventMessages[event];
+      if (msg) {
+        toast.addToast({ type: msg.type, title: msg.title, duration: 3000 });
+      }
 
-  fetchProjectData();
-},
+      fetchProjectData();
+    },
   });
 
   // ✅ Charger l'activité initiale
@@ -557,7 +557,7 @@ const ProjectDetail: React.FC = () => {
         </div>
       </Card>
 
-      {/* ✅ Barre de présence temps réel */}
+      {/* Barre de présence temps réel */}
       <PresenceBar users={users} connected={connected} />
 
       {/* Barre de recherche */}
@@ -720,7 +720,7 @@ const ProjectDetail: React.FC = () => {
               </Button>
             </form>
 
-            {/* ✅ Indicateur de frappe */}
+            {/* Indicateur de frappe */}
             <TypingIndicator typingUsers={typingUsers} context="memo" />
 
             {memos.length === 0 ? (
@@ -793,6 +793,17 @@ const ProjectDetail: React.FC = () => {
         {activeTab === 'activity' && (
           <Card title="📋 Activité récente du projet">
             <ActivityFeed activities={activities} />
+          </Card>
+        )}
+
+        {activeTab === 'presence' && (
+          <Card title="👥 Présence en temps réel">
+            <PresenceDetail
+              users={users}
+              connected={connected}
+              myColor={myColor}
+              currentUserId={currentUser?.id}
+            />
           </Card>
         )}
 
@@ -950,17 +961,6 @@ const ProjectDetail: React.FC = () => {
             )}
           </Card>
         )}
-
-{activeTab === 'presence' && (
-  <Card title="👥 Présence en temps réel">
-    <PresenceDetail
-      users={users}
-      connected={connected}
-      myColor={myColor}
-      currentUserId={currentUser?.id}
-    />
-  </Card>
-)}
 
         {activeTab === 'trash' && (
           <Card title="🗑️ Corbeille">
