@@ -1,6 +1,6 @@
-// frontend/src/components/ToastContainer.tsx
+// src/components/ToastContainer.tsx
 import React from 'react';
-import { useToast, Toast } from '../context/ToastContext';
+import { useToast } from '../context/ToastContext';
 
 const typeStyles: Record<string, { bg: string; border: string; icon: string; color: string }> = {
   info: { bg: '#e6f0ff', border: '#0052cc', icon: 'ℹ️', color: '#0052cc' },

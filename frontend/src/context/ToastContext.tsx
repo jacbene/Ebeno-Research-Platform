@@ -1,4 +1,4 @@
-// frontend/src/context/ToastContext.tsx
+// src/context/ToastContext.tsx
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
