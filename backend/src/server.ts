@@ -3,10 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import requestIp from 'request-ip';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { startCleanupCron } from './services/cleanupService';
+import requestIp from 'request-ip';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -27,11 +26,13 @@ import summaryRoutes from './routes/summaryRoutes';
 import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
 import activityRoutes from './routes/activityRoutes';
+import healthRoutes from './routes/healthRoutes';
 
-// Socket + DB
+// Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
 import { setIO } from './socketManager';
 import { db } from './db/knex';
+import { startCleanupCron } from './services/cleanupService';
 
 // ✅ Middleware de rate limiting
 import {
@@ -48,7 +49,10 @@ import { logger, logError } from './utils/logger';
 // Chargement des variables d'environnement
 dotenv.config();
 
-// Gestion des erreurs non capturées
+// ============================================================
+// GESTION DES ERREURS NON CAPTURÉES
+// ============================================================
+
 process.on('uncaughtException', (err) => {
   logError('❌ Uncaught Exception', err);
   process.exit(1);
@@ -59,22 +63,26 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// ============================================================
+// INITIALISATION EXPRESS
+// ============================================================
+
 const app = express();
 const port = Number(process.env.PORT) || 5001;
 
-// ✅ Faire confiance au proxy (Render + Cloudflare = 2 hops)
-// On utilise une fonction pour accepter les IPs internes
+// ✅ Faire confiance au proxy (Render + Cloudflare)
 app.set('trust proxy', (ip: string) => {
-  // Accepter les IPs locales et Cloudflare
   if (ip === '127.0.0.1' || ip === '::1') return true;
-  // Accepter les plages Cloudflare
   if (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return true;
-  return true; // En production derrière Cloudflare, toujours faire confiance
+  return true; // En production derrière Cloudflare, on fait toujours confiance
 });
 
 const httpServer = createServer(app);
 
-// Configurer Socket.IO
+// ============================================================
+// SOCKET.IO
+// ============================================================
+
 const io = new SocketIOServer(httpServer, {
   cors: {
     origin: '*',
@@ -95,8 +103,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// ✅ Logs de requêtes HTTP (avant les routes)
+// ✅ Logs de requêtes HTTP
 app.use(requestLogger);
+
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
 
@@ -122,6 +131,7 @@ app.use('/api/codes', aiLimiter);
 // ROUTES
 // ============================================================
 
+app.use('/api/health', healthRoutes);           // ✅ Health + Breakers
 app.use('/api/upload', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -139,16 +149,11 @@ app.use('/api/projects/:projectId/files', fileRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
-app.use('/api/activity', activityRoutes);
+app.use('/api/activity', activityRoutes);       // ✅ Activité
 
 // ============================================================
 // ROUTES UTILITAIRES
 // ============================================================
-
-// Route de santé
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Ebeno API' });
-});
 
 // Route racine
 app.get('/', (req, res) => {
@@ -162,7 +167,9 @@ app.get('/', (req, res) => {
       projects: '/api/projects',
       deepseek: '/api/deepseek',
       collaboration: '/api/collaboration',
+      activity: '/api/activity',
       health: '/api/health',
+      breakers: '/api/health/breakers',
     },
   });
 });
@@ -186,7 +193,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     userId: (req as any).user?.id,
   });
 
-  // Ne pas exposer les détails en production
   const message = process.env.NODE_ENV === 'production'
     ? 'Erreur interne du serveur'
     : err.message;
@@ -214,9 +220,6 @@ const startServer = async () => {
       logger.info(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
 
-    // ✅ Démarrer le cron de nettoyage
-    startCleanupCron();
-
     httpServer.on('listening', () => {
       const addr = httpServer.address();
       if (addr && typeof addr !== 'string') {
@@ -229,6 +232,9 @@ const startServer = async () => {
     httpServer.on('error', (err) => {
       logError('❌ Erreur du serveur HTTP', err);
     });
+
+    // ✅ Démarrer le cron de nettoyage (purge activités > 90j)
+    startCleanupCron();
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
     process.exit(1);

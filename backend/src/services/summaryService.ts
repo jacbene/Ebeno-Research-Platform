@@ -2,10 +2,20 @@
 import { db } from '../db/knex';
 import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
 import { generateSummaryWithOpenAI, isOpenAIConfigured } from './openaiService';
+import {
+  isServiceAvailable,
+  recordFailure,
+  recordSuccess,
+} from './circuitBreaker';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../utils/logger';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
+
+// Noms des services pour le circuit breaker
+const SERVICE_OPENAI = 'openai';
+const SERVICE_DEEPGRAM = 'deepgram';
 
 /**
  * Résumé via Deepgram Text Intelligence (/v1/read)
@@ -18,7 +28,6 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
 
   const truncatedText = text.length > 100000 ? text.substring(0, 100000) + '...' : text;
 
-  // ✅ language=en obligatoire
   const response = await fetch(
     'https://api.deepgram.com/v1/read?summarize=true&language=en',
     {
@@ -33,8 +42,7 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Erreur Deepgram:', response.status, errorText);
-    throw new Error(`Erreur Deepgram: ${response.status}`);
+    throw new Error(`Deepgram ${response.status} : ${errorText}`);
   }
 
   const data: any = await response.json();
@@ -44,7 +52,6 @@ const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
     throw new Error('Réponse Deepgram vide');
   }
 
-  console.log(`✅ Résumé Deepgram généré : ${summary.length} caractères`);
   return summary;
 };
 
@@ -74,35 +81,48 @@ const generateHeuristicSummary = (text: string): string => {
 };
 
 /**
- * ✅ Cascade : OpenAI → Deepgram → Heuristique
+ * ✅ Cascade intelligente :
+ *   OpenAI (si clé valide et circuit fermé)
+ *   → Deepgram (si clé valide et circuit fermé)
+ *   → Heuristique (toujours disponible)
  */
 const generateSummary = async (text: string): Promise<string> => {
-  // 1️⃣ OpenAI (français)
-  if (isOpenAIConfigured()) {
+  // 1️⃣ OpenAI
+  if (isOpenAIConfigured() && isServiceAvailable(SERVICE_OPENAI)) {
     try {
-      console.log('🔵 [summary] Tentative OpenAI...');
-      return await generateSummaryWithOpenAI(text);
+      logger.info('🔵 [summary] Tentative OpenAI...');
+      const result = await generateSummaryWithOpenAI(text);
+      recordSuccess(SERVICE_OPENAI);
+      return result;
     } catch (error: any) {
-      console.warn(`⚠️ [summary] OpenAI échoué (${error.message}), bascule vers Deepgram`);
+      recordFailure(SERVICE_OPENAI, error);
+      logger.warn(`⚠️ [summary] OpenAI échoué, bascule vers Deepgram`);
     }
+  } else if (!isServiceAvailable(SERVICE_OPENAI)) {
+    logger.info('⏭️ [summary] OpenAI ignoré (circuit ouvert)');
   } else {
-    console.log('⚠️ [summary] OpenAI non configuré');
+    logger.info('⚠️ [summary] OpenAI non configuré');
   }
 
-  // 2️⃣ Deepgram (anglais)
-  if (DEEPGRAM_API_KEY) {
+  // 2️⃣ Deepgram
+  if (DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
     try {
-      console.log('🟢 [summary] Tentative Deepgram...');
-      return await generateSummaryWithDeepgram(text);
+      logger.info('🟢 [summary] Tentative Deepgram...');
+      const result = await generateSummaryWithDeepgram(text);
+      recordSuccess(SERVICE_DEEPGRAM);
+      return result;
     } catch (error: any) {
-      console.warn(`⚠️ [summary] Deepgram échoué (${error.message}), bascule vers heuristique`);
+      recordFailure(SERVICE_DEEPGRAM, error);
+      logger.warn(`⚠️ [summary] Deepgram échoué, bascule vers heuristique`);
     }
+  } else if (!isServiceAvailable(SERVICE_DEEPGRAM)) {
+    logger.info('⏭️ [summary] Deepgram ignoré (circuit ouvert)');
   } else {
-    console.log('⚠️ [summary] Deepgram non configuré');
+    logger.info('⚠️ [summary] Deepgram non configuré');
   }
 
-  // 3️⃣ Heuristique (toujours dispo)
-  console.log('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
+  // 3️⃣ Heuristique
+  logger.info('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
   return generateHeuristicSummary(text);
 };
 
@@ -129,11 +149,11 @@ export const generateDocumentSummary = async (
     if (!doc) throw new Error('Fichier non trouvé');
 
     if (doc.filePath && doc.filePath.startsWith('http')) {
-      console.log(`📂 [summary] Téléchargement depuis Cloudinary : ${doc.filePath}`);
+      logger.info(`📂 [summary] Téléchargement depuis Cloudinary : ${doc.filePath}`);
       text = await extractTextFromUrl(doc.filePath, doc.mimeType);
     } else {
       const filePath = path.join(__dirname, '../../', doc.filePath);
-      console.log(`📂 [summary] Chemin local : ${filePath}`);
+      logger.info(`📂 [summary] Chemin local : ${filePath}`);
       if (!fs.existsSync(filePath)) {
         throw new Error(`Fichier physique introuvable : ${filePath}`);
       }
@@ -148,7 +168,7 @@ export const generateDocumentSummary = async (
     return 'Texte trop court pour générer un résumé.';
   }
 
-  console.log(`📝 [summary] Texte extrait : ${text.length} caractères`);
+  logger.info(`📝 [summary] Texte extrait : ${text.length} caractères`);
 
   const summary = await generateSummary(text);
 
@@ -197,7 +217,7 @@ export const getProjectSummaries = async (projectId: string, userId: string): Pr
 };
 
 export const generateProjectSummary = async (projectId: string, userId: string): Promise<string> => {
-  console.log(`🔍 [summary] Résumé global du projet ${projectId}`);
+  logger.info(`🔍 [summary] Résumé global du projet ${projectId}`);
 
   const transcriptions = await db('transcriptions').where({ projectId, userId }).select('transcriptText');
   const memos = await db('memos').where({ projectId, userId }).select('content');
@@ -221,7 +241,7 @@ export const generateProjectSummary = async (projectId: string, userId: string):
       }
       if (text) allText += ' ' + text;
     } catch (err: any) {
-      console.warn(`⚠️ Fichier ignoré : ${err.message}`);
+      logger.warn(`⚠️ Fichier ignoré : ${err.message}`);
     }
   }
 
@@ -229,6 +249,6 @@ export const generateProjectSummary = async (projectId: string, userId: string):
     return 'Pas assez de contenu pour générer un résumé de projet.';
   }
 
-  console.log(`📝 [summary] Texte total collecté : ${allText.length} caractères`);
+  logger.info(`📝 [summary] Texte total collecté : ${allText.length} caractères`);
   return generateSummary(allText);
 };

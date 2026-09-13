@@ -7,11 +7,12 @@ import fs from 'fs';
 import FormData from 'form-data';
 import axios from 'axios';
 import { db } from '../db/knex';
+import { isServiceAvailable, recordFailure, recordSuccess } from './circuitBreaker';
+import { logger } from '../utils/logger';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 if (!DEEPGRAM_API_KEY) {
-  console.error('❌ DEEPGRAM_API_KEY non définie dans le fichier .env');
-  process.exit(1);
+  logger.error('❌ DEEPGRAM_API_KEY non définie dans le fichier .env');
 }
 
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/listen';
@@ -28,15 +29,37 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const transcription = await db('transcriptions').where({ id: transcriptionId }).first();
     if (!transcription) throw new Error('Transcription introuvable');
 
+    // ✅ Vérifier le circuit breaker AVANT de tenter l'appel
+    if (!isServiceAvailable('deepgram')) {
+      logger.warn(`⏭️ [Deepgram] Circuit ouvert, transcription ${transcriptionId} annulée`);
+      await db('transcriptions').where({ id: transcriptionId }).update({
+        status: TranscriptionStatus.FAILED,
+        errorMessage: 'Service Deepgram temporairement indisponible (clé invalide ou quota)',
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (!DEEPGRAM_API_KEY) {
+      throw new Error('DEEPGRAM_API_KEY non configurée');
+    }
+
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.PROCESSING,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
 
-    const audioPath = path.join(__dirname, '../../uploads/tmp', path.basename(transcription.audioUrl || ''));
-    if (!fs.existsSync(audioPath)) throw new Error(`Fichier introuvable: ${audioPath}`);
+    const audioPath = path.join(
+      __dirname,
+      '../../uploads/tmp',
+      path.basename(transcription.audioUrl || '')
+    );
 
-    console.log(`🎙️ [Deepgram] Transcription en cours pour ${transcriptionId}...`);
+    if (!fs.existsSync(audioPath)) {
+      throw new Error(`Fichier introuvable: ${audioPath}`);
+    }
+
+    logger.info(`🎙️ [Deepgram] Transcription en cours pour ${transcriptionId}...`);
 
     const audioFile = fs.createReadStream(audioPath);
     const formData = new FormData();
@@ -44,12 +67,12 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
 
     const response = await axios.post(DEEPGRAM_URL, formData, {
       params: {
-        model: 'nova-2',           // ✅ Modèle Nova-2 (meilleure précision FR)
-        language: 'fr',            // ✅ Français
-        smart_format: 'true',      // ✅ Ponctuation + paragraphes
-        punctuate: 'true',         // ✅ Ponctuation
-        diarize: 'false',          // ✅ Pas de distinction des locuteurs
-        filler_words: 'false',     // ✅ Pas de "euh", "hum", etc.
+        model: 'nova-2',
+        language: 'fr',
+        smart_format: 'true',
+        punctuate: 'true',
+        diarize: 'false',
+        filler_words: 'false',
       },
       headers: {
         'Authorization': `Token ${DEEPGRAM_API_KEY}`,
@@ -57,27 +80,43 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
       },
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
+      timeout: 5 * 60 * 1000, // 5 minutes max
     });
 
-    const transcriptText = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    // ✅ Succès : réinitialiser le circuit
+    recordSuccess('deepgram');
+
+    const transcriptText =
+      response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
 
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
 
-    console.log(`✅ [Deepgram] Transcription ${transcriptionId} terminée : ${transcriptText.length} caractères`);
-
+    logger.info(
+      `✅ [Deepgram] Transcription ${transcriptionId} terminée : ${transcriptText.length} caractères`
+    );
   } catch (error: any) {
-    console.error(`❌ [Deepgram] Erreur ${transcriptionId}:`, error.message);
+    const status = error.response?.status;
+    const errorData = error.response?.data
+      ? JSON.stringify(error.response.data)
+      : error.message;
+
+    logger.error(`❌ [Deepgram] Erreur ${transcriptionId} : ${error.message}`);
     if (error.response) {
-      console.error('Détails Deepgram:', error.response.data);
+      logger.error(`Détails Deepgram (${status}) :`, { data: error.response.data });
     }
+
+    // ✅ Enregistrer l'échec dans le circuit breaker
+    const fullError = new Error(`${status || 'ERR'} : ${errorData}`);
+    recordFailure('deepgram', fullError);
+
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.FAILED,
       errorMessage: error.message || 'Erreur inconnue',
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
   }
 };
@@ -100,12 +139,16 @@ export const uploadAndProcessDeepgram = async (
     transcriptText: null,
     errorMessage: null,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 
-  console.log(`📥 [Deepgram] Nouvelle transcription ${id} : ${file.originalname}`);
+  logger.info(`📥 [Deepgram] Nouvelle transcription ${id} : ${file.originalname}`);
 
-  processTranscriptionDeepgram(id).catch(err => console.error('Erreur asynchrone:', err));
+  // ✅ Traitement asynchrone (ne bloque pas la réponse HTTP)
+  processTranscriptionDeepgram(id).catch((err) =>
+    logger.error('Erreur asynchrone Deepgram:', err)
+  );
+
   return { id, message: 'Transcription démarrée', status: 'PENDING' };
 };
 
