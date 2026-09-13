@@ -1,15 +1,16 @@
 // backend/src/middleware/rateLimiter.ts
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import requestIp from 'request-ip';
 import { Request } from 'express';
 
 /**
  * ✅ Générateur de clé basé sur l'IP réelle du client
- * Fonctionne derrière Cloudflare + Render
+ * Utilise ipKeyGenerator pour normaliser les adresses IPv6
  */
 const keyGenerator = (req: Request): string => {
-  const clientIp = requestIp.getClientIp(req);
-  return clientIp || req.ip || 'unknown';
+  const clientIp = requestIp.getClientIp(req) || req.ip || 'unknown';
+  // ✅ Normalise les IPv6 (sous-réseau /64)
+  return ipKeyGenerator(clientIp);
 };
 
 /**
@@ -47,7 +48,7 @@ export const authLimiter = rateLimit({
   handler,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Ne compte que les échecs
+  skipSuccessfulRequests: true,
 });
 
 /**
