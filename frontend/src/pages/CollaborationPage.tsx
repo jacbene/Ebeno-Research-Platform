@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+// frontend/src/pages/CollaborationPage.tsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { api } from '../services/api';
+import { PresenceBar } from '../components/PresenceBar';
+import { CollaborativeEditor } from '../components/CollaborativeEditor';
+import { useProjectSocket } from '../hooks/useProjectSocket';
 import { useTheme } from '../context/ThemeContext';
+import { api } from '../services/api';
 
 interface Document {
   id: string;
@@ -16,34 +20,53 @@ interface Document {
   updatedAt: number;
 }
 
-interface User {
-  id: string;
-  name: string;
-  color: string;
-}
-
 const CollaborationPage: React.FC = () => {
   const { colors } = useTheme();
+  const [searchParams] = useSearchParams();
+  const [projectId, setProjectId] = useState(searchParams.get('projectId') || '');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [content, setContent] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [projectId, setProjectId] = useState('');
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ebeno-backend.onrender.com';
+  // Utilisateur courant
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const encodedProjectId = projectId ? encodeURIComponent(projectId) : '';
+
+  // ✅ Socket.IO unifié
+  const {
+    connected,
+    myColor,
+    users: projectUsers,
+    documentUsers,
+    documentContent,
+    setDocumentContent,
+    documentTyping,
+    joinDocument,
+    leaveDocument,
+    editDocument,
+    emitTyping,
+  } = useProjectSocket({
+    projectId: encodedProjectId,
+    userId: currentUser?.id,
+    userName: currentUser?.name || currentUser?.email || 'Utilisateur',
+    userEmail: currentUser?.email,
+    onDataChange: () => {}, // Rien ici, on gère manuellement
+  });
 
   // Charger les documents du projet
   useEffect(() => {
-    if (!projectId) return;
+    if (!encodedProjectId) return;
     const fetchDocuments = async () => {
       setLoading(true);
       try {
-        const response = await api.get(`/collaboration/project/${projectId}`);
+        const response = await api.get(`/collaboration/project/${encodedProjectId}`);
         if (response.data.success) {
           setDocuments(response.data.data || []);
         }
@@ -54,91 +77,92 @@ const CollaborationPage: React.FC = () => {
       }
     };
     fetchDocuments();
-  }, [projectId]);
+  }, [encodedProjectId]);
 
-  // Connexion Socket.IO
+  // Rejoindre le document quand il est sélectionné
   useEffect(() => {
-    if (!selectedDoc || !user.id) return;
-
-    const newSocket = io(API_BASE_URL);
-    setSocket(newSocket);
-    setIsConnected(true);
-
-    newSocket.on('connect', () => {
-      console.log('✅ Socket.IO connecté');
-      newSocket.emit('join-document', {
-        documentId: selectedDoc.id,
-        userId: user.id,
-        userName: user.name || user.email
-      });
-    });
-
-    newSocket.on('document-content', (data: { document: Document, users: User[] }) => {
-      setContent(data.document.content || '');
-      setUsers(data.users);
-    });
-
-    newSocket.on('document-updated', (data: { content: string, userId: string, version: number }) => {
-      if (data.userId !== user.id) {
-        setContent(data.content);
-      }
-    });
-
-    newSocket.on('user-joined', (data: User) => {
-      setUsers(prev => [...prev, data]);
-    });
-
-    newSocket.on('user-left', (data: { userId: string }) => {
-      setUsers(prev => prev.filter(u => u.id !== data.userId));
-    });
-
-    newSocket.on('users-list', (data: User[]) => {
-      setUsers(data);
-    });
+    if (!selectedDoc?.id) return;
+    joinDocument(selectedDoc.id);
 
     return () => {
-      newSocket.close();
-      setIsConnected(false);
+      leaveDocument(selectedDoc.id);
     };
-  }, [selectedDoc, user.id]);
+  }, [selectedDoc?.id, joinDocument, leaveDocument]);
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setContent(newContent);
-    if (socket && selectedDoc) {
-      socket.emit('edit-document', {
-        documentId: selectedDoc.id,
-        content: newContent
-      });
+  // Quand le contenu du document change côté serveur (autre utilisateur)
+  useEffect(() => {
+    if (selectedDoc && documentContent !== selectedDoc.content) {
+      setSelectedDoc((prev) => prev ? { ...prev, content: documentContent } : prev);
     }
+  }, [documentContent]);
+
+  const handleContentChange = (newContent: string) => {
+    if (!selectedDoc) return;
+
+    setDocumentContent(newContent);
+    setSelectedDoc((prev) => prev ? { ...prev, content: newContent } : prev);
+
+    // Sauvegarder via socket
+    editDocument(selectedDoc.id, newContent);
+
+    // Indicateur de frappe
+    emitTyping(`doc-${selectedDoc.id}`, true);
+    if ((window as any).__docTypingTimeout) {
+      clearTimeout((window as any).__docTypingTimeout);
+    }
+    (window as any).__docTypingTimeout = setTimeout(() => {
+      emitTyping(`doc-${selectedDoc.id}`, false);
+    }, 1500);
+  };
+
+  const handleCursorMove = (position: number) => {
+    if (!selectedDoc) return;
+    // Utiliser editDocument pour envoyer la position du curseur
+    editDocument(selectedDoc.id, documentContent, position);
   };
 
   const createDocument = async () => {
-    if (!projectId) {
-      alert('Veuillez sélectionner un projet');
+    if (!encodedProjectId) {
+      alert('Veuillez saisir un ID de projet');
       return;
     }
     try {
       const response = await api.post('/collaboration', {
         title: `Document ${documents.length + 1}`,
-        projectId,
-        content: 'Contenu initial...'
+        projectId: encodedProjectId,
+        content: 'Contenu initial...',
       });
       if (response.data.success) {
-        setDocuments([...documents, response.data.data]);
-        setSelectedDoc(response.data.data);
-        setContent(response.data.data.content || '');
+        const newDoc = response.data.data;
+        setDocuments([...documents, newDoc]);
+        setSelectedDoc(newDoc);
+        setDocumentContent(newDoc.content || '');
       }
     } catch (error) {
       console.error('❌ Erreur création document:', error);
+      alert('Erreur lors de la création du document');
     }
   };
+
+  // Filtrer les utilisateurs du document (uniques)
+  const uniqueDocUsers = useMemo(() => {
+    const seen = new Set<string>();
+    return documentUsers.filter((u) => {
+      if (seen.has(u.userId)) return false;
+      seen.add(u.userId);
+      return true;
+    });
+  }, [documentUsers]);
 
   return (
     <div style={{ padding: theme.spacing.xl, maxWidth: '1400px', margin: '0 auto' }}>
       <h1 style={{ marginBottom: theme.spacing.lg }}>🤝 Collaboration en temps réel</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: theme.spacing.lg }}>
+      {/* Barre de présence globale du projet */}
+      {encodedProjectId && <PresenceBar users={projectUsers} connected={connected} />}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: theme.spacing.lg, marginTop: theme.spacing.lg }}>
+        {/* Colonne de gauche : documents */}
         <Card>
           <div style={{ display: 'flex', gap: theme.spacing.sm, marginBottom: theme.spacing.md }}>
             <Input
@@ -148,18 +172,22 @@ const CollaborationPage: React.FC = () => {
               onChange={(e) => setProjectId(e.target.value)}
               style={{ flex: 1 }}
             />
-            <Button onClick={() => setProjectId(projectId)}>Charger</Button>
+            <Button onClick={() => {}}>OK</Button>
           </div>
 
-          <Button variant="success" onClick={createDocument} style={{ width: '100%', marginBottom: theme.spacing.md }}>
+          <Button
+            variant="success"
+            onClick={createDocument}
+            style={{ width: '100%', marginBottom: theme.spacing.md }}
+          >
             + Nouveau document
           </Button>
 
-          <h3>Documents</h3>
+          <h3 style={{ marginTop: 0 }}>📄 Documents ({documents.length})</h3>
           {loading ? (
             <p>Chargement...</p>
           ) : documents.length === 0 ? (
-            <p style={{ color: colors.gray[500] }}>Aucun document</p>
+            <p style={{ color: colors.gray[500], fontSize: '13px' }}>Aucun document</p>
           ) : (
             documents.map((doc) => (
               <div
@@ -167,66 +195,36 @@ const CollaborationPage: React.FC = () => {
                 onClick={() => setSelectedDoc(doc)}
                 style={{
                   padding: theme.spacing.md,
-                  backgroundColor: selectedDoc?.id === doc.id ? colors.primaryLight : colors.gray[100],
+                  backgroundColor: selectedDoc?.id === doc.id ? colors.primary + '20' : colors.gray[100],
+                  borderLeft: selectedDoc?.id === doc.id ? `3px solid ${colors.primary}` : '3px solid transparent',
                   borderRadius: theme.borderRadius.md,
                   marginBottom: theme.spacing.xs,
                   cursor: 'pointer',
                   transition: 'background-color 0.2s ease',
                 }}
               >
-                <strong>{doc.title}</strong>
+                <strong style={{ fontSize: '14px' }}>{doc.title}</strong>
                 <br />
-                <Badge variant="info">v{doc.version}</Badge>
+                <span style={{ fontSize: '11px', color: colors.gray[500] }}>
+                  <Badge variant="info">v{doc.version}</Badge>
+                </span>
               </div>
             ))
           )}
         </Card>
 
+        {/* Colonne de droite : éditeur */}
         <Card>
           {selectedDoc ? (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md }}>
-                <h2 style={{ margin: 0 }}>{selectedDoc.title}</h2>
-                <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
-                  <Badge variant={isConnected ? 'success' : 'danger'}>
-                    {isConnected ? '🟢 Connecté' : '🔴 Déconnecté'}
-                  </Badge>
-                  <Badge variant="info">{users.length} utilisateur(s)</Badge>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', marginBottom: theme.spacing.md }}>
-                {users.map((u) => (
-                  <span key={u.id} style={{
-                    display: 'inline-block',
-                    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                    backgroundColor: u.color,
-                    color: 'white',
-                    borderRadius: theme.borderRadius.sm,
-                    fontSize: theme.typography.fontSize.xs,
-                  }}>
-                    {u.name}
-                  </span>
-                ))}
-              </div>
-
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={handleContentChange}
-                style={{
-                  width: '100%',
-                  minHeight: '500px',
-                  padding: theme.spacing.md,
-                  border: `1px solid ${colors.gray[300]}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.md,
-                  fontFamily: 'monospace',
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
-              />
-            </>
+            <CollaborativeEditor
+              documentId={selectedDoc.id}
+              title={selectedDoc.title}
+              content={documentContent || selectedDoc.content || ''}
+              users={uniqueDocUsers}
+              typingUsers={documentTyping.filter((t) => t.context === `doc-${selectedDoc.id}`)}
+              onChange={handleContentChange}
+              onCursorMove={handleCursorMove}
+            />
           ) : (
             <div style={{ textAlign: 'center', padding: theme.spacing.xxl, color: colors.gray[500] }}>
               <p style={{ fontSize: theme.typography.fontSize.lg }}>📄 Sélectionnez un document</p>
