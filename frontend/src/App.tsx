@@ -18,6 +18,8 @@ import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { useTheme } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './context/ToastContext';
+import { ToastContainer } from './components/ToastContainer';
 
 // ============ COMPOSANT LOGIN ============
 const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
@@ -122,29 +124,36 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      {!isAuthenticated ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        <Router future={{ v7_relativeSplatPath: true }}>
-          <ErrorBoundary>
-            <Routes>
-              <Route element={<Layout user={user} onLogout={handleLogout} />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/transcription" element={<TranscriptionPage />} />
-                <Route path="/text-upload" element={<TextUploadPage />} />
-                <Route path="/transcriptions" element={<TranscriptionList />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/collaboration" element={<CollaborationPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/project/:id" element={<ProjectDetail />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
-          </ErrorBoundary>
-        </Router>
-      )}
+      <ToastProvider>
+        {!isAuthenticated ? (
+          <Login onLogin={handleLogin} />
+        ) : (
+          <Router future={{ v7_relativeSplatPath: true }}>
+            <ErrorBoundary>
+              <Routes>
+                <Route element={<Layout user={user} onLogout={handleLogout} />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/transcription" element={<TranscriptionPage />} />
+                  <Route path="/text-upload" element={<TextUploadPage />} />
+                  <Route path="/transcriptions" element={<TranscriptionList />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/collaboration" element={<CollaborationPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/project/:id" element={<ProjectDetail />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </ErrorBoundary>
+          </Router>
+        )}
+        {/* ✅ ToastContainer global, toujours monté */}
+        <ToastContainer />
+      </ToastProvider>
     </ThemeProvider>
   );
 };
+    
+
+  
 
 export default App;

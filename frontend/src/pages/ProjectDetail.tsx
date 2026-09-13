@@ -21,6 +21,8 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useProjectSocket } from '../hooks/useProjectSocket';
 import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
+import { PresenceDetail } from '../components/PresenceDetail';
+import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 interface Project {
@@ -128,6 +130,7 @@ const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
+  const toast = useToast();
 
   // Utilisateur courant
   const currentUser = useMemo(() => {
@@ -181,15 +184,35 @@ const ProjectDetail: React.FC = () => {
     setActivities,
     typingUsers,
     emitTyping,
+    myColor,
   } = useProjectSocket({
     projectId: encodedId,
     userId: currentUser?.id,
     userName: currentUser?.name || currentUser?.email || 'Utilisateur',
     userEmail: currentUser?.email,
     onDataChange: (event, data) => {
-      console.log('🔄 Rafraîchissement auto suite à :', event);
-      fetchProjectData();
-    },
+  console.log('🔄 Rafraîchissement auto suite à :', event);
+
+  // ✅ Notifications visuelles
+  const eventMessages: Record<string, { title: string; type: any }> = {
+    'file-uploaded': { title: `📤 ${data?.file?.fileName || 'Un fichier'} a été uploadé`, type: 'info' },
+    'file-trashed': { title: `🗑️ ${data?.fileName || 'Un fichier'} a été mis à la corbeille`, type: 'warning' },
+    'file-restored': { title: `♻️ ${data?.fileName || 'Un fichier'} a été restauré`, type: 'success' },
+    'file-deleted-permanently': { title: `💥 ${data?.fileName || 'Un fichier'} a été supprimé définitivement`, type: 'error' },
+    'transcription-uploaded': { title: `🎙️ Nouvelle transcription : ${data?.title || ''}`, type: 'info' },
+    'transcription-trashed': { title: `🗑️ Transcription mise à la corbeille`, type: 'warning' },
+    'transcription-restored': { title: `♻️ Transcription restaurée`, type: 'success' },
+    'transcription-deleted-permanently': { title: `💥 Transcription supprimée`, type: 'error' },
+    'trash-emptied': { title: `🧹 Corbeille vidée (${data?.count || 0} éléments)`, type: 'warning' },
+  };
+
+  const msg = eventMessages[event];
+  if (msg) {
+    toast.addToast({ type: msg.type, title: msg.title, duration: 3000 });
+  }
+
+  fetchProjectData();
+},
   });
 
   // ✅ Charger l'activité initiale
@@ -483,6 +506,7 @@ const ProjectDetail: React.FC = () => {
     { key: 'documents', label: `📁 Documents (${totalDocuments})` },
     { key: 'activity', label: `📋 Activité (${activities.length})` },
     { key: 'trash', label: `🗑️ Corbeille (${totalTrashed})` },
+    { key: 'presence', label: `👥 Présence (${users.length})` },
   ];
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Chargement...</div>;
@@ -926,6 +950,17 @@ const ProjectDetail: React.FC = () => {
             )}
           </Card>
         )}
+
+{activeTab === 'presence' && (
+  <Card title="👥 Présence en temps réel">
+    <PresenceDetail
+      users={users}
+      connected={connected}
+      myColor={myColor}
+      currentUserId={currentUser?.id}
+    />
+  </Card>
+)}
 
         {activeTab === 'trash' && (
           <Card title="🗑️ Corbeille">
