@@ -6,6 +6,7 @@ import path from 'path';
 import requestIp from 'request-ip';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { startCleanupCron } from './services/cleanupService';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -212,6 +213,9 @@ const startServer = async () => {
       logger.info(`🚀 Serveur démarré sur le port ${port}`);
       logger.info(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
+
+    // ✅ Démarrer le cron de nettoyage
+    startCleanupCron();
 
     httpServer.on('listening', () => {
       const addr = httpServer.address();
