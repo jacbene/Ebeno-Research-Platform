@@ -1,19 +1,63 @@
 // backend/src/routes/authRoutes.ts
 import { Router } from 'express';
-import { register, login, getProfile, getMe, logout } from '../controllers/authController';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import {
+  register,
+  login,
+  getProfile,
+  getMe,
+  updateProfile,
+  changePassword,
+  uploadAvatar,
+  logout,
+} from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Configuration multer pour l'avatar (stockage temporaire)
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/avatars/';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const suffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `${suffix}${path.extname(file.originalname)}`);
+  },
+});
+
+const uploadAvatarMiddleware = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Seules les images sont autorisées'));
+    }
+  },
+}).single('avatar');
+
+// ============================================================
+// ROUTES PUBLIQUES
+// ============================================================
+
 router.post('/register', register);
 router.post('/login', login);
 
-// ✅ Route protégée : profil de l'utilisateur connecté
+// ============================================================
+// ROUTES PROTÉGÉES
+// ============================================================
+
 router.get('/profile', authenticate, getProfile);
-
-// ✅ Alias `/me` (plus RESTful)
 router.get('/me', authenticate, getMe);
-
-router.post('/logout', logout);
+router.put('/update', authenticate, updateProfile);
+router.put('/change-password', authenticate, changePassword);
+router.post('/avatar', authenticate, uploadAvatarMiddleware, uploadAvatar);
+router.post('/logout', authenticate, logout);
 
 export default router;
