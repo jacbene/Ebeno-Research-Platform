@@ -5,22 +5,20 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const config: Knex.Config = {
-  client: process.env.NODE_ENV === 'production' ? 'pg' : 'sqlite3',
-  connection:
-    process.env.NODE_ENV === 'production'
-      ? process.env.DATABASE_URL
-      : { filename: './dev.db' },
+  client: isProd ? 'pg' : 'sqlite3',
+  connection: isProd ? process.env.DATABASE_URL : { filename: './dev.db' },
   useNullAsDefault: true,
   migrations: {
-    // ✅ Chemin ABSOLU basé sur __dirname (le dossier du fichier actuel = src/config/)
+    // ✅ Chemin absolu (résolu depuis dist/config/ ou src/config/)
     directory: path.join(__dirname, '../db/migrations'),
-    extension: 'ts',
+    // ✅ En prod = .js (code compilé), en dev = .ts
+    extension: isProd ? 'js' : 'ts',
+    loadExtensions: isProd ? ['.js'] : ['.ts'],
   },
-  pool:
-    process.env.NODE_ENV === 'production'
-      ? { min: 2, max: 10 }
-      : undefined,
+  pool: isProd ? { min: 2, max: 10 } : undefined,
 };
 
 export default config;
