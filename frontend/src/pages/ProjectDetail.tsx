@@ -303,7 +303,7 @@ const ProjectDetail: React.FC = () => {
       const response = await api.post('/memos', {
         title: newMemoTitle.trim(),
         content: newMemoContent.trim(),
-        projectId: encodedId,
+        projectId: id,
       });
       if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
