@@ -12,11 +12,12 @@ const config: Knex.Config = {
   connection: isProd ? process.env.DATABASE_URL : { filename: './dev.db' },
   useNullAsDefault: true,
   migrations: {
-    // ✅ Chemin absolu (résolu depuis dist/config/ ou src/config/)
     directory: path.join(__dirname, '../db/migrations'),
-    // ✅ En prod = .js (code compilé), en dev = .ts
     extension: isProd ? 'js' : 'ts',
     loadExtensions: isProd ? ['.js'] : ['.ts'],
+    // ✅ Ignore la vérification de cohérence DB ↔ dossier
+    // (nécessaire quand les migrations ont été renommées .ts → .js)
+    disableMigrationsListValidation: true,
   },
   pool: isProd ? { min: 2, max: 10 } : undefined,
 };
