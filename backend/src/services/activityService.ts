@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 import { emitGlobal } from '../socketManager';
 
 interface LogActivityInput {
-  projectId: string;
+  projectId?: string;  // ✅ Optionnel
   userId: string;
   userName?: string;
   action: string;
@@ -14,10 +14,13 @@ interface LogActivityInput {
   metadata?: Record<string, any>;
 }
 
-/**
- * Enregistre une activité + émet un événement Socket.IO
- */
 export const logActivity = async (input: LogActivityInput): Promise<void> => {
+  // ✅ Ne rien faire si projectId manquant (ex: transcription globale)
+  if (!input.projectId) {
+    logger.debug(`⏭️ [activity] Ignorée (pas de projet) : ${input.action}`);
+    return;
+  }
+
   try {
     const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
@@ -39,25 +42,17 @@ export const logActivity = async (input: LogActivityInput): Promise<void> => {
     logger.info(`📋 Activité enregistrée : ${input.action}`, {
       projectId: input.projectId,
       userId: input.userId,
-      targetId: input.targetId,
     });
 
-    // 📡 Émettre l'événement temps réel
     emitGlobal('activity-created', {
       projectId: input.projectId,
-      activity: {
-        ...activity,
-        metadata: input.metadata || null,
-      },
+      activity: { ...activity, metadata: input.metadata || null },
     });
   } catch (error: any) {
     logger.warn(`⚠️ Impossible d'enregistrer l'activité : ${error.message}`);
   }
 };
 
-/**
- * Récupère les activités récentes d'un projet
- */
 export const getProjectActivity = async (
   projectId: string,
   limit = 50
