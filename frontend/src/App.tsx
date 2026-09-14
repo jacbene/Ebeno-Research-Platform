@@ -20,6 +20,7 @@ import { useTheme } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
+import Register from './pages/Register';
 
 // ============ COMPOSANT LOGIN ============
 const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
@@ -82,13 +83,31 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
         <p style={{ textAlign: 'center', marginTop: theme.spacing.md, fontSize: theme.typography.fontSize.sm, color: colors.gray[600] }}>
           Test: test@test.com / 123456
         </p>
+<p style={{
+  textAlign: 'center',
+  marginTop: theme.spacing.lg,
+  fontSize: theme.typography.fontSize.sm,
+  color: colors.gray[600],
+}}>
+  Pas encore de compte ?{' '}
+  <a
+    href="#"
+    onClick={(e) => { e.preventDefault(); onSwitchToRegister(); }}
+    style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}
+  >
+    S'inscrire
+  </a>
+</p>
       </Card>
     </div>
   );
-};
+}; 
 
 // ============ APP PRINCIPALE ============
-const App: React.FC = () => {
+const Login: React.FC<{ onLogin: () => void; onSwitchToRegister?: () => void }> = ({
+  onLogin,
+  onSwitchToRegister,
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
 
