@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
 import Dashboard from './pages/Dashboard';
@@ -136,6 +136,14 @@ const Login: React.FC<{
   );
 };
 
+// ============ WRAPPER REGISTER (utilise useNavigate) ============
+const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () => void }> = ({
+  onRegister,
+  onSwitchToLogin,
+}) => {
+  return <Register onRegister={onRegister} onSwitchToLogin={onSwitchToLogin} />;
+};
+
 // ============ APP PRINCIPALE ============
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -168,17 +176,21 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <ToastProvider>
-        {!isAuthenticated ? (
-          authMode === 'login' ? (
-            <Login
-              onLogin={handleLogin}
-              onSwitchToRegister={() => setAuthMode('register')}
-            />
+        {/* ✅ Router ENVELOPPE TOUT (y compris Login/Register) */}
+        <Router future={{ v7_relativeSplatPath: true }}>
+          {!isAuthenticated ? (
+            authMode === 'login' ? (
+              <Login
+                onLogin={handleLogin}
+                onSwitchToRegister={() => setAuthMode('register')}
+              />
+            ) : (
+              <RegisterWrapper
+                onRegister={handleLogin}
+                onSwitchToLogin={() => setAuthMode('login')}
+              />
+            )
           ) : (
-            <Register onRegister={handleLogin} />
-          )
-        ) : (
-          <Router future={{ v7_relativeSplatPath: true }}>
             <ErrorBoundary>
               <Routes>
                 <Route element={<Layout user={user} onLogout={handleLogout} />}>
@@ -194,8 +206,8 @@ const App: React.FC = () => {
                 </Route>
               </Routes>
             </ErrorBoundary>
-          </Router>
-        )}
+          )}
+        </Router>
 
         {/* ✅ ToastContainer global */}
         <ToastContainer />

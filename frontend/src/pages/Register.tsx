@@ -1,5 +1,6 @@
+// src/pages/Register.tsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
@@ -9,9 +10,10 @@ import { api } from '../services/api';
 
 interface RegisterProps {
   onRegister: () => void;
+  onSwitchToLogin: () => void;
 }
 
-const Register: React.FC<RegisterProps> = ({ onRegister }) => {
+const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
   const { colors } = useTheme();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -62,7 +64,6 @@ const Register: React.FC<RegisterProps> = ({ onRegister }) => {
         localStorage.setItem('authToken', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         onRegister();
-        navigate('/');
       } else {
         setError(response.data.message || 'Erreur lors de l\'inscription');
       }
@@ -180,12 +181,13 @@ const Register: React.FC<RegisterProps> = ({ onRegister }) => {
           }}
         >
           Déjà un compte ?{' '}
-          <Link
-            to="/login"
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); onSwitchToLogin(); }}
             style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}
           >
             Se connecter
-          </Link>
+          </a>
         </p>
       </Card>
     </div>
