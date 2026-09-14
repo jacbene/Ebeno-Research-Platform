@@ -15,9 +15,7 @@ const config: Knex.Config = {
     directory: path.join(__dirname, '../db/migrations'),
     extension: isProd ? 'js' : 'ts',
     loadExtensions: isProd ? ['.js'] : ['.ts'],
-    // ✅ Ignore la vérification de cohérence DB ↔ dossier
-    // (nécessaire quand les migrations ont été renommées .ts → .js)
-    disableMigrationsListValidation: true,
+    // ✅ Retirer disableMigrationsListValidation maintenant que la table est corrigée
   },
   pool: isProd ? { min: 2, max: 10 } : undefined,
 };

@@ -50,7 +50,7 @@ import { logger, logError } from './utils/logger';
 dotenv.config();
 
 // ============================================================
-// GESTION DES ERREURS NON CAPTURÉES
+/// GESTION DES ERREURS NON CAPTURÉES
 // ============================================================
 
 process.on('uncaughtException', (err) => {
@@ -203,12 +203,26 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // ============================================================
 // DÉMARRAGE DU SERVEUR
 // ============================================================
-
 const startServer = async () => {
   try {
     logger.info('⏳ Connexion à la base de données...');
     await db.raw('SELECT 1');
     logger.info('✅ Base de données connectée');
+
+    // ✅ Corriger les noms .ts → .js dans knex_migrations (one-shot)
+    try {
+      const result = await db.raw(`
+        UPDATE knex_migrations 
+        SET name = REPLACE(name, '.ts', '.js') 
+        WHERE name LIKE '%.ts'
+      `);
+      const count = (result as any).rowCount || 0;
+      if (count > 0) {
+        logger.info(`🔧 Migration names fixed: ${count} entries updated (.ts → .js)`);
+      }
+    } catch (err: any) {
+      logger.warn(`⚠️ Could not fix migration names: ${err.message}`);
+    }
 
     logger.info('⏳ Exécution des migrations...');
     await db.migrate.latest();
@@ -224,8 +238,6 @@ const startServer = async () => {
       const addr = httpServer.address();
       if (addr && typeof addr !== 'string') {
         logger.info(`✅ Serveur en écoute sur le port ${addr.port}`);
-      } else {
-        logger.info('✅ Serveur en écoute (adresse non numérique)');
       }
     });
 
@@ -233,13 +245,13 @@ const startServer = async () => {
       logError('❌ Erreur du serveur HTTP', err);
     });
 
-    // ✅ Démarrer le cron de nettoyage (purge activités > 90j)
     startCleanupCron();
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
     process.exit(1);
   }
 };
+
 
 // ✅ Ne pas démarrer le serveur en mode test
 if (process.env.NODE_ENV !== 'test') {
