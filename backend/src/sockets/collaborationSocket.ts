@@ -244,9 +244,14 @@ export class CollaborationSocketHandler {
       });
     });
 
-    setInterval(() => {
-      this.io.emit('server-ping', { timestamp: Date.now() });
-    }, 30000);
+    const pingInterval = setInterval(() => {
+  this.io.emit('server-ping', { timestamp: Date.now() });
+}, 30000);
+
+// ✅ Empêche Jest de rester bloqué sur ce timer
+if (typeof pingInterval.unref === 'function') {
+  pingInterval.unref();
+}
   }
 
   private async broadcastPresence(projectId: string) {

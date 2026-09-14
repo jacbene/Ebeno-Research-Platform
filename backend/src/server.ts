@@ -241,7 +241,10 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// ✅ Ne pas démarrer le serveur en mode test
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 export { io };
 export default app;

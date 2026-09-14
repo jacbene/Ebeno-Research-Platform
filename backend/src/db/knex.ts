@@ -1,10 +1,13 @@
+// backend/src/db/knex.ts
 import knex from 'knex';
-import config from '../config/knexfile';
+import knexConfig from '../config/knexfile';
 
-export const db = knex(config);
+export const db = knex(knexConfig);
 
-db.raw('SELECT 1').then(() => {
-  console.log('✅ Base de données connectée');
-}).catch((err) => {
-  console.error('❌ Erreur de connexion:', err);
-});
+if (process.env.NODE_ENV !== 'test') {
+  db.raw('SELECT 1')
+    .then(() => console.log('✅ Base de données connectée'))
+    .catch((err) => console.error('❌ Erreur de connexion:', err));
+}
+
+export default db;

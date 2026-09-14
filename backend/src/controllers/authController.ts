@@ -60,6 +60,33 @@ export const getProfile = async (req: Request, res: Response) => {
   }
 };
 
+// Récupérer l'utilisateur connecté
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Non authentifié' });
+    }
+
+    const user = await db('users')
+      .where({ id: userId })
+      .select('id', 'email', 'name', 'role', 'isVerified', 'createdAt')
+      .first();
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error: any) {
+    console.error('Erreur getMe:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
 export const logout = async (req: Request, res: Response) => {
   res.json({ message: 'Déconnexion réussie' });
 };
