@@ -1,7 +1,6 @@
 // frontend/src/pages/CollaborationPage.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import html2pdf from 'html2pdf.js';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
@@ -39,7 +38,7 @@ interface Member {
 }
 
 // ============================================================
-// Utilitaires de téléchargement
+// Utilitaires
 // ============================================================
 
 const sanitizeFileName = (name: string): string => {
@@ -50,6 +49,37 @@ const sanitizeFileName = (name: string): string => {
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
   return clean || 'document';
+};
+
+const escapeHtml = (text: string): string =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+// ✅ Construit un HTML réutilisable pour PDF et Word
+const buildDocumentHtml = (doc: Document): string => {
+  const contentHtml = escapeHtml(doc.content || '')
+    .split('\n')
+    .map((line) => `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line || '&nbsp;'}</p>`)
+    .join('');
+
+  return `
+    <h1 style="font-size: 24px; margin: 0 0 8px 0; color: #333; border-bottom: 2px solid #4A6CF7; padding-bottom: 8px; font-family: Arial, sans-serif;">
+      ${escapeHtml(doc.title)}
+    </h1>
+    <p style="font-size: 12px; color: #666; font-style: italic; margin: 0 0 24px 0; font-family: Arial, sans-serif;">
+      Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}
+    </p>
+    <div style="font-size: 12px; line-height: 1.6; color: #333; font-family: Arial, sans-serif;">
+      ${contentHtml}
+    </div>
+    <div style="margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center; font-family: Arial, sans-serif;">
+      Document généré depuis Ebeno Research Platform
+    </div>
+  `;
 };
 
 // ✅ TXT
@@ -67,97 +97,59 @@ const downloadAsTxt = (doc: Document) => {
   URL.revokeObjectURL(url);
 };
 
-// ✅ DOCX (Word)
-const downloadAsDocx = async (doc: Document) => {
-  const lines = (doc.content || '').split('\n');
+// ✅ DOCX (Word) via HTML → .doc (technique standard, supportée par Word/LibreOffice/Google Docs)
+const downloadAsDocx = (doc: Document) => {
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <title>${escapeHtml(doc.title)}</title>
+      <!--[if gte mso 9]>
+      <xml>
+        <w:WordDocument>
+          <w:View>Print</w:View>
+          <w:Zoom>100</w:Zoom>
+        </w:WordDocument>
+      </xml>
+      <![endif]-->
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; }
+        h1 { color: #333; border-bottom: 2px solid #4A6CF7; padding-bottom: 8px; }
+        p { line-height: 1.6; }
+      </style>
+    </head>
+    <body>
+      ${buildDocumentHtml(doc)}
+    </body>
+    </html>
+  `;
 
-  const contentParagraphs = lines.map(
-    (line) =>
-      new Paragraph({
-        children: [new TextRun({ text: line || ' ', size: 22 })],
-        spacing: { after: 100 },
-      })
-  );
-
-  const wordDoc = new DocxDocument({
-    sections: [
-      {
-        properties: {},
-        children: [
-          new Paragraph({
-            heading: HeadingLevel.HEADING_1,
-            children: [new TextRun({ text: doc.title, bold: true, size: 36 })],
-            spacing: { after: 300 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}`,
-                italics: true,
-                size: 18,
-                color: '666666',
-              }),
-            ],
-            spacing: { after: 400 },
-          }),
-          ...contentParagraphs,
-        ],
-      },
-    ],
+  // Type MIME spécial pour Word
+  const blob = new Blob(['\ufeff', html], {
+    type: 'application/msword;charset=utf-8',
   });
-
-  const blob = await Packer.toBlob(wordDoc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${sanitizeFileName(doc.title)}.docx`;
+  a.download = `${sanitizeFileName(doc.title)}.doc`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
 };
 
-// ✅ PDF (via html2pdf)
+// ✅ PDF via html2pdf
 const downloadAsPdf = async (doc: Document): Promise<void> => {
-  // Créer un élément HTML temporaire pour la mise en page
   const container = document.createElement('div');
   container.style.padding = '20px';
   container.style.fontFamily = 'Arial, sans-serif';
   container.style.color = '#000';
   container.style.backgroundColor = '#fff';
   container.style.maxWidth = '800px';
+  container.innerHTML = buildDocumentHtml(doc);
 
-  // Échapper le HTML pour éviter les injections
-  const escapeHtml = (text: string): string =>
-    text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-  const contentHtml = escapeHtml(doc.content || '')
-    .split('\n')
-    .map((line) => `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line || '&nbsp;'}</p>`)
-    .join('');
-
-  container.innerHTML = `
-    <h1 style="font-size: 24px; margin: 0 0 8px 0; color: #333; border-bottom: 2px solid #4A6CF7; padding-bottom: 8px;">
-      ${escapeHtml(doc.title)}
-    </h1>
-    <p style="font-size: 12px; color: #666; font-style: italic; margin: 0 0 24px 0;">
-      Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}
-    </p>
-    <div style="font-size: 12px; line-height: 1.6; color: #333;">
-      ${contentHtml}
-    </div>
-    <div style="margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center;">
-      Document généré depuis Ebeno Research Platform
-    </div>
-  `;
-
-  // Ne pas ajouter au DOM pour éviter le flash visuel
-  // html2pdf accepte directement un élément détaché
   const options = {
     margin: [15, 15, 15, 15] as [number, number, number, number],
     filename: `${sanitizeFileName(doc.title)}.pdf`,
@@ -367,7 +359,6 @@ const CollaborationPage: React.FC = () => {
     }
   };
 
-  // ✅ Télécharger un document (3 formats)
   const handleDownload = async (
     doc: Document,
     format: 'txt' | 'docx' | 'pdf',
@@ -382,8 +373,8 @@ const CollaborationPage: React.FC = () => {
         downloadAsTxt(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.txt" téléchargé` });
       } else if (format === 'docx') {
-        await downloadAsDocx(doc);
-        toast.addToast({ type: 'success', title: `📥 "${doc.title}.docx" téléchargé` });
+        downloadAsDocx(doc);
+        toast.addToast({ type: 'success', title: `📥 "${doc.title}.doc" téléchargé` });
       } else {
         await downloadAsPdf(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.pdf" téléchargé` });
@@ -783,7 +774,7 @@ const CollaborationPage: React.FC = () => {
                                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                     >
-                                      📘 Format Word (.docx)
+                                      📘 Format Word (.doc)
                                     </button>
                                     <button
                                       onClick={(e) => handleDownload(doc, 'txt', e)}
