@@ -201,7 +201,6 @@ const CollaborationPage: React.FC = () => {
 
   const {
     connected,
-    myColor,
     users: projectUsers,
     documentUsers,
     documentContent,

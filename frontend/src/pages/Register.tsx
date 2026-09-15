@@ -1,6 +1,5 @@
 // src/pages/Register.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
@@ -15,7 +14,6 @@ interface RegisterProps {
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
   const { colors } = useTheme();
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -181,13 +179,22 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           }}
         >
           Déjà un compte ?{' '}
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); onSwitchToLogin(); }}
-            style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}
-          >
-            Se connecter
-          </a>
+          <button
+  type="button"
+  onClick={onSwitchToLogin}
+  style={{
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    color: colors.primary,
+    fontWeight: 'bold',
+    textDecoration: 'underline',
+    font: 'inherit',
+  }}
+>
+  Se connecter
+</button>
         </p>
       </Card>
     </div>

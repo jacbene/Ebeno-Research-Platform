@@ -1,5 +1,5 @@
 // frontend/src/components/ProjectMembers.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { theme } from '../theme';
 import { useTheme } from '../context/ThemeContext';
@@ -25,7 +25,8 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
   const [error, setError] = useState('');
   const [fetching, setFetching] = useState(true);
 
-  const fetchMembers = async () => {
+  // ✅ useCallback pour stabiliser la référence
+  const fetchMembers = useCallback(async () => {
     setFetching(true);
     try {
       const response = await api.get(`/projects/${projectId}/members`);
@@ -36,13 +37,13 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
     } finally {
       setFetching(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) {
       fetchMembers();
     }
-  }, [projectId]);
+  }, [projectId, fetchMembers]);
 
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,8 +72,6 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
       setError('Erreur lors de la suppression');
     }
   };
-
-  const isOwner = members.some(m => m.role === 'OWNER' && m.id === 'currentUserId'); // À adapter avec le vrai userId
 
   return (
     <div style={{ marginTop: theme.spacing.md, padding: theme.spacing.md, backgroundColor: colors.gray[100], borderRadius: theme.borderRadius.md }}>
@@ -119,7 +118,7 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
           <option value="VIEWER">👁️ Viewer</option>
           <option value="MEMBER">👤 Member</option>
           <option value="EDITOR">✏️ Editor</option>
-          <option value="OWNER">👑 Owner</option>
+          <option value="OWNER"> 👑 Owner</option>
         </select>
         <Button type="submit" disabled={loading} size="sm" variant="primary">
           {loading ? '...' : '➕ Ajouter'}
@@ -133,7 +132,7 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {members.map((m) => {
-            const isOwner = m.role === 'OWNER';
+            const memberIsOwner = m.role === 'OWNER';
             return (
               <li
                 key={m.id}
@@ -149,13 +148,13 @@ export const ProjectMembers: React.FC<ProjectMembersProps> = ({ projectId }) => 
                 <span>
                   <strong>{m.name || m.email}</strong>
                   <span style={{ color: colors.gray[600], marginLeft: theme.spacing.sm }}>({m.role})</span>
-                  {isOwner && (
+                  {memberIsOwner && (
                     <span style={{ marginLeft: theme.spacing.sm, backgroundColor: colors.warning, color: colors.dark, padding: '0 8px', borderRadius: theme.borderRadius.sm, fontSize: '11px', fontWeight: 'bold' }}>
                       👑 Propriétaire
                     </span>
                   )}
                 </span>
-                {!isOwner ? (
+                {!memberIsOwner ? (
                   <button
                     onClick={() => removeMember(m.id)}
                     style={{

@@ -2,7 +2,6 @@
 import React, { useState, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
-import { api } from '../services/api';
 import { computeFileHash } from '../utils/hash';
 
 interface FileUploadProps {
