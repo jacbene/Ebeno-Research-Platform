@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+// frontend/src/components/TranscriptionUploader.tsx
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../services/api';
 import './TranscriptionUploader.css';
 
@@ -18,6 +19,17 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ Cleanup : arrêter l'intervalle à la destruction du composant
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -64,12 +76,18 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
     setUploading(true);
     setError(null);
     setIsCompleted(false);
+    setProgress(0);
 
     const formData = new FormData();
-    formData.append('file', file);
+
+    // ✅ CRITIQUE : projectId AVANT le fichier (multer)
     if (projectId) {
       formData.append('projectId', projectId);
+      console.log('📤 Upload audio avec projectId =', projectId);
+    } else {
+      console.warn('⚠️ Upload audio SANS projectId — le fichier n\'apparaîtra pas dans un projet');
     }
+    formData.append('file', file);
 
     try {
       const response = await api.post('/transcriptions/upload', formData, {
@@ -83,9 +101,15 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
       });
 
       if (response.data.success) {
-        const transcriptionId = response.data.data?.transcriptionId;
-        setTranscriptionId(transcriptionId);
-        trackProgress(transcriptionId);
+        const newTranscriptionId = response.data.data?.transcriptionId;
+        setTranscriptionId(newTranscriptionId);
+
+        // ✅ Refresh immédiat : l'audio apparaît dans la liste, même en PENDING
+        if (onUploadComplete && newTranscriptionId) {
+          onUploadComplete(newTranscriptionId);
+        }
+
+        trackProgress(newTranscriptionId);
       } else {
         setError(response.data.message || 'Erreur lors de l\'upload');
         setUploading(false);
@@ -97,41 +121,55 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   };
 
   const trackProgress = (id: string) => {
-    const interval = setInterval(async () => {
+    // ✅ Nettoyer l'ancien intervalle s'il existe
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(async () => {
       try {
         const response = await api.get(`/transcriptions/${id}/progress`);
         if (response.data.success) {
-          const { status, progress } = response.data.data;
-          setProgress(progress || 0);
+          const { status, progress: serverProgress } = response.data.data;
+          setProgress(serverProgress || 0);
 
-          if (status === 'COMPLETED' || status === 'FAILED') {
-            clearInterval(interval);
+          if (status === 'COMPLETED') {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            intervalRef.current = null;
             setUploading(false);
-            if (status === 'COMPLETED') {
-              setIsCompleted(true);
-              if (onUploadComplete) {
-                onUploadComplete(id);
-              }
-              setTimeout(() => {
-                setFile(null);
-                setIsCompleted(false);
-                setProgress(0);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }, 5000);
-            } else {
-              setError('La transcription a échoué. Veuillez réessayer.');
-            }
+            setIsCompleted(true);
+
+            // ✅ Rafraîchir à la fin
+            if (onUploadComplete) onUploadComplete(id);
+
+            setTimeout(() => {
+              setFile(null);
+              setIsCompleted(false);
+              setProgress(0);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }, 5000);
+          } else if (status === 'FAILED') {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            intervalRef.current = null;
+            setUploading(false);
+            setError('La transcription a échoué. Le fichier reste visible dans la liste.');
+
+            // ✅ CRITIQUE : rafraîchir même en cas d'échec
+            if (onUploadComplete) onUploadComplete(id);
           }
         } else {
-          clearInterval(interval);
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = null;
           setUploading(false);
           setError('Erreur lors du suivi de la transcription.');
+          // ✅ Rafraîchir même si erreur de suivi
+          if (onUploadComplete) onUploadComplete(id);
         }
       } catch (error) {
         console.error('Error tracking progress:', error);
-        clearInterval(interval);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setUploading(false);
         setError('Erreur lors du suivi de la transcription.');
+        if (onUploadComplete) onUploadComplete(id);
       }
     }, 2000);
   };
@@ -145,6 +183,10 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   };
 
   const resetState = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setFile(null);
     setUploading(false);
     setProgress(0);
@@ -157,7 +199,6 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   };
 
   return (
-    // ... JSX inchangé
     <div className="transcription-uploader">
       <div
         className="upload-area"
