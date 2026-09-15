@@ -1,0 +1,150 @@
+// backend/tests/unit/analysisService.test.ts
+import { getProjectAnalysis } from '../../src/services/analysisService';
+import {
+  setupTestDatabase,
+  teardownTestDatabase,
+  clearTestDatabase,
+  getTestDb,
+} from '../helpers/db';
+
+describe('AnalysisService', () => {
+  beforeAll(async () => {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () => {
+    await teardownTestDatabase();
+  });
+
+  beforeEach(async () => {
+    await clearTestDatabase();
+  });
+
+  describe('getProjectAnalysis', () => {
+    test('Retourne un projet vide sans erreur', async () => {
+      const result = await getProjectAnalysis('projet-vide', 'user-1');
+      expect(result.projectId).toBe('projet-vide');
+      expect(result.totalEntities).toBe(0);
+      expect(result.entities).toBeDefined();
+      expect(result.message).toBeDefined();
+    });
+
+    test('Compte correctement les entités du projet', async () => {
+      const db = getTestDb();
+      const now = new Date().toISOString();
+      const projectId = 'projet-entites';
+      const userId = 'user-1';
+
+      // Créer 2 memos
+      await db('memos').insert([
+        {
+          id: 'memo-1',
+          title: 'Memo 1',
+          content: 'Contenu 1',
+          userId,
+          projectId,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'memo-2',
+          title: 'Memo 2',
+          content: 'Contenu 2',
+          userId,
+          projectId,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      // Ajouter des entités pour le memo 1
+      await db('document_entities').insert([
+        {
+          id: 'e-1',
+          documentId: 'memo-1',
+          documentType: 'memo',
+          entityValue: 'Paris',
+          entityType: 'Place',
+          occurrenceCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'e-2',
+          documentId: 'memo-1',
+          documentType: 'memo',
+          entityValue: 'contact@test.fr',
+          entityType: 'Email',
+          occurrenceCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      const result = await getProjectAnalysis(projectId, userId);
+
+      expect(result.projectId).toBe(projectId);
+      expect(result.totalEntities).toBe(2);
+      expect(result.entities.Place).toContain('Paris');
+      expect(result.entities.Email).toContain('contact@test.fr');
+    });
+
+    test('Ignore les entités des autres utilisateurs', async () => {
+      const db = getTestDb();
+      const now = new Date().toISOString();
+      const projectId = 'projet-isolation';
+
+      // Memo de l'utilisateur 1
+      await db('memos').insert({
+        id: 'memo-user-1',
+        title: 'Memo user 1',
+        content: 'Contenu',
+        userId: 'user-1',
+        projectId,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Memo de l'utilisateur 2 (ne devrait pas apparaître)
+      await db('memos').insert({
+        id: 'memo-user-2',
+        title: 'Memo user 2',
+        content: 'Contenu',
+        userId: 'user-2',
+        projectId: 'autre-projet',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Entités pour les 2 memos
+      await db('document_entities').insert([
+        {
+          id: 'e-1',
+          documentId: 'memo-user-1',
+          documentType: 'memo',
+          entityValue: 'Paris',
+          entityType: 'Place',
+          occurrenceCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'e-2',
+          documentId: 'memo-user-2',
+          documentType: 'memo',
+          entityValue: 'Lyon',
+          entityType: 'Place',
+          occurrenceCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      const result = await getProjectAnalysis(projectId, 'user-1');
+
+      // Seules les entités du projet de l'utilisateur 1
+      expect(result.entities.Place).toContain('Paris');
+      expect(result.entities.Place).not.toContain('Lyon');
+    });
+  });
+});
