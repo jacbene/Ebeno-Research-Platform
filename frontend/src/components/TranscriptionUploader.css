@@ -1,148 +1,276 @@
+/* frontend/src/components/TranscriptionUploader.css */
 
+/* ============================================================
+   Conteneur principal
+   ============================================================ */
 .transcription-uploader {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  .upload-area {
-    border: 2px dashed #ccc;
-    border-radius: 10px;
-    padding: 40px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.3s, background-color 0.3s;
-    margin-bottom: 20px;
-  }
-  
-  .upload-area:hover {
-    border-color: #4CAF50;
-    background-color: #f9f9f9;
-  }
-  
-  .upload-prompt {
-    color: #666;
-  }
-  
-  .upload-icon {
-    font-size: 48px;
-    margin-bottom: 10px;
-  }
-  
-  .upload-text {
-    margin: 10px 0;
-    color: #333;
-  }
-  
-  .upload-subtext {
-    font-size: 14px;
-    color: #888;
-    margin-top: 5px;
-  }
-  
-  .file-info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 15px;
-    background: #f0f0f0;
-    border-radius: 8px;
-  }
-  
-  .file-icon {
-    font-size: 32px;
-    margin-right: 15px;
-  }
-  
-  .file-details {
-    flex: 1;
-    text-align: left;
-  }
-  
-  .file-name {
-    font-weight: 500;
-    margin-bottom: 5px;
-    word-break: break-all;
-  }
-  
-  .file-size {
-    font-size: 14px;
-    color: #666;
-  }
-  
-  .clear-button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #999;
-    cursor: pointer;
-    padding: 0 10px;
-  }
-  
-  .clear-button:hover {
-    color: #f44336;
-  }
-  
-  .upload-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    width: 100%;
-    transition: background-color 0.3s;
-  }
-  
-  .upload-button:hover:not(:disabled) {
-    background-color: #45a049;
-  }
-  
-  .upload-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  .progress-container {
-    margin-top: 20px;
-  }
-  
-  .progress-bar {
-    height: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-  
-  .progress-fill {
-    height: 100%;
-    background-color: #4CAF50;
-    transition: width 0.3s ease;
-  }
-  
-  .progress-text {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    color: #666;
-  }
-  
-  .transcription-id {
-    font-family: monospace;
-    background: #f0f0f0;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-  
-  .error-message {
-    background-color: #ffebee;
-    color: #c62828;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    border-left: 4px solid #f44336;
-  }
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ============================================================
+   Zone d'upload (drag & drop)
+   ============================================================ */
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s;
+  margin-bottom: 20px;
+  background-color: transparent;
+}
+
+.upload-area:hover {
+  border-color: #4CAF50;
+  background-color: #f9f9f9;
+}
+
+.upload-prompt {
+  color: #666;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.upload-text {
+  margin: 10px 0;
+  color: #333;
+}
+
+.upload-subtext {
+  font-size: 14px;
+  color: #888;
+  margin-top: 5px;
+}
+
+/* ============================================================
+   Fichier sélectionné
+   ============================================================ */
+.file-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+.file-icon {
+  font-size: 32px;
+  margin-right: 15px;
+}
+
+.file-details {
+  flex: 1;
+  text-align: left;
+}
+
+.file-name {
+  font-weight: 500;
+  margin-bottom: 5px;
+  word-break: break-all;
+  color: #333;
+}
+
+.file-size {
+  font-size: 14px;
+  color: #666;
+}
+
+.clear-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: color 0.2s;
+}
+
+.clear-button:hover {
+  color: #f44336;
+}
+
+/* ============================================================
+   Bouton d'upload
+   ============================================================ */
+.upload-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s;
+}
+
+.upload-button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.upload-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Progression
+   ============================================================ */
+.progress-container {
+  margin-top: 20px;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.transcription-id {
+  font-family: monospace;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #555;
+}
+
+/* ============================================================
+   Message d'erreur
+   ============================================================ */
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border-left: 4px solid #f44336;
+  font-size: 14px;
+}
+
+/* ============================================================
+   Message de succès
+   ============================================================ */
+.completion-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #4CAF50;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ============================================================
+   Dark Mode
+   ============================================================ */
+[data-theme="dark"] .upload-area {
+  border-color: #4D4D74;
+  background-color: transparent;
+}
+
+[data-theme="dark"] .upload-area:hover {
+  border-color: #6B8AFF;
+  background-color: #2D2D44;
+}
+
+[data-theme="dark"] .upload-prompt {
+  color: #ADADBC;
+}
+
+[data-theme="dark"] .upload-text {
+  color: #E5E5E8;
+}
+
+[data-theme="dark"] .upload-subtext {
+  color: #8D8DA4;
+}
+
+[data-theme="dark"] .file-info {
+  background: #2D2D44;
+}
+
+[data-theme="dark"] .file-name {
+  color: #F5F5F4;
+}
+
+[data-theme="dark"] .file-size {
+  color: #ADADBC;
+}
+
+[data-theme="dark"] .clear-button {
+  color: #8D8DA4;
+}
+
+[data-theme="dark"] .clear-button:hover {
+  color: #F85149;
+}
+
+[data-theme="dark"] .upload-button {
+  background-color: #34D058;
+  color: #0F0F1E;
+}
+
+[data-theme="dark"] .upload-button:hover:not(:disabled) {
+  background-color: #4ADE6E;
+}
+
+[data-theme="dark"] .upload-button:disabled {
+  background-color: #3D3D5C;
+  color: #8D8DA4;
+}
+
+[data-theme="dark"] .progress-bar {
+  background-color: #3D3D5C;
+}
+
+[data-theme="dark"] .progress-fill {
+  background-color: #34D058;
+}
+
+[data-theme="dark"] .progress-text {
+  color: #ADADBC;
+}
+
+[data-theme="dark"] .transcription-id {
+  background: #3D3D5C;
+  color: #CDCDD4;
+}
+
+[data-theme="dark"] .error-message {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: #FF8B84;
+  border-left-color: #F85149;
+}
+
+[data-theme="dark"] .completion-message {
+  background-color: rgba(52, 208, 88, 0.15);
+  color: #6EE787;
+  border-left-color: #34D058;
+}
