@@ -30,8 +30,7 @@ export const createProject = async (req: Request, res: Response) => {
     }
 
     const id = new Date().toISOString().toString();
-    
-    // Insérer le projet avec userId
+
     await db('projects').insert({
       id,
       title: title.trim(),
@@ -74,9 +73,7 @@ export const createProject = async (req: Request, res: Response) => {
       }
     }
 
-    const project = await db('projects')
-      .where({ id })
-      .first();
+    const project = await db('projects').where({ id }).first();
 
     return res.status(201).json({ success: true, data: project, message: 'Projet créé' });
   } catch (error: any) {
@@ -102,9 +99,9 @@ export const getProjects = async (req: Request, res: Response) => {
       .where('project_members.userId', userId);
 
     if (search) {
-      query = query.andWhere(function() {
+      query = query.andWhere(function () {
         this.where('projects.title', 'like', `%${search}%`)
-            .orWhere('projects.description', 'like', `%${search}%`);
+          .orWhere('projects.description', 'like', `%${search}%`);
       });
     }
 
@@ -147,9 +144,7 @@ export const getProject = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    const project = await db('projects')
-      .where({ id })
-      .first();
+    const project = await db('projects').where({ id }).first();
 
     if (!project) {
       return res.status(404).json({ success: false, message: 'Projet non trouvé' });
@@ -183,7 +178,7 @@ export const getProject = async (req: Request, res: Response) => {
   }
 };
 
-// Mettre à jour un projet
+// ✅ Mettre à jour un projet — RÉSERVÉ AU PROPRIÉTAIRE
 export const updateProject = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -194,26 +189,25 @@ export const updateProject = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    const member = await db('project_members')
-      .where({ projectId: id, userId: userId })
-      .whereIn('role', [ProjectRole.OWNER, ProjectRole.EDITOR])
+    // ✅ Seul le OWNER peut modifier
+    const owner = await db('project_members')
+      .where({ projectId: id, userId: userId, role: ProjectRole.OWNER })
       .first();
 
-    if (!member) {
-      return res.status(403).json({ success: false, message: 'Non autorisé' });
+    if (!owner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Seul le propriétaire du projet peut modifier le titre et la description'
+      });
     }
 
-    await db('projects')
-      .where({ id })
-      .update({
-        title: title?.trim() || undefined,
-        description: description?.trim() || undefined,
-        updatedAt: new Date().toISOString()
-      });
+    const updates: any = { updatedAt: new Date().toISOString() };
+    if (title !== undefined) updates.title = title.trim();
+    if (description !== undefined) updates.description = description.trim();
 
-    const project = await db('projects')
-      .where({ id })
-      .first();
+    await db('projects').where({ id }).update(updates);
+
+    const project = await db('projects').where({ id }).first();
 
     return res.status(200).json({ success: true, data: project, message: 'Projet mis à jour' });
   } catch (error: any) {
