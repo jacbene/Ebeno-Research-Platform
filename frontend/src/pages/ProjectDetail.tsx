@@ -177,6 +177,9 @@ const ProjectDetail: React.FC = () => {
 
   const encodedId = id ? encodeURIComponent(id) : '';
 
+  // ✅ Vérifier si l'utilisateur est le propriétaire du projet
+  const isOwner = project?.userId === currentUser?.id;
+
   useEffect(() => {
     if (!id) return;
     fetchProjectData();
@@ -302,8 +305,9 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Ouvrir la modal d'édition du projet
+  // ✅ Ouvrir la modal d'édition (seulement pour le propriétaire)
   const openEditProject = () => {
+    if (!isOwner) return;
     setEditTitle(project?.title || '');
     setEditDescription(project?.description || '');
     setEditingProject(true);
@@ -343,7 +347,7 @@ const ProjectDetail: React.FC = () => {
       const response = await api.post('/memos', {
         title: newMemoTitle.trim(),
         content: newMemoContent.trim(),
-        projectId: id, // ✅ ID BRUT
+        projectId: id,
       });
       if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
@@ -368,19 +372,19 @@ const ProjectDetail: React.FC = () => {
   };
 
   const deleteDocument = async (doc: any) => {
-    const confirmMsg = doc.type === 'file'
-      ? `Déplacer "${doc.name}" à la corbeille ?\n\nVous pourrez le restaurer plus tard.`
-      : `Déplacer "${doc.name}" à la corbeille ?`;
+    const confirmMsg = `Déplacer "${doc.name}" à la corbeille ?`;
     if (!confirm(confirmMsg)) return;
 
     setDeletingId(doc.id);
     try {
+      const realId = doc.type === 'transcription' && doc.raw?._originalId
+        ? doc.raw._originalId
+        : doc.id;
+
       if (doc.type === 'file') {
-        await api.delete(`/projects/${encodedId}/files/${doc.id}`);
-      } else if (doc.type === 'audio') {
-        await api.delete(`/transcriptions/${doc.id}`);
+        await api.delete(`/projects/${encodedId}/files/${realId}`);
       } else {
-        await api.delete(`/transcriptions/${doc.id}`);
+        await api.delete(`/transcriptions/${realId}`);
       }
       if (selectedDocument?.id === doc.id) setSelectedDocument(null);
       await fetchProjectData();
@@ -497,10 +501,10 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const totalDocuments = projectFiles.length + textDocuments.length + transcriptions.length;
+  const totalDocuments = projectFiles.length + textDocuments.length + transcriptions.filter(t => t.status === 'COMPLETED').length;
   const totalTrashed = trashedFiles.length + trashedTranscriptions.length;
 
-  // ✅ Audios + fichiers + textes dans la même liste
+  // ✅ Audios dans l'onglet Audio, transcriptions réussies dans Documents
   const allDocuments = useMemo(() => {
     const docs: any[] = [
       ...projectFiles.map(f => ({
@@ -525,18 +529,20 @@ const ProjectDetail: React.FC = () => {
         raw: d,
         status: d.status,
       })),
-      // ✅ Audios (même échoués)
-      ...transcriptions.map(t => ({
-        id: t.id,
-        name: t.title,
-        date: t.createdAt,
-        size: null,
-        mimeType: 'audio/*',
-        type: 'audio' as const,
-        icon: '🎙️',
-        raw: t,
-        status: t.status,
-      })),
+      // ✅ Uniquement les transcriptions RÉUSSIES
+      ...transcriptions
+        .filter(t => t.status === 'COMPLETED' && t.transcriptText && t.transcriptText.trim().length > 0)
+        .map(t => ({
+          id: `transcript-${t.id}`,
+          name: `📝 Transcription - ${t.title}`,
+          date: t.createdAt,
+          size: null,
+          mimeType: 'text/plain',
+          type: 'transcription' as const,
+          icon: '📝',
+          raw: { ...t, _originalId: t.id },
+          status: 'COMPLETED',
+        })),
     ];
 
     switch (sortBy) {
@@ -582,27 +588,44 @@ const ProjectDetail: React.FC = () => {
           gap: theme.spacing.md,
         }}>
           <div style={{ flex: 1 }}>
-            {/* ✅ Titre avec bouton d'édition */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            {/* ✅ Titre avec bouton d'édition (visible uniquement pour le propriétaire) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <h1 style={{ margin: 0 }}>{project.title}</h1>
-              <button
-                onClick={openEditProject}
-                title="Modifier le projet"
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  color: colors.primary,
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.primary + '15')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                ✏️
-              </button>
+
+              {isOwner && (
+                <>
+                  <span style={{
+                    padding: '2px 10px',
+                    borderRadius: '10px',
+                    backgroundColor: '#ffc107',
+                    color: '#856404',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                  }}>
+                    👑 Propriétaire
+                  </span>
+                  <button
+                    onClick={openEditProject}
+                    title="Modifier le projet"
+                    style={{
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      color: colors.primary,
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      transition: 'background-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.primary + '15')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    ✏️
+                  </button>
+                </>
+              )}
             </div>
+
             <p style={{ color: colors.gray[600], margin: '0 0 8px 0' }}>
               {project.description || 'Aucune description'}
             </p>
@@ -979,10 +1002,9 @@ const ProjectDetail: React.FC = () => {
                             color: typeColor.color,
                             letterSpacing: '0.5px',
                           }}>
-                            {getFileTypeLabel(doc.name)}
+                            {doc.type === 'transcription' ? 'TRANSCRIPTION' : getFileTypeLabel(doc.name)}
                           </span>
 
-                          {/* Statut pour les audios/textes */}
                           {statusColor && (
                             <span style={{
                               padding: '2px 8px',
@@ -1004,8 +1026,8 @@ const ProjectDetail: React.FC = () => {
 
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
                             {doc.type === 'text' ? '📄 Texte importé' :
-                             doc.type === 'audio' ? '🎙️ Audio' :
-                             '📎 Fichier uploadé'}
+                              doc.type === 'transcription' ? '📝 Transcription' :
+                                '📎 Fichier uploadé'}
                           </span>
                         </div>
 
@@ -1019,8 +1041,8 @@ const ProjectDetail: React.FC = () => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <SummaryButton
-                          documentId={doc.id}
-                          type={doc.type === 'file' ? 'file' : doc.type === 'audio' ? 'transcription' : 'transcription'}
+                          documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
+                          type={doc.type === 'file' ? 'file' : 'transcription'}
                           onSummaryGenerated={() => {}}
                         />
                         <button
@@ -1049,7 +1071,10 @@ const ProjectDetail: React.FC = () => {
 
             {selectedDocument && (
               <DocumentActions
-                document={selectedDocument}
+                document={{
+                  ...selectedDocument,
+                  id: selectedDocument.raw?._originalId || selectedDocument.id,
+                }}
                 projectId={encodedId}
                 onRefresh={fetchProjectData}
               />
@@ -1325,8 +1350,8 @@ const ProjectDetail: React.FC = () => {
         />
       )}
 
-      {/* ✅ Modal d'édition du projet */}
-      {editingProject && (
+      {/* ✅ Modal d'édition du projet (visible seulement pour le propriétaire) */}
+      {editingProject && isOwner && (
         <div
           style={{
             position: 'fixed',
