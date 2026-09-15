@@ -1,3 +1,4 @@
+// frontend/src/pages/Dashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -6,7 +7,9 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
+import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
+import './Dashboard.css';
 
 interface Project {
   id: string;
@@ -21,6 +24,7 @@ interface Project {
 
 const Dashboard: React.FC = () => {
   const { colors } = useTheme();
+  const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -64,80 +68,82 @@ const Dashboard: React.FC = () => {
         setNewDescription('');
         setShowCreateForm(false);
         await fetchProjects();
+        toast.addToast({ type: 'success', title: 'Projet créé ✅' });
       } else {
         setError(response.data.message || 'Erreur lors de la création');
       }
-    } catch (err) {
-      setError('Erreur de connexion au serveur');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur de connexion au serveur');
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <Card title="📊 Tableau de bord" subtitle={`Bienvenue sur la plateforme Ebeno Research. Vous avez ${projects.length} projet(s).`}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: theme.spacing.md }}>
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <div className="header-content">
+          <h1>📊 Tableau de bord</h1>
+          <p>Bienvenue sur la plateforme Ebeno Research. Vous avez {projects.length} projet(s).</p>
+        </div>
+        <div className="header-actions">
           <Button variant="success" onClick={() => setShowCreateForm(!showCreateForm)}>
             {showCreateForm ? '✕ Annuler' : '+ Nouveau projet'}
           </Button>
         </div>
+      </div>
 
-        {showCreateForm && (
-          <div style={{
-            marginTop: theme.spacing.md,
-            padding: theme.spacing.lg,
-            border: `1px solid ${colors.gray[200]}`,
-            borderRadius: theme.borderRadius.md,
-            backgroundColor: colors.gray[100],
-          }}>
-            <h3 style={{ margin: `0 0 ${theme.spacing.md} 0` }}>Créer un nouveau projet</h3>
-            {error && (
-              <div style={{
-                backgroundColor: '#FEE2E2',
-                color: colors.danger,
-                padding: theme.spacing.sm,
-                borderRadius: theme.borderRadius.sm,
-                marginBottom: theme.spacing.md,
-              }}>
-                ❌ {error}
-              </div>
-            )}
-            <form onSubmit={handleCreateProject}>
-              <Input
-                label="Titre *"
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Mon projet de recherche"
-                required
-              />
-              <Input
-                label="Description"
-                type="text"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Décrivez votre projet..."
-              />
-              <div style={{ display: 'flex', gap: theme.spacing.sm }}>
-                <Button type="submit" variant="success" disabled={creating}>
-                  {creating ? 'Création...' : 'Créer le projet'}
-                </Button>
-                <Button variant="secondary" onClick={() => { setShowCreateForm(false); setError(''); }}>
-                  Annuler
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-      </Card>
+      {showCreateForm && (
+        <Card style={{ marginBottom: theme.spacing.lg }}>
+          <h3 style={{ margin: `0 0 ${theme.spacing.md} 0`, color: colors.dark }}>Créer un nouveau projet</h3>
+          {error && (
+            <div style={{
+              backgroundColor: colors.danger + '22',
+              color: colors.danger,
+              padding: theme.spacing.sm,
+              borderRadius: theme.borderRadius.sm,
+              marginBottom: theme.spacing.md,
+            }}>
+              ❌ {error}
+            </div>
+          )}
+          <form onSubmit={handleCreateProject}>
+            <Input
+              label="Titre *"
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Mon projet de recherche"
+              required
+            />
+            <Input
+              label="Description"
+              type="text"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="Décrivez votre projet..."
+            />
+            <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+              <Button type="submit" variant="success" disabled={creating}>
+                {creating ? 'Création...' : 'Créer le projet'}
+              </Button>
+              <Button variant="secondary" onClick={() => { setShowCreateForm(false); setError(''); }}>
+                Annuler
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
 
       <Card title="📁 Mes projets" style={{ marginTop: theme.spacing.lg }}>
         {loading ? (
-          <p>Chargement...</p>
+          <div className="dashboard-loading">
+            <div className="loading-spinner" />
+          </div>
         ) : projects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: theme.spacing.xl, color: colors.gray[500] }}>
-            <p style={{ fontSize: theme.typography.fontSize.lg }}>Aucun projet trouvé</p>
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
+            <h3>Aucun projet trouvé</h3>
             <p>Cliquez sur "Nouveau projet" pour commencer</p>
           </div>
         ) : (
@@ -149,35 +155,33 @@ const Dashboard: React.FC = () => {
                   padding: theme.spacing.md,
                   border: `1px solid ${colors.gray[200]}`,
                   borderRadius: theme.borderRadius.md,
-                  backgroundColor: colors.white,
+                  backgroundColor: colors.gray[50] || colors.gray[100],
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: theme.spacing.sm,
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: `0 0 ${theme.spacing.xs} 0` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ margin: `0 0 ${theme.spacing.xs} 0`, color: colors.dark }}>
                     {project.title}
-                    <span style={{ fontSize: '12px', color: colors.gray[500], marginLeft: '8px' }}>
-                      (ID: {project.id})
-                    </span>
                   </h4>
                   <p style={{ margin: `0 0 ${theme.spacing.xs} 0`, color: colors.gray[600] }}>
                     {project.description || 'Aucune description'}
                   </p>
-                  <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
                     <Badge variant="info">{project.status}</Badge>
                     <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                      Créé le {new Date(project.createdAt).toLocaleDateString()}
+                      Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <Link to={`/project/${project.id}`} style={{ textDecoration: 'none' }}>
-                    <Button variant="outline" size="sm">Voir</Button>
+                    <Button variant="primary" size="sm">Ouvrir →</Button>
                   </Link>
                 </div>
               </div>

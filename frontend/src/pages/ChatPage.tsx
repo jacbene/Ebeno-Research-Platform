@@ -1,8 +1,18 @@
+// frontend/src/pages/ChatPage.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { theme } from '../theme';
 import { api } from '../services/api';
+import './ChatPage.css';
+
+interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
 
 const ChatPage: React.FC = () => {
-  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([
+  const { colors } = useTheme();
+  const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'Bonjour ! Je suis l\'assistant IA de la plateforme Ebeno Research. Comment puis-je vous aider ?' }
   ]);
   const [input, setInput] = useState('');
@@ -29,22 +39,22 @@ const ChatPage: React.FC = () => {
       });
 
       if (response.data.success) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: response.data.data?.content || 'Réponse reçue avec succès.' 
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: response.data.data?.content || 'Réponse reçue avec succès.'
         }]);
       } else {
         setError(response.data.message || 'Erreur de communication avec l\'assistant');
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: 'Désolé, une erreur s\'est produite. Veuillez réessayer.' 
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Désolé, une erreur s\'est produite. Veuillez réessayer.'
         }]);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur de connexion au serveur');
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Désolé, le serveur est inaccessible. Veuillez réessayer plus tard.' 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Désolé, le serveur est inaccessible. Veuillez réessayer plus tard.'
       }]);
     } finally {
       setLoading(false);
@@ -59,60 +69,85 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    // ... JSX inchangé
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '90vh',
-      maxWidth: '800px',
+      height: 'calc(100vh - 120px)',
+      maxWidth: '900px',
       margin: '0 auto',
       padding: '20px',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+      backgroundColor: colors.body,
+      borderRadius: '12px',
+      transition: 'background-color 0.3s ease',
     }}>
-      <h1 style={{ margin: '0 0 15px 0', fontSize: '24px' }}>🤖 Assistant IA</h1>
+      <h1 style={{ margin: '0 0 15px 0', fontSize: '24px', color: colors.dark }}>
+        🤖 Assistant IA
+      </h1>
 
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '15px',
+        backgroundColor: colors.white,
+        borderRadius: '12px',
+        padding: '16px',
         marginBottom: '15px',
-        border: '1px solid #e8e8e8'
+        border: `1px solid ${colors.gray[200]}`,
+        transition: 'background-color 0.3s ease, border-color 0.3s ease',
       }}>
-        {messages.map((msg, index) => (
-          <div key={index} style={{
-            display: 'flex',
-            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            marginBottom: '12px'
-          }}>
-            <div style={{
-              maxWidth: '75%',
-              padding: '10px 14px',
-              borderRadius: '12px',
-              backgroundColor: msg.role === 'user' ? '#4A90D9' : (msg.role === 'system' ? '#f0f7ff' : '#f1f1f1'),
-              color: msg.role === 'user' ? 'white' : '#333',
-              border: msg.role === 'system' ? '1px solid #d0e0ff' : 'none',
-              fontStyle: msg.role === 'system' ? 'italic' : 'normal'
+        {messages.map((msg, index) => {
+          const isUser = msg.role === 'user';
+          const isSystem = msg.role === 'system';
+
+          return (
+            <div key={index} style={{
+              display: 'flex',
+              justifyContent: isUser ? 'flex-end' : 'flex-start',
+              marginBottom: '12px'
             }}>
-              {msg.role === 'system' && '🤖 '}
-              {msg.role === 'user' && '👤 '}
-              {msg.role === 'assistant' && '🤖 '}
-              {msg.content}
+              <div style={{
+                maxWidth: '78%',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                backgroundColor: isUser
+                  ? colors.primary
+                  : isSystem
+                  ? colors.primary + '15'
+                  : colors.gray[100],
+                color: isUser ? colors.white : colors.dark,
+                border: isSystem ? `1px solid ${colors.primary}30` : 'none',
+                fontStyle: isSystem ? 'italic' : 'normal',
+                lineHeight: 1.5,
+                wordBreak: 'break-word',
+              }}>
+                {isUser && '👤 '}
+                {!isUser && '🤖 '}
+                {msg.content}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <div style={{ padding: '10px 14px', borderRadius: '12px', backgroundColor: '#f1f1f1', color: '#666' }}>
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              backgroundColor: colors.gray[100],
+              color: colors.gray[600],
+            }}>
               ⏳ L'assistant réfléchit...
             </div>
           </div>
         )}
+
         {error && (
-          <div style={{ padding: '10px', backgroundColor: '#fee', color: '#c00', borderRadius: '4px', marginTop: '10px' }}>
+          <div style={{
+            padding: '10px 14px',
+            backgroundColor: colors.danger + '22',
+            color: colors.danger,
+            borderRadius: '8px',
+            marginTop: '10px',
+          }}>
             ❌ {error}
           </div>
         )}
@@ -129,14 +164,17 @@ const ChatPage: React.FC = () => {
           rows={2}
           style={{
             flex: 1,
-            padding: '10px 14px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
+            padding: '12px 14px',
+            border: `1px solid ${colors.gray[300]}`,
+            borderRadius: '12px',
             fontSize: '15px',
             resize: 'none',
             fontFamily: 'inherit',
             outline: 'none',
-            minHeight: '50px'
+            minHeight: '54px',
+            backgroundColor: colors.white,
+            color: colors.dark,
+            transition: 'background-color 0.3s ease, border-color 0.3s ease',
           }}
         />
         <button
@@ -144,15 +182,17 @@ const ChatPage: React.FC = () => {
           disabled={!input.trim() || loading}
           style={{
             padding: '10px 20px',
-            backgroundColor: '#4A90D9',
-            color: 'white',
+            backgroundColor: colors.primary,
+            color: colors.white,
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: '12px',
             cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
             fontSize: '16px',
             fontWeight: 'bold',
             opacity: (!input.trim() || loading) ? 0.6 : 1,
-            height: '50px'
+            height: '54px',
+            minWidth: '70px',
+            transition: 'opacity 0.2s ease',
           }}
         >
           {loading ? '⏳' : '📤'}
