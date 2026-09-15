@@ -80,7 +80,7 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
 
     const formData = new FormData();
 
-    // ✅ CRITIQUE : projectId AVANT le fichier (multer)
+    // ✅ CRITIQUE : projectId AVANT le fichier (multer côté backend)
     if (projectId) {
       formData.append('projectId', projectId);
       console.log('📤 Upload audio avec projectId =', projectId);
