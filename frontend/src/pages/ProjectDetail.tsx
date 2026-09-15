@@ -745,7 +745,7 @@ const ProjectDetail: React.FC = () => {
       <div style={{ marginTop: theme.spacing.lg }}>
         {activeTab === 'audio' && (
           <Card title="Transcriptions audio">
-            <TranscriptionUploader projectId={encodedId} onUploadComplete={() => fetchProjectData()} />
+            <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
             <hr style={{ margin: '16px 0' }} />
             {transcriptions.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>Aucune transcription audio.</p>
