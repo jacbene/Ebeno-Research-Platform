@@ -1,6 +1,8 @@
 // frontend/src/pages/CollaborationPage.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import html2pdf from 'html2pdf.js';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -9,6 +11,7 @@ import { PresenceBar } from '../components/PresenceBar';
 import { CollaborativeEditor } from '../components/CollaborativeEditor';
 import { useProjectSocket } from '../hooks/useProjectSocket';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 interface Document {
@@ -35,23 +38,163 @@ interface Member {
   avatar?: string;
 }
 
+// ============================================================
+// Utilitaires de téléchargement
+// ============================================================
+
+const sanitizeFileName = (name: string): string => {
+  const clean = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return clean || 'document';
+};
+
+// ✅ TXT
+const downloadAsTxt = (doc: Document) => {
+  const separator = '='.repeat(Math.min(doc.title.length, 60));
+  const content = `${doc.title}\n${separator}\n\n${doc.content || ''}`;
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFileName(doc.title)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// ✅ DOCX (Word)
+const downloadAsDocx = async (doc: Document) => {
+  const lines = (doc.content || '').split('\n');
+
+  const contentParagraphs = lines.map(
+    (line) =>
+      new Paragraph({
+        children: [new TextRun({ text: line || ' ', size: 22 })],
+        spacing: { after: 100 },
+      })
+  );
+
+  const wordDoc = new DocxDocument({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            children: [new TextRun({ text: doc.title, bold: true, size: 36 })],
+            spacing: { after: 300 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}`,
+                italics: true,
+                size: 18,
+                color: '666666',
+              }),
+            ],
+            spacing: { after: 400 },
+          }),
+          ...contentParagraphs,
+        ],
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(wordDoc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFileName(doc.title)}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// ✅ PDF (via html2pdf)
+const downloadAsPdf = async (doc: Document): Promise<void> => {
+  // Créer un élément HTML temporaire pour la mise en page
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.color = '#000';
+  container.style.backgroundColor = '#fff';
+  container.style.maxWidth = '800px';
+
+  // Échapper le HTML pour éviter les injections
+  const escapeHtml = (text: string): string =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+  const contentHtml = escapeHtml(doc.content || '')
+    .split('\n')
+    .map((line) => `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line || '&nbsp;'}</p>`)
+    .join('');
+
+  container.innerHTML = `
+    <h1 style="font-size: 24px; margin: 0 0 8px 0; color: #333; border-bottom: 2px solid #4A6CF7; padding-bottom: 8px;">
+      ${escapeHtml(doc.title)}
+    </h1>
+    <p style="font-size: 12px; color: #666; font-style: italic; margin: 0 0 24px 0;">
+      Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}
+    </p>
+    <div style="font-size: 12px; line-height: 1.6; color: #333;">
+      ${contentHtml}
+    </div>
+    <div style="margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center;">
+      Document généré depuis Ebeno Research Platform
+    </div>
+  `;
+
+  // Ne pas ajouter au DOM pour éviter le flash visuel
+  // html2pdf accepte directement un élément détaché
+  const options = {
+    margin: [15, 15, 15, 15] as [number, number, number, number],
+    filename: `${sanitizeFileName(doc.title)}.pdf`,
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+    jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+  };
+
+  await html2pdf().from(container).set(options).save();
+};
+
+// ============================================================
+// Composant principal
+// ============================================================
+
 const CollaborationPage: React.FC = () => {
   const { colors } = useTheme();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
 
-  // Projets de l'utilisateur
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-
-  // Membres du projet sélectionné
   const [members, setMembers] = useState<Member[]>([]);
 
-  // Documents
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  const [openDownloadMenuId, setOpenDownloadMenuId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const currentUser = useMemo(() => {
     try {
@@ -61,11 +204,9 @@ const CollaborationPage: React.FC = () => {
     }
   }, []);
 
-  // ✅ IDs pour le projet sélectionné
   const rawProjectId = selectedProject?.id || '';
   const encodedProjectId = rawProjectId ? encodeURIComponent(rawProjectId) : '';
 
-  // ✅ Socket.IO
   const {
     connected,
     myColor,
@@ -83,10 +224,22 @@ const CollaborationPage: React.FC = () => {
     userId: currentUser?.id,
     userName: currentUser?.name || currentUser?.email || 'Utilisateur',
     userEmail: currentUser?.email,
-    onDataChange: () => {},
+    onDataChange: (event, data) => {
+      if (event === 'document-updated-title' && data?.projectId === rawProjectId) {
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === data.documentId ? { ...d, title: data.newTitle } : d))
+        );
+        if (selectedDoc?.id === data.documentId) {
+          setSelectedDoc((prev) => (prev ? { ...prev, title: data.newTitle } : prev));
+        }
+        toast.addToast({
+          type: 'info',
+          title: `📝 ${data.updatedByName} a renommé le document en "${data.newTitle}"`,
+        });
+      }
+    },
   });
 
-  // ✅ Charger les projets de l'utilisateur
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -94,7 +247,6 @@ const CollaborationPage: React.FC = () => {
         const list: Project[] = res.data.data || [];
         setProjects(list);
 
-        // Pré-sélectionner un projet si ?projectId= dans l'URL
         const urlProjectId = searchParams.get('projectId');
         if (urlProjectId) {
           const found = list.find((p) => p.id === urlProjectId);
@@ -111,7 +263,6 @@ const CollaborationPage: React.FC = () => {
     loadProjects();
   }, []);
 
-  // ✅ Charger les membres quand on change de projet
   useEffect(() => {
     if (!encodedProjectId) return;
     const loadMembers = async () => {
@@ -125,7 +276,6 @@ const CollaborationPage: React.FC = () => {
     loadMembers();
   }, [encodedProjectId]);
 
-  // ✅ Charger les documents
   useEffect(() => {
     if (!encodedProjectId) return;
     const fetchDocuments = async () => {
@@ -142,7 +292,6 @@ const CollaborationPage: React.FC = () => {
     fetchDocuments();
   }, [encodedProjectId]);
 
-  // Rejoindre le document
   useEffect(() => {
     if (!selectedDoc?.id) return;
     joinDocument(selectedDoc.id);
@@ -151,12 +300,26 @@ const CollaborationPage: React.FC = () => {
     };
   }, [selectedDoc?.id, joinDocument, leaveDocument]);
 
-  // Synchroniser contenu depuis Socket
   useEffect(() => {
     if (selectedDoc && documentContent !== selectedDoc.content) {
       setSelectedDoc((prev) => (prev ? { ...prev, content: documentContent } : prev));
     }
   }, [documentContent]);
+
+  useEffect(() => {
+    if (editingDocId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingDocId]);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDownloadMenuId(null);
+    if (openDownloadMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openDownloadMenuId]);
 
   const handleContentChange = (newContent: string) => {
     if (!selectedDoc) return;
@@ -186,7 +349,7 @@ const CollaborationPage: React.FC = () => {
     try {
       const response = await api.post('/collaboration', {
         title: `Document ${documents.length + 1}`,
-        projectId: rawProjectId, // ✅ ID BRUT
+        projectId: rawProjectId,
         content: 'Contenu initial...',
       });
 
@@ -204,16 +367,93 @@ const CollaborationPage: React.FC = () => {
     }
   };
 
-  const uniqueDocUsers = useMemo(() => {
-    const seen = new Set<string>();
-    return documentUsers.filter((u) => {
-      if (seen.has(u.userId)) return false;
-      seen.add(u.userId);
-      return true;
-    });
-  }, [documentUsers]);
+  // ✅ Télécharger un document (3 formats)
+  const handleDownload = async (
+    doc: Document,
+    format: 'txt' | 'docx' | 'pdf',
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    setOpenDownloadMenuId(null);
+    setDownloading(doc.id);
 
-  // Auto-invitation : partager le lien avec un membre
+    try {
+      if (format === 'txt') {
+        downloadAsTxt(doc);
+        toast.addToast({ type: 'success', title: `📥 "${doc.title}.txt" téléchargé` });
+      } else if (format === 'docx') {
+        await downloadAsDocx(doc);
+        toast.addToast({ type: 'success', title: `📥 "${doc.title}.docx" téléchargé` });
+      } else {
+        await downloadAsPdf(doc);
+        toast.addToast({ type: 'success', title: `📥 "${doc.title}.pdf" téléchargé` });
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur téléchargement:', error);
+      toast.addToast({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Impossible de télécharger le document',
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const startRenaming = (doc: Document, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingDocId(doc.id);
+    setEditingTitle(doc.title);
+    setOpenDownloadMenuId(null);
+  };
+
+  const cancelRenaming = () => {
+    setEditingDocId(null);
+    setEditingTitle('');
+  };
+
+  const saveRenaming = async (docId: string) => {
+    const trimmed = editingTitle.trim();
+    if (!trimmed) {
+      cancelRenaming();
+      return;
+    }
+
+    setSavingTitle(true);
+    try {
+      const res = await api.put(`/collaboration/${docId}`, { title: trimmed });
+      const updated = res.data.data;
+
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, title: updated.title } : d))
+      );
+      if (selectedDoc?.id === docId) {
+        setSelectedDoc((prev) => (prev ? { ...prev, title: updated.title } : prev));
+      }
+
+      toast.addToast({ type: 'success', title: 'Document renommé ✅' });
+      cancelRenaming();
+    } catch (error: any) {
+      toast.addToast({
+        type: 'error',
+        title: 'Erreur',
+        message: error.response?.data?.message || 'Impossible de renommer',
+      });
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, docId: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveRenaming(docId);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelRenaming();
+    }
+  };
+
   const shareWithMember = (member: Member) => {
     const url = `${window.location.origin}/collaboration?projectId=${encodedProjectId}`;
     const msg = `Bonjour ${member.name || member.email},\n\nRejoins-moi sur le document collaboratif du projet "${selectedProject?.title}" :\n${url}\n\nÀ bientôt !`;
@@ -225,6 +465,15 @@ const CollaborationPage: React.FC = () => {
       prompt('Copiez ce message :', msg);
     }
   };
+
+  const uniqueDocUsers = useMemo(() => {
+    const seen = new Set<string>();
+    return documentUsers.filter((u) => {
+      if (seen.has(u.userId)) return false;
+      seen.add(u.userId);
+      return true;
+    });
+  }, [documentUsers]);
 
   return (
     <div style={{ padding: theme.spacing.xl, maxWidth: '1400px', margin: '0 auto' }}>
@@ -240,7 +489,6 @@ const CollaborationPage: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* Barre de sélection projet */}
           <Card>
             <div style={{ display: 'flex', gap: theme.spacing.md, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: 1, minWidth: '250px' }}>
@@ -281,13 +529,10 @@ const CollaborationPage: React.FC = () => {
             )}
           </Card>
 
-          {/* Barre de présence */}
           {encodedProjectId && <PresenceBar users={projectUsers} connected={connected} />}
 
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: theme.spacing.lg, marginTop: theme.spacing.lg }}>
-            {/* Colonne gauche */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.md }}>
-              {/* Membres */}
               <Card title="👥 Membres du projet">
                 {members.length === 0 ? (
                   <p style={{ fontSize: '13px', color: colors.gray[500] }}>Aucun membre</p>
@@ -347,7 +592,6 @@ const CollaborationPage: React.FC = () => {
                 )}
               </Card>
 
-              {/* Documents */}
               <Card>
                 <Button
                   variant="success"
@@ -364,40 +608,288 @@ const CollaborationPage: React.FC = () => {
                 ) : documents.length === 0 ? (
                   <p style={{ color: colors.gray[500], fontSize: '13px' }}>Aucun document</p>
                 ) : (
-                  documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      onClick={() => setSelectedDoc(doc)}
-                      style={{
-                        padding: '10px',
-                        backgroundColor: selectedDoc?.id === doc.id ? colors.primary + '20' : colors.gray[100],
-                        borderLeft: selectedDoc?.id === doc.id ? `3px solid ${colors.primary}` : '3px solid transparent',
-                        borderRadius: theme.borderRadius.md,
-                        marginBottom: '6px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <strong style={{ fontSize: '13px' }}>{doc.title}</strong>
-                      <br />
-                      <Badge variant="info">v{doc.version}</Badge>
-                    </div>
-                  ))
+                  documents.map((doc) => {
+                    const isEditing = editingDocId === doc.id;
+                    const isSelected = selectedDoc?.id === doc.id;
+                    const isMenuOpen = openDownloadMenuId === doc.id;
+                    const isDownloading = downloading === doc.id;
+
+                    return (
+                      <div
+                        key={doc.id}
+                        onClick={() => !isEditing && setSelectedDoc(doc)}
+                        style={{
+                          padding: '10px',
+                          backgroundColor: isSelected ? colors.primary + '20' : colors.gray[100],
+                          borderLeft: isSelected ? `3px solid ${colors.primary}` : '3px solid transparent',
+                          borderRadius: theme.borderRadius.md,
+                          marginBottom: '6px',
+                          cursor: isEditing ? 'default' : 'pointer',
+                          position: 'relative',
+                        }}
+                      >
+                        {isEditing ? (
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              ref={editInputRef}
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, doc.id)}
+                              disabled={savingTitle}
+                              style={{
+                                flex: 1,
+                                padding: '4px 6px',
+                                fontSize: '13px',
+                                border: `1px solid ${colors.primary}`,
+                                borderRadius: '4px',
+                                outline: 'none',
+                                minWidth: 0,
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveRenaming(doc.id);
+                              }}
+                              disabled={savingTitle}
+                              style={{
+                                padding: '4px 6px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: savingTitle ? 'not-allowed' : 'pointer',
+                                fontSize: '12px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {savingTitle ? '⏳' : '✓'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRenaming();
+                              }}
+                              disabled={savingTitle}
+                              style={{
+                                padding: '4px 6px',
+                                backgroundColor: colors.gray[400],
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <strong style={{
+                                fontSize: '13px',
+                                display: 'block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {doc.title}
+                              </strong>
+                              <Badge variant="info">v{doc.version}</Badge>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDownloadMenuId(isMenuOpen ? null : doc.id);
+                                  }}
+                                  disabled={isDownloading}
+                                  title="Télécharger"
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: isDownloading ? 'wait' : 'pointer',
+                                    fontSize: '14px',
+                                    color: colors.primary,
+                                    padding: '4px',
+                                    borderRadius: '4px',
+                                    opacity: 0.7,
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+                                >
+                                  {isDownloading ? '⏳' : '📥'}
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      position: 'absolute',
+                                      top: '100%',
+                                      right: 0,
+                                      marginTop: '4px',
+                                      backgroundColor: colors.white,
+                                      border: `1px solid ${colors.gray[200]}`,
+                                      borderRadius: theme.borderRadius.sm,
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                      zIndex: 100,
+                                      minWidth: '160px',
+                                      overflow: 'hidden',
+                                    }}
+                                  >
+                                    <button
+                                      onClick={(e) => handleDownload(doc, 'pdf', e)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        textAlign: 'left',
+                                        color: colors.dark,
+                                      }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
+                                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                      📕 Format PDF (.pdf)
+                                    </button>
+                                    <button
+                                      onClick={(e) => handleDownload(doc, 'docx', e)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        textAlign: 'left',
+                                        color: colors.dark,
+                                        borderTop: `1px solid ${colors.gray[100]}`,
+                                      }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
+                                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                      📘 Format Word (.docx)
+                                    </button>
+                                    <button
+                                      onClick={(e) => handleDownload(doc, 'txt', e)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        textAlign: 'left',
+                                        color: colors.dark,
+                                        borderTop: `1px solid ${colors.gray[100]}`,
+                                      }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
+                                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                      📄 Texte brut (.txt)
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                onClick={(e) => startRenaming(doc, e)}
+                                title="Renommer"
+                                style={{
+                                  border: 'none',
+                                  background: 'none',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  color: colors.primary,
+                                  padding: '4px',
+                                  borderRadius: '4px',
+                                  flexShrink: 0,
+                                  opacity: 0.7,
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </Card>
             </div>
 
-            {/* Colonne droite : éditeur */}
             <Card>
               {selectedDoc ? (
-                <CollaborativeEditor
-                  documentId={selectedDoc.id}
-                  title={selectedDoc.title}
-                  content={documentContent || selectedDoc.content || ''}
-                  users={uniqueDocUsers}
-                  typingUsers={documentTyping.filter((t) => t.context === `doc-${selectedDoc.id}`)}
-                  onChange={handleContentChange}
-                  onCursorMove={handleCursorMove}
-                />
+                <>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: theme.spacing.md,
+                    paddingBottom: theme.spacing.sm,
+                    borderBottom: `1px solid ${colors.gray[200]}`,
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}>
+                    <h3 style={{ margin: 0, fontSize: '16px' }}>
+                      📄 {selectedDoc.title}
+                    </h3>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e: any) => handleDownload(selectedDoc, 'pdf', e)}
+                      >
+                        📕 PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e: any) => handleDownload(selectedDoc, 'docx', e)}
+                      >
+                        📘 Word
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e: any) => handleDownload(selectedDoc, 'txt', e)}
+                      >
+                        📄 TXT
+                      </Button>
+                    </div>
+                  </div>
+
+                  <CollaborativeEditor
+                    documentId={selectedDoc.id}
+                    title=""
+                    content={documentContent || selectedDoc.content || ''}
+                    users={uniqueDocUsers}
+                    typingUsers={documentTyping.filter((t) => t.context === `doc-${selectedDoc.id}`)}
+                    onChange={handleContentChange}
+                    onCursorMove={handleCursorMove}
+                  />
+                </>
               ) : (
                 <div style={{ textAlign: 'center', padding: theme.spacing.xxl, color: colors.gray[500] }}>
                   <p style={{ fontSize: theme.typography.fontSize.lg }}>📄 Sélectionnez un document</p>
