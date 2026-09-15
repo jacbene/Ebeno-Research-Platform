@@ -11,7 +11,7 @@ const ProjectRole = {
   MEMBER: 'MEMBER',
 };
 
-// ✅ ID unique (évite collision si deux docs créés la même ms)
+// ✅ ID unique
 const generateId = (): string =>
   `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
@@ -37,7 +37,6 @@ export const createDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // ✅ Vérifier que l'utilisateur est membre du projet
     const member = await db('project_members')
       .where({ projectId, userId })
       .first();
@@ -65,10 +64,8 @@ export const createDocument = async (req: Request, res: Response) => {
 
     const document = await db('collaboration_documents').where({ id }).first();
 
-    // 📡 Émettre l'événement Socket.IO
     emitGlobal('document-created', { projectId, document });
 
-    // 📋 Activité
     await logActivity({
       projectId,
       userId,
@@ -102,7 +99,6 @@ export const getDocuments = async (req: Request, res: Response) => {
 
     const { projectId } = req.params;
 
-    // ✅ Vérifier l'accès au projet
     const member = await db('project_members')
       .where({ projectId, userId })
       .first();
@@ -145,7 +141,6 @@ export const getDocument = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Document non trouvé' });
     }
 
-    // ✅ Vérifier l'accès
     const member = await db('project_members')
       .where({ projectId: document.projectId, userId })
       .first();
@@ -157,6 +152,80 @@ export const getDocument = async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, data: document });
   } catch (error: any) {
     console.error('Error getDocument:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// ✅ METTRE À JOUR LE TITRE D'UN DOCUMENT
+// ============================================================
+export const updateDocument = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
+    }
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Le titre est requis' });
+    }
+
+    const document = await db('collaboration_documents').where({ id }).first();
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document non trouvé' });
+    }
+
+    // ✅ Tout membre du projet peut renommer
+    const member = await db('project_members')
+      .where({ projectId: document.projectId, userId })
+      .first();
+
+    if (!member) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
+
+    const now = new Date().toISOString();
+    await db('collaboration_documents')
+      .where({ id })
+      .update({
+        title: title.trim(),
+        updatedAt: now,
+      });
+
+    const updated = await db('collaboration_documents').where({ id }).first();
+
+    // 📡 Notifier les autres utilisateurs
+    emitGlobal('document-updated-title', {
+      projectId: document.projectId,
+      documentId: id,
+      newTitle: title.trim(),
+      updatedBy: userId,
+      updatedByName: userName,
+    });
+
+    await logActivity({
+      projectId: document.projectId,
+      userId,
+      userName,
+      action: 'document-renamed',
+      targetType: 'document',
+      targetId: id,
+      targetName: title.trim(),
+      metadata: { oldTitle: document.title, newTitle: title.trim() },
+    });
+
+    return res.status(200).json({ success: true, data: updated, message: 'Document renommé' });
+  } catch (error: any) {
+    console.error('Error updateDocument:', error);
     return res.status(500).json({
       success: false,
       message: 'Erreur serveur',
@@ -180,12 +249,10 @@ export const deleteDocument = async (req: Request, res: Response) => {
     }
 
     const document = await db('collaboration_documents').where({ id }).first();
-
     if (!document) {
       return res.status(404).json({ success: false, message: 'Document non trouvé' });
     }
 
-    // Seul le créateur peut supprimer
     if (document.createdBy !== userId) {
       return res.status(403).json({ success: false, message: 'Non autorisé' });
     }
