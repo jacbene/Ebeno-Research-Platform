@@ -27,6 +27,7 @@ const CollaborationPage: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   // Utilisateur courant
   const currentUser = useMemo(() => {
@@ -37,6 +38,8 @@ const CollaborationPage: React.FC = () => {
     }
   }, []);
 
+  // ✅ ID brut + ID encodé pour l'URL
+  const rawProjectId = projectId;                                       // ex: 2026-09-14T13:04:22.271Z
   const encodedProjectId = projectId ? encodeURIComponent(projectId) : '';
 
   // ✅ Socket.IO unifié
@@ -57,7 +60,7 @@ const CollaborationPage: React.FC = () => {
     userId: currentUser?.id,
     userName: currentUser?.name || currentUser?.email || 'Utilisateur',
     userEmail: currentUser?.email,
-    onDataChange: () => {}, // Rien ici, on gère manuellement
+    onDataChange: () => {},
   });
 
   // Charger les documents du projet
@@ -89,7 +92,7 @@ const CollaborationPage: React.FC = () => {
     };
   }, [selectedDoc?.id, joinDocument, leaveDocument]);
 
-  // Quand le contenu du document change côté serveur (autre utilisateur)
+  // Synchroniser le contenu depuis Socket.IO
   useEffect(() => {
     if (selectedDoc && documentContent !== selectedDoc.content) {
       setSelectedDoc((prev) => prev ? { ...prev, content: documentContent } : prev);
@@ -117,30 +120,37 @@ const CollaborationPage: React.FC = () => {
 
   const handleCursorMove = (position: number) => {
     if (!selectedDoc) return;
-    // Utiliser editDocument pour envoyer la position du curseur
     editDocument(selectedDoc.id, documentContent, position);
   };
 
   const createDocument = async () => {
-    if (!encodedProjectId) {
+    // ✅ Vérifier l'ID brut
+    if (!rawProjectId || !rawProjectId.trim()) {
       alert('Veuillez saisir un ID de projet');
       return;
     }
+
+    setCreating(true);
     try {
+      // ✅ ID BRUT dans le body
       const response = await api.post('/collaboration', {
         title: `Document ${documents.length + 1}`,
-        projectId: encodedProjectId,
+        projectId: rawProjectId,
         content: 'Contenu initial...',
       });
+
       if (response.data.success) {
         const newDoc = response.data.data;
-        setDocuments([...documents, newDoc]);
+        setDocuments((prev) => [newDoc, ...prev]);
         setSelectedDoc(newDoc);
         setDocumentContent(newDoc.content || '');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erreur création document:', error);
-      alert('Erreur lors de la création du document');
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Erreur lors de la création du document';
+      alert(msg);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -178,9 +188,10 @@ const CollaborationPage: React.FC = () => {
           <Button
             variant="success"
             onClick={createDocument}
+            disabled={creating}
             style={{ width: '100%', marginBottom: theme.spacing.md }}
           >
-            + Nouveau document
+            {creating ? '⏳ Création...' : '+ Nouveau document'}
           </Button>
 
           <h3 style={{ marginTop: 0 }}>📄 Documents ({documents.length})</h3>
