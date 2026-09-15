@@ -169,6 +169,12 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
+  // ✅ Édition du projet
+  const [editingProject, setEditingProject] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingProject, setSavingProject] = useState(false);
+
   const encodedId = id ? encodeURIComponent(id) : '';
 
   useEffect(() => {
@@ -184,7 +190,7 @@ const ProjectDetail: React.FC = () => {
     setActivities,
     typingUsers,
     emitTyping,
-    myColor,   // ✅ AJOUTÉ
+    myColor,
   } = useProjectSocket({
     projectId: encodedId,
     userId: currentUser?.id,
@@ -193,7 +199,6 @@ const ProjectDetail: React.FC = () => {
     onDataChange: (event, data) => {
       console.log('🔄 Rafraîchissement auto suite à :', event);
 
-      // ✅ Notifications visuelles
       const eventMessages: Record<string, { title: string; type: any }> = {
         'file-uploaded': { title: `📤 ${data?.file?.fileName || 'Un fichier'} a été uploadé`, type: 'info' },
         'file-trashed': { title: `🗑️ ${data?.fileName || 'Un fichier'} a été mis à la corbeille`, type: 'warning' },
@@ -204,6 +209,8 @@ const ProjectDetail: React.FC = () => {
         'transcription-restored': { title: `♻️ Transcription restaurée`, type: 'success' },
         'transcription-deleted-permanently': { title: `💥 Transcription supprimée`, type: 'error' },
         'trash-emptied': { title: `🧹 Corbeille vidée (${data?.count || 0} éléments)`, type: 'warning' },
+        'document-uploaded': { title: `📄 ${data?.fileName || 'Un document'} a été importé`, type: 'info' },
+        'memo-created': { title: `📝 Nouveau memo : ${data?.memo?.title || ''}`, type: 'info' },
       };
 
       const msg = eventMessages[event];
@@ -295,6 +302,39 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
+  // ✅ Ouvrir la modal d'édition du projet
+  const openEditProject = () => {
+    setEditTitle(project?.title || '');
+    setEditDescription(project?.description || '');
+    setEditingProject(true);
+  };
+
+  // ✅ Sauvegarder les modifications du projet
+  const saveProject = async () => {
+    if (!editTitle.trim() || editTitle.trim().length < 3) {
+      toast.addToast({ type: 'error', title: 'Erreur', message: 'Le titre est requis (3 caractères min)' });
+      return;
+    }
+    setSavingProject(true);
+    try {
+      await api.put(`/projects/${encodedId}`, {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+      });
+      await fetchProjectData();
+      setEditingProject(false);
+      toast.addToast({ type: 'success', title: 'Projet mis à jour ✅' });
+    } catch (error: any) {
+      toast.addToast({
+        type: 'error',
+        title: 'Erreur',
+        message: error.response?.data?.message || 'Impossible de mettre à jour',
+      });
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
   const createMemo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemoTitle.trim() || !newMemoContent.trim()) return;
@@ -303,7 +343,7 @@ const ProjectDetail: React.FC = () => {
       const response = await api.post('/memos', {
         title: newMemoTitle.trim(),
         content: newMemoContent.trim(),
-        projectId: id,
+        projectId: id, // ✅ ID BRUT
       });
       if (response.status === 200 || response.status === 201) {
         setNewMemoTitle('');
@@ -337,6 +377,8 @@ const ProjectDetail: React.FC = () => {
     try {
       if (doc.type === 'file') {
         await api.delete(`/projects/${encodedId}/files/${doc.id}`);
+      } else if (doc.type === 'audio') {
+        await api.delete(`/transcriptions/${doc.id}`);
       } else {
         await api.delete(`/transcriptions/${doc.id}`);
       }
@@ -455,11 +497,12 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const totalDocuments = projectFiles.length + textDocuments.length;
+  const totalDocuments = projectFiles.length + textDocuments.length + transcriptions.length;
   const totalTrashed = trashedFiles.length + trashedTranscriptions.length;
 
+  // ✅ Audios + fichiers + textes dans la même liste
   const allDocuments = useMemo(() => {
-    const docs = [
+    const docs: any[] = [
       ...projectFiles.map(f => ({
         id: f.id,
         name: f.fileName,
@@ -469,6 +512,7 @@ const ProjectDetail: React.FC = () => {
         type: 'file' as const,
         icon: getFileIcon(f.fileName),
         raw: f,
+        status: null,
       })),
       ...textDocuments.map(d => ({
         id: d.id,
@@ -479,6 +523,19 @@ const ProjectDetail: React.FC = () => {
         type: 'text' as const,
         icon: '📄',
         raw: d,
+        status: d.status,
+      })),
+      // ✅ Audios (même échoués)
+      ...transcriptions.map(t => ({
+        id: t.id,
+        name: t.title,
+        date: t.createdAt,
+        size: null,
+        mimeType: 'audio/*',
+        type: 'audio' as const,
+        icon: '🎙️',
+        raw: t,
+        status: t.status,
       })),
     ];
 
@@ -489,7 +546,7 @@ const ProjectDetail: React.FC = () => {
       case 'type': return docs.sort((a, b) => a.type.localeCompare(b.type));
       default: return docs;
     }
-  }, [projectFiles, textDocuments, sortBy]);
+  }, [projectFiles, textDocuments, transcriptions, sortBy]);
 
   const handleResultClick = (result: any) => {
     if (result.source === 'transcription') navigate(`/transcription/${result.id}`);
@@ -524,8 +581,28 @@ const ProjectDetail: React.FC = () => {
           flexWrap: 'wrap',
           gap: theme.spacing.md,
         }}>
-          <div>
-            <h1 style={{ margin: '0 0 8px 0' }}>{project.title}</h1>
+          <div style={{ flex: 1 }}>
+            {/* ✅ Titre avec bouton d'édition */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <h1 style={{ margin: 0 }}>{project.title}</h1>
+              <button
+                onClick={openEditProject}
+                title="Modifier le projet"
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: colors.primary,
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.primary + '15')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                ✏️
+              </button>
+            </div>
             <p style={{ color: colors.gray[600], margin: '0 0 8px 0' }}>
               {project.description || 'Aucune description'}
             </p>
@@ -720,7 +797,6 @@ const ProjectDetail: React.FC = () => {
               </Button>
             </form>
 
-            {/* Indicateur de frappe */}
             <TypingIndicator typingUsers={typingUsers} context="memo" />
 
             {memos.length === 0 ? (
@@ -845,6 +921,7 @@ const ProjectDetail: React.FC = () => {
                   const isSelected = selectedDocument?.id === doc.id;
                   const typeColor = getFileTypeColor(doc.name);
                   const isDeleting = deletingId === doc.id;
+                  const statusColor = doc.status ? getStatusColor(doc.status) : null;
 
                   return (
                     <div
@@ -905,12 +982,30 @@ const ProjectDetail: React.FC = () => {
                             {getFileTypeLabel(doc.name)}
                           </span>
 
-                          <span style={{ fontSize: '12px', color: colors.gray[600] }}>
-                            💾 {doc.size !== null ? formatFileSize(doc.size) : 'N/A'}
-                          </span>
+                          {/* Statut pour les audios/textes */}
+                          {statusColor && (
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              fontSize: '10px',
+                              fontWeight: 'bold',
+                              backgroundColor: statusColor + '20',
+                              color: statusColor,
+                            }}>
+                              {getStatusLabel(doc.status || '')}
+                            </span>
+                          )}
+
+                          {doc.size !== null && (
+                            <span style={{ fontSize: '12px', color: colors.gray[600] }}>
+                              💾 {formatFileSize(doc.size)}
+                            </span>
+                          )}
 
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-                            {doc.type === 'text' ? '📄 Texte importé' : '📎 Fichier uploadé'}
+                            {doc.type === 'text' ? '📄 Texte importé' :
+                             doc.type === 'audio' ? '🎙️ Audio' :
+                             '📎 Fichier uploadé'}
                           </span>
                         </div>
 
@@ -925,7 +1020,7 @@ const ProjectDetail: React.FC = () => {
                       >
                         <SummaryButton
                           documentId={doc.id}
-                          type={doc.type === 'file' ? 'file' : 'transcription'}
+                          type={doc.type === 'file' ? 'file' : doc.type === 'audio' ? 'transcription' : 'transcription'}
                           onSummaryGenerated={() => {}}
                         />
                         <button
@@ -1228,6 +1323,87 @@ const ProjectDetail: React.FC = () => {
           }}
           onClose={() => setPreviewFile(null)}
         />
+      )}
+
+      {/* ✅ Modal d'édition du projet */}
+      {editingProject && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => !savingProject && setEditingProject(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.white,
+              borderRadius: theme.borderRadius.md,
+              padding: theme.spacing.lg,
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>✏️ Modifier le projet</h2>
+
+            <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
+              Titre *
+            </label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              disabled={savingProject}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: `1px solid ${colors.gray[300]}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: '14px',
+                marginBottom: theme.spacing.md,
+                outline: 'none',
+              }}
+            />
+
+            <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
+              Description
+            </label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              disabled={savingProject}
+              rows={4}
+              placeholder="Décrivez votre projet..."
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: `1px solid ${colors.gray[300]}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: '14px',
+                resize: 'vertical',
+                marginBottom: theme.spacing.lg,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: theme.spacing.sm, justifyContent: 'flex-end' }}>
+              <Button variant="outline" onClick={() => setEditingProject(false)} disabled={savingProject}>
+                Annuler
+              </Button>
+              <Button variant="primary" onClick={saveProject} disabled={savingProject}>
+                {savingProject ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
