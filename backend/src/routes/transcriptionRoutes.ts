@@ -1,4 +1,5 @@
 // backend/src/routes/transcriptionRoutes.ts
+import { Router } from 'express';
 import {
   uploadTranscription,
   getUserTranscriptions,
@@ -8,27 +9,29 @@ import {
   restoreTranscription,
   permanentlyDeleteTranscription,
   emptyTrashTranscriptions,
-  retryTranscription,   // ✅ NOUVEAU
+  retryTranscription,
   getTranscriptionProgress,
 } from '../controllers/transcriptionController';
-
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Upload
 router.post('/upload', authenticate, uploadTranscription);
-router.get('/', authenticate, getUserTranscriptions);
 
-// Corbeille
+// Liste et corbeille
+router.get('/', authenticate, getUserTranscriptions);
 router.get('/trash', authenticate, getTrashedTranscriptions);
-router.delete('/trash/empty', authenticate, emptyTrashTranscriptions);  // ✅
+
+// Actions spécifiques (avant /:id)
+router.delete('/trash/empty', authenticate, emptyTrashTranscriptions);
+router.post('/:id/retry', authenticate, retryTranscription);
 router.patch('/:id/restore', authenticate, restoreTranscription);
 router.delete('/:id/permanent', authenticate, permanentlyDeleteTranscription);
-
-// ✅ Relancer une transcription échouée
-router.post('/:id/retry', authenticate, retryTranscription);
-router.get('/:id', authenticate, getTranscription);
 router.get('/:id/progress', authenticate, getTranscriptionProgress);
+
+// Routes génériques (en dernier)
+router.get('/:id', authenticate, getTranscription);
 router.delete('/:id', authenticate, deleteTranscription);
 
 export default router;
