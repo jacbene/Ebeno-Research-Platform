@@ -1,18 +1,18 @@
 // backend/src/services/presenceService.ts
 import { logger } from '../utils/logger';
 
-/**
- * Gestion en mémoire des utilisateurs connectés par projet
- * Structure : { [projectId]: Map<socketId, UserInfo> }
- */
 interface UserInfo {
   userId: string;
   userName: string;
   userEmail?: string;
-  color: string;         // Couleur unique pour le curseur/avatar
+  color: string;
   joinedAt: Date;
   lastSeen: Date;
 }
+
+// ✅ TTL : un user sans ping depuis 2 min = fantôme
+const USER_TTL_MS = 2 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 30 * 1000;
 
 const presenceMap = new Map<string, Map<string, UserInfo>>();
 
@@ -37,10 +37,9 @@ export const addUser = (
   if (!presenceMap.has(projectId)) {
     presenceMap.set(projectId, new Map());
   }
-
   const room = presenceMap.get(projectId)!;
 
-  // Si l'utilisateur est déjà présent avec un autre socket, réutiliser sa couleur
+  // Réutiliser la couleur si l'user est déjà présent via un autre socket
   let color: string | null = null;
   for (const [, info] of room) {
     if (info.userId === user.userId) {
@@ -100,9 +99,6 @@ export const getProjectUsers = (projectId: string): UserInfo[] => {
   return Array.from(room.values());
 };
 
-/**
- * Récupère les utilisateurs uniques (par userId)
- */
 export const getUniqueProjectUsers = (projectId: string): UserInfo[] => {
   const users = getProjectUsers(projectId);
   const seen = new Set<string>();
@@ -115,4 +111,89 @@ export const getUniqueProjectUsers = (projectId: string): UserInfo[] => {
 
 export const getAllRooms = (): string[] => {
   return Array.from(presenceMap.keys());
+};
+
+// ============================================================
+// ✅ TTL & CLEANUP AUTOMATIQUE
+// ============================================================
+
+/**
+ * Supprime tous les users inactifs depuis plus de USER_TTL_MS.
+ * Retourne la liste des projectIds impactés (pour rebroadcast la présence).
+ */
+export const cleanupStaleUsers = (): string[] => {
+  const now = Date.now();
+  const affectedProjects: string[] = [];
+
+  for (const [projectId, room] of presenceMap.entries()) {
+    let hasChanges = false;
+
+    for (const [socketId, user] of room.entries()) {
+      if (now - user.lastSeen.getTime() > USER_TTL_MS) {
+        logger.warn(
+          `🧹 [presence] User expiré (${Math.round(
+            (now - user.lastSeen.getTime()) / 1000
+          )}s sans ping) : ${user.userName}`
+        );
+        room.delete(socketId);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      affectedProjects.push(projectId);
+      if (room.size === 0) {
+        presenceMap.delete(projectId);
+      }
+    }
+  }
+
+  return affectedProjects;
+};
+
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Démarre le cleanup périodique.
+ * @param onCleanup callback appelé pour chaque projectId affecté (pour rebroadcast)
+ */
+export const startPresenceCleanup = (
+  onCleanup?: (projectId: string) => void
+): void => {
+  if (cleanupInterval) return;
+
+  cleanupInterval = setInterval(() => {
+    const affected = cleanupStaleUsers();
+    if (affected.length > 0 && onCleanup) {
+      affected.forEach((projectId) => onCleanup(projectId));
+    }
+  }, CLEANUP_INTERVAL_MS);
+
+  // ✅ Empêche Jest de rester bloqué
+  if (typeof cleanupInterval.unref === 'function') {
+    cleanupInterval.unref();
+  }
+
+  logger.info(
+    `✅ [presence] Cleanup activé (TTL=${USER_TTL_MS / 1000}s, intervalle=${
+      CLEANUP_INTERVAL_MS / 1000
+    }s)`
+  );
+};
+
+export const stopPresenceCleanup = (): void => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    logger.info('🛑 [presence] Cleanup arrêté');
+  }
+};
+
+/**
+ * Pour les tests uniquement : reset complet.
+ */
+export const __resetForTests = (): void => {
+  presenceMap.clear();
+  colorIndex = 0;
+  stopPresenceCleanup();
 };

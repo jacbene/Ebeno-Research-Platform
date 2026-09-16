@@ -6,6 +6,7 @@ import {
   removeUser,
   updatePresence,
   getUniqueProjectUsers,
+  startPresenceCleanup,
 } from '../services/presenceService';
 import { db } from '../db/knex';
 
@@ -36,15 +37,31 @@ interface TypingPayload {
   isTyping: boolean;
 }
 
+interface PendingUpdate {
+  content: string;
+  timer: NodeJS.Timeout | null;
+  lastQueuedAt: number;
+}
+
 export class CollaborationSocketHandler {
   private io: SocketIOServer;
-  private userSockets = new Map<string, { userId: string; userName: string; projectId: string; color: string }>();
-  // Map : documentId → { [socketId]: { userId, userName, color } }
-  private documentUsers = new Map<string, Map<string, { userId: string; userName: string; color: string }>>();
+  private userSockets = new Map<
+    string,
+    { userId: string; userName: string; projectId: string; color: string }
+  >();
+  private documentUsers = new Map<
+    string,
+    Map<string, { userId: string; userName: string; color: string }>
+  >();
+
+  // ✅ Buffer de sauvegardes DB (debounce)
+  private pendingUpdates = new Map<string, PendingUpdate>();
+  private readonly DEBOUNCE_MS = 500;
 
   constructor(io: SocketIOServer) {
     this.io = io;
     this.setupHandlers();
+    this.startCleanup();
   }
 
   private setupHandlers() {
@@ -68,7 +85,12 @@ export class CollaborationSocketHandler {
             userEmail,
           });
 
-          this.userSockets.set(socket.id, { userId, userName, projectId, color: userInfo.color });
+          this.userSockets.set(socket.id, {
+            userId,
+            userName,
+            projectId,
+            color: userInfo.color,
+          });
 
           socket.emit('presence-color', { color: userInfo.color });
           this.broadcastPresence(projectId);
@@ -88,7 +110,7 @@ export class CollaborationSocketHandler {
         this.broadcastPresence(projectId);
       });
 
-      // ---------- Rejoindre un document (édition collaborative) ----------
+      // ---------- Rejoindre un document ----------
       socket.on('join-document', async (payload: JoinDocPayload) => {
         try {
           const { documentId, userId, userName, color } = payload;
@@ -96,7 +118,6 @@ export class CollaborationSocketHandler {
 
           socket.join(`doc:${documentId}`);
 
-          // Ajouter l'utilisateur à la liste du document
           if (!this.documentUsers.has(documentId)) {
             this.documentUsers.set(documentId, new Map());
           }
@@ -109,10 +130,10 @@ export class CollaborationSocketHandler {
             color: userColor,
           });
 
-          // Récupérer le document en base
-          const doc = await db('collaboration_documents').where({ id: documentId }).first();
+          const doc = await db('collaboration_documents')
+            .where({ id: documentId })
+            .first();
 
-          // Envoyer le contenu actuel + liste des utilisateurs
           socket.emit('document-content', {
             document: doc
               ? {
@@ -126,21 +147,22 @@ export class CollaborationSocketHandler {
             users: Array.from(this.documentUsers.get(documentId)!.values()),
           });
 
-          // Notifier les autres utilisateurs
           socket.to(`doc:${documentId}`).emit('user-joined', {
             userId,
             name: userName,
             color: userColor,
           });
 
-          logger.info(`📄 [socket] ${userName} a rejoint le document ${documentId}`);
+          logger.info(
+            `📄 [socket] ${userName} a rejoint le document ${documentId}`
+          );
         } catch (error: any) {
           logger.error('❌ [socket] join-document:', error);
         }
       });
 
       // ---------- Quitter un document ----------
-      socket.on('leave-document', (payload: { documentId: string }) => {
+      socket.on('leave-document', async (payload: { documentId: string }) => {
         const { documentId } = payload;
         socket.leave(`doc:${documentId}`);
 
@@ -148,22 +170,29 @@ export class CollaborationSocketHandler {
         if (docUsers) {
           const user = docUsers.get(socket.id);
           docUsers.delete(socket.id);
-          if (docUsers.size === 0) this.documentUsers.delete(documentId);
 
           if (user) {
-            socket.to(`doc:${documentId}`).emit('user-left', { userId: user.userId });
+            socket.to(`doc:${documentId}`).emit('user-left', {
+              userId: user.userId,
+            });
+          }
+
+          // ✅ Si plus personne sur le doc → flush immédiat
+          if (docUsers.size === 0) {
+            this.documentUsers.delete(documentId);
+            await this.flushDocumentSave(documentId);
           }
         }
       });
 
       // ---------- Édition d'un document ----------
-      socket.on('edit-document', async (payload: EditDocPayload) => {
+      socket.on('edit-document', (payload: EditDocPayload) => {
         try {
           const { documentId, content, cursorPosition } = payload;
           const user = this.userSockets.get(socket.id);
           if (!user || !documentId) return;
 
-          // Diffuser aux autres utilisateurs du document
+          // ✅ Broadcast temps réel immédiat (pour la collaboration)
           socket.to(`doc:${documentId}`).emit('document-updated', {
             content,
             userId: user.userId,
@@ -171,7 +200,7 @@ export class CollaborationSocketHandler {
             version: Date.now(),
           });
 
-          // Diffuser la position du curseur
+          // Cursor
           if (cursorPosition !== undefined) {
             socket.to(`doc:${documentId}`).emit('cursor-moved', {
               userId: user.userId,
@@ -182,14 +211,8 @@ export class CollaborationSocketHandler {
             });
           }
 
-          // Sauvegarder dans la base (debounce côté client)
-          await db('collaboration_documents')
-            .where({ id: documentId })
-            .update({
-              content,
-              version: db.raw('version + 1'),
-              updatedAt: new Date().toISOString(),
-            });
+          // ✅ Sauvegarde DB différée (debounce 500ms)
+          this.scheduleDocumentSave(documentId, content);
         } catch (error: any) {
           logger.error('❌ [socket] edit-document:', error);
         }
@@ -200,7 +223,7 @@ export class CollaborationSocketHandler {
         updatePresence(payload.projectId, socket.id);
       });
 
-      // ---------- Indicateur de frappe ----------
+      // ---------- Typing ----------
       socket.on('typing', (payload: TypingPayload) => {
         const { projectId, documentId, context, isTyping } = payload;
         const user = this.userSockets.get(socket.id);
@@ -215,7 +238,7 @@ export class CollaborationSocketHandler {
         });
       });
 
-      // ---------- Demander la présence actuelle ----------
+      // ---------- Get presence ----------
       socket.on('get-presence', (payload: { projectId: string }) => {
         socket.emit('presence-update', {
           users: getUniqueProjectUsers(payload.projectId),
@@ -223,38 +246,107 @@ export class CollaborationSocketHandler {
       });
 
       // ---------- Déconnexion ----------
-      socket.on('disconnect', () => {
+      socket.on('disconnect', async () => {
         const user = this.userSockets.get(socket.id);
         if (user) {
           removeUser(user.projectId, socket.id);
           this.broadcastPresence(user.projectId);
           this.userSockets.delete(socket.id);
-          logger.info(`👋 [socket] Déconnexion : ${socket.id} (${user.userName})`);
+          logger.info(
+            `👋 [socket] Déconnexion : ${socket.id} (${user.userName})`
+          );
         }
 
         // Nettoyer les documents
+        const docsToFlush: string[] = [];
         this.documentUsers.forEach((users, docId) => {
           if (users.has(socket.id)) {
             const docUser = users.get(socket.id)!;
             users.delete(socket.id);
-            if (users.size === 0) this.documentUsers.delete(docId);
-            this.io.to(`doc:${docId}`).emit('user-left', { userId: docUser.userId });
+            this.io.to(`doc:${docId}`).emit('user-left', {
+              userId: docUser.userId,
+            });
+
+            if (users.size === 0) {
+              this.documentUsers.delete(docId);
+              docsToFlush.push(docId);
+            }
           }
         });
+
+        // ✅ Flush les documents où plus personne n'édite
+        await Promise.all(docsToFlush.map((id) => this.flushDocumentSave(id)));
       });
     });
-
-    const pingInterval = setInterval(() => {
-  this.io.emit('server-ping', { timestamp: Date.now() });
-}, 30000);
-
-// ✅ Empêche Jest de rester bloqué sur ce timer
-if (typeof pingInterval.unref === 'function') {
-  pingInterval.unref();
-}
   }
 
-  private async broadcastPresence(projectId: string) {
+  // ============================================================
+  // ✅ DEBOUNCE DES SAUVEGARDES DB
+  // ============================================================
+
+  private scheduleDocumentSave(documentId: string, content: string): void {
+    const existing = this.pendingUpdates.get(documentId);
+    if (existing?.timer) clearTimeout(existing.timer);
+
+    const timer = setTimeout(() => {
+      this.flushDocumentSave(documentId).catch((err) =>
+        logger.error('❌ flushDocumentSave:', err)
+      );
+    }, this.DEBOUNCE_MS);
+
+    if (typeof timer.unref === 'function') timer.unref();
+
+    this.pendingUpdates.set(documentId, {
+      content,
+      timer,
+      lastQueuedAt: Date.now(),
+    });
+  }
+
+  private async flushDocumentSave(documentId: string): Promise<void> {
+    const pending = this.pendingUpdates.get(documentId);
+    if (!pending) return;
+
+    this.pendingUpdates.delete(documentId);
+    if (pending.timer) clearTimeout(pending.timer);
+
+    try {
+      await db('collaboration_documents')
+        .where({ id: documentId })
+        .update({
+          content: pending.content,
+          version: db.raw('version + 1'),
+          updatedAt: new Date().toISOString(),
+        });
+    } catch (err: any) {
+      logger.error(
+        `❌ [socket] flushDocumentSave échoué pour ${documentId}:`,
+        err
+      );
+    }
+  }
+
+  // ============================================================
+  // ✅ CLEANUP PRÉSENCE
+  // ============================================================
+
+  private startCleanup(): void {
+    startPresenceCleanup((projectId) => {
+      // Rebroadcast la présence mise à jour
+      this.broadcastPresence(projectId);
+    });
+
+    // Ping périodique global
+    const pingInterval = setInterval(() => {
+      this.io.emit('server-ping', { timestamp: Date.now() });
+    }, 30000);
+
+    if (typeof pingInterval.unref === 'function') {
+      pingInterval.unref();
+    }
+  }
+
+  private async broadcastPresence(projectId: string): Promise<void> {
     try {
       const users = getUniqueProjectUsers(projectId);
       this.io.to(`project:${projectId}`).emit('presence-update', { users });
