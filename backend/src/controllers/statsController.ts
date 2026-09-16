@@ -42,8 +42,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     }
 
     // ✅ 2. Fichiers
-    // Si projectId spécifié : tous les fichiers du projet (peu importe l'auteur)
-    // Sinon : fichiers de l'utilisateur (tous projets)
     let filesQuery = db('project_files').whereNull('deletedAt');
     if (projectId) {
       filesQuery = filesQuery.where({ projectId });
@@ -83,17 +81,29 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const memosCount = await memosQuery.clone().count('id as count').first();
     const totalMemos = Number(memosCount?.count || 0);
 
-    // ✅ 5. Entités extraites
-    let entitiesQuery = db('document_entities')
-      .join('transcriptions', 'document_entities.documentId', 'transcriptions.id')
-      .whereNull('transcriptions.deletedAt');
-    if (projectId) {
-      entitiesQuery = entitiesQuery.where('transcriptions.projectId', projectId);
-    } else {
-      entitiesQuery = entitiesQuery.where('transcriptions.userId', userId);
+    // ✅ 5. Compter les entités extraites (fichiers + transcriptions + memos)
+    const fileIds = projectId
+      ? (await db('project_files').where({ projectId }).whereNull('deletedAt').select('id')).map((r) => r.id)
+      : (await db('project_files').where({ userId }).whereNull('deletedAt').select('id')).map((r) => r.id);
+
+    const transcriptionIds = projectId
+      ? (await db('transcriptions').where({ projectId }).whereNull('deletedAt').select('id')).map((r) => r.id)
+      : (await db('transcriptions').where({ userId }).whereNull('deletedAt').select('id')).map((r) => r.id);
+
+    const memoIds = projectId
+      ? (await db('memos').where({ projectId }).whereNull('deletedAt').select('id')).map((r) => r.id)
+      : (await db('memos').where({ userId }).whereNull('deletedAt').select('id')).map((r) => r.id);
+
+    const allDocIds = [...fileIds, ...transcriptionIds, ...memoIds];
+
+    let totalEntities = 0;
+    if (allDocIds.length > 0) {
+      const entitiesResult = await db('document_entities')
+        .whereIn('documentId', allDocIds)
+        .count('id as count')
+        .first();
+      totalEntities = Number(entitiesResult?.count || 0);
     }
-    const entitiesResult = await entitiesQuery.clone().count('document_entities.id as count').first();
-    const totalEntities = Number(entitiesResult?.count || 0);
 
     // ✅ 6. Documents collaboratifs
     let docsQuery = db('collaboration_documents');
@@ -155,7 +165,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     if (projectId) {
       recentFilesQuery = recentFilesQuery.where('project_files.projectId', projectId);
     } else {
-      // Fichiers des projets où l'utilisateur est membre
       recentFilesQuery = recentFilesQuery
         .join('project_members', 'project_files.projectId', 'project_members.projectId')
         .where('project_members.userId', userId);
@@ -194,12 +203,16 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       selectedProject = await db('projects').where({ id: projectId }).first();
     }
 
-    logger.info(`📊 Stats dashboard pour ${userId}${projectId ? ` [projet: ${projectId}]` : ''}`, {
-      projects: totalProjects,
-      files: totalFiles,
-      audio: totalAudio,
-      texts: totalTexts,
-    });
+    logger.info(
+      `📊 Stats dashboard pour ${userId}${projectId ? ` [projet: ${projectId}]` : ''}`,
+      {
+        projects: totalProjects,
+        files: totalFiles,
+        audio: totalAudio,
+        texts: totalTexts,
+        entities: totalEntities,
+      }
+    );
 
     return res.json({
       success: true,
