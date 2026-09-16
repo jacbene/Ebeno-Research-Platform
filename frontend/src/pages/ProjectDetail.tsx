@@ -773,14 +773,46 @@ const ProjectDetail: React.FC = () => {
             <hr style={{ margin: '16px 0' }} />
             {transcriptions.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>Aucune transcription audio.</p>
-            ) : (
-              transcriptions.map(t => (
-                <div key={t.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{t.title}</span>
-                  <span style={{ color: getStatusColor(t.status || '') }}>{getStatusLabel(t.status || '')}</span>
-                </div>
-              ))
-            )}
+            ) : {transcriptions.map(t => (
+  <div key={t.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+    <span>{t.title}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <span style={{ color: getStatusColor(t.status || '') }}>{getStatusLabel(t.status || '')}</span>
+      {t.status === 'FAILED' && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (!confirm('Relancer la transcription ?')) return;
+            try {
+              await api.post(`/transcriptions/${t.id}/retry`);
+              toast.addToast({ type: 'info', title: '🔄 Transcription relancée' });
+              setTimeout(() => fetchProjectData(), 1000);
+            } catch (err: any) {
+              toast.addToast({
+                type: 'error',
+                title: 'Erreur',
+                message: err.response?.data?.message || 'Impossible de relancer',
+              });
+            }
+          }}
+          style={{
+            padding: '4px 10px',
+            backgroundColor: colors.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold',
+          }}
+        >
+          🔄 Réessayer
+        </button>
+      )}
+    </div>
+  </div>
+))}
+         
           </Card>
         )}
 

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { WordCloudComponent } from '../components/WordCloud';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 interface Transcription {
@@ -13,11 +14,10 @@ interface Transcription {
   audioUrl: string | null;
   type?: 'audio' | 'text';
   fileName?: string;
-  // ✅ Support des deux formats (défensive)
-  createdAt?: number | string;
-  updatedAt?: number | string;
-  created_at?: number | string;
-  updated_at?: number | string;
+  createdAt: string;
+  updatedAt: string;
+  projectId?: string | null;
+  errorMessage?: string | null;
 }
 
 interface Analysis {
@@ -31,10 +31,8 @@ interface Analysis {
 // ✅ Fonction de formatage robuste
 const formatDateTime = (value: any): string => {
   if (value === null || value === undefined || value === '') return '-';
-
   try {
     let date: Date;
-
     if (typeof value === 'number') {
       date = new Date(value);
     } else if (typeof value === 'string') {
@@ -47,15 +45,10 @@ const formatDateTime = (value: any): string => {
     } else {
       return '-';
     }
-
     if (isNaN(date.getTime())) return '-';
-
     return date.toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     });
   } catch {
     return '-';
@@ -64,6 +57,7 @@ const formatDateTime = (value: any): string => {
 
 const TranscriptionList: React.FC = () => {
   const { colors } = useTheme();
+  const toast = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -75,6 +69,7 @@ const TranscriptionList: React.FC = () => {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const fetchTranscriptions = async () => {
     try {
@@ -87,9 +82,6 @@ const TranscriptionList: React.FC = () => {
           items = response.data.data.transcriptions;
         }
       }
-      // ✅ Log pour diagnostiquer
-      console.log('📋 [TranscriptionList] Premier item:', items[0]);
-
       items = items.map(item => ({
         ...item,
         type: item.type || (item.audioUrl ? 'audio' : 'text'),
@@ -114,6 +106,40 @@ const TranscriptionList: React.FC = () => {
       setAnalysis(null);
     } finally {
       setAnalysisLoading(false);
+    }
+  };
+
+  // ✅ Réessayer une transcription échouée
+  const handleRetry = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Relancer la transcription de ce fichier audio ?')) return;
+
+    setRetryingId(id);
+    try {
+      const response = await api.post(`/transcriptions/${id}/retry`);
+      if (response.data.success) {
+        toast.addToast({
+          type: 'info',
+          title: '🔄 Transcription relancée',
+          message: 'Le traitement a redémarré.',
+        });
+        // Rafraîchir la liste
+        await fetchTranscriptions();
+      } else {
+        toast.addToast({
+          type: 'error',
+          title: 'Erreur',
+          message: response.data.message || 'Impossible de relancer',
+        });
+      }
+    } catch (error: any) {
+      toast.addToast({
+        type: 'error',
+        title: 'Erreur',
+        message: error.response?.data?.message || 'Erreur de connexion',
+      });
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -208,10 +234,9 @@ const TranscriptionList: React.FC = () => {
           {filteredTranscriptions.map((t) => {
             const isExpanded = selectedId === t.id;
             const isCompleted = t.status === 'COMPLETED';
+            const isFailed = t.status === 'FAILED';
             const hasText = !!t.transcriptText;
-
-            // ✅ Utilise les deux noms possibles pour la date
-            const dateValue = t.createdAt ?? t.created_at;
+            const isRetrying = retryingId === t.id;
 
             return (
               <div
@@ -247,14 +272,55 @@ const TranscriptionList: React.FC = () => {
                       {getStatusLabel(t.status)}
                     </span>
                   </div>
-                  <span style={{ fontSize: '13px', color: colors.gray[500] }}>
-                    {/* ✅ Utilise la fonction robuste */}
-                    {formatDateTime(dateValue)}
-                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', color: colors.gray[500] }}>
+                      {formatDateTime(t.createdAt)}
+                    </span>
+
+                    {/* ✅ Bouton Réessayer (visible uniquement pour les FAILED) */}
+                    {isFailed && (
+                      <button
+                        onClick={(e) => handleRetry(t.id, e)}
+                        disabled={isRetrying}
+                        title="Réessayer la transcription"
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: isRetrying ? colors.gray[400] : colors.primary,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: isRetrying ? 'not-allowed' : 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        {isRetrying ? '⏳ En cours...' : '🔄 Réessayer'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {isExpanded && (
                   <div style={{ marginTop: '14px' }}>
+                    {/* Message d'erreur */}
+                    {t.errorMessage && (
+                      <div style={{
+                        padding: '10px 14px',
+                        backgroundColor: colors.danger + '15',
+                        color: colors.danger,
+                        borderRadius: '8px',
+                        border: `1px solid ${colors.danger}30`,
+                        fontSize: '13px',
+                        marginBottom: '10px',
+                      }}>
+                        <strong>❌ Erreur :</strong> {t.errorMessage}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         padding: '14px',
@@ -275,6 +341,10 @@ const TranscriptionList: React.FC = () => {
                       ) : isCompleted ? (
                         <span style={{ color: colors.gray[500], fontStyle: 'italic' }}>
                           Aucun texte disponible.
+                        </span>
+                      ) : isFailed ? (
+                        <span style={{ color: colors.danger, fontStyle: 'italic' }}>
+                          La transcription a échoué. Cliquez sur "🔄 Réessayer" pour relancer.
                         </span>
                       ) : (
                         <span style={{ color: colors.gray[500], fontStyle: 'italic' }}>
