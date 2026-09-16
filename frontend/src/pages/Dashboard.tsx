@@ -35,6 +35,13 @@ interface RecentFile {
   authorAvatar: string | null;
 }
 
+interface TopEntity {
+  value: string;
+  type: string;
+  count: number;
+  percentage: number;
+}
+
 interface DashboardStats {
   projectId: string | null;
   selectedProject: Project | null;
@@ -63,7 +70,23 @@ interface DashboardStats {
   }>;
   recentProjects: Project[];
   recentFiles: RecentFile[];
+  topEntities: TopEntity[];
+  entitiesByType: Record<string, TopEntity[]>;
 }
+
+// ✅ Configuration d'affichage par type d'entité
+const ENTITY_TYPES: Record<string, { icon: string; label: string; color: string; bg: string }> = {
+  Person: { icon: '👤', label: 'Personnes', color: '#0052cc', bg: '#e6f0ff' },
+  Place: { icon: '📍', label: 'Lieux', color: '#1a7a1a', bg: '#e6f5e6' },
+  Organization: { icon: '🏢', label: 'Organisations', color: '#8000a0', bg: '#fce6ff' },
+  Date: { icon: '📅', label: 'Dates', color: '#d35400', bg: '#fff0e6' },
+  Email: { icon: '📧', label: 'Emails', color: '#0080a0', bg: '#e6f9ff' },
+  Phone: { icon: '📞', label: 'Téléphones', color: '#c00060', bg: '#ffe6f0' },
+  Url: { icon: '🔗', label: 'URLs', color: '#6c757d', bg: '#f0f0f0' },
+};
+
+const getEntityTypeConfig = (type: string) =>
+  ENTITY_TYPES[type] || { icon: '🏷️', label: type, color: '#6c757d', bg: '#f0f0f0' };
 
 // ✅ Icônes d'action
 const getActionIcon = (action: string): string => {
@@ -162,6 +185,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [entityFilter, setEntityFilter] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -213,6 +237,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchStats(selectedProjectId);
+    setEntityFilter('all');
   }, [selectedProjectId]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -334,7 +359,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ Sélecteur de projet */}
+      {/* Sélecteur de projet */}
       {projects.length > 0 && (
         <Card style={{ marginBottom: theme.spacing.lg }}>
           <div style={{
@@ -526,7 +551,140 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
 
-          {/* ✅ Fichiers récents avec auteur */}
+          {/* ✅ Top Entités */}
+          {stats.topEntities && stats.topEntities.length > 0 && (
+            <Card title="🏷️ Top entités extraites" style={{ marginBottom: theme.spacing.lg }}>
+              {/* Filtres par type */}
+              <div style={{
+                display: 'flex',
+                gap: '6px',
+                flexWrap: 'wrap',
+                marginBottom: theme.spacing.md,
+              }}>
+                <button
+                  onClick={() => setEntityFilter('all')}
+                  style={{
+                    padding: '5px 12px',
+                    backgroundColor: entityFilter === 'all' ? colors.primary : colors.gray[200],
+                    color: entityFilter === 'all' ? 'white' : colors.dark,
+                    border: 'none',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: entityFilter === 'all' ? 'bold' : 'normal',
+                  }}
+                >
+                  Tout ({stats.topEntities.length})
+                </button>
+                {Object.keys(stats.entitiesByType).map((type) => {
+                  const cfg = getEntityTypeConfig(type);
+                  const count = stats.entitiesByType[type].length;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setEntityFilter(type)}
+                      style={{
+                        padding: '5px 12px',
+                        backgroundColor: entityFilter === type ? cfg.color : colors.gray[200],
+                        color: entityFilter === type ? 'white' : colors.dark,
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: entityFilter === type ? 'bold' : 'normal',
+                      }}
+                    >
+                      {cfg.icon} {cfg.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Liste des entités */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '10px',
+              }}>
+                {(entityFilter === 'all'
+                  ? stats.topEntities
+                  : stats.entitiesByType[entityFilter] || []
+                )
+                  .slice(0, 20)
+                  .map((entity, idx) => {
+                    const cfg = getEntityTypeConfig(entity.type);
+                    return (
+                      <div
+                        key={`${entity.type}-${entity.value}-${idx}`}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: cfg.bg,
+                          border: `1px solid ${cfg.color}30`,
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          transition: 'transform 0.15s, box-shadow 0.15s',
+                          cursor: 'default',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <span style={{ fontSize: '20px', flexShrink: 0 }}>
+                          {cfg.icon}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: colors.dark,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }} title={entity.value}>
+                            {entity.value}
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            fontSize: '11px',
+                            color: cfg.color,
+                            marginTop: '2px',
+                          }}>
+                            <span>{cfg.label}</span>
+                            <span>•</span>
+                            <span>{entity.count} occurrence{entity.count > 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Résumé */}
+              <div style={{
+                marginTop: theme.spacing.md,
+                padding: '10px 14px',
+                backgroundColor: colors.gray[50] || '#fafafa',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: colors.gray[600],
+                textAlign: 'center',
+              }}>
+                💡 {Object.keys(stats.entitiesByType).length} type(s) d'entités •{' '}
+                {stats.topEntities.length} entité(s) unique(s) •{' '}
+                {stats.counts.entities} occurrence(s) totale(s)
+              </div>
+            </Card>
+          )}
+
+          {/* Fichiers récents avec auteur */}
           {stats.recentFiles.length > 0 && (
             <Card
               title={isFiltered ? '📎 Fichiers récents du projet' : '📎 Fichiers récents de mes projets'}
@@ -549,12 +707,10 @@ const Dashboard: React.FC = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = colors.gray[50] || '#fafafa')}
                   >
-                    {/* Icône fichier */}
                     <span style={{ fontSize: '24px', flexShrink: 0 }}>
                       {getFileIcon(file.fileName)}
                     </span>
 
-                    {/* Infos fichier */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontWeight: 600,
@@ -579,7 +735,6 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* ✅ Auteur */}
                     <div
                       style={{
                         display: 'flex',
@@ -732,7 +887,7 @@ const Dashboard: React.FC = () => {
             </Card>
           )}
 
-          {/* Projets récents (uniquement en mode "tous projets") */}
+          {/* Projets récents */}
           {!isFiltered && stats.recentProjects.length > 0 && (
             <Card title="📁 Projets récents" style={{ marginBottom: theme.spacing.lg }}>
               <div style={{ display: 'grid', gap: theme.spacing.md }}>
@@ -812,7 +967,7 @@ const Dashboard: React.FC = () => {
         </>
       ) : null}
 
-      {/* Liste complète des projets (uniquement en mode "tous projets") */}
+      {/* Liste complète des projets */}
       {!isFiltered && (
         <Card title="📚 Tous mes projets" style={{ marginTop: theme.spacing.lg }}>
           {loading ? (
