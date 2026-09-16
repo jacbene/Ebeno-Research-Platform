@@ -1,5 +1,4 @@
 // backend/src/routes/transcriptionRoutes.ts
-import { Router } from 'express';
 import {
   uploadTranscription,
   getUserTranscriptions,
@@ -8,9 +7,11 @@ import {
   getTrashedTranscriptions,
   restoreTranscription,
   permanentlyDeleteTranscription,
-  emptyTrashTranscriptions,  // ✅
+  emptyTrashTranscriptions,
+  retryTranscription,   // ✅ NOUVEAU
   getTranscriptionProgress,
 } from '../controllers/transcriptionController';
+
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -24,6 +25,8 @@ router.delete('/trash/empty', authenticate, emptyTrashTranscriptions);  // ✅
 router.patch('/:id/restore', authenticate, restoreTranscription);
 router.delete('/:id/permanent', authenticate, permanentlyDeleteTranscription);
 
+// ✅ Relancer une transcription échouée
+router.post('/:id/retry', authenticate, retryTranscription);
 router.get('/:id', authenticate, getTranscription);
 router.get('/:id/progress', authenticate, getTranscriptionProgress);
 router.delete('/:id', authenticate, deleteTranscription);

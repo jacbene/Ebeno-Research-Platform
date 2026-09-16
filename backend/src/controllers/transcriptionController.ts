@@ -2,7 +2,8 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { uploadAndProcessDeepgram } from '../services/deepgramService';
+import fs from 'fs';   // ✅ Ajoutez fs s'il manque
+import { uploadAndProcessDeepgram, processTranscriptionDeepgram } from '../services/deepgramService';
 import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
@@ -73,6 +74,88 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
     }
   });
+};
+
+// ---------- ✅ Réessayer une transcription échouée ----------
+export const retryTranscription = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userId = user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Non authentifié' });
+    }
+
+    // Récupérer la transcription
+    const transcription = await db('transcriptions')
+      .where({ id, userId })
+      .first();
+
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    // ✅ Vérifier que le statut permet un retry
+    if (transcription.status === 'COMPLETED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cette transcription est déjà terminée',
+      });
+    }
+
+    if (transcription.status === 'PROCESSING') {
+      return res.status(400).json({
+        success: false,
+        message: 'La transcription est déjà en cours de traitement',
+      });
+    }
+
+    // ✅ Vérifier que le fichier audio existe
+    const audioPath = path.join(
+      __dirname,
+      '../../uploads/tmp',
+      path.basename(transcription.audioUrl || '')
+    );
+
+    if (!fs.existsSync(audioPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fichier audio introuvable. Veuillez re-uploader le fichier.',
+      });
+    }
+
+    // ✅ Remettre à PENDING + reset error
+    await db('transcriptions')
+      .where({ id })
+      .update({
+        status: 'PENDING',
+        errorMessage: null,
+        updatedAt: new Date().toISOString(),
+      });
+
+    // ✅ Relancer le traitement en arrière-plan
+    processTranscriptionDeepgram(id).catch((err) =>
+      console.error('❌ Erreur retry async:', err)
+    );
+
+    emitGlobal('transcription-retry', { id, projectId: transcription.projectId });
+
+    console.log(`🔄 Retry transcription ${id} par ${userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Transcription relancée',
+      data: { transcriptionId: id, status: 'PENDING' },
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur retryTranscription:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur',
+      error: error.message,
+    });
+  }
 };
 
 // ---------- Liste des transcriptions (hors corbeille) ----------
