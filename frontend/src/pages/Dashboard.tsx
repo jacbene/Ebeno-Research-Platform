@@ -26,6 +26,8 @@ interface DashboardStats {
   counts: {
     projects: number;
     files: number;
+    audioTranscriptions: number;
+    textDocuments: number;
     transcriptions: number;
     memos: number;
     entities: number;
@@ -47,7 +49,7 @@ interface DashboardStats {
   recentProjects: Project[];
 }
 
-// ✅ Icônes d'action pour l'activité
+// ✅ Icônes d'action
 const getActionIcon = (action: string): string => {
   switch (action) {
     case 'file-uploaded': return '📤';
@@ -191,14 +193,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getUserInitials = (name: string) => {
-    if (!name) return '?';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
-
-  // ✅ Cartes de statistiques principales
+  // ✅ Cartes de statistiques (avec audio et textes séparés)
   const statCards = stats
     ? [
         {
@@ -219,11 +214,19 @@ const Dashboard: React.FC = () => {
         },
         {
           icon: '🎙️',
-          label: 'Transcriptions',
-          value: stats.counts.transcriptions,
+          label: 'Transcriptions audio',
+          value: stats.counts.audioTranscriptions,
           color: '#0080a0',
           bg: '#e6f9ff',
-          link: '/transcriptions',
+          link: '/transcriptions?type=audio',
+        },
+        {
+          icon: '📄',
+          label: 'Textes importés',
+          value: stats.counts.textDocuments,
+          color: '#0052cc',
+          bg: '#e6f0ff',
+          link: '/transcriptions?type=text',
         },
         {
           icon: '📝',
@@ -400,8 +403,8 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Statut des transcriptions */}
-          {stats.counts.transcriptions > 0 && (
-            <Card title="🎙️ Statut des transcriptions" style={{ marginBottom: theme.spacing.lg }}>
+          {(stats.transcriptionStatus.pending + stats.transcriptionStatus.processing + stats.transcriptionStatus.completed + stats.transcriptionStatus.failed) > 0 && (
+            <Card title="🎙️ Statut des transcriptions audio" style={{ marginBottom: theme.spacing.lg }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
@@ -499,7 +502,7 @@ const Dashboard: React.FC = () => {
 
           {/* Projets récents */}
           {stats.recentProjects.length > 0 && (
-            <Card title="📁 Projets récents">
+            <Card title="📁 Projets récents" style={{ marginBottom: theme.spacing.lg }}>
               <div style={{ display: 'grid', gap: theme.spacing.md }}>
                 {stats.recentProjects.map((project) => {
                   const isOwner = project.userId === currentUser?.id;
