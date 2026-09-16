@@ -47,6 +47,7 @@ import {
 // ✅ Middleware de logs + logger
 import { requestLogger } from './middleware/requestLogger';
 import { logger, logError } from './utils/logger';
+import { invalidateStatsOnWrite } from './middleware/invalidateStatsCache';
 
 // Chargement des variables d'environnement
 dotenv.config();
@@ -107,10 +108,10 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ✅ Logs de requêtes HTTP
 app.use(requestLogger);
-app.use('/api', invalidateStatsOnWrite);
 
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
+app.use('/api', invalidateStatsOnWrite);
 
 // ============================================================
 // RATE LIMITING
