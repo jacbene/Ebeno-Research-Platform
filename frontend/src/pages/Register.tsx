@@ -180,21 +180,11 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
         >
           Déjà un compte ?{' '}
           <button
-  type="button"
-  onClick={onSwitchToLogin}
-  style={{
-    background: 'none',
-    border: 'none',
-    padding: 0,
-    cursor: 'pointer',
-    color: colors.primary,
-    fontWeight: 'bold',
-    textDecoration: 'underline',
-    font: 'inherit',
-  }}
->
-  Se connecter
-</button>
+             type="button"
+             onClick={onSwitchToLogin}
+              style={{ background:'none', border:'none', padding:0, cursor:'pointer', color:colors.primary, fontWeight:'bold', textDecoration:'underline', font:'inherit', }}>
+            Se connecter
+           </button>
         </p>
       </Card>
     </div>

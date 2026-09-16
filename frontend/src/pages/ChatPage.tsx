@@ -1,7 +1,6 @@
 // frontend/src/pages/ChatPage.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { theme } from '../theme';
 import { api } from '../services/api';
 import './ChatPage.css';
 

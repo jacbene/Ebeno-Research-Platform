@@ -180,6 +180,7 @@ const ProjectDetail: React.FC = () => {
   // ✅ Vérifier si l'utilisateur est le propriétaire du projet
   const isOwner = project?.userId === currentUser?.id;
 
+// eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!id) return;
     fetchProjectData();

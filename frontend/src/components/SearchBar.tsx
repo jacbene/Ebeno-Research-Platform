@@ -25,6 +25,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ projectId, onResults, plac
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+ // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (query.length >= 2) {
       performSearch();

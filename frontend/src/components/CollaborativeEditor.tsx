@@ -1,5 +1,5 @@
 // frontend/src/components/CollaborativeEditor.tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Badge } from './ui/Badge';

@@ -1,7 +1,6 @@
 // frontend/src/components/ActivityFeed.tsx
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { theme } from '../theme';
 import type { ActivityItem } from '../hooks/useProjectSocket';
 
 interface ActivityFeedProps {

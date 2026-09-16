@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
-import { Button } from '../ui/Button';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { breakpoints } from '../../styles/breakpoints';
 
