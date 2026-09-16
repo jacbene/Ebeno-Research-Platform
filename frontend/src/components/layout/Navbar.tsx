@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
+import { GlobalSearch } from '../GlobalSearch';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { breakpoints } from '../../styles/breakpoints';
 
@@ -45,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Icone selon le mode
+  // Icône selon le mode
   const getThemeIcon = () => {
     if (mode === 'system') return '💻';
     return effectiveMode === 'light' ? '☀️' : '🌙';
@@ -88,12 +89,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
   const logoStyle: React.CSSProperties = {
     margin: 0,
-    fontSize: '1.2rem',
+    fontSize: '1.1rem',
     color: colors.light,
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
     textDecoration: 'none',
+    flexShrink: 0,
   };
 
   const linkStyle = (active: boolean): React.CSSProperties => ({
@@ -108,6 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     fontWeight: active ? 'bold' : 'normal',
     backgroundColor: active && !isMobile ? colors.primary + '22' : 'transparent',
     borderBottom: active && !isMobile ? `2px solid ${colors.primary}` : 'none',
+    fontSize: '14px',
   });
 
   const iconButtonStyle: React.CSSProperties = {
@@ -160,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     width: '100%',
     backgroundColor: colors.dark,
     padding: '12px 0',
-    gap: '6px',
+    gap: '4px',
     borderTop: `1px solid ${colors.gray[700]}`,
     marginTop: '8px',
   };
@@ -179,6 +182,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     cursor: 'pointer',
     border: `2px solid ${colors.primaryLight}`,
     overflow: 'hidden',
+    flexShrink: 0,
   };
 
   return (
@@ -186,15 +190,22 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
       {/* Logo */}
       <Link to="/" style={logoStyle}>
         <span style={{ fontSize: '1.4rem' }}>🎓</span>
-        <span style={{ fontWeight: 700 }}>Ebeno Research</span>
+        <span style={{ fontWeight: 700 }}>Ebeno</span>
       </Link>
+
+      {/* ✅ Recherche globale - Desktop */}
+      {!isMobile && (
+        <div style={{ flex: 1, maxWidth: '500px', margin: '0 16px' }}>
+          <GlobalSearch />
+        </div>
+      )}
 
       {isMobile ? (
         // ============================================================
         // MOBILE
         // ============================================================
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {/* Sélecteur de thème */}
             <div ref={themeMenuRef} style={{ position: 'relative' }}>
               <button
@@ -258,7 +269,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   </Link>
                   <button
                     onClick={onLogout}
-                    style={{ ...dropdownItemStyle(false), color: colors.danger, borderTop: `1px solid ${colors.gray[100]}` }}
+                    style={{
+                      ...dropdownItemStyle(false),
+                      color: colors.danger,
+                      borderTop: `1px solid ${colors.gray[100]}`,
+                    }}
                   >
                     🚪 Déconnexion
                   </button>
@@ -277,6 +292,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
           {menuOpen && (
             <nav style={mobileMenuStyle}>
+              {/* ✅ Recherche globale - Mobile */}
+              <div style={{ padding: '0 12px 12px 12px' }}>
+                <GlobalSearch placeholder="Rechercher..." />
+              </div>
+
               <Link to="/" style={linkStyle(isActive('/'))}>📊 Dashboard</Link>
               <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 Chat IA</Link>
               <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 Collaboration</Link>
@@ -289,12 +309,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
         // ============================================================
         // DESKTOP
         // ============================================================
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'nowrap' }}>
           <Link to="/" style={linkStyle(isActive('/'))}>📊 Dashboard</Link>
           <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 Chat IA</Link>
           <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 Collaboration</Link>
           <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ Transcriptions</Link>
-          <Link to="/settings" style={linkStyle(isActive('/settings'))}>⚙️ Paramètres</Link>
 
           {/* Sélecteur de thème */}
           <div ref={themeMenuRef} style={{ position: 'relative', marginLeft: '8px' }}>
@@ -333,7 +352,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           </div>
 
           {/* Avatar utilisateur */}
-          <div ref={userMenuRef} style={{ position: 'relative', marginLeft: '8px' }}>
+          <div ref={userMenuRef} style={{ position: 'relative', marginLeft: '4px' }}>
             <div
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               style={avatarStyle}
