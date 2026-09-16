@@ -81,7 +81,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const memosCount = await memosQuery.clone().count('id as count').first();
     const totalMemos = Number(memosCount?.count || 0);
 
-    // ✅ 5. Compter les entités extraites (fichiers + transcriptions + memos)
+    // ============================================================
+    // ENTITÉS
+    // ============================================================
+
     const fileIds = projectId
       ? (await db('project_files').where({ projectId }).whereNull('deletedAt').select('id')).map((r) => r.id)
       : (await db('project_files').where({ userId }).whereNull('deletedAt').select('id')).map((r) => r.id);
@@ -97,13 +100,45 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const allDocIds = [...fileIds, ...transcriptionIds, ...memoIds];
 
     let totalEntities = 0;
+    const topEntities: Array<{ value: string; type: string; count: number; percentage: number }> = [];
+
     if (allDocIds.length > 0) {
+      // Total
       const entitiesResult = await db('document_entities')
         .whereIn('documentId', allDocIds)
         .count('id as count')
         .first();
       totalEntities = Number(entitiesResult?.count || 0);
+
+      // ✅ Top entités groupées par valeur + type
+      const entitiesRaw = await db('document_entities')
+        .whereIn('documentId', allDocIds)
+        .select('entityValue', 'entityType')
+        .groupBy('entityValue', 'entityType')
+        .count('* as count')
+        .orderBy('count', 'desc')
+        .limit(30);
+
+      const totalEntitiesCount = entitiesRaw.reduce((acc, e: any) => acc + Number(e.count), 0);
+
+      entitiesRaw.forEach((e: any) => {
+        topEntities.push({
+          value: e.entityValue,
+          type: e.entityType,
+          count: Number(e.count),
+          percentage: totalEntitiesCount > 0
+            ? Math.round((Number(e.count) / totalEntitiesCount) * 100)
+            : 0,
+        });
+      });
     }
+
+    // ✅ Grouper par type pour l'affichage
+    const entitiesByType = topEntities.reduce((acc, e) => {
+      if (!acc[e.type]) acc[e.type] = [];
+      acc[e.type].push(e);
+      return acc;
+    }, {} as Record<string, typeof topEntities>);
 
     // ✅ 6. Documents collaboratifs
     let docsQuery = db('collaboration_documents');
@@ -236,6 +271,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         })),
         recentProjects,
         recentFiles,
+        topEntities,
+        entitiesByType,
       },
     });
   } catch (error: any) {
