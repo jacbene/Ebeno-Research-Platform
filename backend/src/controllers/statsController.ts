@@ -12,7 +12,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    // ✅ 1. Compter les projets de l'utilisateur
+    // ✅ 1. Compter les projets
     const projectsCount = await db('project_members')
       .where({ userId })
       .count('projectId as count')
@@ -27,13 +27,21 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       .first();
     const totalFiles = Number(filesCount?.count || 0);
 
-    // ✅ 3. Compter les transcriptions
-    const transcriptionsCount = await db('transcriptions')
-      .where({ userId })
+    // ✅ 3. Compter les transcriptions AUDIO
+    const audioCount = await db('transcriptions')
+      .where({ userId, type: 'audio' })
       .whereNull('deletedAt')
       .count('id as count')
       .first();
-    const totalTranscriptions = Number(transcriptionsCount?.count || 0);
+    const totalAudio = Number(audioCount?.count || 0);
+
+    // ✅ 3bis. Compter les TEXTES importés
+    const textCount = await db('transcriptions')
+      .where({ userId, type: 'text' })
+      .whereNull('deletedAt')
+      .count('id as count')
+      .first();
+    const totalTexts = Number(textCount?.count || 0);
 
     // ✅ 4. Compter les memos
     const memosCount = await db('memos')
@@ -43,7 +51,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       .first();
     const totalMemos = Number(memosCount?.count || 0);
 
-    // ✅ 5. Compter les entités extraites (via les documents de l'utilisateur)
+    // ✅ 5. Compter les entités extraites
     const entitiesResult = await db('document_entities')
       .join('transcriptions', 'document_entities.documentId', 'transcriptions.id')
       .where('transcriptions.userId', userId)
@@ -73,24 +81,24 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       .orderBy('projects.updatedAt', 'desc')
       .limit(5);
 
-    // ✅ 9. Progression des transcriptions
+    // ✅ 9. Progression des transcriptions (audio uniquement)
     const pendingCount = await db('transcriptions')
-      .where({ userId, status: 'PENDING' })
+      .where({ userId, status: 'PENDING', type: 'audio' })
       .whereNull('deletedAt')
       .count('id as count')
       .first();
     const processingCount = await db('transcriptions')
-      .where({ userId, status: 'PROCESSING' })
+      .where({ userId, status: 'PROCESSING', type: 'audio' })
       .whereNull('deletedAt')
       .count('id as count')
       .first();
     const completedCount = await db('transcriptions')
-      .where({ userId, status: 'COMPLETED' })
+      .where({ userId, status: 'COMPLETED', type: 'audio' })
       .whereNull('deletedAt')
       .count('id as count')
       .first();
     const failedCount = await db('transcriptions')
-      .where({ userId, status: 'FAILED' })
+      .where({ userId, status: 'FAILED', type: 'audio' })
       .whereNull('deletedAt')
       .count('id as count')
       .first();
@@ -98,7 +106,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     logger.info(`📊 Stats dashboard pour ${userId}`, {
       projects: totalProjects,
       files: totalFiles,
-      transcriptions: totalTranscriptions,
+      audio: totalAudio,
+      texts: totalTexts,
       memos: totalMemos,
     });
 
@@ -108,7 +117,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         counts: {
           projects: totalProjects,
           files: totalFiles,
-          transcriptions: totalTranscriptions,
+          audioTranscriptions: totalAudio,
+          textDocuments: totalTexts,
+          transcriptions: totalAudio + totalTexts,
           memos: totalMemos,
           entities: totalEntities,
           collaborativeDocs: totalCollaborativeDocs,
