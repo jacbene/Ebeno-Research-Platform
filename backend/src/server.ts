@@ -27,6 +27,7 @@ import entityRoutes from './routes/entityRoutes';
 import codeRoutes from './routes/codeRoutes';
 import activityRoutes from './routes/activityRoutes';
 import healthRoutes from './routes/healthRoutes';
+import searchRoutes from './routes/searchRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -150,6 +151,7 @@ app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
 app.use('/api/activity', activityRoutes);       // ✅ Activité
+app.use('/api/search', searchRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES
