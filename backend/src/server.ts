@@ -107,6 +107,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ✅ Logs de requêtes HTTP
 app.use(requestLogger);
+app.use('/api', invalidateStatsOnWrite);
 
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
