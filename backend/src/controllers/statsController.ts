@@ -45,16 +45,15 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
     // ============================================================
     // SOUS-REQUÊTES RÉUTILISABLES
-    // (une seule définition, réutilisée partout → cohérence garantie)
     // ============================================================
 
-    /** Sous-requête : IDs de fichiers accessibles à l'utilisateur (avec filtre projet optionnel) */
+    /** Sous-requête : IDs de fichiers accessibles */
     const accessibleFileIds = () => {
       const q = db('project_files').whereNull('deletedAt').select('id');
       return projectId ? q.where({ projectId }) : q.where({ userId });
     };
 
-    /** Sous-requête : IDs de transcriptions (audio + texte) accessibles */
+    /** Sous-requête : IDs de transcriptions accessibles */
     const accessibleTranscriptionIds = () => {
       const q = db('transcriptions').whereNull('deletedAt').select('id');
       return projectId ? q.where({ projectId }) : q.where({ userId });
@@ -82,11 +81,13 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       recentActivity,
       selectedProject,
     ] = await Promise.all([
-      // 1. Projets : on laisse la carte cachée côté UI en mode filtré,
-      //    mais on retourne 1 pour cohérence (le projet sélectionné).
+      // 1. Projets
       isFiltered
         ? Promise.resolve({ count: 1 })
-        : db('project_members').where({ userId }).count('projectId as count').first(),
+        : db('project_members')
+            .where({ userId })
+            .count('projectId as count')
+            .first(),
 
       // 2. Fichiers
       (isFiltered
@@ -126,22 +127,21 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 6. Documents collaboratifs
-      (isFiltered
-        ? db('collaboration_documents').where({ projectId })
+      // 6. Documents collaboratifs — ✅ Sous-requête (compatible Postgres, pas de doublon)
+      isFiltered
+        ? db('collaboration_documents')
+            .where({ projectId })
+            .count('id as count')
+            .first()
         : db('collaboration_documents')
-            .join(
-              'project_members',
-              'collaboration_documents.projectId',
-              'project_members.projectId'
+            .whereIn(
+              'projectId',
+              db('project_members').select('projectId').where({ userId })
             )
-            .where('project_members.userId', userId)
-            .select('collaboration_documents.id')
-      )
-        .count('* as count')
-        .first(),
+            .count('id as count')
+            .first(),
 
-      // 7. Entités — sous-requête directement dans le whereIn (pas de fetch d'IDs en mémoire !)
+      // 7. Entités — sous-requêtes directement dans le whereIn
       db('document_entities')
         .where(function () {
           this.whereIn('documentId', accessibleFileIds())
@@ -151,7 +151,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 8. Statuts de transcription — UNE seule requête GROUP BY
+      // 8. Statuts de transcription — une seule requête GROUP BY
       (isFiltered
         ? db('transcriptions').where({ projectId })
         : db('transcriptions').where({ userId })
@@ -234,11 +234,13 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // ============================================================
 
     const statusMap = { PENDING: 0, PROCESSING: 0, COMPLETED: 0, FAILED: 0 };
-    (statusGroups as Array<{ status: string; count: string | number }>).forEach((row) => {
-      if (row.status in statusMap) {
-        statusMap[row.status as keyof typeof statusMap] = Number(row.count);
+    (statusGroups as Array<{ status: string; count: string | number }>).forEach(
+      (row) => {
+        if (row.status in statusMap) {
+          statusMap[row.status as keyof typeof statusMap] = Number(row.count);
+        }
       }
-    });
+    );
 
     // ============================================================
     // PROJETS RÉCENTS + FICHIERS RÉCENTS (uniquement en mode "all")
@@ -322,7 +324,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     setCachedStats(cacheKey, result);
 
     logger.info(
-      `📊 Stats dashboard pour ${userId}${projectId ? ` [projet: ${projectId}]` : ''}`,
+      `📊 Stats dashboard pour ${userId}${
+        projectId ? ` [projet: ${projectId}]` : ''
+      }`,
       {
         projects: result.counts.projects,
         files: result.counts.files,
