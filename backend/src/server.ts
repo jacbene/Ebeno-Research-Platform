@@ -6,6 +6,7 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import requestIp from 'request-ip';
+import { sanitizeBody } from './middleware/sanitize';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -111,6 +112,13 @@ app.use(requestLogger);
 
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
+// ✅ Sanitize global (exclu pour les routes éditoriales)
+app.use('/api', (req, res, next) => {
+  const excluded = ['/collaboration', '/summaries', '/deepseek'];
+  if (excluded.some((p) => req.path.startsWith(p))) return next();
+  return sanitizeBody(req, res, next);
+});
+// ✅ Invalider le cache des stats
 app.use('/api', invalidateStatsOnWrite);
 
 // ============================================================
