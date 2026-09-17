@@ -29,3 +29,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Smoke test local (contient des credentials)
+.env.smoke-test
+scripts/smoke-test.env
