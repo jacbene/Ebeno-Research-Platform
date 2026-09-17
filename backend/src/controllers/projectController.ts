@@ -1,6 +1,7 @@
 // backend/src/controllers/projectController.ts
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
+import { generateId } from '../utils/generateId';
 
 // Types pour les rôles
 const ProjectRole = {
@@ -29,7 +30,8 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Le titre est requis (3 caractères min)' });
     }
 
-    const id = new Date().toISOString().toString();
+    // ✅ NOUVEAU : ID propre (ex: project-1789601439054-hgs04o)
+    const id = generateId('project');
 
     await db('projects').insert({
       id,
@@ -44,7 +46,7 @@ export const createProject = async (req: Request, res: Response) => {
 
     // Ajouter le membre (OWNER)
     await db('project_members').insert({
-      id: new Date().toISOString().toString() + '_owner',
+      id: generateId('member'),
       projectId: id,
       userId: userId,
       role: ProjectRole.OWNER,
@@ -55,7 +57,7 @@ export const createProject = async (req: Request, res: Response) => {
     // Ajouter les tags si présents
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
-        const tagId = new Date().toISOString().toString() + '_' + Math.random().toString(36).substring(7);
+        const tagId = generateId('tag');
         await db('tags').insert({
           id: tagId,
           name: tagName.trim(),
@@ -269,7 +271,8 @@ export const addTag = async (req: Request, res: Response) => {
       .first();
 
     if (!tag) {
-      const tagId = new Date().toISOString().toString() + '_' + Math.random().toString(36).substring(7);
+      // ✅ NOUVEAU : ID propre
+      const tagId = generateId('tag');
       await db('tags').insert({
         id: tagId,
         name: name.trim(),

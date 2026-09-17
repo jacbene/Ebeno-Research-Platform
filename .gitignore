@@ -33,3 +33,7 @@ Thumbs.db
 # Smoke test local (contient des credentials)
 .env.smoke-test
 scripts/smoke-test.env
+
+# DB backups
+backup_*.sql
+*.sql.gz
