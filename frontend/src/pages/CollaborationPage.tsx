@@ -1,7 +1,7 @@
 // frontend/src/pages/CollaborationPage.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import html2pdf from 'html2pdf.js';
+// ✅ html2pdf est maintenant chargé dynamiquement dans downloadAsPdf()
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -97,7 +97,7 @@ const downloadAsTxt = (doc: Document) => {
   URL.revokeObjectURL(url);
 };
 
-// ✅ DOCX (Word) via HTML → .doc (technique standard, supportée par Word/LibreOffice/Google Docs)
+// ✅ DOCX (Word) via HTML → .doc
 const downloadAsDocx = (doc: Document) => {
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -126,7 +126,6 @@ const downloadAsDocx = (doc: Document) => {
     </html>
   `;
 
-  // Type MIME spécial pour Word
   const blob = new Blob(['\ufeff', html], {
     type: 'application/msword;charset=utf-8',
   });
@@ -140,8 +139,13 @@ const downloadAsDocx = (doc: Document) => {
   URL.revokeObjectURL(url);
 };
 
-// ✅ PDF via html2pdf
+// ✅ PDF via html2pdf (LAZY-LOADED)
+// Le module html2pdf.js (~150 KB gzipped) ne sera téléchargé qu'au 1er clic PDF.
 const downloadAsPdf = async (doc: Document): Promise<void> => {
+  // ✅ Import dynamique : chunk séparé, chargé à la demande
+  const html2pdfModule = await import('html2pdf.js');
+  const html2pdf = html2pdfModule.default || html2pdfModule;
+
   const container = document.createElement('div');
   container.style.padding = '20px';
   container.style.fontFamily = 'Arial, sans-serif';
@@ -382,6 +386,7 @@ const CollaborationPage: React.FC = () => {
         downloadAsDocx(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.doc" téléchargé` });
       } else {
+        // ✅ 1er appel : télécharge le chunk html2pdf (~150 KB)
         await downloadAsPdf(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.pdf" téléchargé` });
       }

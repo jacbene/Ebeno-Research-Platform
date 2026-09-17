@@ -1,17 +1,8 @@
 // src/App.tsx
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
-import Dashboard from './pages/Dashboard';
-import ChatPage from './pages/ChatPage';
-import TranscriptionPage from './pages/TranscriptionPage';
-import TranscriptionList from './pages/TranscriptionList';
-import CollaborationPage from './pages/CollaborationPage';
-import TextUploadPage from './pages/TextUploadPage';
-import SettingsPage from './pages/SettingsPage';
-import ProjectDetail from './pages/ProjectDetail';
-import Register from './pages/Register';
 import { Layout } from './components/layout/Layout';
 import { theme } from './theme';
 import { Card } from './components/ui/Card';
@@ -22,7 +13,49 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 
-// ============ COMPOSANT LOGIN ============
+// ============================================================
+// ✅ LAZY-LOADED PAGES (chunks séparés, chargés à la demande)
+// ============================================================
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const TranscriptionPage = lazy(() => import('./pages/TranscriptionPage'));
+const TranscriptionList = lazy(() => import('./pages/TranscriptionList'));
+const CollaborationPage = lazy(() => import('./pages/CollaborationPage'));
+const TextUploadPage = lazy(() => import('./pages/TextUploadPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const Register = lazy(() => import('./pages/Register'));
+
+// ============================================================
+// COMPOSANT FALLBACK (loader global)
+// ============================================================
+const PageLoader: React.FC = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '60vh',
+    color: '#666',
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '3px solid #e0e0e0',
+        borderTop: '3px solid #4A6CF7',
+        borderRadius: '50%',
+        margin: '0 auto 12px',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <div style={{ fontSize: '14px' }}>Chargement…</div>
+    </div>
+  </div>
+);
+
+// ============================================================
+// COMPOSANT LOGIN (reste statique — 1ère page vue par l'utilisateur)
+// ============================================================
 const Login: React.FC<{
   onLogin: () => void;
   onSwitchToRegister: () => void;
@@ -136,7 +169,9 @@ const Login: React.FC<{
   );
 };
 
-// ============ WRAPPER REGISTER (utilise useNavigate) ============
+// ============================================================
+// WRAPPER REGISTER (lazy)
+// ============================================================
 const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () => void }> = ({
   onRegister,
   onSwitchToLogin,
@@ -144,7 +179,9 @@ const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () =>
   return <Register onRegister={onRegister} onSwitchToLogin={onSwitchToLogin} />;
 };
 
-// ============ APP PRINCIPALE ============
+// ============================================================
+// APP PRINCIPALE
+// ============================================================
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -176,7 +213,6 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <ToastProvider>
-        {/* ✅ Router ENVELOPPE TOUT (y compris Login/Register) */}
         <Router future={{ v7_relativeSplatPath: true }}>
           {!isAuthenticated ? (
             authMode === 'login' ? (
@@ -185,31 +221,36 @@ const App: React.FC = () => {
                 onSwitchToRegister={() => setAuthMode('register')}
               />
             ) : (
-              <RegisterWrapper
-                onRegister={handleLogin}
-                onSwitchToLogin={() => setAuthMode('login')}
-              />
+              // ✅ Register est lazy-loaded (page rarement visitée)
+              <Suspense fallback={<PageLoader />}>
+                <RegisterWrapper
+                  onRegister={handleLogin}
+                  onSwitchToLogin={() => setAuthMode('login')}
+                />
+              </Suspense>
             )
           ) : (
             <ErrorBoundary>
-              <Routes>
-                <Route element={<Layout user={user} onLogout={handleLogout} />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/transcription" element={<TranscriptionPage />} />
-                  <Route path="/text-upload" element={<TextUploadPage />} />
-                  <Route path="/transcriptions" element={<TranscriptionList />} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/collaboration" element={<CollaborationPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/project/:id" element={<ProjectDetail />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
+              {/* ✅ Suspense global pour toutes les pages lazy-loaded */}
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route element={<Layout user={user} onLogout={handleLogout} />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/transcription" element={<TranscriptionPage />} />
+                    <Route path="/text-upload" element={<TextUploadPage />} />
+                    <Route path="/transcriptions" element={<TranscriptionList />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/collaboration" element={<CollaborationPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/project/:id" element={<ProjectDetail />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
+                </Routes>
+              </Suspense>
             </ErrorBoundary>
           )}
         </Router>
 
-        {/* ✅ ToastContainer global */}
         <ToastContainer />
       </ToastProvider>
     </ThemeProvider>
