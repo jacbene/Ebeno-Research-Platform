@@ -1,12 +1,15 @@
 // frontend/src/pages/ProjectDetail.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProjectMembers } from '../components/ProjectMembers';
-import { WordCloudComponent } from '../components/WordCloud';
+// ✅ Lazy-load WordCloud (lourd)
+const WordCloudComponent = lazy(() =>
+  import('../components/WordCloud').then((m) => ({ default: m.WordCloudComponent }))
+);
 import { FileUpload } from '../components/FileUpload';
 import { SearchBar } from '../components/SearchBar';
 import { FiltersPanel } from '../components/FiltersPanel';
@@ -901,7 +904,13 @@ const ProjectDetail: React.FC = () => {
                   <p><strong>Total mots :</strong> {analysisData.totalWords}</p>
                   <p><strong>Mots uniques :</strong> {analysisData.uniqueWords}</p>
                 </div>
-                <WordCloudComponent words={analysisData.wordCloud || []} width={isMobile ? 350 : 600} height={isMobile ? 250 : 400} />
+               <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Chargement du nuage de mots...</div>}>
+  <WordCloudComponent
+    words={analysisData.wordCloud || []}
+    width={isMobile ? 350 : 600}
+    height={isMobile ? 250 : 400}
+  />
+</Suspense>
                 <div style={{ marginTop: '16px' }}>
                   <h4 style={{ margin: '0 0 8px 0' }}>🏷️ Mots-clés les plus fréquents</h4>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
