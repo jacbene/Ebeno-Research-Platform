@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import './Dashboard.css';
+import { LanguageBadge } from '../components/LanguageBadge';
 
 interface Project {
   id: string;
@@ -29,6 +30,7 @@ interface RecentFile {
   mimeType: string;
   uploadedAt: number;
   projectId: string;
+  language?: string | null;    // ✅ AJOUT
   authorId: string;
   authorName: string | null;
   authorEmail: string;
@@ -723,16 +725,18 @@ const Dashboard: React.FC = () => {
                         {file.fileName}
                       </div>
                       <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        fontSize: '12px',
-                        color: colors.gray[500],
-                        marginTop: '2px',
-                        flexWrap: 'wrap',
-                      }}>
-                        <span>💾 {formatFileSize(file.fileSize)}</span>
-                        <span>📅 {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}</span>
-                      </div>
+  display: 'flex',
+  gap: '12px',
+  fontSize: '12px',
+  color: colors.gray[500],
+  marginTop: '2px',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+}}>
+  <span>💾 {formatFileSize(file.fileSize)}</span>
+  <span>📅 {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}</span>
+  <LanguageBadge language={file.language} />
+</div>
                     </div>
 
                     <div

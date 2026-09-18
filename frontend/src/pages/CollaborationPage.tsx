@@ -13,6 +13,7 @@ import { useProjectSocket } from '../hooks/useProjectSocket';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
+import { LanguageBadge } from '../components/LanguageBadge';
 
 interface Document {
   id: string;
@@ -20,6 +21,7 @@ interface Document {
   content: string;
   version: number;
   updatedAt: number;
+  language?: string | null;    // ✅ AJOUT
 }
 
 interface Project {
@@ -942,9 +944,16 @@ const CollaborationPage: React.FC = () => {
                     flexWrap: 'wrap',
                     gap: '8px',
                   }}>
-                    <h3 style={{ margin: 0, fontSize: '16px' }}>
-                      📄 {selectedDoc.title}
-                    </h3>
+                    <h3 style={{
+  margin: 0,
+  fontSize: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+}}>
+  📄 {selectedDoc.title}
+  <LanguageBadge language={selectedDoc.language} />
+</h3>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <Button
                         size="sm"

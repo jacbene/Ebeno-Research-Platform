@@ -46,20 +46,16 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // ============================================================
     // SOUS-REQUÊTES RÉUTILISABLES
     // ============================================================
-
-    /** Sous-requête : IDs de fichiers accessibles */
     const accessibleFileIds = () => {
       const q = db('project_files').whereNull('deletedAt').select('id');
       return projectId ? q.where({ projectId }) : q.where({ userId });
     };
 
-    /** Sous-requête : IDs de transcriptions accessibles */
     const accessibleTranscriptionIds = () => {
       const q = db('transcriptions').whereNull('deletedAt').select('id');
       return projectId ? q.where({ projectId }) : q.where({ userId });
     };
 
-    /** Sous-requête : IDs de memos accessibles */
     const accessibleMemoIds = () => {
       const q = db('memos').whereNull('deletedAt').select('id');
       return projectId ? q.where({ projectId }) : q.where({ userId });
@@ -68,7 +64,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // ============================================================
     // TOUTES LES REQUÊTES INDÉPENDANTES EN PARALLÈLE
     // ============================================================
-
     const [
       projectsCount,
       filesCount,
@@ -81,7 +76,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       recentActivity,
       selectedProject,
     ] = await Promise.all([
-      // 1. Projets
       isFiltered
         ? Promise.resolve({ count: 1 })
         : db('project_members')
@@ -89,7 +83,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             .count('projectId as count')
             .first(),
 
-      // 2. Fichiers
       (isFiltered
         ? db('project_files').where({ projectId })
         : db('project_files').where({ userId })
@@ -98,7 +91,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 3. Transcriptions audio
       (isFiltered
         ? db('transcriptions').where({ projectId })
         : db('transcriptions').where({ userId })
@@ -108,7 +100,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 4. Textes importés
       (isFiltered
         ? db('transcriptions').where({ projectId })
         : db('transcriptions').where({ userId })
@@ -118,7 +109,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 5. Memos
       (isFiltered
         ? db('memos').where({ projectId })
         : db('memos').where({ userId })
@@ -127,7 +117,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 6. Documents collaboratifs — ✅ Sous-requête (compatible Postgres, pas de doublon)
       isFiltered
         ? db('collaboration_documents')
             .where({ projectId })
@@ -141,7 +130,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             .count('id as count')
             .first(),
 
-      // 7. Entités — sous-requêtes directement dans le whereIn
       db('document_entities')
         .where(function () {
           this.whereIn('documentId', accessibleFileIds())
@@ -151,7 +139,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .first(),
 
-      // 8. Statuts de transcription — une seule requête GROUP BY
       (isFiltered
         ? db('transcriptions').where({ projectId })
         : db('transcriptions').where({ userId })
@@ -162,7 +149,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .count('id as count')
         .groupBy('status'),
 
-      // 9. Activité récente
       (isFiltered
         ? db('project_activity').where({ projectId })
         : db('project_activity').where({ userId })
@@ -170,16 +156,14 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .orderBy('createdAt', 'desc')
         .limit(10),
 
-      // 10. Projet sélectionné (si filtré)
       isFiltered
         ? db('projects').where({ id: projectId }).first()
         : Promise.resolve(null),
     ]);
 
     // ============================================================
-    // TRAITEMENT DES ENTITÉS (top + group by type)
+    // TRAITEMENT DES ENTITÉS
     // ============================================================
-
     const totalEntities = Number((entitiesCount as any)?.count || 0);
 
     const topEntities: Array<{
@@ -230,9 +214,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     );
 
     // ============================================================
-    // TRAITEMENT DES STATUTS (pivot des rows)
+    // TRAITEMENT DES STATUTS
     // ============================================================
-
     const statusMap = { PENDING: 0, PROCESSING: 0, COMPLETED: 0, FAILED: 0 };
     (statusGroups as Array<{ status: string; count: string | number }>).forEach(
       (row) => {
@@ -243,9 +226,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     );
 
     // ============================================================
-    // PROJETS RÉCENTS + FICHIERS RÉCENTS (uniquement en mode "all")
+    // PROJETS RÉCENTS + FICHIERS RÉCENTS
     // ============================================================
-
     const [recentProjects, recentFiles] = await Promise.all([
       isFiltered
         ? Promise.resolve([])
@@ -267,6 +249,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             'project_files.mimeType',
             'project_files.uploadedAt',
             'project_files.projectId',
+            'project_files.language',        // ✅ AJOUTÉ
             'users.id as authorId',
             'users.name as authorName',
             'users.email as authorEmail',
@@ -291,7 +274,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // ============================================================
     // RÉSULTAT FINAL
     // ============================================================
-
     const result = {
       projectId: projectId || null,
       selectedProject: selectedProject || null,
@@ -318,9 +300,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       entitiesByType,
     };
 
-    // ============================================================
-    // MISE EN CACHE
-    // ============================================================
     setCachedStats(cacheKey, result);
 
     logger.info(
@@ -347,7 +326,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   }
 };
 
-/** Parse JSON sans crasher si les données sont corrompues */
 const safeJsonParse = (str: string): any => {
   try {
     return JSON.parse(str);

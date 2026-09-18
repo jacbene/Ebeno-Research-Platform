@@ -27,6 +27,7 @@ import { useToast } from '../context/ToastContext';
 import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
 import { api } from '../services/api';
+import { LanguageBadge } from '../components/LanguageBadge';
 
 interface Project {
   id: string;
@@ -1060,6 +1061,9 @@ const ProjectDetail: React.FC = () => {
                           }}>
                             {doc.type === 'transcription' ? 'TRANSCRIPTION' : getFileTypeLabel(doc.name)}
                           </span>
+
+                            <LanguageBadge language={doc.raw?.language} />
+
 
                           {statusColor && (
                             <span style={{
