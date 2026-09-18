@@ -9,6 +9,7 @@ import axios from 'axios';
 import { db } from '../db/knex';
 import { isServiceAvailable, recordFailure, recordSuccess } from './circuitBreaker';
 import { logger } from '../utils/logger';
+import { detectLanguage } from './languageDetectionService';   // ✅ NOUVEAU
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 if (!DEEPGRAM_API_KEY) {
@@ -29,7 +30,6 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const transcription = await db('transcriptions').where({ id: transcriptionId }).first();
     if (!transcription) throw new Error('Transcription introuvable');
 
-    // ✅ Vérifier le circuit breaker AVANT de tenter l'appel
     if (!isServiceAvailable('deepgram')) {
       logger.warn(`⏭️ [Deepgram] Circuit ouvert, transcription ${transcriptionId} annulée`);
       await db('transcriptions').where({ id: transcriptionId }).update({
@@ -80,18 +80,25 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
       },
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
-      timeout: 5 * 60 * 1000, // 5 minutes max
+      timeout: 5 * 60 * 1000,
     });
 
-    // ✅ Succès : réinitialiser le circuit
     recordSuccess('deepgram');
 
     const transcriptText =
       response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
 
+    // ✅ NOUVEAU : détecter la langue du texte transcrit
+    const detection = detectLanguage(transcriptText);
+    logger.info(
+      `🌍 [Deepgram] Langue détectée pour ${transcriptionId} : ` +
+      `${detection.language || 'indéterminée'} (confiance: ${detection.confidence})`
+    );
+
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
+      language: detection.language,   // ✅ 'fr' | 'en' | ... | null
       updatedAt: new Date().toISOString(),
     });
 
@@ -109,7 +116,6 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
       logger.error(`Détails Deepgram (${status}) :`, { data: error.response.data });
     }
 
-    // ✅ Enregistrer l'échec dans le circuit breaker
     const fullError = new Error(`${status || 'ERR'} : ${errorData}`);
     recordFailure('deepgram', fullError);
 
@@ -144,7 +150,6 @@ export const uploadAndProcessDeepgram = async (
 
   logger.info(`📥 [Deepgram] Nouvelle transcription ${id} : ${file.originalname}`);
 
-  // ✅ Traitement asynchrone (ne bloque pas la réponse HTTP)
   processTranscriptionDeepgram(id).catch((err) =>
     logger.error('Erreur asynchrone Deepgram:', err)
   );

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { db } from '../db/knex';
 import { logActivity } from '../services/activityService';
 import { emitGlobal } from '../socketManager';
+import { detectLanguage } from '../services/languageDetectionService';
 
 // ============================================================
 // LISTE DES MEMOS (filtrés par user + projet)
@@ -18,7 +19,6 @@ export const getMemos = async (req: Request, res: Response) => {
       .where({ userId })
       .whereNull('deletedAt');
 
-    // ✅ Filtrer par projet si fourni
     if (projectId) {
       query = query.where({ projectId });
     }
@@ -52,7 +52,7 @@ export const getMemoById = async (req: Request, res: Response) => {
 };
 
 // ============================================================
-// CRÉER UN MEMO (avec projectId)
+// CRÉER UN MEMO (avec projectId + détection langue)
 // ============================================================
 export const createMemo = async (req: Request, res: Response) => {
   try {
@@ -71,19 +71,22 @@ export const createMemo = async (req: Request, res: Response) => {
     const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const now = new Date().toISOString();
 
+    // ✅ Détection automatique de la langue
+    const detection = detectLanguage(content);
+
     await db('memos').insert({
       id,
       title: title.trim(),
       content: content.trim(),
       userId,
       projectId: projectId || null,
+      language: detection.language,     // ✅ 'fr' | 'en' | 'es' | ... | null
       createdAt: now,
       updatedAt: now,
     });
 
     const memo = await db('memos').where({ id }).first();
 
-    // 📡 Émettre l'événement Socket.IO
     if (projectId) {
       emitGlobal('memo-created', { projectId, memo });
 
@@ -95,6 +98,7 @@ export const createMemo = async (req: Request, res: Response) => {
         targetType: 'memo',
         targetId: id,
         targetName: title.trim(),
+        metadata: { language: detection.language, confidence: detection.confidence },
       });
     }
 
@@ -109,7 +113,7 @@ export const createMemo = async (req: Request, res: Response) => {
 };
 
 // ============================================================
-// METTRE À JOUR UN MEMO
+// METTRE À JOUR UN MEMO (re-détecte la langue si contenu changé)
 // ============================================================
 export const updateMemo = async (req: Request, res: Response) => {
   try {
@@ -124,13 +128,19 @@ export const updateMemo = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Memo non trouvé' });
     }
 
-    await db('memos')
-      .where({ id, userId })
-      .update({
-        title: title?.trim() || existing.title,
-        content: content?.trim() || existing.content,
-        updatedAt: new Date().toISOString(),
-      });
+    const updates: any = {
+      title: title?.trim() || existing.title,
+      content: content?.trim() || existing.content,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // ✅ Re-détecter la langue si le contenu a changé
+    if (content && content.trim() !== existing.content) {
+      const detection = detectLanguage(content);
+      updates.language = detection.language;
+    }
+
+    await db('memos').where({ id, userId }).update(updates);
 
     const updated = await db('memos').where({ id }).first();
     res.json(updated);
@@ -156,7 +166,6 @@ export const deleteMemo = async (req: Request, res: Response) => {
 
     await db('memos').where({ id, userId }).delete();
 
-    // 📡 Émettre l'événement
     if (memo.projectId) {
       emitGlobal('memo-deleted', { projectId: memo.projectId, id });
     }

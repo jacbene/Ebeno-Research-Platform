@@ -9,6 +9,7 @@ import { uploadToCloudinary } from '../services/cloudinaryService';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { logger } from '../utils/logger';
+import { detectLanguage } from '../services/languageDetectionService';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -57,7 +58,6 @@ export const uploadText = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
       }
 
-      // ✅ Récupérer projectId (envoyé AVANT le fichier côté frontend)
       const { projectId } = req.body;
       logger.info(`📄 [text] Upload : ${file.originalname} | projectId: ${projectId || 'AUCUN'}`);
 
@@ -65,6 +65,13 @@ export const uploadText = async (req: Request, res: Response) => {
 
       // 1. Extraire le texte AVANT l'upload Cloudinary
       const text = await extractText(filePath, file.mimetype);
+
+      // ✅ 1bis. Détecter la langue du texte extrait
+      const detection = detectLanguage(text);
+      logger.info(
+        `🌍 [text] Langue détectée : ${detection.language || 'indéterminée'} ` +
+        `(confiance: ${detection.confidence}, supporté: ${detection.isSupported})`
+      );
 
       // 2. Uploader le fichier original vers Cloudinary
       const folder = `projects/${projectId || 'global'}/texts`;
@@ -82,15 +89,16 @@ export const uploadText = async (req: Request, res: Response) => {
         title: file.originalname,
         status: 'COMPLETED',
         transcriptText: text,
-        audioUrl: secureUrl, // ✅ URL Cloudinary
+        audioUrl: secureUrl,
         errorMessage: null,
         type: 'text',
         fileName: file.originalname,
+        language: detection.language,   // ✅ 'fr' | 'en' | ... | null
         createdAt: now,
         updatedAt: now,
       });
 
-      // 4. Émettre Socket.IO
+      // 4. Émettre Socket.IO + log activité
       if (projectId) {
         emitGlobal('document-uploaded', {
           projectId,
@@ -107,6 +115,7 @@ export const uploadText = async (req: Request, res: Response) => {
           targetType: 'document',
           targetId: id,
           targetName: file.originalname,
+          metadata: { language: detection.language, confidence: detection.confidence },
         });
       }
 
@@ -118,6 +127,7 @@ export const uploadText = async (req: Request, res: Response) => {
           status: 'COMPLETED',
           fileUrl: secureUrl,
           cloudinaryPublicId: publicId,
+          language: detection.language,   // ✅ Retour au front pour info
         },
       });
     } catch (error: any) {
