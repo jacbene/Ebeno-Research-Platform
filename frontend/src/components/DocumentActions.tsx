@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import html2pdf from 'html2pdf.js';
 import { api } from '../services/api';
 
 interface Document {
@@ -147,6 +148,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
   };
 
   // ✅ Export PDF — crée un container off-screen avec TOUT le contenu
+  //    Utilise html2pdf importé statiquement (pas de lazy-load dynamique)
   const exportPDF = async () => {
     const displayContentLocal = result || document.content || document.transcriptText || '';
     if (!displayContentLocal) return;
@@ -265,24 +267,20 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
 
     try {
       // ============================================================
-      // 2. Générer le PDF (html2pdf lazy-loaded)
+      // 2. Générer le PDF (html2pdf importé statiquement)
       // ============================================================
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default || html2pdfModule;
-
       await html2pdf().from(container).set({
-        margin: [15, 15, 15, 15], // mm (haut, gauche, bas, droite)
+        margin: [15, 15, 15, 15],
         filename: `${sanitizeFileName(document.name)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
           scale: 2,
           letterRendering: true,
           useCORS: true,
-          scrollY: 0,        // ✅ Force la capture depuis le haut du container
-          windowWidth: 800,  // ✅ Largeur fixe = largeur du container
+          scrollY: 0,
+          windowWidth: 800,
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // ✅ Gestion intelligente des sauts de page
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       }).save();
     } catch (err: any) {
@@ -290,7 +288,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
       setError('Erreur lors de la génération du PDF');
     } finally {
       // ============================================================
-      // 3. Nettoyage (toujours, même en cas d'erreur)
+      // 3. Nettoyage
       // ============================================================
       if (document.body.contains(container)) {
         document.body.removeChild(container);
@@ -375,6 +373,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           {serviceType && <Badge variant="info" style={{ marginBottom: '8px' }}>{serviceType}</Badge>}
           <div style={{ marginTop: '8px' }}>{displayContent}</div>
 
+          {/* ✅ Nuage de mots maison avec tailles variables */}
           {analysisData && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0' }}>☁️ Nuage de mots</h5>
