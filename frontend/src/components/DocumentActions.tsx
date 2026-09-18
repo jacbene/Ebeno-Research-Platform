@@ -4,10 +4,11 @@ import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { api } from '../services/api';
 
-interface Document {
+interface DocumentData {
   id: string;
   name: string;
   type: 'file' | 'text' | 'audio' | 'memo';
@@ -18,7 +19,7 @@ interface Document {
 }
 
 interface DocumentActionsProps {
-  document: Document;
+  document: DocumentData;
   projectId: string;
   onRefresh: () => void;
 }
@@ -34,7 +35,13 @@ const sanitizeFileName = (name: string): string => {
   return clean || 'document';
 };
 
-export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, projectId, onRefresh }) => {
+// ✅ IMPORTANT : on renomme la prop `document` en `doc`
+//    Sinon `document` masque le `window.document` global → TypeError
+export const DocumentActions: React.FC<DocumentActionsProps> = ({
+  document: doc,
+  projectId,
+  onRefresh,
+}) => {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -43,8 +50,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
   const [analysisData, setAnalysisData] = useState<any>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const isAudio = document.type === 'audio' || (document.raw?.mimeType && document.raw.mimeType.startsWith('audio/'));
-  const isText = document.type === 'text' || document.type === 'file' || document.type === 'memo';
+  const isAudio =
+    doc.type === 'audio' ||
+    (doc.raw?.mimeType && doc.raw.mimeType.startsWith('audio/'));
+  const isText = doc.type === 'text' || doc.type === 'file' || doc.type === 'memo';
 
   const callService = async (service: string) => {
     setLoading(true);
@@ -53,8 +62,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     setServiceType(service);
     setAnalysisData(null);
 
-    const docId = document.id;
-    const docType = document.type === 'memo' ? 'memo' : (document.type === 'file' ? 'file' : 'transcription');
+    const docId = doc.id;
+    const docType =
+      doc.type === 'memo' ? 'memo' : doc.type === 'file' ? 'file' : 'transcription';
 
     try {
       let url = '';
@@ -93,12 +103,17 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
         let formattedResult = '';
         switch (service) {
           case 'summarize':
-            formattedResult = response.data.summary || response.data.data?.summary || response.data.data?.content || 'Aucun résumé disponible.';
+            formattedResult =
+              response.data.summary ||
+              response.data.data?.summary ||
+              response.data.data?.content ||
+              'Aucun résumé disponible.';
             break;
           case 'entities':
             const entities = response.data.entities || response.data.data || {};
-            const entries = Object.entries(entities)
-              .filter(([key, value]) => Array.isArray(value) && value.length > 0);
+            const entries = Object.entries(entities).filter(
+              ([key, value]) => Array.isArray(value) && value.length > 0
+            );
             if (entries.length === 0) {
               formattedResult = 'Aucune entité trouvée.';
             } else {
@@ -109,9 +124,12 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
             break;
           case 'codes':
             const suggestions = response.data.suggestions || response.data.data || [];
-            formattedResult = suggestions.length > 0
-              ? `Codes suggérés :\n${suggestions.map((c: string) => `  - ${c}`).join('\n')}`
-              : 'Aucun code suggéré.';
+            formattedResult =
+              suggestions.length > 0
+                ? `Codes suggérés :\n${suggestions
+                    .map((c: string) => `  - ${c}`)
+                    .join('\n')}`
+                : 'Aucun code suggéré.';
             break;
           case 'analyze':
             const analysis = response.data;
@@ -127,7 +145,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
             const totalWords = analysis?.totalWords || 0;
             const uniqueWords = analysis?.uniqueWords || 0;
             const topKeywords = analysis?.topKeywords || [];
-            formattedResult = `📊 Total mots : ${totalWords}\n🔤 Mots uniques : ${uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${topKeywords.map((k: any) => `  - ${k.word} (${k.count})`).join('\n')}`;
+            formattedResult = `📊 Total mots : ${totalWords}\n🔤 Mots uniques : ${uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${topKeywords
+              .map((k: any) => `  - ${k.word} (${k.count})`)
+              .join('\n')}`;
             break;
           case 'transcribe':
             formattedResult = response.data.message || 'Transcription en cours...';
@@ -137,7 +157,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
         }
         setResult(formattedResult);
       } else {
-        setError(response.data.error || response.data.message || 'Erreur lors du service');
+        setError(
+          response.data.error || response.data.message || 'Erreur lors du service'
+        );
       }
     } catch (err: any) {
       console.error('❌ Erreur service:', err);
@@ -147,19 +169,26 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     }
   };
 
-  // ✅ Export PDF — crée un container off-screen avec TOUT le contenu
-  //    Utilise html2pdf importé statiquement (pas de lazy-load dynamique)
+  // ✅ Export PDF — jsPDF + html2canvas
+  //    ⚠️ On utilise `window.document` explicitement pour éviter toute ambiguïté
   const exportPDF = async () => {
-    const displayContentLocal = result || document.content || document.transcriptText || '';
-    if (!displayContentLocal) return;
+    const displayContentLocal =
+      result || doc.content || doc.transcriptText || '';
+    if (!displayContentLocal) {
+      setError('Aucun contenu à exporter.');
+      return;
+    }
 
     setLoading(true);
+    setError(null);
+
+    // ✅ Référence explicite au document DOM global
+    const dom = window.document;
 
     // ============================================================
     // 1. Construire un container off-screen avec tout le contenu
-    //    (sans maxHeight ni overflow → capture complète)
     // ============================================================
-    const container = document.createElement('div');
+    const container = dom.createElement('div');
     container.style.position = 'fixed';
     container.style.left = '-9999px';
     container.style.top = '0';
@@ -170,10 +199,11 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     container.style.fontFamily = 'Arial, Helvetica, sans-serif';
     container.style.fontSize = '14px';
     container.style.lineHeight = '1.6';
+    container.style.boxSizing = 'border-box';
 
     // Titre
-    const title = document.createElement('h1');
-    title.textContent = document.name;
+    const title = dom.createElement('h1');
+    title.textContent = doc.name;
     title.style.fontSize = '22px';
     title.style.marginTop = '0';
     title.style.marginBottom = '8px';
@@ -183,8 +213,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     container.appendChild(title);
 
     // Métadonnées
-    const meta = document.createElement('p');
-    meta.textContent = `Type : ${document.type} — Généré le ${new Date().toLocaleString('fr-FR')}`;
+    const meta = dom.createElement('p');
+    meta.textContent = `Type : ${doc.type} — Généré le ${new Date().toLocaleString(
+      'fr-FR'
+    )}`;
     meta.style.fontSize = '12px';
     meta.style.color = '#666';
     meta.style.fontStyle = 'italic';
@@ -192,9 +224,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     meta.style.marginBottom = '24px';
     container.appendChild(meta);
 
-    // Service type (si présent)
+    // Service type
     if (serviceType) {
-      const badge = document.createElement('div');
+      const badge = dom.createElement('div');
       badge.textContent = `🔧 Service : ${serviceType}`;
       badge.style.display = 'inline-block';
       badge.style.padding = '4px 10px';
@@ -208,7 +240,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     }
 
     // Contenu principal
-    const content = document.createElement('div');
+    const content = dom.createElement('div');
     content.style.whiteSpace = 'pre-wrap';
     content.style.wordWrap = 'break-word';
     content.style.marginBottom = '24px';
@@ -216,9 +248,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     content.textContent = displayContentLocal;
     container.appendChild(content);
 
-    // Nuage de mots (si présent)
+    // Nuage de mots
     if (analysisData?.wordCloud && analysisData.wordCloud.length > 0) {
-      const wcTitle = document.createElement('h2');
+      const wcTitle = dom.createElement('h2');
       wcTitle.textContent = '☁️ Nuage de mots';
       wcTitle.style.fontSize = '16px';
       wcTitle.style.marginTop = '24px';
@@ -226,7 +258,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
       wcTitle.style.color = '#222';
       container.appendChild(wcTitle);
 
-      const wcContainer = document.createElement('div');
+      const wcContainer = dom.createElement('div');
       wcContainer.style.display = 'flex';
       wcContainer.style.flexWrap = 'wrap';
       wcContainer.style.justifyContent = 'center';
@@ -237,10 +269,12 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
       wcContainer.style.borderRadius = '8px';
       wcContainer.style.border = '1px solid #e0e0e0';
 
-      const maxCount = Math.max(...analysisData.wordCloud.map((w: any) => w.value || 1));
+      const maxCount = Math.max(
+        ...analysisData.wordCloud.map((w: any) => w.value || 1)
+      );
 
       analysisData.wordCloud.forEach((item: any, idx: number) => {
-        const span = document.createElement('span');
+        const span = dom.createElement('span');
         span.textContent = item.text || item.word || '';
         const size = 12 + 24 * ((item.value || 1) / maxCount);
         span.style.fontSize = `${size}px`;
@@ -253,7 +287,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     }
 
     // Footer
-    const footer = document.createElement('div');
+    const footer = dom.createElement('div');
     footer.textContent = 'Document généré depuis Ebeno Research Platform';
     footer.style.marginTop = '40px';
     footer.style.paddingTop = '12px';
@@ -263,35 +297,61 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     footer.style.textAlign = 'center';
     container.appendChild(footer);
 
-    document.body.appendChild(container);
+    dom.body.appendChild(container);
 
     try {
       // ============================================================
-      // 2. Générer le PDF (html2pdf importé statiquement)
+      // 2. Rendu HTML → Canvas
       // ============================================================
-      await html2pdf().from(container).set({
-        margin: [15, 15, 15, 15],
-        filename: `${sanitizeFileName(document.name)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          letterRendering: true,
-          useCORS: true,
-          scrollY: 0,
-          windowWidth: 800,
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      }).save();
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 800,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      // ============================================================
+      // 3. Canvas → PDF avec pagination manuelle
+      // ============================================================
+      const pdf = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageContentHeight = pageHeight - margin * 2;
+
+      let heightLeft = imgHeight;
+      let position = margin;
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageContentHeight;
+
+      while (heightLeft > 0) {
+        position = margin - (imgHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+        heightLeft -= pageContentHeight;
+      }
+
+      pdf.save(`${sanitizeFileName(doc.name)}.pdf`);
     } catch (err: any) {
       console.error('❌ Erreur export PDF:', err);
-      setError('Erreur lors de la génération du PDF');
+      setError(`Erreur PDF : ${err?.message || 'inconnue'}`);
     } finally {
-      // ============================================================
-      // 3. Nettoyage
-      // ============================================================
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
+      if (dom.body.contains(container)) {
+        dom.body.removeChild(container);
       }
       setLoading(false);
     }
@@ -301,49 +361,106 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
     window.print();
   };
 
-  const displayContent = result || document.content || document.transcriptText || '';
+  const displayContent = result || doc.content || doc.transcriptText || '';
 
   return (
-    <div style={{
-      padding: theme.spacing.md,
-      backgroundColor: colors.gray[100],
-      borderRadius: theme.borderRadius.md,
-      border: `1px solid ${colors.gray[200]}`,
-      marginTop: theme.spacing.md,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-        <h4 style={{ margin: 0, fontSize: theme.typography.fontSize.md, color: colors.dark }}>
-          📄 {document.name}
+    <div
+      style={{
+        padding: theme.spacing.md,
+        backgroundColor: colors.gray[100],
+        borderRadius: theme.borderRadius.md,
+        border: `1px solid ${colors.gray[200]}`,
+        marginTop: theme.spacing.md,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: theme.spacing.sm,
+        }}
+      >
+        <h4
+          style={{
+            margin: 0,
+            fontSize: theme.typography.fontSize.md,
+            color: colors.dark,
+          }}
+        >
+          📄 {doc.name}
         </h4>
-        <Badge variant="info">{document.type}</Badge>
+        <Badge variant="info">{doc.type}</Badge>
       </div>
 
-      <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', marginBottom: theme.spacing.md }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing.sm,
+          flexWrap: 'wrap',
+          marginBottom: theme.spacing.md,
+        }}
+      >
         {isAudio && (
-          <Button size="sm" variant="primary" onClick={() => callService('transcribe')} disabled={loading}>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => callService('transcribe')}
+            disabled={loading}
+          >
             🎙️ Transcrire
           </Button>
         )}
         {isText && (
           <>
-            <Button size="sm" variant="primary" onClick={() => callService('summarize')} disabled={loading}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => callService('summarize')}
+              disabled={loading}
+            >
               📝 Résumer
             </Button>
-            <Button size="sm" variant="outline" onClick={() => callService('entities')} disabled={loading}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => callService('entities')}
+              disabled={loading}
+            >
               🏷️ Entités
             </Button>
-            <Button size="sm" variant="outline" onClick={() => callService('codes')} disabled={loading}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => callService('codes')}
+              disabled={loading}
+            >
               🏷️ Codes
             </Button>
-            <Button size="sm" variant="info" onClick={() => callService('analyze')} disabled={loading}>
+            <Button
+              size="sm"
+              variant="info"
+              onClick={() => callService('analyze')}
+              disabled={loading}
+            >
               📊 Analyser
             </Button>
           </>
         )}
-        <Button size="sm" variant="success" onClick={exportPDF} disabled={!displayContent || loading}>
+        <Button
+          size="sm"
+          variant="success"
+          onClick={exportPDF}
+          disabled={!displayContent || loading}
+        >
           📥 PDF
         </Button>
-        <Button size="sm" variant="secondary" onClick={handlePrint} disabled={!displayContent}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handlePrint}
+          disabled={!displayContent}
+        >
           🖨️ Imprimer
         </Button>
       </div>
@@ -370,30 +487,39 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
           }}
         >
           <h5 style={{ margin: '0 0 8px 0' }}>📋 Résultat :</h5>
-          {serviceType && <Badge variant="info" style={{ marginBottom: '8px' }}>{serviceType}</Badge>}
+          {serviceType && (
+            <Badge variant="info" style={{ marginBottom: '8px' }}>
+              {serviceType}
+            </Badge>
+          )}
           <div style={{ marginTop: '8px' }}>{displayContent}</div>
 
-          {/* ✅ Nuage de mots maison avec tailles variables */}
           {analysisData && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0' }}>☁️ Nuage de mots</h5>
               {analysisData.wordCloud && analysisData.wordCloud.length > 0 ? (
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '8px 12px',
-                  padding: '16px',
-                  backgroundColor: colors.gray[50],
-                  borderRadius: theme.borderRadius.md,
-                  border: `1px solid ${colors.gray[200]}`,
-                }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px 12px',
+                    padding: '16px',
+                    backgroundColor: colors.gray[50],
+                    borderRadius: theme.borderRadius.md,
+                    border: `1px solid ${colors.gray[200]}`,
+                  }}
+                >
                   {analysisData.wordCloud.map((item: any, idx: number) => {
-                    const maxCount = Math.max(...analysisData.wordCloud.map((w: any) => w.value || 1));
+                    const maxCount = Math.max(
+                      ...analysisData.wordCloud.map((w: any) => w.value || 1)
+                    );
                     const minSize = 12;
                     const maxSize = 36;
-                    const size = minSize + (maxSize - minSize) * ((item.value || 1) / maxCount);
+                    const size =
+                      minSize +
+                      (maxSize - minSize) * ((item.value || 1) / maxCount);
                     const hue = (idx * 37) % 360;
                     return (
                       <span
@@ -406,8 +532,12 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({ document, proj
                           cursor: 'default',
                           transition: 'transform 0.2s ease',
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.transform = 'scale(1.1)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.transform = 'scale(1)')
+                        }
                         title={`${item.text || item.word} (${item.value || 1})`}
                       >
                         {item.text || item.word}
