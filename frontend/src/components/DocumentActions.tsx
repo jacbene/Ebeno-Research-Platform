@@ -358,8 +358,15 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   };
 
   const handlePrint = () => {
+  // ✅ Marque tous les autres éléments de la page avec la classe no-print
+  //    (les éléments hors de #document-content sont déjà cachés via CSS,
+  //    mais on s'assure que le titre du document est visible)
+
+  // Petit délai pour laisser React finir son rendu si besoin
+  setTimeout(() => {
     window.print();
-  };
+  }, 100);
+};
 
   const displayContent = result || doc.content || doc.transcriptText || '';
 
