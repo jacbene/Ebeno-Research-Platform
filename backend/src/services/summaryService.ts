@@ -2,6 +2,8 @@
 import { db } from '../db/knex';
 import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
 import { generateSummaryWithOpenAI, isOpenAIConfigured } from './openaiService';
+import { generateSummaryWithDeepSeek, isDeepSeekConfigured } from './deepseekSummaryService';
+
 import {
   isServiceAvailable,
   recordFailure,
@@ -16,6 +18,7 @@ const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 // Noms des services pour le circuit breaker
 const SERVICE_OPENAI = 'openai';
 const SERVICE_DEEPGRAM = 'deepgram';
+const SERVICE_DEEPSEEK = 'deepseek';
 
 /**
  * Résumé via Deepgram Text Intelligence (/v1/read)
@@ -82,12 +85,30 @@ const generateHeuristicSummary = (text: string): string => {
 
 /**
  * ✅ Cascade intelligente :
- *   OpenAI (si clé valide et circuit fermé)
- *   → Deepgram (si clé valide et circuit fermé)
- *   → Heuristique (toujours disponible)
+ *   DeepSeek (si clé valide et circuit fermé)          ← NOUVEAU #1
+ *   → OpenAI (si clé valide et circuit fermé)          ← fallback
+ *   → Deepgram (si clé valide et circuit fermé)        ← fallback
+ *   → Heuristique (toujours disponible)                ← dernier recours
  */
 const generateSummary = async (text: string): Promise<string> => {
-  // 1️⃣ OpenAI
+  // 1️⃣ DeepSeek (nouveau, priorité #1)
+  if (isDeepSeekConfigured() && isServiceAvailable(SERVICE_DEEPSEEK)) {
+    try {
+      logger.info('🟣 [summary] Tentative DeepSeek...');
+      const result = await generateSummaryWithDeepSeek(text);
+      recordSuccess(SERVICE_DEEPSEEK);
+      return result;
+    } catch (error: any) {
+      recordFailure(SERVICE_DEEPSEEK, error);
+      logger.warn(`⚠️ [summary] DeepSeek échoué, bascule vers OpenAI`);
+    }
+  } else if (!isServiceAvailable(SERVICE_DEEPSEEK)) {
+    logger.info('⏭️ [summary] DeepSeek ignoré (circuit ouvert)');
+  } else {
+    logger.info('⚠️ [summary] DeepSeek non configuré');
+  }
+
+  // 2️⃣ OpenAI (fallback)
   if (isOpenAIConfigured() && isServiceAvailable(SERVICE_OPENAI)) {
     try {
       logger.info('🔵 [summary] Tentative OpenAI...');
@@ -104,7 +125,7 @@ const generateSummary = async (text: string): Promise<string> => {
     logger.info('⚠️ [summary] OpenAI non configuré');
   }
 
-  // 2️⃣ Deepgram
+  // 3️⃣ Deepgram (fallback — anglais uniquement)
   if (DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
     try {
       logger.info('🟢 [summary] Tentative Deepgram...');
@@ -121,7 +142,7 @@ const generateSummary = async (text: string): Promise<string> => {
     logger.info('⚠️ [summary] Deepgram non configuré');
   }
 
-  // 3️⃣ Heuristique
+  // 4️⃣ Heuristique (fallback final)
   logger.info('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
   return generateHeuristicSummary(text);
 };
