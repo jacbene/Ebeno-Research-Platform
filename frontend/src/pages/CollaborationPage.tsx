@@ -1,7 +1,8 @@
 // frontend/src/pages/CollaborationPage.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-// ✅ html2pdf est maintenant chargé dynamiquement dans downloadAsPdf()
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -59,7 +60,7 @@ const escapeHtml = (text: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-// ✅ Construit un HTML réutilisable pour PDF et Word
+// ✅ Construit un HTML réutilisable pour Word
 const buildDocumentHtml = (doc: Document): string => {
   const contentHtml = escapeHtml(doc.content || '')
     .split('\n')
@@ -139,30 +140,118 @@ const downloadAsDocx = (doc: Document) => {
   URL.revokeObjectURL(url);
 };
 
-// ✅ PDF via html2pdf (LAZY-LOADED)
-// Le module html2pdf.js (~150 KB gzipped) ne sera téléchargé qu'au 1er clic PDF.
+// ✅ PDF via jsPDF + html2canvas (contourne les bugs de html2pdf.js sous CRA 5)
 const downloadAsPdf = async (doc: Document): Promise<void> => {
-  // ✅ Import dynamique : chunk séparé, chargé à la demande
-  const html2pdfModule = await import('html2pdf.js');
-  const html2pdf = html2pdfModule.default || html2pdfModule;
-
+  // ============================================================
+  // 1. Construire un container off-screen avec tout le contenu
+  // ============================================================
   const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.fontFamily = 'Arial, sans-serif';
-  container.style.color = '#000';
-  container.style.backgroundColor = '#fff';
-  container.style.maxWidth = '800px';
-  container.innerHTML = buildDocumentHtml(doc);
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '800px';
+  container.style.padding = '30px';
+  container.style.backgroundColor = '#ffffff';
+  container.style.color = '#000000';
+  container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+  container.style.fontSize = '13px';
+  container.style.lineHeight = '1.6';
+  container.style.boxSizing = 'border-box';
 
-  const options = {
-    margin: [15, 15, 15, 15] as [number, number, number, number],
-    filename: `${sanitizeFileName(doc.title)}.pdf`,
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, letterRendering: true, useCORS: true },
-    jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-  };
+  // Titre
+  const title = document.createElement('h1');
+  title.textContent = doc.title;
+  title.style.fontSize = '22px';
+  title.style.marginTop = '0';
+  title.style.marginBottom = '8px';
+  title.style.borderBottom = '2px solid #4A6CF7';
+  title.style.paddingBottom = '8px';
+  title.style.color = '#222';
+  container.appendChild(title);
 
-  await html2pdf().from(container).set(options).save();
+  // Métadonnées
+  const meta = document.createElement('p');
+  meta.textContent = `Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}`;
+  meta.style.fontSize = '12px';
+  meta.style.color = '#666';
+  meta.style.fontStyle = 'italic';
+  meta.style.marginTop = '0';
+  meta.style.marginBottom = '24px';
+  container.appendChild(meta);
+
+  // Contenu
+  const content = document.createElement('div');
+  content.style.whiteSpace = 'pre-wrap';
+  content.style.wordWrap = 'break-word';
+  content.style.color = '#333';
+  content.textContent = doc.content || '';
+  container.appendChild(content);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.textContent = 'Document généré depuis Ebeno Research Platform';
+  footer.style.marginTop = '40px';
+  footer.style.paddingTop = '12px';
+  footer.style.borderTop = '1px solid #ddd';
+  footer.style.fontSize = '10px';
+  footer.style.color = '#999';
+  footer.style.textAlign = 'center';
+  container.appendChild(footer);
+
+  document.body.appendChild(container);
+
+  try {
+    // ============================================================
+    // 2. Rendu HTML → Canvas
+    // ============================================================
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 800,
+      scrollX: 0,
+      scrollY: 0,
+    });
+
+    // ============================================================
+    // 3. Canvas → PDF avec pagination manuelle
+    // ============================================================
+    const pdf = new jsPDF({
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait',
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pageContentHeight = pageHeight - margin * 2;
+
+    let heightLeft = imgHeight;
+    let position = margin;
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+    heightLeft -= pageContentHeight;
+
+    while (heightLeft > 0) {
+      position = margin - (imgHeight - heightLeft);
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageContentHeight;
+    }
+
+    pdf.save(`${sanitizeFileName(doc.title)}.pdf`);
+  } finally {
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
+  }
 };
 
 // ============================================================
@@ -386,7 +475,6 @@ const CollaborationPage: React.FC = () => {
         downloadAsDocx(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.doc" téléchargé` });
       } else {
-        // ✅ 1er appel : télécharge le chunk html2pdf (~150 KB)
         await downloadAsPdf(doc);
         toast.addToast({ type: 'success', title: `📥 "${doc.title}.pdf" téléchargé` });
       }
