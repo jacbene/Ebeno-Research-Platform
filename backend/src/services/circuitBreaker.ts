@@ -23,11 +23,13 @@ const DEFAULT_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
  */
 const PERMANENT_ERROR_PATTERNS = [
   '401',                    // Unauthorized
+  '402',                    // ✅ Payment Required (nouveau)
   '403',                    // Forbidden
   'invalid_api_key',
   'invalid credentials',
   'invalid_auth',
   'insufficient_quota',
+  'insufficient_balance',   // ✅ DeepSeek (nouveau)
   'credit_balance_exhausted',
   'no credits remaining',
   'quota',
