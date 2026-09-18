@@ -1,5 +1,7 @@
+// frontend/src/pages/SettingsPage.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -7,10 +9,11 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
-type Tab = 'profile' | 'security' | 'appearance';
+type Tab = 'profile' | 'security' | 'language' | 'appearance';
 
 const SettingsPage: React.FC = () => {
   const { mode, toggleMode, colors, setCustomPalette } = useTheme();
+  const { language, supportedLanguages, changeLanguage } = useLanguage();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
 
@@ -34,6 +37,7 @@ const SettingsPage: React.FC = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingLanguage, setSavingLanguage] = useState(false);
 
   // Couleurs personnalisées
   const [primaryColor, setPrimaryColor] = useState(colors.primary);
@@ -93,7 +97,6 @@ const SettingsPage: React.FC = () => {
       const newAvatarUrl = res.data.avatar;
       setUser((prev: any) => ({ ...prev, avatar: newAvatarUrl }));
 
-      // Mettre à jour localStorage
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, avatar: newAvatarUrl }));
 
@@ -176,6 +179,31 @@ const SettingsPage: React.FC = () => {
   };
 
   // ============================================================
+  // LANGUE
+  // ============================================================
+  const handleLanguageChange = async (code: string) => {
+    if (code === language || savingLanguage) return;
+
+    setSavingLanguage(true);
+    try {
+      await changeLanguage(code);
+      toast.addToast({
+        type: 'success',
+        title: '🌍 Langue mise à jour',
+        message: `Interface et IA en ${supportedLanguages.find((l) => l.code === code)?.label || code}`,
+      });
+    } catch (error: any) {
+      toast.addToast({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Impossible de changer la langue',
+      });
+    } finally {
+      setSavingLanguage(false);
+    }
+  };
+
+  // ============================================================
   // APPARENCE
   // ============================================================
   const applyCustomPalette = () => {
@@ -209,6 +237,7 @@ const SettingsPage: React.FC = () => {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'profile', label: '👤 Profil' },
     { key: 'security', label: '🔒 Sécurité' },
+    { key: 'language', label: '🌍 Langue' },
     { key: 'appearance', label: '🎨 Apparence' },
   ];
 
@@ -223,6 +252,7 @@ const SettingsPage: React.FC = () => {
           gap: theme.spacing.sm,
           marginBottom: theme.spacing.lg,
           borderBottom: `1px solid ${colors.gray[200]}`,
+          flexWrap: 'wrap',
         }}
       >
         {tabs.map((tab) => (
@@ -451,6 +481,140 @@ const SettingsPage: React.FC = () => {
               <li>Ne partagez jamais votre mot de passe</li>
               <li>Changez-le régulièrement</li>
             </ul>
+          </div>
+        </Card>
+      )}
+
+      {/* ============================================================ */}
+      {/* ONGLET LANGUE */}
+      {/* ============================================================ */}
+      {activeTab === 'language' && (
+        <Card title="🌍 Langue de travail">
+          <p
+            style={{
+              margin: '0 0 20px 0',
+              fontSize: '14px',
+              color: colors.gray[600],
+              lineHeight: 1.6,
+            }}
+          >
+            Choisissez la langue que vous utilisez pour travailler sur la plateforme.
+            Cette langue sera utilisée pour :
+          </p>
+
+          <ul
+            style={{
+              margin: '0 0 24px 0',
+              paddingLeft: '20px',
+              fontSize: '13px',
+              color: colors.gray[600],
+              lineHeight: 1.8,
+            }}
+          >
+            <li>📝 Les résumés et analyses générés par l'IA</li>
+            <li>🏷️ L'extraction des entités (personnes, lieux, organisations)</li>
+            <li>🔔 Les notifications et messages système</li>
+            <li>🎯 Les suggestions de codes</li>
+          </ul>
+
+          <h4 style={{ marginBottom: '12px', fontSize: '15px', color: colors.dark }}>
+            Langue active
+          </h4>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gap: '10px',
+            }}
+          >
+            {supportedLanguages.map((lang) => {
+              const isActive = language === lang.code;
+
+              return (
+                <button
+                  key={lang.code}
+                  onClick={() => handleLanguageChange(lang.code)}
+                  disabled={savingLanguage}
+                  style={{
+                    padding: '14px 16px',
+                    border: `2px solid ${isActive ? colors.primary : colors.gray[300]}`,
+                    borderRadius: theme.borderRadius.md,
+                    backgroundColor: isActive ? `${colors.primary}12` : colors.white,
+                    color: isActive ? colors.primary : colors.dark,
+                    fontWeight: isActive ? 'bold' : 'normal',
+                    cursor: savingLanguage ? 'wait' : 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                    opacity: savingLanguage && !isActive ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive && !savingLanguage) {
+                      e.currentTarget.style.borderColor = colors.primary;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderColor = colors.gray[300];
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '24px', lineHeight: 1 }}>{lang.flag}</span>
+                  <span style={{ flex: 1 }}>{lang.label}</span>
+                  {isActive && (
+                    <span
+                      style={{
+                        fontSize: '16px',
+                        color: colors.primary,
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      ✓
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {savingLanguage && (
+            <div
+              style={{
+                marginTop: '16px',
+                fontSize: '13px',
+                color: colors.gray[600],
+                textAlign: 'center',
+              }}
+            >
+              ⏳ Enregistrement...
+            </div>
+          )}
+
+          {/* Encart d'information */}
+          <div
+            style={{
+              marginTop: '24px',
+              padding: '12px 16px',
+              backgroundColor: `${colors.primary}10`,
+              borderLeft: `3px solid ${colors.primary}`,
+              borderRadius: theme.borderRadius.md,
+              fontSize: '13px',
+              color: colors.gray[700],
+              lineHeight: 1.6,
+            }}
+          >
+            💡 <strong>À propos du multilingue</strong>
+            <p style={{ margin: '6px 0 0 0' }}>
+              Cette langue concerne votre interface personnelle et les réponses de l'IA.
+              Le contenu des documents reste inchangé — vous pourrez le traduire à la demande
+              dans les versions futures.
+            </p>
           </div>
         </Card>
       )}

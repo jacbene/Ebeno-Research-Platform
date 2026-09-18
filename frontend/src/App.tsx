@@ -12,6 +12,7 @@ import { useTheme } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
+import { LanguageProvider } from './context/LanguageContext';
 
 // ============================================================
 // ✅ LAZY-LOADED PAGES (chunks séparés, chargés à la demande)
@@ -212,6 +213,7 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
+     <LanguageProvider>
       <ToastProvider>
         <Router future={{ v7_relativeSplatPath: true }}>
           {!isAuthenticated ? (
@@ -253,6 +255,7 @@ const App: React.FC = () => {
 
         <ToastContainer />
       </ToastProvider>
+    </LanguageProvider>
     </ThemeProvider>
   );
 };
