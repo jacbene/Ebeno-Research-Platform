@@ -325,9 +325,6 @@ const statCards = stats
     ]
   : [];
 
-// À l'intérieur du composant Dashboard, avant le return :
-{getActionLabelLocal(activity.action)}
-
   return (
     <div className="dashboard-container">
       {/* En-tête */}
@@ -832,7 +829,7 @@ const statCards = stats
                       <span style={{ color: colors.dark }}>
                         <strong>{activity.userName}</strong>{' '}
                         <span style={{ color: colors.gray[600] }}>
-                          {getActionLabel(activity.action)}
+                          {getActionLabelLocal(activity.action, t)}
                         </span>
                         {activity.targetName && (
                           <span style={{ color: colors.primary, fontWeight: 500 }}>
