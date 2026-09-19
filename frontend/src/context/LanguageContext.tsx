@@ -1,5 +1,7 @@
 // frontend/src/context/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { api } from '../services/api';
 
 export interface Language {
@@ -13,64 +15,9 @@ interface LanguageContextValue {
   supportedLanguages: Language[];
   loading: boolean;
   changeLanguage: (code: string) => Promise<void>;
-  t: (key: string) => string;
+  t: (key: string, options?: any) => string;
 }
 
-// Traductions inline (à étendre progressivement)
-const TRANSLATIONS: Record<string, Record<string, string>> = {
-  fr: {
-    'settings.title': 'Paramètres',
-    'settings.language': 'Langue de l\'interface',
-    'settings.language.help': 'Cette langue sera utilisée pour les résumés IA et les notifications.',
-    'common.save': 'Enregistrer',
-    'common.cancel': 'Annuler',
-    'common.loading': 'Chargement...',
-    'language.updated': 'Langue mise à jour',
-    'language.error': 'Impossible de changer la langue',
-  },
-  en: {
-    'settings.title': 'Settings',
-    'settings.language': 'Interface language',
-    'settings.language.help': 'This language will be used for AI summaries and notifications.',
-    'common.save': 'Save',
-    'common.cancel': 'Cancel',
-    'common.loading': 'Loading...',
-    'language.updated': 'Language updated',
-    'language.error': 'Unable to change language',
-  },
-  es: {
-    'settings.title': 'Configuración',
-    'settings.language': 'Idioma de la interfaz',
-    'settings.language.help': 'Este idioma se usará para los resúmenes de IA y notificaciones.',
-    'common.save': 'Guardar',
-    'common.cancel': 'Cancelar',
-    'common.loading': 'Cargando...',
-    'language.updated': 'Idioma actualizado',
-    'language.error': 'No se pudo cambiar el idioma',
-  },
-  pt: {
-    'settings.title': 'Configurações',
-    'settings.language': 'Idioma da interface',
-    'settings.language.help': 'Este idioma será usado para resumos de IA e notificações.',
-    'common.save': 'Salvar',
-    'common.cancel': 'Cancelar',
-    'common.loading': 'Carregando...',
-    'language.updated': 'Idioma atualizado',
-    'language.error': 'Não foi possível alterar o idioma',
-  },
-  ar: {
-    'settings.title': 'الإعدادات',
-    'settings.language': 'لغة الواجهة',
-    'settings.language.help': 'ستُستخدم هذه اللغة لملخصات الذكاء الاصطناعي والإشعارات.',
-    'common.save': 'حفظ',
-    'common.cancel': 'إلغاء',
-    'common.loading': 'جار التحميل...',
-    'language.updated': 'تم تحديث اللغة',
-    'language.error': 'تعذر تغيير اللغة',
-  },
-};
-
-// Langues supportées (fallback si l'API échoue)
 const FALLBACK_LANGUAGES: Language[] = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -82,6 +29,7 @@ const FALLBACK_LANGUAGES: Language[] = [
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t: i18nT, i18n: i18nInstance } = useTranslation();
   const [language, setLanguage] = useState<string>('fr');
   const [supportedLanguages, setSupportedLanguages] = useState<Language[]>(FALLBACK_LANGUAGES);
   const [loading, setLoading] = useState(true);
@@ -90,49 +38,65 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const loadLanguage = async () => {
       try {
-        // 1. Charger la liste des langues supportées (une seule fois)
+        // 1. Langues supportées (backend = source de vérité)
         const supportedRes = await api.get('/language/supported');
         if (supportedRes.data?.success) {
           setSupportedLanguages(supportedRes.data.data);
         }
 
-        // 2. Charger la langue de l'utilisateur
+        // 2. Langue de l'utilisateur (backend)
         const meRes = await api.get('/language/me');
         if (meRes.data?.success) {
-          setLanguage(meRes.data.data.language);
+          const userLang = meRes.data.data.language;
+          setLanguage(userLang);
+          // Synchronise i18next avec la langue du backend
+          if (i18nInstance.language !== userLang) {
+            await i18nInstance.changeLanguage(userLang);
+          }
         }
-      } catch (error: any) {
+      } catch (error) {
         // Fallback : détecter la langue du navigateur
         const navLang = navigator.language?.split('-')[0] || 'fr';
         const supported = FALLBACK_LANGUAGES.map((l) => l.code);
-        setLanguage(supported.includes(navLang) ? navLang : 'fr');
+        const detected = supported.includes(navLang) ? navLang : 'fr';
+        setLanguage(detected);
+        await i18nInstance.changeLanguage(detected);
       } finally {
         setLoading(false);
       }
     };
 
     loadLanguage();
-  }, []);
+  }, [i18nInstance]);
 
-  // ✅ Fonction pour changer la langue
-  const changeLanguage = useCallback(async (code: string) => {
-    const previous = language;
-    setLanguage(code); // Optimistic update
+  // ✅ Changer la langue (sync i18next + backend)
+  const changeLanguage = useCallback(
+    async (code: string) => {
+      const previous = language;
+      setLanguage(code); // Optimistic
 
-    try {
-      await api.put('/language/me', { language: code });
-    } catch (error) {
-      setLanguage(previous); // Rollback
-      throw error;
-    }
-  }, [language]);
+      try {
+        // 1. Applique immédiatement côté UI
+        await i18nInstance.changeLanguage(code);
 
-  // ✅ Fonction de traduction simple (fallback : retourne la clé)
-  const t = useCallback(
-    (key: string): string => {
-      return TRANSLATIONS[language]?.[key] || TRANSLATIONS.fr[key] || key;
+        // 2. Persiste côté backend
+        await api.put('/language/me', { language: code });
+      } catch (error) {
+        // Rollback en cas d'erreur
+        setLanguage(previous);
+        await i18nInstance.changeLanguage(previous);
+        throw error;
+      }
     },
-    [language]
+    [language, i18nInstance]
+  );
+
+  // ✅ Délègue la traduction à i18next
+  const t = useCallback(
+    (key: string, options?: any): string => {
+      return i18nT(key, options) as string;
+    },
+    [i18nT]
   );
 
   return (

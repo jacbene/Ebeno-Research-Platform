@@ -11,6 +11,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import './Dashboard.css';
 import { LanguageBadge } from '../components/LanguageBadge';
+import { useTranslation } from 'react-i18next';
 
 interface Project {
   id: string;
@@ -113,40 +114,22 @@ const getActionIcon = (action: string): string => {
   }
 };
 
-const getActionLabel = (action: string): string => {
-  switch (action) {
-    case 'file-uploaded': return 'a uploadé un fichier';
-    case 'file-trashed': return 'a mis un fichier à la corbeille';
-    case 'file-restored': return 'a restauré un fichier';
-    case 'file-deleted-permanently': return 'a supprimé un fichier';
-    case 'transcription-uploaded': return 'a ajouté une transcription';
-    case 'transcription-trashed': return 'a mis une transcription à la corbeille';
-    case 'transcription-restored': return 'a restauré une transcription';
-    case 'transcription-deleted-permanently': return 'a supprimé une transcription';
-    case 'trash-emptied': return 'a vidé la corbeille';
-    case 'memo-created': return 'a créé un memo';
-    case 'text-uploaded': return 'a importé un texte';
-    case 'document-created': return 'a créé un document';
-    case 'document-renamed': return 'a renommé un document';
-    case 'document-deleted': return 'a supprimé un document';
-    case 'member-added': return 'a ajouté un membre';
-    case 'member-removed': return 'a retiré un membre';
-    default: return action;
-  }
+const getActionLabelLocal = (action: string, t: (key: string) => string): string => {
+  return t(`dashboard.actions.${action}`) || action;
 };
 
-const formatRelativeTime = (iso: string): string => {
+const formatRelativeTime = (iso: string, t: (key: string, opts?: any) => string): string => {
   const diff = Date.now() - new Date(iso).getTime();
   const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'à l\'instant';
+  if (seconds < 60) return t('dashboard.relativeTime.justNow');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 60) return t('dashboard.relativeTime.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
+  if (hours < 24) return t('dashboard.relativeTime.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `il y a ${days} j`;
-  return new Date(iso).toLocaleDateString('fr-FR');
-};
+  if (days < 7) return t('dashboard.relativeTime.daysAgo', { count: days });
+  return new Date(iso).toLocaleDateString();
+};  
 
 const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes === 0) return '0 B';
@@ -193,6 +176,7 @@ const Dashboard: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const currentUser = useMemo(() => {
     try {
@@ -260,12 +244,13 @@ const Dashboard: React.FC = () => {
         setShowCreateForm(false);
         await fetchProjects();
         await fetchStats(selectedProjectId);
-        toast.addToast({ type: 'success', title: 'Projet créé ✅' });
+        toast.addToast({ type: 'success', title: t('dashboard.createProject.success') });
       } else {
-        setError(response.data.message || 'Erreur lors de la création');
+        setError(response.data.message || t('dashboard.createProject.error'));
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur de connexion au serveur');
+      setError(err.response?.data?.message || t('dashboard.createProject.errorServer'));
+
     } finally {
       setCreating(false);
     }
@@ -275,91 +260,98 @@ const Dashboard: React.FC = () => {
   const selectedProject = stats?.selectedProject;
 
   // ✅ Cartes de statistiques
-  const statCards = stats
-    ? [
-        ...(!isFiltered
-          ? [
-              {
-                icon: '📁',
-                label: 'Projets',
-                value: stats.counts.projects,
-                color: '#4A6CF7',
-                bg: '#e6f0ff',
-                link: '/',
-              },
-            ]
-          : []),
-        {
-          icon: '📎',
-          label: isFiltered ? 'Fichiers du projet' : 'Mes fichiers',
-          value: stats.counts.files,
-          color: '#1a7a1a',
-          bg: '#e6f5e6',
-          link: '#',
-        },
-        {
-          icon: '🎙️',
-          label: 'Transcriptions audio',
-          value: stats.counts.audioTranscriptions,
-          color: '#0080a0',
-          bg: '#e6f9ff',
-          link: '/transcriptions?type=audio',
-        },
-        {
-          icon: '📄',
-          label: 'Textes importés',
-          value: stats.counts.textDocuments,
-          color: '#0052cc',
-          bg: '#e6f0ff',
-          link: '/transcriptions?type=text',
-        },
-        {
-          icon: '📝',
-          label: isFiltered ? 'Memos du projet' : 'Mes memos',
-          value: stats.counts.memos,
-          color: '#d35400',
-          bg: '#fff0e6',
-          link: '#',
-        },
-        {
-          icon: '🏷️',
-          label: 'Entités',
-          value: stats.counts.entities,
-          color: '#8000a0',
-          bg: '#fce6ff',
-          link: '#',
-        },
-        {
-          icon: '🤝',
-          label: 'Docs collaboratifs',
-          value: stats.counts.collaborativeDocs,
-          color: '#c00060',
-          bg: '#ffe6f0',
-          link: '/collaboration',
-        },
-      ]
-    : [];
+const statCards = stats
+  ? [
+      ...(!isFiltered
+        ? [
+            {
+              icon: '📁',
+              label: t('dashboard.stats.projects'),           // ✅
+              value: stats.counts.projects,
+              color: '#4A6CF7',
+              bg: '#e6f0ff',
+              link: '/',
+            },
+          ]
+        : []),
+      {
+        icon: '📎',
+        label: isFiltered ? t('dashboard.stats.filesOfProject') : t('dashboard.stats.files'),  // ✅
+        value: stats.counts.files,
+        color: '#1a7a1a',
+        bg: '#e6f5e6',
+        link: '#',
+      },
+      {
+        icon: '🎙️',
+        label: t('dashboard.stats.audioTranscriptions'),    // ✅
+        value: stats.counts.audioTranscriptions,
+        color: '#0080a0',
+        bg: '#e6f9ff',
+        link: '/transcriptions?type=audio',
+      },
+      {
+        icon: '📄',
+        label: t('dashboard.stats.textDocuments'),          // ✅
+        value: stats.counts.textDocuments,
+        color: '#0052cc',
+        bg: '#e6f0ff',
+        link: '/transcriptions?type=text',
+      },
+      {
+        icon: '📝',
+        label: isFiltered ? t('dashboard.stats.memosOfProject') : t('dashboard.stats.memos'),  // ✅
+        value: stats.counts.memos,
+        color: '#d35400',
+        bg: '#fff0e6',
+        link: '#',
+      },
+      {
+        icon: '🏷️',
+        label: t('dashboard.stats.entities'),               // ✅
+        value: stats.counts.entities,
+        color: '#8000a0',
+        bg: '#fce6ff',
+        link: '#',
+      },
+      {
+        icon: '🤝',
+        label: t('dashboard.stats.collaborativeDocs'),      // ✅
+        value: stats.counts.collaborativeDocs,
+        color: '#c00060',
+        bg: '#ffe6f0',
+        link: '/collaboration',
+      },
+    ]
+  : [];
+
+// À l'intérieur du composant Dashboard, avant le return :
+{getActionLabelLocal(activity.action)}
 
   return (
     <div className="dashboard-container">
       {/* En-tête */}
       <div className="dashboard-header">
-        <div className="header-content">
-          <h1>👋 Bonjour {currentUser?.name?.split(' ')[0] || 'chercheur'} !</h1>
-          <p>
-            {isFiltered && selectedProject
-              ? `Vue du projet : ${selectedProject.title}`
-              : stats
-              ? `Vous avez ${stats.counts.projects} projet(s), ${stats.counts.files + stats.counts.transcriptions} document(s) et ${stats.counts.entities} entité(s).`
-              : 'Bienvenue sur la plateforme Ebeno Research.'}
-          </p>
-        </div>
-        <div className="header-actions">
-          <Button variant="success" onClick={() => setShowCreateForm(!showCreateForm)}>
-            {showCreateForm ? '✕ Annuler' : '+ Nouveau projet'}
-          </Button>
-        </div>
-      </div>
+  <div className="header-content">
+    <h1>👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}</h1>
+    <p>
+      {isFiltered && selectedProject
+        ? t('dashboard.viewProject', { title: selectedProject.title })
+        : stats
+        ? t('dashboard.summary', {
+            projects: stats.counts.projects,
+            documents: stats.counts.files + stats.counts.transcriptions,
+            entities: stats.counts.entities,
+          })
+        : t('dashboard.welcome')}
+    </p>
+  </div>
+  <div className="header-actions">
+    <Button variant="success" onClick={() => setShowCreateForm(!showCreateForm)}>
+      {showCreateForm ? `✕ ${t('dashboard.cancel')}` : `+ ${t('dashboard.newProject')}`}
+    </Button>
+  </div>
+  </div>
 
       {/* Sélecteur de projet */}
       {projects.length > 0 && (
@@ -378,7 +370,7 @@ const Dashboard: React.FC = () => {
                 color: colors.dark,
                 whiteSpace: 'nowrap',
               }}>
-                Filtrer par projet :
+                {t('dashboard.filterByProject')}
               </label>
             </div>
             <select
@@ -397,7 +389,8 @@ const Dashboard: React.FC = () => {
                 outline: 'none',
               }}
             >
-              <option value="all">🌐 Tous mes projets ({projects.length})</option>
+             <option value="all">🌐 {t('dashboard.allProjects')} ({projects.length})</option>
+
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.userId === currentUser?.id ? '👑 ' : ''}
@@ -420,7 +413,7 @@ const Dashboard: React.FC = () => {
                   fontWeight: 600,
                 }}
               >
-                ✕ Réinitialiser
+                 ✕ {t('dashboard.reset')}
               </button>
             )}
           </div>
@@ -431,7 +424,7 @@ const Dashboard: React.FC = () => {
       {showCreateForm && (
         <Card style={{ marginBottom: theme.spacing.lg }}>
           <h3 style={{ margin: `0 0 ${theme.spacing.md} 0`, color: colors.dark }}>
-            Créer un nouveau projet
+            {t('dashboard.createProject.title')}
           </h3>
           {error && (
             <div style={{
@@ -446,23 +439,23 @@ const Dashboard: React.FC = () => {
           )}
           <form onSubmit={handleCreateProject}>
             <Input
-              label="Titre *"
+              label={t('dashboard.createProject.titleLabel')}
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Mon projet de recherche"
+              placeholder={t('dashboard.createProject.titlePlaceholder')}
               required
             />
             <Input
-              label="Description"
-              type="text"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Décrivez votre projet..."
+            label={t('dashboard.createProject.descriptionLabel')}
+            type="text"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            placeholder={t('dashboard.createProject.descriptionPlaceholder')}
             />
             <div style={{ display: 'flex', gap: theme.spacing.sm }}>
               <Button type="submit" variant="success" disabled={creating}>
-                {creating ? 'Création...' : 'Créer le projet'}
+                {creating ? t('common.creating') : t('dashboard.createProject.submit')}
               </Button>
               <Button
                 variant="secondary"
@@ -471,7 +464,7 @@ const Dashboard: React.FC = () => {
                   setError('');
                 }}
               >
-                Annuler
+                {t('dashboard.createProject.cancel')}
               </Button>
             </div>
           </form>
@@ -481,9 +474,9 @@ const Dashboard: React.FC = () => {
       {/* Cartes de statistiques */}
       {statsLoading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: colors.gray[500] }}>
-          Chargement des statistiques...
+          {t('dashboard.loadingStats')}
         </div>
-      ) : stats ? (
+        ) : stats ? (
         <>
           <div style={{
             display: 'grid',
@@ -555,7 +548,8 @@ const Dashboard: React.FC = () => {
 
           {/* ✅ Top Entités */}
           {stats.topEntities && stats.topEntities.length > 0 && (
-            <Card title="🏷️ Top entités extraites" style={{ marginBottom: theme.spacing.lg }}>
+            <Card title={t('dashboard.topEntities.title')} style={{ marginBottom: theme.spacing.lg }}>
+
               {/* Filtres par type */}
               <div style={{
                 display: 'flex',
@@ -576,7 +570,7 @@ const Dashboard: React.FC = () => {
                     fontWeight: entityFilter === 'all' ? 'bold' : 'normal',
                   }}
                 >
-                  Tout ({stats.topEntities.length})
+                   {t('dashboard.topEntities.all')} ({stats.topEntities.length})
                 </button>
                 {Object.keys(stats.entitiesByType).map((type) => {
                   const cfg = getEntityTypeConfig(type);
@@ -661,7 +655,9 @@ const Dashboard: React.FC = () => {
                           }}>
                             <span>{cfg.label}</span>
                             <span>•</span>
-                            <span>{entity.count} occurrence{entity.count > 1 ? 's' : ''}</span>
+                            <span>
+                              {entity.count} {t('dashboard.topEntities.occurrences', { count: entity.count })}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -679,9 +675,11 @@ const Dashboard: React.FC = () => {
                 color: colors.gray[600],
                 textAlign: 'center',
               }}>
-                💡 {Object.keys(stats.entitiesByType).length} type(s) d'entités •{' '}
-                {stats.topEntities.length} entité(s) unique(s) •{' '}
-                {stats.counts.entities} occurrence(s) totale(s)
+                {t('dashboard.topEntities.summary', {
+                   types: Object.keys(stats.entitiesByType).length,
+                   unique: stats.topEntities.length,
+                   total: stats.counts.entities,
+                  })}
               </div>
             </Card>
           )}
@@ -689,9 +687,9 @@ const Dashboard: React.FC = () => {
           {/* Fichiers récents avec auteur */}
           {stats.recentFiles.length > 0 && (
             <Card
-              title={isFiltered ? '📎 Fichiers récents du projet' : '📎 Fichiers récents de mes projets'}
+              title={isFiltered ? t('dashboard.recentFilesOfProject') : t('dashboard.recentFiles')}
               style={{ marginBottom: theme.spacing.lg }}
-            >
+             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {stats.recentFiles.map((file) => (
                   <div
@@ -725,18 +723,18 @@ const Dashboard: React.FC = () => {
                         {file.fileName}
                       </div>
                       <div style={{
-  display: 'flex',
-  gap: '12px',
-  fontSize: '12px',
-  color: colors.gray[500],
-  marginTop: '2px',
-  flexWrap: 'wrap',
-  alignItems: 'center',
-}}>
-  <span>💾 {formatFileSize(file.fileSize)}</span>
-  <span>📅 {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}</span>
-  <LanguageBadge language={file.language} />
-</div>
+                        display: 'flex',
+                        gap: '12px',
+                        fontSize: '12px',
+                        color: colors.gray[500],
+                        marginTop: '2px',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                       }}>
+                        <span>💾 {formatFileSize(file.fileSize)}</span>
+                        <span>📅 {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}</span>
+                        <LanguageBadge language={file.language} />
+                      </div>
                     </div>
 
                     <div
@@ -750,8 +748,8 @@ const Dashboard: React.FC = () => {
                         border: `1px solid ${colors.gray[200]}`,
                         flexShrink: 0,
                       }}
-                      title={`Uploadé par ${file.authorName || file.authorEmail}`}
-                    >
+                      title={`${t('dashboard.fileUploadedBy')} ${file.authorName || file.authorEmail}`}
+                       >
                       <div style={{
                         width: '28px',
                         height: '28px',
@@ -795,63 +793,24 @@ const Dashboard: React.FC = () => {
 
           {/* Statut des transcriptions */}
           {(stats.transcriptionStatus.pending + stats.transcriptionStatus.processing + stats.transcriptionStatus.completed + stats.transcriptionStatus.failed) > 0 && (
-            <Card title="🎙️ Statut des transcriptions audio" style={{ marginBottom: theme.spacing.lg }}>
+            <Card title={t('dashboard.transcriptionStatus')} style={{ marginBottom: theme.spacing.lg }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                 gap: '12px',
               }}>
-                <div style={{
-                  padding: '14px',
-                  backgroundColor: colors.warning + '15',
-                  borderLeft: `4px solid ${colors.warning}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
-                    {stats.transcriptionStatus.pending}
-                  </div>
-                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>⏳ En attente</div>
-                </div>
-                <div style={{
-                  padding: '14px',
-                  backgroundColor: colors.info + '15',
-                  borderLeft: `4px solid ${colors.info}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
-                    {stats.transcriptionStatus.processing}
-                  </div>
-                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>⚙️ En cours</div>
-                </div>
-                <div style={{
-                  padding: '14px',
-                  backgroundColor: colors.success + '15',
-                  borderLeft: `4px solid ${colors.success}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
-                    {stats.transcriptionStatus.completed}
-                  </div>
-                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>✅ Terminées</div>
-                </div>
-                <div style={{
-                  padding: '14px',
-                  backgroundColor: colors.danger + '15',
-                  borderLeft: `4px solid ${colors.danger}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
-                    {stats.transcriptionStatus.failed}
-                  </div>
-                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>❌ Échecs</div>
-                </div>
+                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>⏳ {t('dashboard.status.pending')}</div>
+                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>⚙️ {t('dashboard.status.processing')}</div>
+                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>✅ {t('dashboard.status.completed')}</div>
+                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>❌ {t('dashboard.status.failed')}</div>
+
               </div>
             </Card>
           )}
 
           {/* Activité récente */}
           {stats.recentActivity.length > 0 && (
-            <Card title="📋 Activité récente" style={{ marginBottom: theme.spacing.lg }}>
+            <Card title={t('dashboard.recentActivity')} style={{ marginBottom: theme.spacing.lg }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {stats.recentActivity.map((activity) => (
                   <div
@@ -883,7 +842,7 @@ const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <span style={{ fontSize: '11px', color: colors.gray[500], flexShrink: 0 }}>
-                      {formatRelativeTime(activity.createdAt)}
+                      {formatRelativeTime(activity.createdAt, t)}
                     </span>
                   </div>
                 ))}
@@ -893,7 +852,7 @@ const Dashboard: React.FC = () => {
 
           {/* Projets récents */}
           {!isFiltered && stats.recentProjects.length > 0 && (
-            <Card title="📁 Projets récents" style={{ marginBottom: theme.spacing.lg }}>
+            <Card title={t('dashboard.recentProjects')} style={{ marginBottom: theme.spacing.lg }}>
               <div style={{ display: 'grid', gap: theme.spacing.md }}>
                 {stats.recentProjects.map((project) => {
                   const isOwner = project.userId === currentUser?.id;
@@ -931,7 +890,7 @@ const Dashboard: React.FC = () => {
                               color: '#856404',
                               fontWeight: 'bold',
                             }}>
-                              👑
+                              👑{t('dashboard.ownerBadge')}
                             </span>
                           )}
                         </h4>
@@ -943,12 +902,12 @@ const Dashboard: React.FC = () => {
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}>
-                          {project.description || 'Aucune description'}
+                         {project.description || t('dashboard.noDescription')}
                         </p>
                         <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
                           <Badge variant="info">{project.status}</Badge>
                           <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                            Modifié le {new Date(project.updatedAt).toLocaleDateString('fr-FR')}
+                           {t('dashboard.modifiedOn', { date: new Date(project.updatedAt).toLocaleDateString() })}
                           </span>
                         </div>
                       </div>
@@ -973,7 +932,7 @@ const Dashboard: React.FC = () => {
 
       {/* Liste complète des projets */}
       {!isFiltered && (
-        <Card title="📚 Tous mes projets" style={{ marginTop: theme.spacing.lg }}>
+        <Card title={t('dashboard.allMyProjects')} style={{ marginTop: theme.spacing.lg }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <div style={{
@@ -996,8 +955,8 @@ const Dashboard: React.FC = () => {
               borderRadius: theme.borderRadius.md,
             }}>
               <div style={{ fontSize: '48px', marginBottom: '8px' }}>📭</div>
-              <h3 style={{ color: colors.gray[600], marginBottom: '8px' }}>Aucun projet trouvé</h3>
-              <p style={{ marginBottom: '16px' }}>Cliquez sur "Nouveau projet" pour commencer</p>
+              <h3 style={{ color: colors.gray[600], marginBottom: '8px' }}>{t('dashboard.noProjects')}</h3>
+              <p style={{ marginBottom: '16px' }}>{t('dashboard.noProjectsHint')}</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: theme.spacing.md }}>
@@ -1046,7 +1005,7 @@ const Dashboard: React.FC = () => {
                             color: '#856404',
                             fontWeight: 'bold',
                           }}>
-                            👑 Propriétaire
+                            👑 {t('dashboard.ownerBadge')}
                           </span>
                         )}
                       </h4>
@@ -1055,14 +1014,13 @@ const Dashboard: React.FC = () => {
                         color: colors.gray[600],
                         fontSize: '13px',
                       }}>
-                        {project.description || 'Aucune description'}
+                        {project.description || t('dashboard.noDescription')}
                       </p>
                       <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
                         <Badge variant="info">{project.status}</Badge>
                         <Badge variant="secondary">{project.visibility}</Badge>
-                        <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                          Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
-                        </span>
+                        <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}> 
+                       {t('dashboard.createdOn', { date: new Date(project.createdAt).toLocaleDateString() })} </span>
                       </div>
                     </div>
 
@@ -1072,7 +1030,7 @@ const Dashboard: React.FC = () => {
                         size="sm"
                         onClick={() => navigate(`/project/${encodeURIComponent(project.id)}`)}
                       >
-                        Ouvrir →
+                        {t('dashboard.open')}
                       </Button>
                     </div>
                   </div>

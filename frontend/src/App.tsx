@@ -13,6 +13,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
+import './i18n';                        // ✅ Initialise i18next
+import { useTranslation } from 'react-i18next';  // ✅ Pour le composant Login
 
 // ============================================================
 // ✅ LAZY-LOADED PAGES (chunks séparés, chargés à la demande)
@@ -66,6 +68,7 @@ const Login: React.FC<{
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,9 +103,9 @@ const Login: React.FC<{
       <Card style={{ maxWidth: '420px', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: theme.spacing.xl }}>
           <h1 style={{ fontSize: theme.typography.fontSize.xxl, fontWeight: theme.typography.fontWeight.bold, color: colors.dark }}>
-            🎓 Ebeno Research
+            🎓 {t('auth.appName')}
           </h1>
-          <p style={{ color: colors.gray[600] }}>Plateforme de recherche collaborative</p>
+          <p style={{ color: colors.gray[600] }}>{t('auth.appTagline')}</p>
         </div>
 
         {error && (
@@ -121,23 +124,23 @@ const Login: React.FC<{
 
         <form onSubmit={handleSubmit}>
           <Input
-            label="Email"
+            label={t('auth.login.email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="test@test.com"
+            placeholder={t('auth.login.emailPlaceholder')}
             required
           />
           <Input
-            label="Mot de passe"
+            label={t('auth.login.password')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder={t('auth.login.passwordPlaceholder')}
             required
           />
           <Button type="submit" disabled={loading} style={{ width: '100%' }}>
-            {loading ? 'Connexion...' : 'Se connecter'}
+           {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </Button>
         </form>
 
@@ -147,13 +150,13 @@ const Login: React.FC<{
           fontSize: theme.typography.fontSize.sm,
           color: colors.gray[600],
         }}>
-          Pas encore de compte ?{' '}
+          {t('auth.login.noAccount')}{' '}
           <a
             href="#"
             onClick={(e) => { e.preventDefault(); onSwitchToRegister(); }}
             style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}
           >
-            S'inscrire
+             {t('auth.login.registerLink')}
           </a>
         </p>
 
@@ -163,7 +166,7 @@ const Login: React.FC<{
           fontSize: '11px',
           color: colors.gray[400],
         }}>
-          Test : test@test.com / 123456
+          {t('auth.login.testHint')}
         </p>
       </Card>
     </div>

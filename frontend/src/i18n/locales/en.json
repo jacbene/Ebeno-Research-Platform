@@ -1,0 +1,192 @@
+{
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "creating": "Creating...",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "open": "Open",
+    "reset": "Reset",
+    "apply": "Apply",
+    "upload": "Upload",
+    "download": "Download",
+    "search": "Search",
+    "noResults": "No results"
+  },
+  "auth": {
+    "appName": "Ebeno Research",
+    "appTagline": "Collaborative research platform",
+    "login": {
+      "title": "Sign in",
+      "email": "Email",
+      "emailPlaceholder": "test@test.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up",
+      "testHint": "Test: test@test.com / 123456"
+    },
+    "register": {
+      "title": "Sign up",
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "submit": "Create account",
+      "submitting": "Creating...",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "missingFields": "Please fill in all fields",
+      "serverError": "Server connection error",
+      "passwordMismatch": "Passwords don't match",
+      "passwordTooShort": "Password must be at least 6 characters"
+    }
+  },
+"nav": {
+  "dashboard": "Dashboard",
+  "transcription": "Transcription",
+  "textUpload": "Upload text",
+  "transcriptions": "My transcriptions",
+  "chat": "AI Chat",
+  "collaboration": "Collaboration",
+  "settings": "Settings",
+  "logout": "Logout",
+  "user": "User",
+  "menu": "Menu"
+},
+"theme": {
+  "light": "☀️ Light",
+  "dark": "🌙 Dark",
+  "system": "💻 System",
+  "tooltip": "Theme: {{label}}"
+},
+"dashboard": {
+  "greeting": "Hello {{name}}!",
+  "welcome": "Welcome to Ebeno Research platform.",
+  "summary": "You have {{projects}} project(s), {{documents}} document(s) and {{entities}} entit(ies).",
+  "viewProject": "Viewing project: {{title}}",
+  "newProject": "New project",
+  "cancel": "Cancel",
+  "filterByProject": "Filter by project:",
+  "allProjects": "All my projects",
+  "reset": "Reset",
+  "loadingStats": "Loading statistics...",
+  "createProject": {
+    "title": "Create a new project",
+    "titleLabel": "Title *",
+    "titlePlaceholder": "My research project",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe your project...",
+    "submit": "Create project",
+    "cancel": "Cancel",
+    "success": "Project created ✅",
+    "error": "Error during creation",
+    "errorServer": "Server connection error"
+  },
+  "stats": {
+    "projects": "Projects",
+    "files": "My files",
+    "filesOfProject": "Project files",
+    "audioTranscriptions": "Audio transcriptions",
+    "textDocuments": "Imported texts",
+    "memos": "My memos",
+    "memosOfProject": "Project memos",
+    "entities": "Entities",
+    "collaborativeDocs": "Collaborative docs"
+  },
+  "topEntities": {
+    "title": "🏷️ Top extracted entities",
+    "all": "All",
+    "summary": "💡 {{types}} type(s) • {{unique}} unique entit(ies) • {{total}} total occurrence(s)",
+    "occurrences": "{{count}} occurrence",
+    "occurrences_plural": "{{count}} occurrences"
+  },
+  "recentFiles": "📎 Recent project files",
+  "recentFilesOfProject": "📎 Recent files of my projects",
+  "uploadedBy": "Uploaded by {{name}}",
+  "transcriptionStatus": "🎙️ Audio transcription status",
+  "status": {
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "failed": "Failed"
+  },
+  "recentActivity": "📋 Recent activity",
+  "recentProjects": "📁 Recent projects",
+  "allMyProjects": "📚 All my projects",
+  "noProjects": "No projects found",
+  "noProjectsHint": "Click \"New project\" to start",
+  "noDescription": "No description",
+  "owner": "👑",
+  "ownerBadge": "👑 Owner",
+  "open": "Open →",
+  "modifiedOn": "Modified on {{date}}",
+  "createdOn": "Created on {{date}}",
+  "fileUploadedBy": "Uploaded by",
+  "relativeTime": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "actions": {
+    "file-uploaded": "uploaded a file",
+    "file-trashed": "moved a file to trash",
+    "file-restored": "restored a file",
+    "file-deleted-permanently": "deleted a file permanently",
+    "transcription-uploaded": "added a transcription",
+    "transcription-trashed": "moved a transcription to trash",
+    "transcription-restored": "restored a transcription",
+    "transcription-deleted-permanently": "deleted a transcription",
+    "trash-emptied": "emptied the trash",
+    "memo-created": "created a memo",
+    "text-uploaded": "imported a text",
+    "document-created": "created a document",
+    "document-renamed": "renamed a document",
+    "document-deleted": "deleted a document",
+    "member-added": "added a member",
+    "member-removed": "removed a member"
+  },
+  "entityTypes": {
+    "Person": "People",
+    "Place": "Places",
+    "Organization": "Organizations",
+    "Date": "Dates",
+    "Email": "Emails",
+    "Phone": "Phones",
+    "Url": "URLs"
+  }
+},
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "pt": "Português",
+    "ar": "العربية"
+  },
+  "badges": {
+    "languageTooltip": "Language: {{language}}",
+    "owner": "👑",
+    "status": {
+      "COMPLETED": "Completed",
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "FAILED": "Failed"
+    }
+  }
+}

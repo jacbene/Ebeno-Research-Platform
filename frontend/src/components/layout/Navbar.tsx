@@ -1,6 +1,7 @@
 // frontend/src/components/layout/Navbar.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { GlobalSearch } from '../GlobalSearch';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -13,6 +14,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const { mode, effectiveMode, setMode, colors } = useTheme();
+  const { t } = useTranslation();                              // ✅ NOUVEAU
   const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
   const location = useLocation();
 
@@ -52,11 +54,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     return effectiveMode === 'light' ? '☀️' : '🌙';
   };
 
+  // ✅ Labels thème traduits
   const getThemeLabel = (m: ThemeMode) => {
     switch (m) {
-      case 'light': return '☀️ Clair';
-      case 'dark': return '🌙 Sombre';
-      case 'system': return '💻 Système';
+      case 'light': return t('theme.light');
+      case 'dark': return t('theme.dark');
+      case 'system': return t('theme.system');
     }
   };
 
@@ -211,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               <button
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
                 style={iconButtonStyle}
-                title={`Thème : ${getThemeLabel(mode)}`}
+                title={t('theme.tooltip', { label: getThemeLabel(mode) })}
               >
                 {getThemeIcon()}
               </button>
@@ -255,7 +258,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 <div style={{ ...dropdownStyle, minWidth: '200px', right: -40 }}>
                   <div style={{ padding: '12px 14px', borderBottom: `1px solid ${colors.gray[200]}` }}>
                     <div style={{ fontSize: '13px', fontWeight: 'bold', color: colors.dark }}>
-                      {user?.name || 'Utilisateur'}
+                      {user?.name || t('nav.user')}
                     </div>
                     <div style={{ fontSize: '11px', color: colors.gray[500] }}>
                       {user?.email}
@@ -265,7 +268,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     to="/settings"
                     style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
                   >
-                    ⚙️ Paramètres
+                    ⚙️ {t('nav.settings')}
                   </Link>
                   <button
                     onClick={onLogout}
@@ -275,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                       borderTop: `1px solid ${colors.gray[100]}`,
                     }}
                   >
-                    🚪 Déconnexion
+                    🚪 {t('nav.logout')}
                   </button>
                 </div>
               )}
@@ -294,14 +297,14 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             <nav style={mobileMenuStyle}>
               {/* ✅ Recherche globale - Mobile */}
               <div style={{ padding: '0 12px 12px 12px' }}>
-                <GlobalSearch placeholder="Rechercher..." />
+                <GlobalSearch placeholder={t('common.search') + '...'} />
               </div>
 
-              <Link to="/" style={linkStyle(isActive('/'))}>📊 Dashboard</Link>
-              <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 Chat IA</Link>
-              <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 Collaboration</Link>
-              <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ Transcriptions</Link>
-              <Link to="/settings" style={linkStyle(isActive('/settings'))}>⚙️ Paramètres</Link>
+              <Link to="/" style={linkStyle(isActive('/'))}>📊 {t('nav.dashboard')}</Link>
+              <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 {t('nav.chat')}</Link>
+              <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
+              <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>
+              <Link to="/settings" style={linkStyle(isActive('/settings'))}>⚙️ {t('nav.settings')}</Link>
             </nav>
           )}
         </>
@@ -310,17 +313,17 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
         // DESKTOP
         // ============================================================
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'nowrap' }}>
-          <Link to="/" style={linkStyle(isActive('/'))}>📊 Dashboard</Link>
-          <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 Chat IA</Link>
-          <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 Collaboration</Link>
-          <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ Transcriptions</Link>
+          <Link to="/" style={linkStyle(isActive('/'))}>📊 {t('nav.dashboard')}</Link>
+          <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 {t('nav.chat')}</Link>
+          <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
+          <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>
 
           {/* Sélecteur de thème */}
           <div ref={themeMenuRef} style={{ position: 'relative', marginLeft: '8px' }}>
             <button
               onClick={() => setThemeMenuOpen(!themeMenuOpen)}
               style={iconButtonStyle}
-              title={`Thème : ${getThemeLabel(mode)}`}
+              title={t('theme.tooltip', { label: getThemeLabel(mode) })}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[700])}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
@@ -372,7 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               <div style={{ ...dropdownStyle, minWidth: '220px' }}>
                 <div style={{ padding: '12px 14px', borderBottom: `1px solid ${colors.gray[200]}` }}>
                   <div style={{ fontSize: '13px', fontWeight: 'bold', color: colors.dark }}>
-                    {user?.name || 'Utilisateur'}
+                    {user?.name || t('nav.user')}
                   </div>
                   <div style={{ fontSize: '11px', color: colors.gray[500] }}>
                     {user?.email}
@@ -384,7 +387,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  ⚙️ Paramètres
+                  ⚙️ {t('nav.settings')}
                 </Link>
                 <button
                   onClick={onLogout}
@@ -396,7 +399,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  🚪 Déconnexion
+                  🚪 {t('nav.logout')}
                 </button>
               </div>
             )}

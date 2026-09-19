@@ -1,0 +1,192 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "creating": "Création...",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "yes": "Oui",
+    "no": "Non",
+    "back": "Retour",
+    "open": "Ouvrir",
+    "reset": "Réinitialiser",
+    "apply": "Appliquer",
+    "upload": "Uploader",
+    "download": "Télécharger",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat"
+  },
+  "auth": {
+    "appName": "Ebeno Research",
+    "appTagline": "Plateforme de recherche collaborative",
+    "login": {
+      "title": "Connexion",
+      "email": "Email",
+      "emailPlaceholder": "test@test.com",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Se connecter",
+      "submitting": "Connexion...",
+      "noAccount": "Pas encore de compte ?",
+      "registerLink": "S'inscrire",
+      "testHint": "Test : test@test.com / 123456"
+    },
+    "register": {
+      "title": "Inscription",
+      "name": "Nom complet",
+      "email": "Email",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "Créer un compte",
+      "submitting": "Création...",
+      "hasAccount": "Vous avez déjà un compte ?",
+      "loginLink": "Se connecter"
+    },
+    "errors": {
+      "invalidCredentials": "Email ou mot de passe incorrect",
+      "missingFields": "Veuillez remplir tous les champs",
+      "serverError": "Erreur de connexion au serveur",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères"
+    }
+  },
+  "nav": {
+  "dashboard": "Tableau de bord",
+  "transcription": "Transcription",
+  "textUpload": "Importer un texte",
+  "transcriptions": "Mes transcriptions",
+  "chat": "Chat IA",
+  "collaboration": "Collaboration",
+  "settings": "Paramètres",
+  "logout": "Déconnexion",
+  "user": "Utilisateur",
+  "menu": "Menu"
+},
+"theme": {
+  "light": "☀️ Clair",
+  "dark": "🌙 Sombre",
+  "system": "💻 Système",
+  "tooltip": "Thème : {{label}}"
+},
+"dashboard": {
+  "greeting": "Bonjour {{name}} !",
+  "welcome": "Bienvenue sur la plateforme Ebeno Research.",
+  "summary": "Vous avez {{projects}} projet(s), {{documents}} document(s) et {{entities}} entité(s).",
+  "viewProject": "Vue du projet : {{title}}",
+  "newProject": "Nouveau projet",
+  "cancel": "Annuler",
+  "filterByProject": "Filtrer par projet :",
+  "allProjects": "Tous mes projets",
+  "reset": "Réinitialiser",
+  "loadingStats": "Chargement des statistiques...",
+  "createProject": {
+    "title": "Créer un nouveau projet",
+    "titleLabel": "Titre *",
+    "titlePlaceholder": "Mon projet de recherche",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Décrivez votre projet...",
+    "submit": "Créer le projet",
+    "cancel": "Annuler",
+    "success": "Projet créé ✅",
+    "error": "Erreur lors de la création",
+    "errorServer": "Erreur de connexion au serveur"
+  },
+  "stats": {
+    "projects": "Projets",
+    "files": "Mes fichiers",
+    "filesOfProject": "Fichiers du projet",
+    "audioTranscriptions": "Transcriptions audio",
+    "textDocuments": "Textes importés",
+    "memos": "Mes memos",
+    "memosOfProject": "Memos du projet",
+    "entities": "Entités",
+    "collaborativeDocs": "Docs collaboratifs"
+  },
+  "topEntities": {
+    "title": "🏷️ Top entités extraites",
+    "all": "Tout",
+    "summary": "💡 {{types}} type(s) d'entités • {{unique}} entité(s) unique(s) • {{total}} occurrence(s) totale(s)",
+    "occurrences": "{{count}} occurrence",
+    "occurrences_plural": "{{count}} occurrences"
+  },
+  "recentFiles": "📎 Fichiers récents de mes projets",
+  "recentFilesOfProject": "📎 Fichiers récents du projet",
+  "uploadedBy": "Uploadé par {{name}}",
+  "transcriptionStatus": "🎙️ Statut des transcriptions audio",
+  "status": {
+    "pending": "En attente",
+    "processing": "En cours",
+    "completed": "Terminées",
+    "failed": "Échecs"
+  },
+  "recentActivity": "📋 Activité récente",
+  "recentProjects": "📁 Projets récents",
+  "allMyProjects": "📚 Tous mes projets",
+  "noProjects": "Aucun projet trouvé",
+  "noProjectsHint": "Cliquez sur \"Nouveau projet\" pour commencer",
+  "noDescription": "Aucune description",
+  "owner": "👑",
+  "ownerBadge": "👑 Propriétaire",
+  "open": "Ouvrir →",
+  "modifiedOn": "Modifié le {{date}}",
+  "createdOn": "Créé le {{date}}",
+  "fileUploadedBy": "Uploadé par",
+  "relativeTime": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {{count}} min",
+    "hoursAgo": "il y a {{count}} h",
+    "daysAgo": "il y a {{count}} j"
+  },
+  "actions": {
+    "file-uploaded": "a uploadé un fichier",
+    "file-trashed": "a mis un fichier à la corbeille",
+    "file-restored": "a restauré un fichier",
+    "file-deleted-permanently": "a supprimé un fichier",
+    "transcription-uploaded": "a ajouté une transcription",
+    "transcription-trashed": "a mis une transcription à la corbeille",
+    "transcription-restored": "a restauré une transcription",
+    "transcription-deleted-permanently": "a supprimé une transcription",
+    "trash-emptied": "a vidé la corbeille",
+    "memo-created": "a créé un memo",
+    "text-uploaded": "a importé un texte",
+    "document-created": "a créé un document",
+    "document-renamed": "a renommé un document",
+    "document-deleted": "a supprimé un document",
+    "member-added": "a ajouté un membre",
+    "member-removed": "a retiré un membre"
+  },
+  "entityTypes": {
+    "Person": "Personnes",
+    "Place": "Lieux",
+    "Organization": "Organisations",
+    "Date": "Dates",
+    "Email": "Emails",
+    "Phone": "Téléphones",
+    "Url": "URLs"
+  }
+},
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "pt": "Português",
+    "ar": "العربية"
+  },
+  "badges": {
+    "languageTooltip": "Langue : {{language}}",
+    "owner": "👑",
+    "status": {
+      "COMPLETED": "Terminé",
+      "PENDING": "En attente",
+      "PROCESSING": "Traitement",
+      "FAILED": "Échec"
+    }
+  }
+}
