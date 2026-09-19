@@ -1,3 +1,5 @@
+// frontend/src/index.tsx
+import './i18n';                              // ✅ EN PREMIER, avant tout
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

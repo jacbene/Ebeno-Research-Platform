@@ -13,7 +13,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
-import './i18n';                        // ✅ Initialise i18next
 import { useTranslation } from 'react-i18next';  // ✅ Pour le composant Login
 
 // ============================================================
