@@ -29,6 +29,44 @@ import TranscriptionUploader from '../components/TranscriptionUploader';
 import { api } from '../services/api';
 import { LanguageBadge } from '../components/LanguageBadge';
 
+// ✅ ErrorBoundary local pour isoler les composants qui plantent
+class LocalErrorBoundary extends React.Component<
+  { children: React.ReactNode; name: string },
+  { hasError: boolean; errorName: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, errorName: '' };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error(`❌ ErrorBoundary [${this.props.name}] :`, error);
+    console.trace();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fdecea',
+          border: '1px solid #dc3545',
+          borderRadius: '6px',
+          color: '#c0392b',
+          fontSize: '13px',
+        }}>
+          ❌ Erreur dans le composant <strong>{this.props.name}</strong> — cet élément est désactivé temporairement.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 interface Project {
   id: string;
   title: string;
@@ -518,18 +556,18 @@ const ProjectDetail: React.FC = () => {
         status: d.status,
       })),
       ...transcriptions
-        .filter(t => t.status === 'COMPLETED' && t.transcriptText && t.transcriptText.trim().length > 0)
-        .map(t => ({
-          id: `transcript-${t.id}`,
-          name: `📝 ${t.title}`,
-          date: t.createdAt,
-          size: null,
-          mimeType: 'text/plain',
-          type: 'transcription' as const,
-          icon: '📝',
-          raw: { ...t, _originalId: t.id },
-          status: 'COMPLETED',
-        })),
+  .filter((trans) => trans.status === 'COMPLETED' && trans.transcriptText && trans.transcriptText.trim().length > 0)
+  .map((trans) => ({
+    id: `transcript-${trans.id}`,
+    name: `📝 ${trans.title}`,
+    date: trans.createdAt,
+    size: null,
+    mimeType: 'text/plain',
+    type: 'transcription' as const,
+    icon: '📝',
+    raw: { ...trans, _originalId: trans.id },
+    status: 'COMPLETED',
+  })),
     ];
 
     switch (sortBy) {
@@ -643,24 +681,34 @@ const ProjectDetail: React.FC = () => {
         </div>
       </Card>
 
-      <PresenceBar users={users} connected={connected} />
+     <LocalErrorBoundary name="PresenceBar">
+       <PresenceBar users={Array.isArray(users) ? users : []} connected={!!connected} />
+     </LocalErrorBoundary>
 
       <div style={{ marginTop: theme.spacing.lg }}>
-        <SearchBar projectId={encodedId} onResults={setSearchResults} placeholder={t('projectDetail.searchPlaceholder')} />
+       <LocalErrorBoundary name="SearchBar">
+         <SearchBar
+             projectId={encodedId}
+             onResults={setSearchResults}
+             placeholder={t('projectDetail.searchPlaceholder')}
+             />
+       </LocalErrorBoundary>
       </div>
 
       <div style={{ marginTop: theme.spacing.sm }}>
-        <FiltersPanel
-          filters={filters}
-          onFilterChange={(newFilters) => {
-            setFilters(newFilters);
-            fetchProjectData();
-          }}
-          onReset={() => {
-            setFilters({ type: 'all', status: 'all', fromDate: '', toDate: '' });
-            fetchProjectData();
-          }}
-        />
+        <LocalErrorBoundary name="FiltersPanel">
+  <FiltersPanel
+    filters={filters}
+    onFilterChange={(newFilters) => {
+      setFilters(newFilters);
+      fetchProjectData();
+    }}
+    onReset={() => {
+      setFilters({ type: 'all', status: 'all', fromDate: '', toDate: '' });
+      fetchProjectData();
+    }}
+  />
+</LocalErrorBoundary>
       </div>
 
       {searchResults.length > 0 && (
@@ -752,67 +800,68 @@ const ProjectDetail: React.FC = () => {
 
       <div style={{ marginTop: theme.spacing.lg }}>
         {activeTab === 'audio' && (
-          <Card title={t('projectDetail.audio.title')}>
-            <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
-            <hr style={{ margin: '16px 0' }} />
-            {transcriptions.length === 0 ? (
-              <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
-            ) : (
-              transcriptions.map(t => (
-                <div
-                  key={t.id}
-                  style={{
-                    padding: theme.spacing.sm,
-                    borderBottom: '1px solid #eee',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <span>{t.title}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getStatusColor(t.status || '') }}>
-                      {getStatusLabel(t.status || '')}
-                    </span>
-                    {t.status === 'FAILED' && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
-                          try {
-                            await api.post(`/transcriptions/${t.id}/retry`);
-                            toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
-                            setTimeout(() => fetchProjectData(), 1000);
-                          } catch (err: any) {
-                            toast.addToast({
-                              type: 'error',
-                              title: t('common.error'),
-                              message: err.response?.data?.message || t('projectDetail.audio.retryError'),
-                            });
-                          }
-                        }}
-                        style={{
-                          padding: '4px 10px',
-                          backgroundColor: colors.primary,
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        {t('projectDetail.audio.retry')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
+  <Card title={t('projectDetail.audio.title')}>
+    <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
+    <hr style={{ margin: '16px 0' }} />
+    {transcriptions.length === 0 ? (
+      <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
+    ) : (
+      transcriptions.map((trans) => (
+        <div
+          key={trans.id}
+          style={{
+            padding: theme.spacing.sm,
+            borderBottom: '1px solid #eee',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>{trans.title}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: getStatusColor(trans.status || '') }}>
+              {getStatusLabel(trans.status || '')}
+            </span>
+            {trans.status === 'FAILED' && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
+                  try {
+                    await api.post(`/transcriptions/${trans.id}/retry`);
+                    toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
+                    setTimeout(() => fetchProjectData(), 1000);
+                  } catch (err: any) {
+                    toast.addToast({
+                      type: 'error',
+                      title: t('common.error'),
+                      message: err.response?.data?.message || t('projectDetail.audio.retryError'),
+                    });
+                  }
+                }}
+                style={{
+                  padding: '4px 10px',
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {t('projectDetail.audio.retry')}
+              </button>
             )}
-          </Card>
-        )}
+          </div>
+        </div>
+      ))
+    )}
+  </Card>
+)}
+       
 
         {activeTab === 'memos' && (
           <Card title={t('projectDetail.memos.title')}>
@@ -922,24 +971,30 @@ const ProjectDetail: React.FC = () => {
 
         {activeTab === 'members' && (
           <Card title={t('projectDetail.members.title')}>
-            <ProjectMembers projectId={encodedId} />
+            <LocalErrorBoundary name="ProjectMembers">
+  <ProjectMembers projectId={encodedId} />
+</LocalErrorBoundary>
           </Card>
         )}
 
         {activeTab === 'activity' && (
           <Card title={t('projectDetail.activity.title')}>
-            <ActivityFeed activities={activities} />
+            <LocalErrorBoundary name="ActivityFeed">
+  <ActivityFeed activities={Array.isArray(activities) ? activities : []} />
+</LocalErrorBoundary>
           </Card>
         )}
 
         {activeTab === 'presence' && (
           <Card title={t('projectDetail.presence.title')}>
-            <PresenceDetail
-              users={users}
-              connected={connected}
-              myColor={myColor}
-              currentUserId={currentUser?.id}
-            />
+            <LocalErrorBoundary name="PresenceDetail">
+  <PresenceDetail
+    users={Array.isArray(users) ? users : []}
+    connected={!!connected}
+    myColor={myColor || '#4A6CF7'}
+    currentUserId={currentUser?.id}
+  />
+</LocalErrorBoundary>
           </Card>
         )}
 
