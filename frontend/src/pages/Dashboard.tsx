@@ -31,7 +31,7 @@ interface RecentFile {
   mimeType: string;
   uploadedAt: number;
   projectId: string;
-  language?: string | null;    // ✅ AJOUT
+  language?: string | null;
   authorId: string;
   authorName: string | null;
   authorEmail: string;
@@ -77,19 +77,26 @@ interface DashboardStats {
   entitiesByType: Record<string, TopEntity[]>;
 }
 
-// ✅ Configuration d'affichage par type d'entité
-const ENTITY_TYPES: Record<string, { icon: string; label: string; color: string; bg: string }> = {
-  Person: { icon: '👤', label: 'Personnes', color: '#0052cc', bg: '#e6f0ff' },
-  Place: { icon: '📍', label: 'Lieux', color: '#1a7a1a', bg: '#e6f5e6' },
-  Organization: { icon: '🏢', label: 'Organisations', color: '#8000a0', bg: '#fce6ff' },
-  Date: { icon: '📅', label: 'Dates', color: '#d35400', bg: '#fff0e6' },
-  Email: { icon: '📧', label: 'Emails', color: '#0080a0', bg: '#e6f9ff' },
-  Phone: { icon: '📞', label: 'Téléphones', color: '#c00060', bg: '#ffe6f0' },
-  Url: { icon: '🔗', label: 'URLs', color: '#6c757d', bg: '#f0f0f0' },
+// ✅ Configuration d'affichage par type d'entité (icônes + couleurs)
+//    Le label est résolu dynamiquement via i18n dans getEntityTypeConfig.
+const ENTITY_TYPES: Record<string, { icon: string; color: string; bg: string }> = {
+  Person: { icon: '👤', color: '#0052cc', bg: '#e6f0ff' },
+  Place: { icon: '📍', color: '#1a7a1a', bg: '#e6f5e6' },
+  Organization: { icon: '🏢', color: '#8000a0', bg: '#fce6ff' },
+  Date: { icon: '📅', color: '#d35400', bg: '#fff0e6' },
+  Email: { icon: '📧', color: '#0080a0', bg: '#e6f9ff' },
+  Phone: { icon: '📞', color: '#c00060', bg: '#ffe6f0' },
+  Url: { icon: '🔗', color: '#6c757d', bg: '#f0f0f0' },
 };
 
-const getEntityTypeConfig = (type: string) =>
-  ENTITY_TYPES[type] || { icon: '🏷️', label: type, color: '#6c757d', bg: '#f0f0f0' };
+const getEntityTypeConfig = (
+  type: string,
+  t: (key: string) => string
+): { icon: string; color: string; bg: string; label: string } => {
+  const base = ENTITY_TYPES[type] || { icon: '🏷️', color: '#6c757d', bg: '#f0f0f0' };
+  const label = t(`dashboard.entityTypes.${type}`) || type;
+  return { ...base, label };
+};
 
 // ✅ Icônes d'action
 const getActionIcon = (action: string): string => {
@@ -114,11 +121,18 @@ const getActionIcon = (action: string): string => {
   }
 };
 
-const getActionLabelLocal = (action: string, t: (key: string) => string): string => {
+const getActionLabelLocal = (
+  action: string,
+  t: (key: string) => string
+): string => {
   return t(`dashboard.actions.${action}`) || action;
 };
 
-const formatRelativeTime = (iso: string, t: (key: string, opts?: any) => string): string => {
+const formatRelativeTime = (
+  iso: string,
+  t: (key: string, opts?: any) => string,
+  lang: string
+): string => {
   const diff = Date.now() - new Date(iso).getTime();
   const seconds = Math.floor(diff / 1000);
   if (seconds < 60) return t('dashboard.relativeTime.justNow');
@@ -128,8 +142,8 @@ const formatRelativeTime = (iso: string, t: (key: string, opts?: any) => string)
   if (hours < 24) return t('dashboard.relativeTime.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
   if (days < 7) return t('dashboard.relativeTime.daysAgo', { count: days });
-  return new Date(iso).toLocaleDateString();
-};  
+  return new Date(iso).toLocaleDateString(lang);
+};
 
 const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes === 0) return '0 B';
@@ -164,6 +178,12 @@ const Dashboard: React.FC = () => {
   const { colors } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+
+  // ✅ Helper local : formatage de date selon la langue active
+  const formatDate = (timestamp: number | string) => {
+    return new Date(timestamp).toLocaleDateString(i18n.language);
+  };
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -176,7 +196,6 @@ const Dashboard: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const { t } = useTranslation();
 
   const currentUser = useMemo(() => {
     try {
@@ -203,9 +222,10 @@ const Dashboard: React.FC = () => {
   const fetchStats = async (projectId?: string) => {
     setStatsLoading(true);
     try {
-      const url = projectId && projectId !== 'all'
-        ? `/stats/dashboard?projectId=${encodeURIComponent(projectId)}`
-        : '/stats/dashboard';
+      const url =
+        projectId && projectId !== 'all'
+          ? `/stats/dashboard?projectId=${encodeURIComponent(projectId)}`
+          : '/stats/dashboard';
       const response = await api.get(url);
       if (response.data.success) {
         setStats(response.data.data);
@@ -250,7 +270,6 @@ const Dashboard: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.message || t('dashboard.createProject.errorServer'));
-
     } finally {
       setCreating(false);
     }
@@ -260,113 +279,119 @@ const Dashboard: React.FC = () => {
   const selectedProject = stats?.selectedProject;
 
   // ✅ Cartes de statistiques
-const statCards = stats
-  ? [
-      ...(!isFiltered
-        ? [
-            {
-              icon: '📁',
-              label: t('dashboard.stats.projects'),           // ✅
-              value: stats.counts.projects,
-              color: '#4A6CF7',
-              bg: '#e6f0ff',
-              link: '/',
-            },
-          ]
-        : []),
-      {
-        icon: '📎',
-        label: isFiltered ? t('dashboard.stats.filesOfProject') : t('dashboard.stats.files'),  // ✅
-        value: stats.counts.files,
-        color: '#1a7a1a',
-        bg: '#e6f5e6',
-        link: '#',
-      },
-      {
-        icon: '🎙️',
-        label: t('dashboard.stats.audioTranscriptions'),    // ✅
-        value: stats.counts.audioTranscriptions,
-        color: '#0080a0',
-        bg: '#e6f9ff',
-        link: '/transcriptions?type=audio',
-      },
-      {
-        icon: '📄',
-        label: t('dashboard.stats.textDocuments'),          // ✅
-        value: stats.counts.textDocuments,
-        color: '#0052cc',
-        bg: '#e6f0ff',
-        link: '/transcriptions?type=text',
-      },
-      {
-        icon: '📝',
-        label: isFiltered ? t('dashboard.stats.memosOfProject') : t('dashboard.stats.memos'),  // ✅
-        value: stats.counts.memos,
-        color: '#d35400',
-        bg: '#fff0e6',
-        link: '#',
-      },
-      {
-        icon: '🏷️',
-        label: t('dashboard.stats.entities'),               // ✅
-        value: stats.counts.entities,
-        color: '#8000a0',
-        bg: '#fce6ff',
-        link: '#',
-      },
-      {
-        icon: '🤝',
-        label: t('dashboard.stats.collaborativeDocs'),      // ✅
-        value: stats.counts.collaborativeDocs,
-        color: '#c00060',
-        bg: '#ffe6f0',
-        link: '/collaboration',
-      },
-    ]
-  : [];
+  const statCards = stats
+    ? [
+        ...(!isFiltered
+          ? [
+              {
+                icon: '📁',
+                label: t('dashboard.stats.projects'),
+                value: stats.counts.projects,
+                color: '#4A6CF7',
+                bg: '#e6f0ff',
+                link: '/',
+              },
+            ]
+          : []),
+        {
+          icon: '📎',
+          label: isFiltered ? t('dashboard.stats.filesOfProject') : t('dashboard.stats.files'),
+          value: stats.counts.files,
+          color: '#1a7a1a',
+          bg: '#e6f5e6',
+          link: '#',
+        },
+        {
+          icon: '🎙️',
+          label: t('dashboard.stats.audioTranscriptions'),
+          value: stats.counts.audioTranscriptions,
+          color: '#0080a0',
+          bg: '#e6f9ff',
+          link: '/transcriptions?type=audio',
+        },
+        {
+          icon: '📄',
+          label: t('dashboard.stats.textDocuments'),
+          value: stats.counts.textDocuments,
+          color: '#0052cc',
+          bg: '#e6f0ff',
+          link: '/transcriptions?type=text',
+        },
+        {
+          icon: '📝',
+          label: isFiltered ? t('dashboard.stats.memosOfProject') : t('dashboard.stats.memos'),
+          value: stats.counts.memos,
+          color: '#d35400',
+          bg: '#fff0e6',
+          link: '#',
+        },
+        {
+          icon: '🏷️',
+          label: t('dashboard.stats.entities'),
+          value: stats.counts.entities,
+          color: '#8000a0',
+          bg: '#fce6ff',
+          link: '#',
+        },
+        {
+          icon: '🤝',
+          label: t('dashboard.stats.collaborativeDocs'),
+          value: stats.counts.collaborativeDocs,
+          color: '#c00060',
+          bg: '#ffe6f0',
+          link: '/collaboration',
+        },
+      ]
+    : [];
 
   return (
     <div className="dashboard-container">
       {/* En-tête */}
       <div className="dashboard-header">
-  <div className="header-content">
-    <h1>👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}</h1>
-    <p>
-      {isFiltered && selectedProject
-        ? t('dashboard.viewProject', { title: selectedProject.title })
-        : stats
-        ? t('dashboard.summary', {
-            projects: stats.counts.projects,
-            documents: stats.counts.files + stats.counts.transcriptions,
-            entities: stats.counts.entities,
-          })
-        : t('dashboard.welcome')}
-    </p>
-  </div>
-  <div className="header-actions">
-    <Button variant="success" onClick={() => setShowCreateForm(!showCreateForm)}>
-      {showCreateForm ? `✕ ${t('dashboard.cancel')}` : `+ ${t('dashboard.newProject')}`}
-    </Button>
-  </div>
-  </div>
+        <div className="header-content">
+          <h1>
+            👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}
+          </h1>
+          <p>
+            {isFiltered && selectedProject
+              ? t('dashboard.viewProject', { title: selectedProject.title })
+              : stats
+              ? t('dashboard.summary', {
+                  projects: stats.counts.projects,
+                  documents: stats.counts.files + stats.counts.transcriptions,
+                  entities: stats.counts.entities,
+                })
+              : t('dashboard.welcome')}
+          </p>
+        </div>
+        <div className="header-actions">
+          <Button variant="success" onClick={() => setShowCreateForm(!showCreateForm)}>
+            {showCreateForm ? `✕ ${t('dashboard.cancel')}` : `+ ${t('dashboard.newProject')}`}
+          </Button>
+        </div>
+      </div>
 
       {/* Sélecteur de projet */}
       {projects.length > 0 && (
         <Card style={{ marginBottom: theme.spacing.lg }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            flexWrap: 'wrap',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              flexWrap: 'wrap',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '18px' }}>📁</span>
-              <label style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: colors.dark,
-                whiteSpace: 'nowrap',
-              }}>
+              <label
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: colors.dark,
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {t('dashboard.filterByProject')}
               </label>
             </div>
@@ -386,8 +411,9 @@ const statCards = stats
                 outline: 'none',
               }}
             >
-             <option value="all">🌐 {t('dashboard.allProjects')} ({projects.length})</option>
-
+              <option value="all">
+                🌐 {t('dashboard.allProjects')} ({projects.length})
+              </option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.userId === currentUser?.id ? '👑 ' : ''}
@@ -410,7 +436,7 @@ const statCards = stats
                   fontWeight: 600,
                 }}
               >
-                 ✕ {t('dashboard.reset')}
+                ✕ {t('dashboard.reset')}
               </button>
             )}
           </div>
@@ -424,13 +450,15 @@ const statCards = stats
             {t('dashboard.createProject.title')}
           </h3>
           {error && (
-            <div style={{
-              backgroundColor: colors.danger + '22',
-              color: colors.danger,
-              padding: theme.spacing.sm,
-              borderRadius: theme.borderRadius.sm,
-              marginBottom: theme.spacing.md,
-            }}>
+            <div
+              style={{
+                backgroundColor: colors.danger + '22',
+                color: colors.danger,
+                padding: theme.spacing.sm,
+                borderRadius: theme.borderRadius.sm,
+                marginBottom: theme.spacing.md,
+              }}
+            >
               ❌ {error}
             </div>
           )}
@@ -444,11 +472,11 @@ const statCards = stats
               required
             />
             <Input
-            label={t('dashboard.createProject.descriptionLabel')}
-            type="text"
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-            placeholder={t('dashboard.createProject.descriptionPlaceholder')}
+              label={t('dashboard.createProject.descriptionLabel')}
+              type="text"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder={t('dashboard.createProject.descriptionPlaceholder')}
             />
             <div style={{ display: 'flex', gap: theme.spacing.sm }}>
               <Button type="submit" variant="success" disabled={creating}>
@@ -473,14 +501,16 @@ const statCards = stats
         <div style={{ textAlign: 'center', padding: '40px', color: colors.gray[500] }}>
           {t('dashboard.loadingStats')}
         </div>
-        ) : stats ? (
+      ) : stats ? (
         <>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '16px',
-            marginBottom: '32px',
-          }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '16px',
+              marginBottom: '32px',
+            }}
+          >
             {statCards.map((card) => (
               <div
                 key={card.label}
@@ -509,33 +539,33 @@ const statCards = stats
                   e.currentTarget.style.borderColor = colors.gray[200];
                 }}
               >
-                <div style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '14px',
-                  backgroundColor: card.bg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '24px',
-                  flexShrink: 0,
-                }}>
+                <div
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
+                    backgroundColor: card.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    flexShrink: 0,
+                  }}
+                >
                   {card.icon}
                 </div>
                 <div>
-                  <div style={{
-                    fontSize: '28px',
-                    fontWeight: 700,
-                    color: colors.dark,
-                    lineHeight: 1,
-                  }}>
+                  <div
+                    style={{
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      color: colors.dark,
+                      lineHeight: 1,
+                    }}
+                  >
                     {card.value}
                   </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: colors.gray[600],
-                    marginTop: '4px',
-                  }}>
+                  <div style={{ fontSize: '13px', color: colors.gray[600], marginTop: '4px' }}>
                     {card.label}
                   </div>
                 </div>
@@ -546,14 +576,14 @@ const statCards = stats
           {/* ✅ Top Entités */}
           {stats.topEntities && stats.topEntities.length > 0 && (
             <Card title={t('dashboard.topEntities.title')} style={{ marginBottom: theme.spacing.lg }}>
-
-              {/* Filtres par type */}
-              <div style={{
-                display: 'flex',
-                gap: '6px',
-                flexWrap: 'wrap',
-                marginBottom: theme.spacing.md,
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  marginBottom: theme.spacing.md,
+                }}
+              >
                 <button
                   onClick={() => setEntityFilter('all')}
                   style={{
@@ -567,10 +597,10 @@ const statCards = stats
                     fontWeight: entityFilter === 'all' ? 'bold' : 'normal',
                   }}
                 >
-                   {t('dashboard.topEntities.all')} ({stats.topEntities.length})
+                  {t('dashboard.topEntities.all')} ({stats.topEntities.length})
                 </button>
                 {Object.keys(stats.entitiesByType).map((type) => {
-                  const cfg = getEntityTypeConfig(type);
+                  const cfg = getEntityTypeConfig(type, t);
                   const count = stats.entitiesByType[type].length;
                   return (
                     <button
@@ -593,19 +623,20 @@ const statCards = stats
                 })}
               </div>
 
-              {/* Liste des entités */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                gap: '10px',
-              }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '10px',
+                }}
+              >
                 {(entityFilter === 'all'
                   ? stats.topEntities
                   : stats.entitiesByType[entityFilter] || []
                 )
                   .slice(0, 20)
                   .map((entity, idx) => {
-                    const cfg = getEntityTypeConfig(entity.type);
+                    const cfg = getEntityTypeConfig(entity.type, t);
                     return (
                       <div
                         key={`${entity.type}-${entity.value}-${idx}`}
@@ -629,31 +660,35 @@ const statCards = stats
                           e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
-                        <span style={{ fontSize: '20px', flexShrink: 0 }}>
-                          {cfg.icon}
-                        </span>
+                        <span style={{ fontSize: '20px', flexShrink: 0 }}>{cfg.icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            color: colors.dark,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }} title={entity.value}>
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: colors.dark,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={entity.value}
+                          >
                             {entity.value}
                           </div>
-                          <div style={{
-                            display: 'flex',
-                            gap: '8px',
-                            fontSize: '11px',
-                            color: cfg.color,
-                            marginTop: '2px',
-                          }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '8px',
+                              fontSize: '11px',
+                              color: cfg.color,
+                              marginTop: '2px',
+                            }}
+                          >
                             <span>{cfg.label}</span>
                             <span>•</span>
                             <span>
-                              {entity.count} {t('dashboard.topEntities.occurrences', { count: entity.count })}
+                              {entity.count}{' '}
+                              {t('dashboard.topEntities.occurrences', { count: entity.count })}
                             </span>
                           </div>
                         </div>
@@ -662,21 +697,22 @@ const statCards = stats
                   })}
               </div>
 
-              {/* Résumé */}
-              <div style={{
-                marginTop: theme.spacing.md,
-                padding: '10px 14px',
-                backgroundColor: colors.gray[50] || '#fafafa',
-                borderRadius: '8px',
-                fontSize: '12px',
-                color: colors.gray[600],
-                textAlign: 'center',
-              }}>
+              <div
+                style={{
+                  marginTop: theme.spacing.md,
+                  padding: '10px 14px',
+                  backgroundColor: colors.gray[50] || '#fafafa',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  color: colors.gray[600],
+                  textAlign: 'center',
+                }}
+              >
                 {t('dashboard.topEntities.summary', {
-                   types: Object.keys(stats.entitiesByType).length,
-                   unique: stats.topEntities.length,
-                   total: stats.counts.entities,
-                  })}
+                  types: Object.keys(stats.entitiesByType).length,
+                  unique: stats.topEntities.length,
+                  total: stats.counts.entities,
+                })}
               </div>
             </Card>
           )}
@@ -686,7 +722,7 @@ const statCards = stats
             <Card
               title={isFiltered ? t('dashboard.recentFilesOfProject') : t('dashboard.recentFiles')}
               style={{ marginBottom: theme.spacing.lg }}
-             >
+            >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {stats.recentFiles.map((file) => (
                   <div
@@ -701,35 +737,43 @@ const statCards = stats
                       border: `1px solid ${colors.gray[200]}`,
                       transition: 'background-color 0.15s',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = colors.gray[50] || '#fafafa')}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = colors.gray[100])
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = colors.gray[50] || '#fafafa')
+                    }
                   >
                     <span style={{ fontSize: '24px', flexShrink: 0 }}>
                       {getFileIcon(file.fileName)}
                     </span>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: colors.dark,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: colors.dark,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {file.fileName}
                       </div>
-                      <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        fontSize: '12px',
-                        color: colors.gray[500],
-                        marginTop: '2px',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                       }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '12px',
+                          fontSize: '12px',
+                          color: colors.gray[500],
+                          marginTop: '2px',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                        }}
+                      >
                         <span>💾 {formatFileSize(file.fileSize)}</span>
-                        <span>📅 {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}</span>
+                        <span>📅 {formatDate(file.uploadedAt)}</span>
                         <LanguageBadge language={file.language} />
                       </div>
                     </div>
@@ -745,22 +789,26 @@ const statCards = stats
                         border: `1px solid ${colors.gray[200]}`,
                         flexShrink: 0,
                       }}
-                      title={`${t('dashboard.fileUploadedBy')} ${file.authorName || file.authorEmail}`}
-                       >
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.primary,
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                      }}>
+                      title={`${t('dashboard.fileUploadedBy')} ${
+                        file.authorName || file.authorEmail
+                      }`}
+                    >
+                      <div
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          backgroundColor: colors.primary,
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                        }}
+                      >
                         {file.authorAvatar ? (
                           <img
                             src={file.authorAvatar}
@@ -771,14 +819,16 @@ const statCards = stats
                           getInitials(file.authorName, file.authorEmail)
                         )}
                       </div>
-                      <span style={{
-                        fontSize: '12px',
-                        color: colors.gray[600],
-                        maxWidth: '100px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          color: colors.gray[600],
+                          maxWidth: '100px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {file.authorName || file.authorEmail.split('@')[0]}
                       </span>
                     </div>
@@ -789,18 +839,79 @@ const statCards = stats
           )}
 
           {/* Statut des transcriptions */}
-          {(stats.transcriptionStatus.pending + stats.transcriptionStatus.processing + stats.transcriptionStatus.completed + stats.transcriptionStatus.failed) > 0 && (
+          {stats.transcriptionStatus.pending +
+            stats.transcriptionStatus.processing +
+            stats.transcriptionStatus.completed +
+            stats.transcriptionStatus.failed >
+            0 && (
             <Card title={t('dashboard.transcriptionStatus')} style={{ marginBottom: theme.spacing.lg }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: '12px',
-              }}>
-                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>⏳ {t('dashboard.status.pending')}</div>
-                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>⚙️ {t('dashboard.status.processing')}</div>
-                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>✅ {t('dashboard.status.completed')}</div>
-                 <div style={{ fontSize: '12px', color: colors.gray[600] }}>❌ {t('dashboard.status.failed')}</div>
-
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '14px',
+                    backgroundColor: colors.warning + '15',
+                    borderLeft: `4px solid ${colors.warning}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
+                    {stats.transcriptionStatus.pending}
+                  </div>
+                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>
+                    ⏳ {t('dashboard.status.pending')}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: '14px',
+                    backgroundColor: colors.info + '15',
+                    borderLeft: `4px solid ${colors.info}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
+                    {stats.transcriptionStatus.processing}
+                  </div>
+                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>
+                    ⚙️ {t('dashboard.status.processing')}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: '14px',
+                    backgroundColor: colors.success + '15',
+                    borderLeft: `4px solid ${colors.success}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
+                    {stats.transcriptionStatus.completed}
+                  </div>
+                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>
+                    ✅ {t('dashboard.status.completed')}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: '14px',
+                    backgroundColor: colors.danger + '15',
+                    borderLeft: `4px solid ${colors.danger}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: colors.dark }}>
+                    {stats.transcriptionStatus.failed}
+                  </div>
+                  <div style={{ fontSize: '12px', color: colors.gray[600] }}>
+                    ❌ {t('dashboard.status.failed')}
+                  </div>
+                </div>
               </div>
             </Card>
           )}
@@ -833,13 +944,16 @@ const statCards = stats
                         </span>
                         {activity.targetName && (
                           <span style={{ color: colors.primary, fontWeight: 500 }}>
-                            {' '}{activity.targetName}
+                            {' '}
+                            {activity.targetName}
                           </span>
                         )}
                       </span>
                     </div>
-                    <span style={{ fontSize: '11px', color: colors.gray[500], flexShrink: 0 }}>
-                      {formatRelativeTime(activity.createdAt, t)}
+                    <span
+                      style={{ fontSize: '11px', color: colors.gray[500], flexShrink: 0 }}
+                    >
+                      {formatRelativeTime(activity.createdAt, t, i18n.language)}
                     </span>
                   </div>
                 ))}
@@ -869,42 +983,62 @@ const statCards = stats
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{
-                          margin: `0 0 ${theme.spacing.xs} 0`,
-                          color: colors.dark,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          flexWrap: 'wrap',
-                        }}>
+                        <h4
+                          style={{
+                            margin: `0 0 ${theme.spacing.xs} 0`,
+                            color: colors.dark,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
                           {project.title}
                           {isOwner && (
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              backgroundColor: '#ffc107',
-                              color: '#856404',
-                              fontWeight: 'bold',
-                            }}>
-                              👑{t('dashboard.ownerBadge')}
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                backgroundColor: '#ffc107',
+                                color: '#856404',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              {t('dashboard.ownerBadge')}
                             </span>
                           )}
                         </h4>
-                        <p style={{
-                          margin: `0 0 ${theme.spacing.xs} 0`,
-                          color: colors.gray[600],
-                          fontSize: '13px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                         {project.description || t('dashboard.noDescription')}
+                        <p
+                          style={{
+                            margin: `0 0 ${theme.spacing.xs} 0`,
+                            color: colors.gray[600],
+                            fontSize: '13px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {project.description || t('dashboard.noDescription')}
                         </p>
-                        <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: theme.spacing.sm,
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                          }}
+                        >
                           <Badge variant="info">{project.status}</Badge>
-                          <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                           {t('dashboard.modifiedOn', { date: new Date(project.updatedAt).toLocaleDateString() })}
+                          <span
+                            style={{
+                              fontSize: theme.typography.fontSize.xs,
+                              color: colors.gray[500],
+                            }}
+                          >
+                            {t('dashboard.modifiedOn', {
+                              date: new Date(project.updatedAt).toLocaleDateString(i18n.language),
+                            })}
                           </span>
                         </div>
                       </div>
@@ -915,7 +1049,7 @@ const statCards = stats
                           size="sm"
                           onClick={() => navigate(`/project/${encodeURIComponent(project.id)}`)}
                         >
-                          Ouvrir →
+                          {t('dashboard.open')}
                         </Button>
                       </div>
                     </div>
@@ -932,27 +1066,33 @@ const statCards = stats
         <Card title={t('dashboard.allMyProjects')} style={{ marginTop: theme.spacing.lg }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                border: `3px solid ${colors.gray[200]}`,
-                borderTop: `3px solid ${colors.primary}`,
-                borderRadius: '50%',
-                margin: '0 auto',
-                animation: 'spin 1s linear infinite',
-              }} />
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  border: `3px solid ${colors.gray[200]}`,
+                  borderTop: `3px solid ${colors.primary}`,
+                  borderRadius: '50%',
+                  margin: '0 auto',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
               <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
             </div>
           ) : projects.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px 20px',
-              color: colors.gray[500],
-              border: `2px dashed ${colors.gray[300]}`,
-              borderRadius: theme.borderRadius.md,
-            }}>
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px 20px',
+                color: colors.gray[500],
+                border: `2px dashed ${colors.gray[300]}`,
+                borderRadius: theme.borderRadius.md,
+              }}
+            >
               <div style={{ fontSize: '48px', marginBottom: '8px' }}>📭</div>
-              <h3 style={{ color: colors.gray[600], marginBottom: '8px' }}>{t('dashboard.noProjects')}</h3>
+              <h3 style={{ color: colors.gray[600], marginBottom: '8px' }}>
+                {t('dashboard.noProjects')}
+              </h3>
               <p style={{ marginBottom: '16px' }}>{t('dashboard.noProjectsHint')}</p>
             </div>
           ) : (
@@ -984,40 +1124,61 @@ const statCards = stats
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h4 style={{
-                        margin: `0 0 ${theme.spacing.xs} 0`,
-                        color: colors.dark,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        flexWrap: 'wrap',
-                      }}>
+                      <h4
+                        style={{
+                          margin: `0 0 ${theme.spacing.xs} 0`,
+                          color: colors.dark,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
                         {project.title}
                         {isOwner && (
-                          <span style={{
-                            fontSize: '10px',
-                            padding: '2px 8px',
-                            borderRadius: '10px',
-                            backgroundColor: '#ffc107',
-                            color: '#856404',
-                            fontWeight: 'bold',
-                          }}>
-                            👑 {t('dashboard.ownerBadge')}
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              backgroundColor: '#ffc107',
+                              color: '#856404',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {t('dashboard.ownerBadge')}
                           </span>
                         )}
                       </h4>
-                      <p style={{
-                        margin: `0 0 ${theme.spacing.xs} 0`,
-                        color: colors.gray[600],
-                        fontSize: '13px',
-                      }}>
+                      <p
+                        style={{
+                          margin: `0 0 ${theme.spacing.xs} 0`,
+                          color: colors.gray[600],
+                          fontSize: '13px',
+                        }}
+                      >
                         {project.description || t('dashboard.noDescription')}
                       </p>
-                      <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: theme.spacing.sm,
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                        }}
+                      >
                         <Badge variant="info">{project.status}</Badge>
                         <Badge variant="secondary">{project.visibility}</Badge>
-                        <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}> 
-                       {t('dashboard.createdOn', { date: new Date(project.createdAt).toLocaleDateString() })} </span>
+                        <span
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: colors.gray[500],
+                          }}
+                        >
+                          {t('dashboard.createdOn', {
+                            date: new Date(project.createdAt).toLocaleDateString(i18n.language),
+                          })}
+                        </span>
                       </div>
                     </div>
 

@@ -1,12 +1,12 @@
 // frontend/src/pages/ProjectDetail.tsx
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProjectMembers } from '../components/ProjectMembers';
-// ✅ Lazy-load WordCloud (lourd)
 const WordCloudComponent = lazy(() =>
   import('../components/WordCloud').then((m) => ({ default: m.WordCloudComponent }))
 );
@@ -67,30 +67,12 @@ interface Filters {
   toDate: string;
 }
 
-// ============================================================
-// Utilitaires d'affichage
-// ============================================================
-
 const formatFileSize = (bytes: number | null | undefined): string => {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-};
-
-const formatDate = (timestamp: number | string | null | undefined): string => {
-  if (!timestamp) return '-';
-  const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
-  if (!ts || isNaN(ts)) return '-';
-  const date = new Date(ts);
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 };
 
 const getFileIcon = (fileName: string): string => {
@@ -125,18 +107,29 @@ const getFileTypeColor = (fileName: string): { bg: string; color: string } => {
   return { bg: '#f0f0f0', color: '#666' };
 };
 
-// ============================================================
-// Composant principal
-// ============================================================
-
 const ProjectDetail: React.FC = () => {
   const { colors } = useTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
   const toast = useToast();
+  const { t, i18n } = useTranslation();
 
-  // Utilisateur courant
+  // ✅ Helper de formatage de date selon la langue active
+  const formatDate = (timestamp: number | string | null | undefined): string => {
+    if (!timestamp) return '-';
+    const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+    if (!ts || isNaN(ts)) return '-';
+    const date = new Date(ts);
+    return date.toLocaleDateString(i18n.language, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const currentUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('user') || '{}');
@@ -145,7 +138,6 @@ const ProjectDetail: React.FC = () => {
     }
   }, []);
 
-  // États
   const [project, setProject] = useState<Project | null>(null);
   const [transcriptions, setTranscriptions] = useState<ContentItem[]>([]);
   const [memos, setMemos] = useState<ContentItem[]>([]);
@@ -173,15 +165,12 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-  // ✅ Édition du projet
   const [editingProject, setEditingProject] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [savingProject, setSavingProject] = useState(false);
 
   const encodedId = id ? encodeURIComponent(id) : '';
-
-  // ✅ Vérifier si l'utilisateur est le propriétaire du projet
   const isOwner = project?.userId === currentUser?.id;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,7 +179,6 @@ const ProjectDetail: React.FC = () => {
     fetchProjectData();
   }, [id]);
 
-  // ✅ Socket.IO : collaboration temps réel
   const {
     connected,
     users,
@@ -202,35 +190,35 @@ const ProjectDetail: React.FC = () => {
   } = useProjectSocket({
     projectId: encodedId,
     userId: currentUser?.id,
-    userName: currentUser?.name || currentUser?.email || 'Utilisateur',
+    userName: currentUser?.name || currentUser?.email || t('nav.user'),
     userEmail: currentUser?.email,
     onDataChange: (event, data) => {
       console.log('🔄 Rafraîchissement auto suite à :', event);
 
-      const eventMessages: Record<string, { title: string; type: any }> = {
-        'file-uploaded': { title: `📤 ${data?.file?.fileName || 'Un fichier'} a été uploadé`, type: 'info' },
-        'file-trashed': { title: `🗑️ ${data?.fileName || 'Un fichier'} a été mis à la corbeille`, type: 'warning' },
-        'file-restored': { title: `♻️ ${data?.fileName || 'Un fichier'} a été restauré`, type: 'success' },
-        'file-deleted-permanently': { title: `💥 ${data?.fileName || 'Un fichier'} a été supprimé définitivement`, type: 'error' },
-        'transcription-uploaded': { title: `🎙️ Nouvelle transcription : ${data?.title || ''}`, type: 'info' },
-        'transcription-trashed': { title: `🗑️ Transcription mise à la corbeille`, type: 'warning' },
-        'transcription-restored': { title: `♻️ Transcription restaurée`, type: 'success' },
-        'transcription-deleted-permanently': { title: `💥 Transcription supprimée`, type: 'error' },
-        'trash-emptied': { title: `🧹 Corbeille vidée (${data?.count || 0} éléments)`, type: 'warning' },
-        'document-uploaded': { title: `📄 ${data?.fileName || 'Un document'} a été importé`, type: 'info' },
-        'memo-created': { title: `📝 Nouveau memo : ${data?.memo?.title || ''}`, type: 'info' },
+      // ✅ Messages d'événements traduits
+      const eventKeys: Record<string, { key: string; params: any; type: any }> = {
+        'file-uploaded': { key: 'projectDetail.events.file-uploaded', params: { name: data?.file?.fileName || '' }, type: 'info' },
+        'file-trashed': { key: 'projectDetail.events.file-trashed', params: { name: data?.fileName || '' }, type: 'warning' },
+        'file-restored': { key: 'projectDetail.events.file-restored', params: { name: data?.fileName || '' }, type: 'success' },
+        'file-deleted-permanently': { key: 'projectDetail.events.file-deleted-permanently', params: { name: data?.fileName || '' }, type: 'error' },
+        'transcription-uploaded': { key: 'projectDetail.events.transcription-uploaded', params: { title: data?.title || '' }, type: 'info' },
+        'transcription-trashed': { key: 'projectDetail.events.transcription-trashed', params: {}, type: 'warning' },
+        'transcription-restored': { key: 'projectDetail.events.transcription-restored', params: {}, type: 'success' },
+        'transcription-deleted-permanently': { key: 'projectDetail.events.transcription-deleted-permanently', params: {}, type: 'error' },
+        'trash-emptied': { key: 'projectDetail.events.trash-emptied', params: { count: data?.count || 0 }, type: 'warning' },
+        'document-uploaded': { key: 'projectDetail.events.document-uploaded', params: { name: data?.fileName || '' }, type: 'info' },
+        'memo-created': { key: 'projectDetail.events.memo-created', params: { title: data?.memo?.title || '' }, type: 'info' },
       };
 
-      const msg = eventMessages[event];
+      const msg = eventKeys[event];
       if (msg) {
-        toast.addToast({ type: msg.type, title: msg.title, duration: 3000 });
+        toast.addToast({ type: msg.type, title: t(msg.key, msg.params), duration: 3000 });
       }
 
       fetchProjectData();
     },
   });
 
-  // ✅ Charger l'activité initiale
   useEffect(() => {
     const loadActivity = async () => {
       if (!encodedId) return;
@@ -310,7 +298,6 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  // ✅ Ouvrir la modal d'édition (seulement pour le propriétaire)
   const openEditProject = () => {
     if (!isOwner) return;
     setEditTitle(project?.title || '');
@@ -318,10 +305,9 @@ const ProjectDetail: React.FC = () => {
     setEditingProject(true);
   };
 
-  // ✅ Sauvegarder les modifications du projet
   const saveProject = async () => {
     if (!editTitle.trim() || editTitle.trim().length < 3) {
-      toast.addToast({ type: 'error', title: 'Erreur', message: 'Le titre est requis (3 caractères min)' });
+      toast.addToast({ type: 'error', title: t('common.error'), message: t('projectDetail.editModal.titleRequired') });
       return;
     }
     setSavingProject(true);
@@ -332,12 +318,12 @@ const ProjectDetail: React.FC = () => {
       });
       await fetchProjectData();
       setEditingProject(false);
-      toast.addToast({ type: 'success', title: 'Projet mis à jour ✅' });
+      toast.addToast({ type: 'success', title: t('projectDetail.editModal.success') });
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Impossible de mettre à jour',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('projectDetail.editModal.error'),
       });
     } finally {
       setSavingProject(false);
@@ -367,7 +353,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   const deleteMemo = async (memoId: string) => {
-    if (!confirm('Supprimer ce memo ?')) return;
+    if (!confirm(t('projectDetail.memos.deleteConfirm'))) return;
     try {
       await api.delete(`/memos/${memoId}`);
       fetchProjectData();
@@ -377,7 +363,7 @@ const ProjectDetail: React.FC = () => {
   };
 
   const deleteDocument = async (doc: any) => {
-    const confirmMsg = `Déplacer "${doc.name}" à la corbeille ?`;
+    const confirmMsg = t('projectDetail.trash.deleteConfirm', { name: doc.name });
     if (!confirm(confirmMsg)) return;
 
     setDeletingId(doc.id);
@@ -395,14 +381,15 @@ const ProjectDetail: React.FC = () => {
       await fetchProjectData();
     } catch (error: any) {
       console.error('❌ Erreur suppression:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la suppression');
+      alert(error.response?.data?.error || t('projectDetail.trash.deleteError'));
     } finally {
       setDeletingId(null);
     }
   };
 
   const restoreItem = async (item: any, kind: 'file' | 'transcription') => {
-    if (!confirm(`Restaurer "${item.fileName || item.title}" ?`)) return;
+    const name = item.fileName || item.title;
+    if (!confirm(t('projectDetail.trash.restoreConfirm', { name }))) return;
     setDeletingId(item.id);
     try {
       if (kind === 'file') {
@@ -413,7 +400,7 @@ const ProjectDetail: React.FC = () => {
       await fetchProjectData();
     } catch (error: any) {
       console.error('❌ Erreur restauration:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la restauration');
+      alert(error.response?.data?.error || t('projectDetail.trash.restoreError'));
     } finally {
       setDeletingId(null);
     }
@@ -421,7 +408,7 @@ const ProjectDetail: React.FC = () => {
 
   const permanentlyDeleteItem = async (item: any, kind: 'file' | 'transcription') => {
     const name = item.fileName || item.title;
-    if (!confirm(`⚠️ Supprimer DÉFINITIVEMENT "${name}" ?\n\nCette action est IRRÉVERSIBLE.`)) return;
+    if (!confirm(t('projectDetail.trash.permanentDeleteConfirm', { name }))) return;
 
     setDeletingId(item.id);
     try {
@@ -433,7 +420,7 @@ const ProjectDetail: React.FC = () => {
       await fetchProjectData();
     } catch (error: any) {
       console.error('❌ Erreur suppression définitive:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la suppression');
+      alert(error.response?.data?.error || t('projectDetail.trash.deleteError'));
     } finally {
       setDeletingId(null);
     }
@@ -442,10 +429,10 @@ const ProjectDetail: React.FC = () => {
   const emptyTrash = async () => {
     const total = trashedFiles.length + trashedTranscriptions.length;
     if (total === 0) {
-      alert('La corbeille est déjà vide.');
+      alert(t('projectDetail.trash.emptyAlready'));
       return;
     }
-    if (!confirm(`⚠️ Vider complètement la corbeille ?\n\n${total} élément(s) seront supprimés DÉFINITIVEMENT (Cloudinary inclus).\n\nCette action est IRRÉVERSIBLE.`)) {
+    if (!confirm(t('projectDetail.trash.emptyConfirm', { count: total }))) {
       return;
     }
     try {
@@ -456,10 +443,10 @@ const ProjectDetail: React.FC = () => {
         await api.delete(`/transcriptions/trash/empty?projectId=${encodedId}`);
       }
       await fetchProjectData();
-      alert(`✅ Corbeille vidée avec succès.`);
+      alert(t('projectDetail.trash.emptySuccess'));
     } catch (error: any) {
       console.error('❌ Erreur vidage corbeille:', error);
-      alert(error.response?.data?.error || 'Erreur lors du vidage de la corbeille');
+      alert(error.response?.data?.error || t('projectDetail.trash.emptyError'));
     }
   };
 
@@ -480,7 +467,7 @@ const ProjectDetail: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erreur export:', error);
-      alert('Erreur lors de l\'export du projet');
+      alert(t('projectDetail.actions.exporting'));
     } finally {
       setExporting(false);
     }
@@ -497,19 +484,12 @@ const ProjectDetail: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return '✅ Terminé';
-      case 'PENDING': return '⏳ En attente';
-      case 'PROCESSING': return '⚙️ Traitement';
-      case 'FAILED': return '❌ Échec';
-      default: return 'Inconnu';
-    }
+    return t(`projectDetail.status.${status}`) || t('projectDetail.status.unknown');
   };
 
   const totalDocuments = projectFiles.length + textDocuments.length + transcriptions.filter(t => t.status === 'COMPLETED').length;
   const totalTrashed = trashedFiles.length + trashedTranscriptions.length;
 
-  // ✅ Audios dans l'onglet Audio, transcriptions réussies dans Documents
   const allDocuments = useMemo(() => {
     const docs: any[] = [
       ...projectFiles.map(f => ({
@@ -534,12 +514,11 @@ const ProjectDetail: React.FC = () => {
         raw: d,
         status: d.status,
       })),
-      // ✅ Uniquement les transcriptions RÉUSSIES
       ...transcriptions
         .filter(t => t.status === 'COMPLETED' && t.transcriptText && t.transcriptText.trim().length > 0)
         .map(t => ({
           id: `transcript-${t.id}`,
-          name: `📝 Transcription - ${t.title}`,
+          name: `📝 ${t.title}`,
           date: t.createdAt,
           size: null,
           mimeType: 'text/plain',
@@ -563,22 +542,22 @@ const ProjectDetail: React.FC = () => {
     if (result.source === 'transcription') navigate(`/transcription/${result.id}`);
     else if (result.source === 'memo') navigate(`/memo/${result.id}`);
     else if (result.source === 'file') setPreviewFile(result);
-    else alert(`ID: ${result.id}\nSource: ${result.source}`);
   };
 
+  // ✅ Onglets traduits
   const tabs = [
-    { key: 'audio', label: `🎙️ Audio (${transcriptions.length})` },
-    { key: 'memos', label: `📝 Memos (${memos.length})` },
-    { key: 'analysis', label: '📊 Analyse' },
-    { key: 'members', label: '👥 Membres' },
-    { key: 'documents', label: `📁 Documents (${totalDocuments})` },
-    { key: 'activity', label: `📋 Activité (${activities.length})` },
-    { key: 'trash', label: `🗑️ Corbeille (${totalTrashed})` },
-    { key: 'presence', label: `👥 Présence (${users.length})` },
+    { key: 'audio', label: t('projectDetail.tabs.audio', { count: transcriptions.length }) },
+    { key: 'memos', label: t('projectDetail.tabs.memos', { count: memos.length }) },
+    { key: 'analysis', label: t('projectDetail.tabs.analysis') },
+    { key: 'members', label: t('projectDetail.tabs.members') },
+    { key: 'documents', label: t('projectDetail.tabs.documents', { count: totalDocuments }) },
+    { key: 'activity', label: t('projectDetail.tabs.activity', { count: activities.length }) },
+    { key: 'trash', label: t('projectDetail.tabs.trash', { count: totalTrashed }) },
+    { key: 'presence', label: t('projectDetail.tabs.presence', { count: users.length }) },
   ];
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Chargement...</div>;
-  if (!project) return <div style={{ padding: '40px', textAlign: 'center' }}>Projet non trouvé</div>;
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.loading')}</div>;
+  if (!project) return <div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.notFound')}</div>;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '8px' : '0' }}>
@@ -593,7 +572,6 @@ const ProjectDetail: React.FC = () => {
           gap: theme.spacing.md,
         }}>
           <div style={{ flex: 1 }}>
-            {/* ✅ Titre avec bouton d'édition (visible uniquement pour le propriétaire) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <h1 style={{ margin: 0 }}>{project.title}</h1>
 
@@ -607,11 +585,11 @@ const ProjectDetail: React.FC = () => {
                     fontSize: '11px',
                     fontWeight: 'bold',
                   }}>
-                    👑 Propriétaire
+                    {t('projectDetail.owner')}
                   </span>
                   <button
                     onClick={openEditProject}
-                    title="Modifier le projet"
+                    title={t('projectDetail.editProject')}
                     style={{
                       border: 'none',
                       background: 'none',
@@ -632,13 +610,13 @@ const ProjectDetail: React.FC = () => {
             </div>
 
             <p style={{ color: colors.gray[600], margin: '0 0 8px 0' }}>
-              {project.description || 'Aucune description'}
+              {project.description || t('projectDetail.noDescription')}
             </p>
             <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
               <Badge variant="info">{project.status}</Badge>
               <Badge variant="secondary">{project.visibility}</Badge>
               <span style={{ fontSize: theme.typography.fontSize.xs, color: colors.gray[500] }}>
-                Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
+                {t('projectDetail.createdOn', { date: new Date(project.createdAt).toLocaleDateString(i18n.language) })}
               </span>
             </div>
           </div>
@@ -650,27 +628,24 @@ const ProjectDetail: React.FC = () => {
             width: isMobile ? '100%' : 'auto',
           }}>
             <Button variant="primary" onClick={() => navigate(`/transcription?projectId=${encodedId}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
-              🎙️ Nouvelle transcription
+              {t('projectDetail.actions.newTranscription')}
             </Button>
             <Button variant="outline" onClick={() => navigate(`/text-upload?projectId=${encodedId}`)} style={{ width: isMobile ? '100%' : 'auto' }}>
-              📄 Importer un texte
+              {t('projectDetail.actions.importText')}
             </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting} style={{ width: isMobile ? '100%' : 'auto' }}>
-              {exporting ? '⏳ Export...' : '📥 Exporter le projet'}
+              {exporting ? t('projectDetail.actions.exporting') : t('projectDetail.actions.exportProject')}
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* Barre de présence temps réel */}
       <PresenceBar users={users} connected={connected} />
 
-      {/* Barre de recherche */}
       <div style={{ marginTop: theme.spacing.lg }}>
-        <SearchBar projectId={encodedId} onResults={setSearchResults} placeholder="Rechercher dans ce projet..." />
+        <SearchBar projectId={encodedId} onResults={setSearchResults} placeholder={t('projectDetail.searchPlaceholder')} />
       </div>
 
-      {/* Filtres */}
       <div style={{ marginTop: theme.spacing.sm }}>
         <FiltersPanel
           filters={filters}
@@ -685,9 +660,8 @@ const ProjectDetail: React.FC = () => {
         />
       </div>
 
-      {/* Résultats de recherche */}
       {searchResults.length > 0 && (
-        <Card title="🔍 Résultats de la recherche" style={{ marginTop: theme.spacing.lg }}>
+        <Card title={t('projectDetail.searchResults')} style={{ marginTop: theme.spacing.lg }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
             {searchResults.map((result) => (
               <div
@@ -705,7 +679,11 @@ const ProjectDetail: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
                     <span>{result.source === 'transcription' ? (result.type === 'audio' ? '🎙️' : '📄') : result.source === 'memo' ? '📝' : '📎'}</span>
                     <strong>{result.title || result.fileName}</strong>
-                    <Badge variant="info">{result.source === 'transcription' ? 'Transcription' : result.source === 'memo' ? 'Memo' : 'Fichier'}</Badge>
+                    <Badge variant="info">
+                      {result.source === 'transcription' ? t('projectDetail.sourceTypes.transcription') :
+                       result.source === 'memo' ? t('projectDetail.sourceTypes.memo') :
+                       t('projectDetail.sourceTypes.file')}
+                    </Badge>
                   </div>
                   <span style={{ fontSize: '12px', color: colors.gray[500] }}>
                     {formatDate(result.createdAt || result.uploadedAt)}
@@ -769,14 +747,13 @@ const ProjectDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Contenu des onglets */}
       <div style={{ marginTop: theme.spacing.lg }}>
         {activeTab === 'audio' && (
-          <Card title="Transcriptions audio">
+          <Card title={t('projectDetail.audio.title')}>
             <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
             <hr style={{ margin: '16px 0' }} />
             {transcriptions.length === 0 ? (
-              <p style={{ color: colors.gray[500] }}>Aucune transcription audio.</p>
+              <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
             ) : (
               transcriptions.map(t => (
                 <div
@@ -800,16 +777,16 @@ const ProjectDetail: React.FC = () => {
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
-                          if (!confirm('Relancer la transcription ?')) return;
+                          if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
                           try {
                             await api.post(`/transcriptions/${t.id}/retry`);
-                            toast.addToast({ type: 'info', title: '🔄 Transcription relancée' });
+                            toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
                             setTimeout(() => fetchProjectData(), 1000);
                           } catch (err: any) {
                             toast.addToast({
                               type: 'error',
-                              title: 'Erreur',
-                              message: err.response?.data?.message || 'Impossible de relancer',
+                              title: t('common.error'),
+                              message: err.response?.data?.message || t('projectDetail.audio.retryError'),
                             });
                           }
                         }}
@@ -824,7 +801,7 @@ const ProjectDetail: React.FC = () => {
                           fontWeight: 'bold',
                         }}
                       >
-                        🔄 Réessayer
+                        {t('projectDetail.audio.retry')}
                       </button>
                     )}
                   </div>
@@ -835,11 +812,11 @@ const ProjectDetail: React.FC = () => {
         )}
 
         {activeTab === 'memos' && (
-          <Card title="Memos de recherche">
+          <Card title={t('projectDetail.memos.title')}>
             <form onSubmit={createMemo} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm, marginBottom: theme.spacing.md }}>
               <input
                 type="text"
-                placeholder="Titre du memo"
+                placeholder={t('projectDetail.memos.placeholderTitle')}
                 value={newMemoTitle}
                 onChange={(e) => setNewMemoTitle(e.target.value)}
                 onFocus={() => emitTyping('memo-title', true)}
@@ -848,7 +825,7 @@ const ProjectDetail: React.FC = () => {
                 required
               />
               <textarea
-                placeholder="Contenu du memo..."
+                placeholder={t('projectDetail.memos.placeholderContent')}
                 value={newMemoContent}
                 onChange={(e) => {
                   setNewMemoContent(e.target.value);
@@ -867,14 +844,14 @@ const ProjectDetail: React.FC = () => {
                 required
               />
               <Button type="submit" disabled={creatingMemo} style={{ alignSelf: 'flex-start' }}>
-                {creatingMemo ? 'Création...' : '+ Ajouter un memo'}
+                {creatingMemo ? t('projectDetail.memos.adding') : t('projectDetail.memos.addButton')}
               </Button>
             </form>
 
             <TypingIndicator typingUsers={typingUsers} context="memo" />
 
             {memos.length === 0 ? (
-              <p style={{ color: colors.gray[500] }}>Aucun memo.</p>
+              <p style={{ color: colors.gray[500] }}>{t('projectDetail.memos.empty')}</p>
             ) : (
               memos.map(m => (
                 <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
@@ -882,7 +859,7 @@ const ProjectDetail: React.FC = () => {
                     <div>
                       <strong>{m.title}</strong>
                       <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
-                      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString('fr-FR')}</small>
+                      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
@@ -896,24 +873,24 @@ const ProjectDetail: React.FC = () => {
         )}
 
         {activeTab === 'analysis' && (
-          <Card title="📊 Analyse qualitative du projet">
+          <Card title={t('projectDetail.analysis.title')}>
             {analysisLoading ? (
-              <p>Chargement de l'analyse...</p>
+              <p>{t('projectDetail.analysis.loading')}</p>
             ) : analysisData && analysisData.totalWords > 0 ? (
               <>
                 <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
-                  <p><strong>Total mots :</strong> {analysisData.totalWords}</p>
-                  <p><strong>Mots uniques :</strong> {analysisData.uniqueWords}</p>
+                  <p><strong>{t('projectDetail.analysis.totalWords')} :</strong> {analysisData.totalWords}</p>
+                  <p><strong>{t('projectDetail.analysis.uniqueWords')} :</strong> {analysisData.uniqueWords}</p>
                 </div>
-               <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Chargement du nuage de mots...</div>}>
-  <WordCloudComponent
-    words={analysisData.wordCloud || []}
-    width={isMobile ? 350 : 600}
-    height={isMobile ? 250 : 400}
-  />
-</Suspense>
+                <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.analysis.wordCloudLoading')}</div>}>
+                  <WordCloudComponent
+                    words={analysisData.wordCloud || []}
+                    width={isMobile ? 350 : 600}
+                    height={isMobile ? 250 : 400}
+                  />
+                </Suspense>
                 <div style={{ marginTop: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0' }}>🏷️ Mots-clés les plus fréquents</h4>
+                  <h4 style={{ margin: '0 0 8px 0' }}>{t('projectDetail.analysis.keywords')}</h4>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {analysisData.topKeywords?.slice(0, 20).map((k: any) => (
                       <span key={k.word} style={{
@@ -931,9 +908,9 @@ const ProjectDetail: React.FC = () => {
               </>
             ) : (
               <div>
-                <p>Aucune donnée d'analyse disponible pour ce projet.</p>
+                <p>{t('projectDetail.analysis.noData')}</p>
                 <Button variant="primary" size="sm" onClick={() => { setAnalysisLoading(true); fetchAnalysis(); }}>
-                  🔄 Générer l'analyse
+                  {t('projectDetail.analysis.generate')}
                 </Button>
               </div>
             )}
@@ -941,19 +918,19 @@ const ProjectDetail: React.FC = () => {
         )}
 
         {activeTab === 'members' && (
-          <Card title="Gestion des membres">
+          <Card title={t('projectDetail.members.title')}>
             <ProjectMembers projectId={encodedId} />
           </Card>
         )}
 
         {activeTab === 'activity' && (
-          <Card title="📋 Activité récente du projet">
+          <Card title={t('projectDetail.activity.title')}>
             <ActivityFeed activities={activities} />
           </Card>
         )}
 
         {activeTab === 'presence' && (
-          <Card title="👥 Présence en temps réel">
+          <Card title={t('projectDetail.presence.title')}>
             <PresenceDetail
               users={users}
               connected={connected}
@@ -964,23 +941,23 @@ const ProjectDetail: React.FC = () => {
         )}
 
         {activeTab === 'documents' && (
-          <Card title="📁 Documents du projet">
+          <Card title={t('projectDetail.documents.title')}>
             <FileUpload projectId={id} onUploadSuccess={fetchProjectData} />
 
             <div style={{ marginTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: theme.spacing.sm }}>
                 <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
-                  📚 Liste des documents ({allDocuments.length})
+                  {t('projectDetail.documents.listTitle', { count: allDocuments.length })}
                 </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   style={{ padding: '6px 12px', border: `1px solid ${colors.gray[300]}`, borderRadius: '6px', fontSize: '14px', backgroundColor: colors.white }}
                 >
-                  <option value="date">📅 Trier par date</option>
-                  <option value="name">🔤 Trier par nom</option>
-                  <option value="size">📊 Trier par taille</option>
-                  <option value="type">📂 Trier par type</option>
+                  <option value="date">{t('projectDetail.documents.sortDate')}</option>
+                  <option value="name">{t('projectDetail.documents.sortName')}</option>
+                  <option value="size">{t('projectDetail.documents.sortSize')}</option>
+                  <option value="type">{t('projectDetail.documents.sortType')}</option>
                 </select>
               </div>
 
@@ -993,8 +970,8 @@ const ProjectDetail: React.FC = () => {
                   borderRadius: theme.borderRadius.md,
                 }}>
                   <div style={{ fontSize: '48px', marginBottom: '8px' }}>📭</div>
-                  <p style={{ margin: 0 }}>Aucun document dans ce projet.</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>Uploadez un fichier pour commencer.</p>
+                  <p style={{ margin: 0 }}>{t('projectDetail.documents.empty')}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>{t('projectDetail.documents.emptyHint')}</p>
                 </div>
               ) : (
                 allDocuments.map((doc) => {
@@ -1059,11 +1036,10 @@ const ProjectDetail: React.FC = () => {
                             color: typeColor.color,
                             letterSpacing: '0.5px',
                           }}>
-                            {doc.type === 'transcription' ? 'TRANSCRIPTION' : getFileTypeLabel(doc.name)}
+                            {doc.type === 'transcription' ? t('projectDetail.documents.typeTranscription') : getFileTypeLabel(doc.name)}
                           </span>
 
-                            <LanguageBadge language={doc.raw?.language} />
-
+                          <LanguageBadge language={doc.raw?.language} />
 
                           {statusColor && (
                             <span style={{
@@ -1085,14 +1061,14 @@ const ProjectDetail: React.FC = () => {
                           )}
 
                           <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-                            {doc.type === 'text' ? '📄 Texte importé' :
-                              doc.type === 'transcription' ? '📝 Transcription' :
-                                '📎 Fichier uploadé'}
+                            {doc.type === 'text' ? t('projectDetail.documents.typeText') :
+                             doc.type === 'transcription' ? t('projectDetail.documents.typeTranscriptionShort') :
+                             t('projectDetail.documents.typeFile')}
                           </span>
                         </div>
 
                         <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-                          📅 Ajouté le {formatDate(doc.date)}
+                          {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
                         </div>
                       </div>
 
@@ -1108,7 +1084,7 @@ const ProjectDetail: React.FC = () => {
                         <button
                           onClick={() => deleteDocument(doc)}
                           disabled={isDeleting}
-                          title="Déplacer à la corbeille"
+                          title={t('projectDetail.documents.deleteTooltip')}
                           style={{
                             padding: '6px 10px',
                             backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
@@ -1143,7 +1119,7 @@ const ProjectDetail: React.FC = () => {
         )}
 
         {activeTab === 'trash' && (
-          <Card title="🗑️ Corbeille">
+          <Card title={t('projectDetail.trash.title')}>
             {totalTrashed === 0 ? (
               <div style={{
                 padding: '40px 20px',
@@ -1153,9 +1129,9 @@ const ProjectDetail: React.FC = () => {
                 borderRadius: theme.borderRadius.md,
               }}>
                 <div style={{ fontSize: '48px', marginBottom: '8px' }}>🗑️</div>
-                <p style={{ margin: 0 }}>La corbeille est vide.</p>
+                <p style={{ margin: 0 }}>{t('projectDetail.trash.empty')}</p>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
-                  Les éléments supprimés apparaîtront ici.
+                  {t('projectDetail.trash.emptyHint')}
                 </p>
               </div>
             ) : (
@@ -1173,7 +1149,7 @@ const ProjectDetail: React.FC = () => {
                   gap: '10px',
                 }}>
                   <div style={{ fontSize: '13px', color: '#856404', flex: 1 }}>
-                    ⚠️ <strong>{totalTrashed}</strong> élément(s) dans la corbeille. Les éléments peuvent être restaurés ou supprimés définitivement.
+                    {t('projectDetail.trash.warning', { count: totalTrashed })}
                   </div>
                   <button
                     onClick={emptyTrash}
@@ -1189,14 +1165,14 @@ const ProjectDetail: React.FC = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    💥 Vider la corbeille
+                    {t('projectDetail.trash.emptyButton')}
                   </button>
                 </div>
 
                 {trashedFiles.length > 0 && (
                   <div style={{ marginBottom: '20px' }}>
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
-                      📎 Fichiers ({trashedFiles.length})
+                      {t('projectDetail.trash.files', { count: trashedFiles.length })}
                     </h4>
                     {trashedFiles.map((doc) => {
                       const isDeleting = deletingId === doc.id;
@@ -1251,7 +1227,7 @@ const ProjectDetail: React.FC = () => {
                               </span>
                             </div>
                             <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-                              🗑️ Supprimé le {formatDate(doc.deletedAt)}
+                              {t('projectDetail.trash.deletedOn', { date: formatDate(doc.deletedAt) })}
                             </div>
                           </div>
 
@@ -1270,7 +1246,7 @@ const ProjectDetail: React.FC = () => {
                                 fontWeight: 'bold',
                               }}
                             >
-                              ♻️ Restaurer
+                              {t('projectDetail.trash.restore')}
                             </button>
                             <button
                               onClick={() => permanentlyDeleteItem(doc, 'file')}
@@ -1297,15 +1273,15 @@ const ProjectDetail: React.FC = () => {
                 {trashedTranscriptions.length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: colors.gray[700] }}>
-                      🎙️ Transcriptions ({trashedTranscriptions.length})
+                      {t('projectDetail.trash.transcriptions', { count: trashedTranscriptions.length })}
                     </h4>
-                    {trashedTranscriptions.map((t) => {
-                      const isDeleting = deletingId === t.id;
-                      const icon = t.type === 'audio' ? '🎙️' : '📄';
+                    {trashedTranscriptions.map((t_item) => {
+                      const isDeleting = deletingId === t_item.id;
+                      const icon = t_item.type === 'audio' ? '🎙️' : '📄';
 
                       return (
                         <div
-                          key={t.id}
+                          key={t_item.id}
                           style={{
                             padding: '12px 14px',
                             marginBottom: '8px',
@@ -1333,7 +1309,7 @@ const ProjectDetail: React.FC = () => {
                               whiteSpace: 'nowrap',
                               marginBottom: '4px',
                             }}>
-                              {t.title}
+                              {t_item.title}
                             </div>
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span style={{
@@ -1344,17 +1320,17 @@ const ProjectDetail: React.FC = () => {
                                 backgroundColor: '#e6f0ff',
                                 color: '#0052cc',
                               }}>
-                                {t.type === 'audio' ? 'AUDIO' : 'TEXTE'}
+                                {t_item.type === 'audio' ? 'AUDIO' : 'TEXTE'}
                               </span>
                             </div>
                             <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-                              🗑️ Supprimé le {formatDate(t.deletedAt)}
+                              {t('projectDetail.trash.deletedOn', { date: formatDate((t_item as any).deletedAt) })}
                             </div>
                           </div>
 
                           <div style={{ flexShrink: 0, display: 'flex', gap: '6px' }}>
                             <button
-                              onClick={() => restoreItem(t, 'transcription')}
+                              onClick={() => restoreItem(t_item, 'transcription')}
                               disabled={isDeleting}
                               style={{
                                 padding: '6px 12px',
@@ -1367,10 +1343,10 @@ const ProjectDetail: React.FC = () => {
                                 fontWeight: 'bold',
                               }}
                             >
-                              ♻️ Restaurer
+                              {t('projectDetail.trash.restore')}
                             </button>
                             <button
-                              onClick={() => permanentlyDeleteItem(t, 'transcription')}
+                              onClick={() => permanentlyDeleteItem(t_item, 'transcription')}
                               disabled={isDeleting}
                               style={{
                                 padding: '6px 10px',
@@ -1396,7 +1372,6 @@ const ProjectDetail: React.FC = () => {
         )}
       </div>
 
-      {/* Modal d'aperçu */}
       {previewFile && (
         <FilePreviewModal
           file={{
@@ -1410,7 +1385,6 @@ const ProjectDetail: React.FC = () => {
         />
       )}
 
-      {/* ✅ Modal d'édition du projet (visible seulement pour le propriétaire) */}
       {editingProject && isOwner && (
         <div
           style={{
@@ -1436,10 +1410,10 @@ const ProjectDetail: React.FC = () => {
               boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
             }}
           >
-            <h2 style={{ marginTop: 0 }}>✏️ Modifier le projet</h2>
+            <h2 style={{ marginTop: 0 }}>{t('projectDetail.editModal.title')}</h2>
 
             <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
-              Titre *
+              {t('projectDetail.editModal.titleLabel')}
             </label>
             <input
               type="text"
@@ -1458,14 +1432,14 @@ const ProjectDetail: React.FC = () => {
             />
 
             <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
-              Description
+              {t('projectDetail.editModal.descriptionLabel')}
             </label>
             <textarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
               disabled={savingProject}
               rows={4}
-              placeholder="Décrivez votre projet..."
+              placeholder={t('projectDetail.editModal.descriptionPlaceholder')}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -1481,10 +1455,10 @@ const ProjectDetail: React.FC = () => {
 
             <div style={{ display: 'flex', gap: theme.spacing.sm, justifyContent: 'flex-end' }}>
               <Button variant="outline" onClick={() => setEditingProject(false)} disabled={savingProject}>
-                Annuler
+                {t('projectDetail.editModal.cancel')}
               </Button>
               <Button variant="primary" onClick={saveProject} disabled={savingProject}>
-                {savingProject ? 'Enregistrement...' : 'Enregistrer'}
+                {savingProject ? t('projectDetail.editModal.saving') : t('projectDetail.editModal.save')}
               </Button>
             </div>
           </div>

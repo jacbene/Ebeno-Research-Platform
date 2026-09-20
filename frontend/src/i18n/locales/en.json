@@ -172,6 +172,141 @@
     "Url": "URLs"
   }
 },
+"projectDetail": {
+  "loading": "Loading...",
+  "notFound": "Project not found",
+  "owner": "👑 Owner",
+  "editProject": "Edit project",
+  "noDescription": "No description",
+  "createdOn": "Created on {{date}}",
+  "actions": {
+    "newTranscription": "🎙️ New transcription",
+    "importText": "📄 Import text",
+    "exportProject": "📥 Export project",
+    "exporting": "⏳ Exporting..."
+  },
+  "searchPlaceholder": "Search in this project...",
+  "searchResults": "🔍 Search results",
+  "sourceTypes": {
+    "transcription": "Transcription",
+    "memo": "Memo",
+    "file": "File"
+  },
+  "tabs": {
+    "audio": "🎙️ Audio ({{count}})",
+    "memos": "📝 Memos ({{count}})",
+    "analysis": "📊 Analysis",
+    "members": "👥 Members",
+    "documents": "📁 Documents ({{count}})",
+    "activity": "📋 Activity ({{count}})",
+    "trash": "🗑️ Trash ({{count}})",
+    "presence": "👥 Presence ({{count}})"
+  },
+  "audio": {
+    "title": "Audio transcriptions",
+    "empty": "No audio transcription.",
+    "retry": "🔄 Retry",
+    "retryConfirm": "Retry the transcription?",
+    "retrySuccess": "🔄 Transcription restarted",
+    "retryError": "Could not retry"
+  },
+  "memos": {
+    "title": "Research memos",
+    "placeholderTitle": "Memo title",
+    "placeholderContent": "Memo content...",
+    "addButton": "+ Add a memo",
+    "adding": "Creating...",
+    "empty": "No memo.",
+    "deleteConfirm": "Delete this memo?"
+  },
+  "analysis": {
+    "title": "📊 Qualitative analysis of the project",
+    "loading": "Loading analysis...",
+    "totalWords": "Total words",
+    "uniqueWords": "Unique words",
+    "keywords": "🏷️ Most frequent keywords",
+    "wordCloudLoading": "Loading word cloud...",
+    "noData": "No analysis data available for this project.",
+    "generate": "🔄 Generate analysis"
+  },
+  "members": {
+    "title": "Members management"
+  },
+  "activity": {
+    "title": "📋 Recent project activity"
+  },
+  "presence": {
+    "title": "👥 Real-time presence"
+  },
+  "documents": {
+    "title": "📁 Project documents",
+    "listTitle": "📚 Document list ({{count}})",
+    "sortDate": "📅 Sort by date",
+    "sortName": "🔤 Sort by name",
+    "sortSize": "📊 Sort by size",
+    "sortType": "📂 Sort by type",
+    "empty": "No document in this project.",
+    "emptyHint": "Upload a file to start.",
+    "addedOn": "📅 Added on {{date}}",
+    "deleteTooltip": "Move to trash",
+    "typeTranscription": "TRANSCRIPTION",
+    "typeText": "📄 Imported text",
+    "typeTranscriptionShort": "📝 Transcription",
+    "typeFile": "📎 Uploaded file"
+  },
+  "trash": {
+    "title": "🗑️ Trash",
+    "empty": "The trash is empty.",
+    "emptyHint": "Deleted items will appear here.",
+    "warning": "⚠️ {{count}} item(s) in trash. Items can be restored or permanently deleted.",
+    "emptyButton": "💥 Empty trash",
+    "files": "📎 Files ({{count}})",
+    "transcriptions": "🎙️ Transcriptions ({{count}})",
+    "restore": "♻️ Restore",
+    "restoreConfirm": "Restore \"{{name}}\"?",
+    "permanentDeleteConfirm": "⚠️ Permanently delete \"{{name}}\"?\\n\\nThis action is IRREVERSIBLE.",
+    "deletedOn": "🗑️ Deleted on {{date}}",
+    "emptyAlready": "The trash is already empty.",
+    "emptyConfirm": "⚠️ Completely empty the trash?\\n\\n{{count}} item(s) will be PERMANENTLY deleted (Cloudinary included).\\n\\nThis action is IRREVERSIBLE.",
+    "emptySuccess": "✅ Trash emptied successfully.",
+    "emptyError": "Error emptying the trash",
+    "restoreError": "Error restoring",
+    "deleteError": "Error during deletion",
+    "deleteConfirm": "Move \"{{name}}\" to trash?"
+  },
+  "editModal": {
+    "title": "✏️ Edit project",
+    "titleLabel": "Title *",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe your project...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "titleRequired": "Title is required (min 3 characters)",
+    "success": "Project updated ✅",
+    "error": "Could not update"
+  },
+  "status": {
+    "COMPLETED": "✅ Completed",
+    "PENDING": "⏳ Pending",
+    "PROCESSING": "⚙️ Processing",
+    "FAILED": "❌ Failed",
+    "unknown": "Unknown"
+  },
+  "events": {
+    "file-uploaded": "📤 {{name}} was uploaded",
+    "file-trashed": "🗑️ {{name}} was moved to trash",
+    "file-restored": "♻️ {{name}} was restored",
+    "file-deleted-permanently": "💥 {{name}} was permanently deleted",
+    "transcription-uploaded": "🎙️ New transcription: {{title}}",
+    "transcription-trashed": "🗑️ Transcription moved to trash",
+    "transcription-restored": "♻️ Transcription restored",
+    "transcription-deleted-permanently": "💥 Transcription deleted",
+    "trash-emptied": "🧹 Trash emptied ({{count}} items)",
+    "document-uploaded": "📄 {{name}} was imported",
+    "memo-created": "📝 New memo: {{title}}"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

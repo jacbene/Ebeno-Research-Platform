@@ -172,6 +172,141 @@
     "Url": "URLs"
   }
 },
+"projectDetail": {
+  "loading": "Chargement...",
+  "notFound": "Projet non trouvé",
+  "owner": "👑 Propriétaire",
+  "editProject": "Modifier le projet",
+  "noDescription": "Aucune description",
+  "createdOn": "Créé le {{date}}",
+  "actions": {
+    "newTranscription": "🎙️ Nouvelle transcription",
+    "importText": "📄 Importer un texte",
+    "exportProject": "📥 Exporter le projet",
+    "exporting": "⏳ Export..."
+  },
+  "searchPlaceholder": "Rechercher dans ce projet...",
+  "searchResults": "🔍 Résultats de la recherche",
+  "sourceTypes": {
+    "transcription": "Transcription",
+    "memo": "Memo",
+    "file": "Fichier"
+  },
+  "tabs": {
+    "audio": "🎙️ Audio ({{count}})",
+    "memos": "📝 Memos ({{count}})",
+    "analysis": "📊 Analyse",
+    "members": "👥 Membres",
+    "documents": "📁 Documents ({{count}})",
+    "activity": "📋 Activité ({{count}})",
+    "trash": "🗑️ Corbeille ({{count}})",
+    "presence": "👥 Présence ({{count}})"
+  },
+  "audio": {
+    "title": "Transcriptions audio",
+    "empty": "Aucune transcription audio.",
+    "retry": "🔄 Réessayer",
+    "retryConfirm": "Relancer la transcription ?",
+    "retrySuccess": "🔄 Transcription relancée",
+    "retryError": "Impossible de relancer"
+  },
+  "memos": {
+    "title": "Memos de recherche",
+    "placeholderTitle": "Titre du memo",
+    "placeholderContent": "Contenu du memo...",
+    "addButton": "+ Ajouter un memo",
+    "adding": "Création...",
+    "empty": "Aucun memo.",
+    "deleteConfirm": "Supprimer ce memo ?"
+  },
+  "analysis": {
+    "title": "📊 Analyse qualitative du projet",
+    "loading": "Chargement de l'analyse...",
+    "totalWords": "Total mots",
+    "uniqueWords": "Mots uniques",
+    "keywords": "🏷️ Mots-clés les plus fréquents",
+    "wordCloudLoading": "Chargement du nuage de mots...",
+    "noData": "Aucune donnée d'analyse disponible pour ce projet.",
+    "generate": "🔄 Générer l'analyse"
+  },
+  "members": {
+    "title": "Gestion des membres"
+  },
+  "activity": {
+    "title": "📋 Activité récente du projet"
+  },
+  "presence": {
+    "title": "👥 Présence en temps réel"
+  },
+  "documents": {
+    "title": "📁 Documents du projet",
+    "listTitle": "📚 Liste des documents ({{count}})",
+    "sortDate": "📅 Trier par date",
+    "sortName": "🔤 Trier par nom",
+    "sortSize": "📊 Trier par taille",
+    "sortType": "📂 Trier par type",
+    "empty": "Aucun document dans ce projet.",
+    "emptyHint": "Uploadez un fichier pour commencer.",
+    "addedOn": "📅 Ajouté le {{date}}",
+    "deleteTooltip": "Déplacer à la corbeille",
+    "typeTranscription": "TRANSCRIPTION",
+    "typeText": "📄 Texte importé",
+    "typeTranscriptionShort": "📝 Transcription",
+    "typeFile": "📎 Fichier uploadé"
+  },
+  "trash": {
+    "title": "🗑️ Corbeille",
+    "empty": "La corbeille est vide.",
+    "emptyHint": "Les éléments supprimés apparaîtront ici.",
+    "warning": "⚠️ {{count}} élément(s) dans la corbeille. Les éléments peuvent être restaurés ou supprimés définitivement.",
+    "emptyButton": "💥 Vider la corbeille",
+    "files": "📎 Fichiers ({{count}})",
+    "transcriptions": "🎙️ Transcriptions ({{count}})",
+    "restore": "♻️ Restaurer",
+    "restoreConfirm": "Restaurer \"{{name}}\" ?",
+    "permanentDeleteConfirm": "⚠️ Supprimer DÉFINITIVEMENT \"{{name}}\" ?\\n\\nCette action est IRRÉVERSIBLE.",
+    "deletedOn": "🗑️ Supprimé le {{date}}",
+    "emptyAlready": "La corbeille est déjà vide.",
+    "emptyConfirm": "⚠️ Vider complètement la corbeille ?\\n\\n{{count}} élément(s) seront supprimés DÉFINITIVEMENT (Cloudinary inclus).\\n\\nCette action est IRRÉVERSIBLE.",
+    "emptySuccess": "✅ Corbeille vidée avec succès.",
+    "emptyError": "Erreur lors du vidage de la corbeille",
+    "restoreError": "Erreur lors de la restauration",
+    "deleteError": "Erreur lors de la suppression",
+    "deleteConfirm": "Déplacer \"{{name}}\" à la corbeille ?"
+  },
+  "editModal": {
+    "title": "✏️ Modifier le projet",
+    "titleLabel": "Titre *",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Décrivez votre projet...",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "titleRequired": "Le titre est requis (3 caractères min)",
+    "success": "Projet mis à jour ✅",
+    "error": "Impossible de mettre à jour"
+  },
+  "status": {
+    "COMPLETED": "✅ Terminé",
+    "PENDING": "⏳ En attente",
+    "PROCESSING": "⚙️ Traitement",
+    "FAILED": "❌ Échec",
+    "unknown": "Inconnu"
+  },
+  "events": {
+    "file-uploaded": "📤 {{name}} a été uploadé",
+    "file-trashed": "🗑️ {{name}} a été mis à la corbeille",
+    "file-restored": "♻️ {{name}} a été restauré",
+    "file-deleted-permanently": "💥 {{name}} a été supprimé définitivement",
+    "transcription-uploaded": "🎙️ Nouvelle transcription : {{title}}",
+    "transcription-trashed": "🗑️ Transcription mise à la corbeille",
+    "transcription-restored": "♻️ Transcription restaurée",
+    "transcription-deleted-permanently": "💥 Transcription supprimée",
+    "trash-emptied": "🧹 Corbeille vidée ({{count}} éléments)",
+    "document-uploaded": "📄 {{name}} a été importé",
+    "memo-created": "📝 Nouveau memo : {{title}}"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",
