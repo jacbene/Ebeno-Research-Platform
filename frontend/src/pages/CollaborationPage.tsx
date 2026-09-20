@@ -1,6 +1,7 @@
 // frontend/src/pages/CollaborationPage.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { theme } from '../theme';
@@ -21,7 +22,7 @@ interface Document {
   content: string;
   version: number;
   updatedAt: number;
-  language?: string | null;    // ✅ AJOUT
+  language?: string | null;
 }
 
 interface Project {
@@ -63,7 +64,7 @@ const escapeHtml = (text: string): string =>
     .replace(/'/g, '&#039;');
 
 // ✅ Construit un HTML réutilisable pour Word
-const buildDocumentHtml = (doc: Document): string => {
+const buildDocumentHtml = (doc: Document, locale: string, footerText: string): string => {
   const contentHtml = escapeHtml(doc.content || '')
     .split('\n')
     .map((line) => `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line || '&nbsp;'}</p>`)
@@ -74,13 +75,13 @@ const buildDocumentHtml = (doc: Document): string => {
       ${escapeHtml(doc.title)}
     </h1>
     <p style="font-size: 12px; color: #666; font-style: italic; margin: 0 0 24px 0; font-family: Arial, sans-serif;">
-      Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}
+      Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString(locale)}
     </p>
     <div style="font-size: 12px; line-height: 1.6; color: #333; font-family: Arial, sans-serif;">
       ${contentHtml}
     </div>
     <div style="margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center; font-family: Arial, sans-serif;">
-      Document généré depuis Ebeno Research Platform
+      ${escapeHtml(footerText)}
     </div>
   `;
 };
@@ -101,7 +102,7 @@ const downloadAsTxt = (doc: Document) => {
 };
 
 // ✅ DOCX (Word) via HTML → .doc
-const downloadAsDocx = (doc: Document) => {
+const downloadAsDocx = (doc: Document, locale: string, footerText: string) => {
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -124,7 +125,7 @@ const downloadAsDocx = (doc: Document) => {
       </style>
     </head>
     <body>
-      ${buildDocumentHtml(doc)}
+      ${buildDocumentHtml(doc, locale, footerText)}
     </body>
     </html>
   `;
@@ -142,11 +143,8 @@ const downloadAsDocx = (doc: Document) => {
   URL.revokeObjectURL(url);
 };
 
-// ✅ PDF via jsPDF + html2canvas (contourne les bugs de html2pdf.js sous CRA 5)
-const downloadAsPdf = async (doc: Document): Promise<void> => {
-  // ============================================================
-  // 1. Construire un container off-screen avec tout le contenu
-  // ============================================================
+// ✅ PDF via jsPDF + html2canvas
+const downloadAsPdf = async (doc: Document, locale: string, footerText: string): Promise<void> => {
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-9999px';
@@ -160,7 +158,6 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
   container.style.lineHeight = '1.6';
   container.style.boxSizing = 'border-box';
 
-  // Titre
   const title = document.createElement('h1');
   title.textContent = doc.title;
   title.style.fontSize = '22px';
@@ -171,9 +168,8 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
   title.style.color = '#222';
   container.appendChild(title);
 
-  // Métadonnées
   const meta = document.createElement('p');
-  meta.textContent = `Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString('fr-FR')}`;
+  meta.textContent = `Version ${doc.version} — ${new Date(doc.updatedAt).toLocaleString(locale)}`;
   meta.style.fontSize = '12px';
   meta.style.color = '#666';
   meta.style.fontStyle = 'italic';
@@ -181,7 +177,6 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
   meta.style.marginBottom = '24px';
   container.appendChild(meta);
 
-  // Contenu
   const content = document.createElement('div');
   content.style.whiteSpace = 'pre-wrap';
   content.style.wordWrap = 'break-word';
@@ -189,9 +184,8 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
   content.textContent = doc.content || '';
   container.appendChild(content);
 
-  // Footer
   const footer = document.createElement('div');
-  footer.textContent = 'Document généré depuis Ebeno Research Platform';
+  footer.textContent = footerText;
   footer.style.marginTop = '40px';
   footer.style.paddingTop = '12px';
   footer.style.borderTop = '1px solid #ddd';
@@ -203,9 +197,6 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
   document.body.appendChild(container);
 
   try {
-    // ============================================================
-    // 2. Rendu HTML → Canvas
-    // ============================================================
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
@@ -216,9 +207,6 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
       scrollY: 0,
     });
 
-    // ============================================================
-    // 3. Canvas → PDF avec pagination manuelle
-    // ============================================================
     const pdf = new jsPDF({
       unit: 'mm',
       format: 'a4',
@@ -263,6 +251,7 @@ const downloadAsPdf = async (doc: Document): Promise<void> => {
 const CollaborationPage: React.FC = () => {
   const { colors } = useTheme();
   const toast = useToast();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -308,7 +297,7 @@ const CollaborationPage: React.FC = () => {
   } = useProjectSocket({
     projectId: encodedProjectId,
     userId: currentUser?.id,
-    userName: currentUser?.name || currentUser?.email || 'Utilisateur',
+    userName: currentUser?.name || currentUser?.email || t('nav.user'),
     userEmail: currentUser?.email,
     onDataChange: (event, data) => {
       if (event === 'document-updated-title' && data?.projectId === rawProjectId) {
@@ -320,13 +309,16 @@ const CollaborationPage: React.FC = () => {
         }
         toast.addToast({
           type: 'info',
-          title: `📝 ${data.updatedByName} a renommé le document en "${data.newTitle}"`,
+          title: t('collaboration.toasts.docRenamedBy', {
+            name: data.updatedByName,
+            title: data.newTitle,
+          }),
         });
       }
     },
   });
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -350,7 +342,7 @@ const CollaborationPage: React.FC = () => {
     loadProjects();
   }, []);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!encodedProjectId) return;
     const loadMembers = async () => {
@@ -364,7 +356,7 @@ const CollaborationPage: React.FC = () => {
     loadMembers();
   }, [encodedProjectId]);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!encodedProjectId) return;
     const fetchDocuments = async () => {
@@ -381,7 +373,7 @@ const CollaborationPage: React.FC = () => {
     fetchDocuments();
   }, [encodedProjectId]);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!selectedDoc?.id) return;
     joinDocument(selectedDoc.id);
@@ -390,14 +382,14 @@ const CollaborationPage: React.FC = () => {
     };
   }, [selectedDoc?.id, joinDocument, leaveDocument]);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedDoc && documentContent !== selectedDoc.content) {
       setSelectedDoc((prev) => (prev ? { ...prev, content: documentContent } : prev));
     }
   }, [documentContent]);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (editingDocId && editInputRef.current) {
       editInputRef.current.focus();
@@ -405,7 +397,7 @@ const CollaborationPage: React.FC = () => {
     }
   }, [editingDocId]);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const handleClickOutside = () => setOpenDownloadMenuId(null);
     if (openDownloadMenuId) {
@@ -434,7 +426,7 @@ const CollaborationPage: React.FC = () => {
 
   const createDocument = async () => {
     if (!rawProjectId) {
-      alert('Veuillez sélectionner un projet');
+      alert(t('collaboration.selectProjectAlert'));
       return;
     }
 
@@ -454,7 +446,7 @@ const CollaborationPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('❌ Erreur création document:', error);
-      alert(error.response?.data?.message || 'Erreur lors de la création');
+      alert(error.response?.data?.message || t('collaboration.toasts.createFailed'));
     } finally {
       setCreating(false);
     }
@@ -472,20 +464,29 @@ const CollaborationPage: React.FC = () => {
     try {
       if (format === 'txt') {
         downloadAsTxt(doc);
-        toast.addToast({ type: 'success', title: `📥 "${doc.title}.txt" téléchargé` });
+        toast.addToast({
+          type: 'success',
+          title: t('collaboration.toasts.downloaded', { name: `${doc.title}.txt` }),
+        });
       } else if (format === 'docx') {
-        downloadAsDocx(doc);
-        toast.addToast({ type: 'success', title: `📥 "${doc.title}.doc" téléchargé` });
+        downloadAsDocx(doc, i18n.language, t('collaboration.editor.emptyHint') ? 'Document généré depuis Ebeno Research Platform' : '');
+        toast.addToast({
+          type: 'success',
+          title: t('collaboration.toasts.downloaded', { name: `${doc.title}.doc` }),
+        });
       } else {
-        await downloadAsPdf(doc);
-        toast.addToast({ type: 'success', title: `📥 "${doc.title}.pdf" téléchargé` });
+        await downloadAsPdf(doc, i18n.language, 'Document généré depuis Ebeno Research Platform');
+        toast.addToast({
+          type: 'success',
+          title: t('collaboration.toasts.downloaded', { name: `${doc.title}.pdf` }),
+        });
       }
     } catch (error: any) {
       console.error('❌ Erreur téléchargement:', error);
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: 'Impossible de télécharger le document',
+        title: t('common.error'),
+        message: t('collaboration.toasts.downloadFailed'),
       });
     } finally {
       setDownloading(null);
@@ -523,13 +524,13 @@ const CollaborationPage: React.FC = () => {
         setSelectedDoc((prev) => (prev ? { ...prev, title: updated.title } : prev));
       }
 
-      toast.addToast({ type: 'success', title: 'Document renommé ✅' });
+      toast.addToast({ type: 'success', title: t('collaboration.toasts.renamed') });
       cancelRenaming();
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Impossible de renommer',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('collaboration.toasts.renameFailed'),
       });
     } finally {
       setSavingTitle(false);
@@ -548,13 +549,17 @@ const CollaborationPage: React.FC = () => {
 
   const shareWithMember = (member: Member) => {
     const url = `${window.location.origin}/collaboration?projectId=${encodedProjectId}`;
-    const msg = `Bonjour ${member.name || member.email},\n\nRejoins-moi sur le document collaboratif du projet "${selectedProject?.title}" :\n${url}\n\nÀ bientôt !`;
+    const msg = t('collaboration.members.shareMessage', {
+      name: member.name || member.email,
+      project: selectedProject?.title || '',
+      url,
+    });
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg);
-      alert(`✅ Message copié pour ${member.name || member.email}. Collez-le dans un email.`);
+      alert(t('collaboration.members.shareCopied', { name: member.name || member.email }));
     } else {
-      prompt('Copiez ce message :', msg);
+      prompt(t('collaboration.members.sharePrompt'), msg);
     }
   };
 
@@ -569,14 +574,14 @@ const CollaborationPage: React.FC = () => {
 
   return (
     <div style={{ padding: theme.spacing.xl, maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: theme.spacing.lg }}>🤝 Collaboration en temps réel</h1>
+      <h1 style={{ marginBottom: theme.spacing.lg }}>{t('collaboration.title')}</h1>
 
       {projectsLoading ? (
-        <p>Chargement de vos projets...</p>
+        <p>{t('collaboration.loadingProjects')}</p>
       ) : projects.length === 0 ? (
         <Card>
           <p style={{ textAlign: 'center', color: colors.gray[500] }}>
-            Vous n'avez encore aucun projet. Créez-en un d'abord depuis le tableau de bord.
+            {t('collaboration.noProjects')}
           </p>
         </Card>
       ) : (
@@ -585,7 +590,7 @@ const CollaborationPage: React.FC = () => {
             <div style={{ display: 'flex', gap: theme.spacing.md, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: 1, minWidth: '250px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: colors.gray[600], marginBottom: '6px' }}>
-                  📁 Projet
+                  {t('collaboration.projectLabel')}
                 </label>
                 <select
                   value={selectedProject?.id || ''}
@@ -616,7 +621,7 @@ const CollaborationPage: React.FC = () => {
 
             {selectedProject && (
               <div style={{ marginTop: theme.spacing.sm, fontSize: '12px', color: colors.gray[500] }}>
-                {selectedProject.description || 'Aucune description'}
+                {selectedProject.description || t('collaboration.noDescription')}
               </div>
             )}
           </Card>
@@ -625,9 +630,9 @@ const CollaborationPage: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: theme.spacing.lg, marginTop: theme.spacing.lg }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.md }}>
-              <Card title="👥 Membres du projet">
+              <Card title={t('collaboration.members.title')}>
                 {members.length === 0 ? (
-                  <p style={{ fontSize: '13px', color: colors.gray[500] }}>Aucun membre</p>
+                  <p style={{ fontSize: '13px', color: colors.gray[500] }}>{t('collaboration.members.empty')}</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {members.map((m) => (
@@ -667,7 +672,7 @@ const CollaborationPage: React.FC = () => {
                         </div>
                         <button
                           onClick={() => shareWithMember(m)}
-                          title="Copier un message d'invitation"
+                          title={t('collaboration.members.shareTooltip')}
                           style={{
                             border: 'none',
                             background: 'none',
@@ -691,14 +696,14 @@ const CollaborationPage: React.FC = () => {
                   disabled={creating || !selectedProject}
                   style={{ width: '100%', marginBottom: theme.spacing.md }}
                 >
-                  {creating ? '⏳ Création...' : '+ Nouveau document'}
+                  {creating ? t('collaboration.documents.creating') : t('collaboration.documents.newButton')}
                 </Button>
 
-                <h4 style={{ marginTop: 0 }}>📄 Documents ({documents.length})</h4>
+                <h4 style={{ marginTop: 0 }}>{t('collaboration.documents.title', { count: documents.length })}</h4>
                 {loading ? (
-                  <p>Chargement...</p>
+                  <p>{t('collaboration.documents.loading')}</p>
                 ) : documents.length === 0 ? (
-                  <p style={{ color: colors.gray[500], fontSize: '13px' }}>Aucun document</p>
+                  <p style={{ color: colors.gray[500], fontSize: '13px' }}>{t('collaboration.documents.empty')}</p>
                 ) : (
                   documents.map((doc) => {
                     const isEditing = editingDocId === doc.id;
@@ -802,7 +807,7 @@ const CollaborationPage: React.FC = () => {
                                     setOpenDownloadMenuId(isMenuOpen ? null : doc.id);
                                   }}
                                   disabled={isDownloading}
-                                  title="Télécharger"
+                                  title={t('collaboration.documents.download')}
                                   style={{
                                     border: 'none',
                                     background: 'none',
@@ -854,7 +859,7 @@ const CollaborationPage: React.FC = () => {
                                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                     >
-                                      📕 Format PDF (.pdf)
+                                      {t('collaboration.documents.formatPdf')}
                                     </button>
                                     <button
                                       onClick={(e) => handleDownload(doc, 'docx', e)}
@@ -875,7 +880,7 @@ const CollaborationPage: React.FC = () => {
                                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                     >
-                                      📘 Format Word (.doc)
+                                      {t('collaboration.documents.formatWord')}
                                     </button>
                                     <button
                                       onClick={(e) => handleDownload(doc, 'txt', e)}
@@ -896,7 +901,7 @@ const CollaborationPage: React.FC = () => {
                                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
                                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                     >
-                                      📄 Texte brut (.txt)
+                                      {t('collaboration.documents.formatTxt')}
                                     </button>
                                   </div>
                                 )}
@@ -904,7 +909,7 @@ const CollaborationPage: React.FC = () => {
 
                               <button
                                 onClick={(e) => startRenaming(doc, e)}
-                                title="Renommer"
+                                title={t('collaboration.documents.rename')}
                                 style={{
                                   border: 'none',
                                   background: 'none',
@@ -945,36 +950,36 @@ const CollaborationPage: React.FC = () => {
                     gap: '8px',
                   }}>
                     <h3 style={{
-  margin: 0,
-  fontSize: '16px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-}}>
-  📄 {selectedDoc.title}
-  <LanguageBadge language={selectedDoc.language} />
-</h3>
+                      margin: 0,
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+                      📄 {selectedDoc.title}
+                      <LanguageBadge language={selectedDoc.language} />
+                    </h3>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={(e: any) => handleDownload(selectedDoc, 'pdf', e)}
                       >
-                        📕 PDF
+                        {t('collaboration.editor.pdf')}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={(e: any) => handleDownload(selectedDoc, 'docx', e)}
                       >
-                        📘 Word
+                        {t('collaboration.editor.word')}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={(e: any) => handleDownload(selectedDoc, 'txt', e)}
                       >
-                        📄 TXT
+                        {t('collaboration.editor.txt')}
                       </Button>
                     </div>
                   </div>
@@ -984,15 +989,15 @@ const CollaborationPage: React.FC = () => {
                     title=""
                     content={documentContent || selectedDoc.content || ''}
                     users={uniqueDocUsers}
-                    typingUsers={documentTyping.filter((t) => t.context === `doc-${selectedDoc.id}`)}
+                    typingUsers={documentTyping.filter((t_item) => t_item.context === `doc-${selectedDoc.id}`)}
                     onChange={handleContentChange}
                     onCursorMove={handleCursorMove}
                   />
                 </>
               ) : (
                 <div style={{ textAlign: 'center', padding: theme.spacing.xxl, color: colors.gray[500] }}>
-                  <p style={{ fontSize: theme.typography.fontSize.lg }}>📄 Sélectionnez un document</p>
-                  <p>ou créez-en un nouveau pour commencer la collaboration</p>
+                  <p style={{ fontSize: theme.typography.fontSize.lg }}>{t('collaboration.editor.empty')}</p>
+                  <p>{t('collaboration.editor.emptyHint')}</p>
                 </div>
               )}
             </Card>

@@ -459,6 +459,50 @@
     "label": "❌ Erreur :"
   }
 },
+"collaboration": {
+  "title": "🤝 Collaboration en temps réel",
+  "loadingProjects": "Chargement de vos projets...",
+  "noProjects": "Vous n'avez encore aucun projet. Créez-en un d'abord depuis le tableau de bord.",
+  "projectLabel": "📁 Projet",
+  "noDescription": "Aucune description",
+  "selectProjectAlert": "Veuillez sélectionner un projet",
+  "members": {
+    "title": "👥 Membres du projet",
+    "empty": "Aucun membre",
+    "shareTooltip": "Copier un message d'invitation",
+    "shareCopied": "✅ Message copié pour {{name}}. Collez-le dans un email.",
+    "sharePrompt": "Copiez ce message :",
+    "shareMessage": "Bonjour {{name}},\n\nRejoins-moi sur le document collaboratif du projet \"{{project}}\" :\n{{url}}\n\nÀ bientôt !"
+  },
+  "documents": {
+    "newButton": "+ Nouveau document",
+    "creating": "⏳ Création...",
+    "title": "📄 Documents ({{count}})",
+    "loading": "Chargement...",
+    "empty": "Aucun document",
+    "download": "Télécharger",
+    "rename": "Renommer",
+    "formatPdf": "📕 Format PDF (.pdf)",
+    "formatWord": "📘 Format Word (.doc)",
+    "formatTxt": "📄 Texte brut (.txt)"
+  },
+  "editor": {
+    "empty": "📄 Sélectionnez un document",
+    "emptyHint": "ou créez-en un nouveau pour commencer la collaboration",
+    "pdf": "📕 PDF",
+    "word": "📘 Word",
+    "txt": "📄 TXT"
+  },
+  "toasts": {
+    "renamed": "Document renommé ✅",
+    "renameFailed": "Impossible de renommer",
+    "downloaded": "📥 \"{{name}}\" téléchargé",
+    "downloadFailed": "Impossible de télécharger le document",
+    "docRenamedBy": "📝 {{name}} a renommé le document en \"{{title}}\"",
+    "created": "Document créé ✅",
+    "createFailed": "Erreur lors de la création"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

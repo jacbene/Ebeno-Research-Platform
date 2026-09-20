@@ -459,6 +459,50 @@
     "label": "❌ Error:"
   }
 },
+"collaboration": {
+  "title": "🤝 Real-time collaboration",
+  "loadingProjects": "Loading your projects...",
+  "noProjects": "You don't have any project yet. Create one first from the dashboard.",
+  "projectLabel": "📁 Project",
+  "noDescription": "No description",
+  "selectProjectAlert": "Please select a project",
+  "members": {
+    "title": "👥 Project members",
+    "empty": "No members",
+    "shareTooltip": "Copy an invitation message",
+    "shareCopied": "✅ Message copied for {{name}}. Paste it in an email.",
+    "sharePrompt": "Copy this message:",
+    "shareMessage": "Hello {{name}},\n\nJoin me on the collaborative document of project \"{{project}}\":\n{{url}}\n\nSee you soon!"
+  },
+  "documents": {
+    "newButton": "+ New document",
+    "creating": "⏳ Creating...",
+    "title": "📄 Documents ({{count}})",
+    "loading": "Loading...",
+    "empty": "No document",
+    "download": "Download",
+    "rename": "Rename",
+    "formatPdf": "📕 PDF format (.pdf)",
+    "formatWord": "📘 Word format (.doc)",
+    "formatTxt": "📄 Plain text (.txt)"
+  },
+  "editor": {
+    "empty": "📄 Select a document",
+    "emptyHint": "or create a new one to start collaborating",
+    "pdf": "📕 PDF",
+    "word": "📘 Word",
+    "txt": "📄 TXT"
+  },
+  "toasts": {
+    "renamed": "Document renamed ✅",
+    "renameFailed": "Could not rename",
+    "downloaded": "📥 \"{{name}}\" downloaded",
+    "downloadFailed": "Could not download the document",
+    "docRenamedBy": "📝 {{name}} renamed the document to \"{{title}}\"",
+    "created": "Document created ✅",
+    "createFailed": "Error during creation"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",
