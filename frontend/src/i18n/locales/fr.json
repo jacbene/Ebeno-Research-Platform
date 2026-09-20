@@ -417,6 +417,48 @@
     "serverUnreachable": "Désolé, le serveur est inaccessible. Veuillez réessayer plus tard."
   }
 },
+"transcriptionList": {
+  "title": "📜 Mes transcriptions",
+  "loading": "Chargement...",
+  "empty": "Aucun élément trouvé.",
+  "noText": "Aucun texte disponible.",
+  "failed": "La transcription a échoué. Cliquez sur \"🔄 Réessayer\" pour relancer.",
+  "processing": "La transcription est en cours...",
+  "noTitle": "Sans titre",
+  "filters": {
+    "all": "📋 Tout",
+    "audio": "🎙️ Audio",
+    "text": "📄 Texte"
+  },
+  "status": {
+    "COMPLETED": "✅ Terminé",
+    "PENDING": "⏳ En attente",
+    "PROCESSING": "⚙️ Traitement",
+    "FAILED": "❌ Échec",
+    "unknown": "Inconnu"
+  },
+  "retry": {
+    "button": "🔄 Réessayer",
+    "retrying": "⏳ En cours...",
+    "confirm": "Relancer la transcription de ce fichier audio ?",
+    "success": "🔄 Transcription relancée",
+    "successMessage": "Le traitement a redémarré.",
+    "error": "Impossible de relancer",
+    "connectionError": "Erreur de connexion",
+    "tooltip": "Réessayer la transcription"
+  },
+  "analysis": {
+    "title": "☁️ Analyse qualitative",
+    "loading": "Chargement de l'analyse...",
+    "totalWords": "📊 Total mots",
+    "uniqueWords": "🔤 Mots uniques",
+    "keywords": "Mots-clés les plus fréquents",
+    "unavailable": "Analyse non disponible."
+  },
+  "error": {
+    "label": "❌ Erreur :"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

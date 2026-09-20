@@ -417,6 +417,48 @@
     "serverUnreachable": "Sorry, the server is unreachable. Please try again later."
   }
 },
+"transcriptionList": {
+  "title": "📜 My transcriptions",
+  "loading": "Loading...",
+  "empty": "No items found.",
+  "noText": "No text available.",
+  "failed": "The transcription failed. Click \"🔄 Retry\" to restart.",
+  "processing": "The transcription is in progress...",
+  "noTitle": "Untitled",
+  "filters": {
+    "all": "📋 All",
+    "audio": "🎙️ Audio",
+    "text": "📄 Text"
+  },
+  "status": {
+    "COMPLETED": "✅ Completed",
+    "PENDING": "⏳ Pending",
+    "PROCESSING": "⚙️ Processing",
+    "FAILED": "❌ Failed",
+    "unknown": "Unknown"
+  },
+  "retry": {
+    "button": "🔄 Retry",
+    "retrying": "⏳ Running...",
+    "confirm": "Restart the transcription of this audio file?",
+    "success": "🔄 Transcription restarted",
+    "successMessage": "Processing has restarted.",
+    "error": "Could not restart",
+    "connectionError": "Connection error",
+    "tooltip": "Retry transcription"
+  },
+  "analysis": {
+    "title": "☁️ Qualitative analysis",
+    "loading": "Loading analysis...",
+    "totalWords": "📊 Total words",
+    "uniqueWords": "🔤 Unique words",
+    "keywords": "Most frequent keywords",
+    "unavailable": "Analysis not available."
+  },
+  "error": {
+    "label": "❌ Error:"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

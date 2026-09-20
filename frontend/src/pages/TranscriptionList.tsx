@@ -1,6 +1,7 @@
 // frontend/src/pages/TranscriptionList.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { WordCloudComponent } from '../components/WordCloud';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -28,36 +29,10 @@ interface Analysis {
   wordCloud: Array<{ word: string; value: number }>;
 }
 
-// ✅ Fonction de formatage robuste
-const formatDateTime = (value: any): string => {
-  if (value === null || value === undefined || value === '') return '-';
-  try {
-    let date: Date;
-    if (typeof value === 'number') {
-      date = new Date(value);
-    } else if (typeof value === 'string') {
-      const num = Number(value);
-      if (!isNaN(num) && value.length >= 10) {
-        date = new Date(num);
-      } else {
-        date = new Date(value);
-      }
-    } else {
-      return '-';
-    }
-    if (isNaN(date.getTime())) return '-';
-    return date.toLocaleString('fr-FR', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch {
-    return '-';
-  }
-};
-
 const TranscriptionList: React.FC = () => {
   const { colors } = useTheme();
   const toast = useToast();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -71,6 +46,36 @@ const TranscriptionList: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
+  // ✅ Formatage de date robuste (bigint string ou number)
+  const formatDateTime = (value: any): string => {
+    if (value === null || value === undefined || value === '') return '-';
+    try {
+      let date: Date;
+      if (typeof value === 'number') {
+        date = new Date(value);
+      } else if (typeof value === 'string') {
+        const num = Number(value);
+        if (!isNaN(num) && value.length >= 10) {
+          date = new Date(num);
+        } else {
+          date = new Date(value);
+        }
+      } else {
+        return '-';
+      }
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleString(i18n.language, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '-';
+    }
+  };
+
   const fetchTranscriptions = async () => {
     try {
       const response = await api.get('/transcriptions');
@@ -82,7 +87,7 @@ const TranscriptionList: React.FC = () => {
           items = response.data.data.transcriptions;
         }
       }
-      items = items.map(item => ({
+      items = items.map((item) => ({
         ...item,
         type: item.type || (item.audioUrl ? 'audio' : 'text'),
       }));
@@ -112,7 +117,7 @@ const TranscriptionList: React.FC = () => {
   // ✅ Réessayer une transcription échouée
   const handleRetry = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Relancer la transcription de ce fichier audio ?')) return;
+    if (!confirm(t('transcriptionList.retry.confirm'))) return;
 
     setRetryingId(id);
     try {
@@ -120,23 +125,22 @@ const TranscriptionList: React.FC = () => {
       if (response.data.success) {
         toast.addToast({
           type: 'info',
-          title: '🔄 Transcription relancée',
-          message: 'Le traitement a redémarré.',
+          title: t('transcriptionList.retry.success'),
+          message: t('transcriptionList.retry.successMessage'),
         });
-        // Rafraîchir la liste
         await fetchTranscriptions();
       } else {
         toast.addToast({
           type: 'error',
-          title: 'Erreur',
-          message: response.data.message || 'Impossible de relancer',
+          title: t('common.error'),
+          message: response.data.message || t('transcriptionList.retry.error'),
         });
       }
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Erreur de connexion',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('transcriptionList.retry.connectionError'),
       });
     } finally {
       setRetryingId(null);
@@ -151,9 +155,9 @@ const TranscriptionList: React.FC = () => {
     navigate(`?type=${filter}`, { replace: true });
   }, [filter, navigate]);
 
-  const filteredTranscriptions = transcriptions.filter(t => {
+  const filteredTranscriptions = transcriptions.filter((t_item) => {
     if (filter === 'all') return true;
-    return (t.type || 'audio') === filter;
+    return (t_item.type || 'audio') === filter;
   });
 
   const getStatusColor = (status: string) => {
@@ -167,13 +171,7 @@ const TranscriptionList: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return '✅ Terminé';
-      case 'PENDING': return '⏳ En attente';
-      case 'PROCESSING': return '⚙️ Traitement';
-      case 'FAILED': return '❌ Échec';
-      default: return 'Inconnu';
-    }
+    return t(`transcriptionList.status.${status}`) || t('transcriptionList.status.unknown');
   };
 
   const toggleExpand = (id: string) => {
@@ -182,7 +180,7 @@ const TranscriptionList: React.FC = () => {
       setAnalysis(null);
     } else {
       setSelectedId(id);
-      const transcription = transcriptions.find(t => t.id === id);
+      const transcription = transcriptions.find((t_item) => t_item.id === id);
       if (transcription?.status === 'COMPLETED' && transcription.transcriptText) {
         fetchAnalysis(id);
       } else {
@@ -210,38 +208,38 @@ const TranscriptionList: React.FC = () => {
 
   return (
     <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-      <h1 style={{ color: colors.dark }}>📜 Mes transcriptions</h1>
+      <h1 style={{ color: colors.dark }}>{t('transcriptionList.title')}</h1>
 
       {/* Filtres */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button onClick={() => setFilter('all')} style={filterButtonStyle(filter === 'all')}>
-          📋 Tout
+          {t('transcriptionList.filters.all')}
         </button>
         <button onClick={() => setFilter('audio')} style={filterButtonStyle(filter === 'audio')}>
-          🎙️ Audio
+          {t('transcriptionList.filters.audio')}
         </button>
         <button onClick={() => setFilter('text')} style={filterButtonStyle(filter === 'text')}>
-          📄 Texte
+          {t('transcriptionList.filters.text')}
         </button>
       </div>
 
       {loading ? (
-        <p style={{ color: colors.gray[500] }}>Chargement...</p>
+        <p style={{ color: colors.gray[500] }}>{t('transcriptionList.loading')}</p>
       ) : filteredTranscriptions.length === 0 ? (
-        <p style={{ color: colors.gray[500] }}>Aucun élément trouvé.</p>
+        <p style={{ color: colors.gray[500] }}>{t('transcriptionList.empty')}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredTranscriptions.map((t) => {
-            const isExpanded = selectedId === t.id;
-            const isCompleted = t.status === 'COMPLETED';
-            const isFailed = t.status === 'FAILED';
-            const hasText = !!t.transcriptText;
-            const isRetrying = retryingId === t.id;
+          {filteredTranscriptions.map((t_item) => {
+            const isExpanded = selectedId === t_item.id;
+            const isCompleted = t_item.status === 'COMPLETED';
+            const isFailed = t_item.status === 'FAILED';
+            const hasText = !!t_item.transcriptText;
+            const isRetrying = retryingId === t_item.id;
 
             return (
               <div
-                key={t.id}
-                onClick={() => toggleExpand(t.id)}
+                key={t_item.id}
+                onClick={() => toggleExpand(t_item.id)}
                 style={{
                   padding: '14px 18px',
                   border: `1px solid ${colors.gray[200]}`,
@@ -252,38 +250,42 @@ const TranscriptionList: React.FC = () => {
                   boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                 }}
               >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '20px' }}>{getTypeIcon(t.type)}</span>
+                    <span style={{ fontSize: '20px' }}>{getTypeIcon(t_item.type)}</span>
                     <span style={{ fontWeight: '500', color: colors.dark }}>
-                      {t.title || 'Sans titre'}
+                      {t_item.title || t('transcriptionList.noTitle')}
                     </span>
-                    <span style={{
-                      fontSize: '13px',
-                      color: getStatusColor(t.status),
-                      fontWeight: '600',
-                    }}>
-                      {getStatusLabel(t.status)}
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        color: getStatusColor(t_item.status),
+                        fontWeight: '600',
+                      }}
+                    >
+                      {getStatusLabel(t_item.status)}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '13px', color: colors.gray[500] }}>
-                      {formatDateTime(t.createdAt)}
+                      {formatDateTime(t_item.createdAt)}
                     </span>
 
                     {/* ✅ Bouton Réessayer (visible uniquement pour les FAILED) */}
                     {isFailed && (
                       <button
-                        onClick={(e) => handleRetry(t.id, e)}
+                        onClick={(e) => handleRetry(t_item.id, e)}
                         disabled={isRetrying}
-                        title="Réessayer la transcription"
+                        title={t('transcriptionList.retry.tooltip')}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: isRetrying ? colors.gray[400] : colors.primary,
@@ -298,7 +300,7 @@ const TranscriptionList: React.FC = () => {
                           gap: '4px',
                         }}
                       >
-                        {isRetrying ? '⏳ En cours...' : '🔄 Réessayer'}
+                        {isRetrying ? t('transcriptionList.retry.retrying') : t('transcriptionList.retry.button')}
                       </button>
                     )}
                   </div>
@@ -307,17 +309,19 @@ const TranscriptionList: React.FC = () => {
                 {isExpanded && (
                   <div style={{ marginTop: '14px' }}>
                     {/* Message d'erreur */}
-                    {t.errorMessage && (
-                      <div style={{
-                        padding: '10px 14px',
-                        backgroundColor: colors.danger + '15',
-                        color: colors.danger,
-                        borderRadius: '8px',
-                        border: `1px solid ${colors.danger}30`,
-                        fontSize: '13px',
-                        marginBottom: '10px',
-                      }}>
-                        <strong>❌ Erreur :</strong> {t.errorMessage}
+                    {t_item.errorMessage && (
+                      <div
+                        style={{
+                          padding: '10px 14px',
+                          backgroundColor: colors.danger + '15',
+                          color: colors.danger,
+                          borderRadius: '8px',
+                          border: `1px solid ${colors.danger}30`,
+                          fontSize: '13px',
+                          marginBottom: '10px',
+                        }}
+                      >
+                        <strong>{t('transcriptionList.error.label')}</strong> {t_item.errorMessage}
                       </div>
                     )}
 
@@ -337,18 +341,18 @@ const TranscriptionList: React.FC = () => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {hasText ? (
-                        t.transcriptText
+                        t_item.transcriptText
                       ) : isCompleted ? (
                         <span style={{ color: colors.gray[500], fontStyle: 'italic' }}>
-                          Aucun texte disponible.
+                          {t('transcriptionList.noText')}
                         </span>
                       ) : isFailed ? (
                         <span style={{ color: colors.danger, fontStyle: 'italic' }}>
-                          La transcription a échoué. Cliquez sur "🔄 Réessayer" pour relancer.
+                          {t('transcriptionList.failed')}
                         </span>
                       ) : (
                         <span style={{ color: colors.gray[500], fontStyle: 'italic' }}>
-                          La transcription est en cours...
+                          {t('transcriptionList.processing')}
                         </span>
                       )}
                     </div>
@@ -356,37 +360,50 @@ const TranscriptionList: React.FC = () => {
                     {isCompleted && hasText && (
                       <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
                         <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
-                          ☁️ Analyse qualitative
+                          {t('transcriptionList.analysis.title')}
                         </h4>
 
                         {analysisLoading ? (
-                          <p style={{ fontSize: '14px', color: colors.gray[600] }}>Chargement de l'analyse...</p>
+                          <p style={{ fontSize: '14px', color: colors.gray[600] }}>
+                            {t('transcriptionList.analysis.loading')}
+                          </p>
                         ) : analysis ? (
                           <>
                             <WordCloudComponent words={analysis.wordCloud || []} width={500} height={300} />
-                            <div style={{
-                              display: 'flex',
-                              gap: '20px',
-                              fontSize: '13px',
-                              color: colors.gray[600],
-                              marginTop: '8px',
-                            }}>
-                              <span>📊 Total mots : <strong>{analysis.totalWords}</strong></span>
-                              <span>🔤 Mots uniques : <strong>{analysis.uniqueWords}</strong></span>
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: '20px',
+                                fontSize: '13px',
+                                color: colors.gray[600],
+                                marginTop: '8px',
+                              }}
+                            >
+                              <span>
+                                {t('transcriptionList.analysis.totalWords')} :{' '}
+                                <strong>{analysis.totalWords}</strong>
+                              </span>
+                              <span>
+                                {t('transcriptionList.analysis.uniqueWords')} :{' '}
+                                <strong>{analysis.uniqueWords}</strong>
+                              </span>
                             </div>
                             <div style={{ marginTop: '10px' }}>
                               <span style={{ fontSize: '13px', color: colors.gray[600], fontWeight: '500' }}>
-                                Mots-clés les plus fréquents :
+                                {t('transcriptionList.analysis.keywords')} :
                               </span>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
                                 {analysis.topKeywords?.slice(0, 10).map((kw) => (
-                                  <span key={kw.word} style={{
-                                    backgroundColor: colors.gray[200],
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '13px',
-                                    color: colors.dark,
-                                  }}>
+                                  <span
+                                    key={kw.word}
+                                    style={{
+                                      backgroundColor: colors.gray[200],
+                                      padding: '4px 10px',
+                                      borderRadius: '20px',
+                                      fontSize: '13px',
+                                      color: colors.dark,
+                                    }}
+                                  >
                                     {kw.word} ({kw.count})
                                   </span>
                                 ))}
@@ -395,7 +412,7 @@ const TranscriptionList: React.FC = () => {
                           </>
                         ) : (
                           <p style={{ fontSize: '14px', color: colors.gray[500] }}>
-                            Analyse non disponible.
+                            {t('transcriptionList.analysis.unavailable')}
                           </p>
                         )}
                       </div>
