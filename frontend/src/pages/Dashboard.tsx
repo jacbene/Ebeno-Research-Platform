@@ -180,10 +180,17 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
-  // ✅ Helper local : formatage de date selon la langue active
-  const formatDate = (timestamp: number | string) => {
-    return new Date(timestamp).toLocaleDateString(i18n.language);
-  };
+  // ✅ Formatage robuste — gère number ET string (bigint Postgres)
+const formatDate = (timestamp: number | string | null | undefined): string => {
+  if (timestamp === null || timestamp === undefined) return '-';
+  const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+  if (!ts || isNaN(ts)) return '-';
+  try {
+    return new Date(ts).toLocaleDateString(i18n.language);
+  } catch {
+    return '-';
+  }
+};
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);

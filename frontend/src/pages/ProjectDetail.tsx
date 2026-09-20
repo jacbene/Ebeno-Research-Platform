@@ -117,18 +117,21 @@ const ProjectDetail: React.FC = () => {
 
   // ✅ Helper de formatage de date selon la langue active
   const formatDate = (timestamp: number | string | null | undefined): string => {
-    if (!timestamp) return '-';
-    const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
-    if (!ts || isNaN(ts)) return '-';
-    const date = new Date(ts);
-    return date.toLocaleDateString(i18n.language, {
+  if (timestamp === null || timestamp === undefined) return '-';
+  const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+  if (!ts || isNaN(ts)) return '-';
+  try {
+    return new Date(ts).toLocaleDateString(i18n.language, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  } catch {
+    return '-';
+  }
+};
 
   const currentUser = useMemo(() => {
     try {

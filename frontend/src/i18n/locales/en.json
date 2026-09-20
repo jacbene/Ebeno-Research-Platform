@@ -116,8 +116,8 @@
     "occurrences": "{{count}} occurrence",
     "occurrences_plural": "{{count}} occurrences"
   },
-  "recentFiles": "📎 Recent project files",
-  "recentFilesOfProject": "📎 Recent files of my projects",
+ "recentFiles": "📎 Recent files of my projects",
+"recentFilesOfProject": "📎 Recent project files",
   "uploadedBy": "Uploaded by {{name}}",
   "transcriptionStatus": "🎙️ Audio transcription status",
   "status": {
