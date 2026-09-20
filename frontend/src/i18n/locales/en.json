@@ -404,6 +404,19 @@
     "serverError": "❌ Error: {{message}}"
   }
 },
+"chat": {
+  "title": "🤖 AI Assistant",
+  "welcome": "Hello! I'm the AI assistant of the Ebeno Research platform. How can I help you?",
+  "loading": "⏳ The assistant is thinking...",
+  "placeholder": "Ask your question...",
+  "fallbackResponse": "Response received successfully.",
+  "errors": {
+    "communication": "Communication error with the assistant",
+    "assistantError": "Sorry, an error occurred. Please try again.",
+    "server": "Server connection error",
+    "serverUnreachable": "Sorry, the server is unreachable. Please try again later."
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

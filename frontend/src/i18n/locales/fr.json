@@ -404,6 +404,19 @@
     "serverError": "❌ Erreur: {{message}}"
   }
 },
+"chat": {
+  "title": "🤖 Assistant IA",
+  "welcome": "Bonjour ! Je suis l'assistant IA de la plateforme Ebeno Research. Comment puis-je vous aider ?",
+  "loading": "⏳ L'assistant réfléchit...",
+  "placeholder": "Posez votre question...",
+  "fallbackResponse": "Réponse reçue avec succès.",
+  "errors": {
+    "communication": "Erreur de communication avec l'assistant",
+    "assistantError": "Désolé, une erreur s'est produite. Veuillez réessayer.",
+    "server": "Erreur de connexion au serveur",
+    "serverUnreachable": "Désolé, le serveur est inaccessible. Veuillez réessayer plus tard."
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",
