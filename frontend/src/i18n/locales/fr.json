@@ -307,6 +307,88 @@
     "memo-created": "📝 Nouveau memo : {{title}}"
   }
 },
+"settings": {
+  "title": "⚙️ Paramètres",
+  "loading": "Chargement du profil...",
+  "tabs": {
+    "profile": "👤 Profil",
+    "security": "🔒 Sécurité",
+    "language": "🌍 Langue",
+    "appearance": "🎨 Apparence"
+  },
+  "profile": {
+    "title": "👤 Mon profil",
+    "changePhoto": "📷 Changer la photo",
+    "uploading": "⏳ Upload...",
+    "nameLabel": "Nom complet",
+    "emailLabel": "Email",
+    "institutionLabel": "Institution",
+    "institutionPlaceholder": "Ex: Université de Paris",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Quelques mots sur vous...",
+    "save": "Enregistrer les modifications",
+    "saving": "Enregistrement...",
+    "success": "Profil mis à jour ✅",
+    "avatarSuccess": "Avatar mis à jour ✅"
+  },
+  "security": {
+    "title": "🔒 Sécurité",
+    "currentPassword": "Mot de passe actuel",
+    "currentPasswordPlaceholder": "Votre mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "newPasswordPlaceholder": "Au moins 6 caractères",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "confirmPasswordPlaceholder": "Retapez le nouveau mot de passe",
+    "submit": "Changer le mot de passe",
+    "submitting": "Modification...",
+    "success": "Mot de passe changé ✅",
+    "recommendations": "⚠️ Recommandations de sécurité",
+    "recommendation1": "Utilisez un mot de passe unique et complexe (8+ caractères)",
+    "recommendation2": "Ne partagez jamais votre mot de passe",
+    "recommendation3": "Changez-le régulièrement"
+  },
+  "language": {
+    "title": "🌍 Langue de travail",
+    "intro": "Choisissez la langue que vous utilisez pour travailler sur la plateforme. Cette langue sera utilisée pour :",
+    "feature1": "📝 Les résumés et analyses générés par l'IA",
+    "feature2": "🏷️ L'extraction des entités (personnes, lieux, organisations)",
+    "feature3": "🔔 Les notifications et messages système",
+    "feature4": "🎯 Les suggestions de codes",
+    "activeLabel": "Langue active",
+    "saving": "⏳ Enregistrement...",
+    "aboutTitle": "💡 À propos du multilingue",
+    "aboutText": "Cette langue concerne votre interface personnelle et les réponses de l'IA. Le contenu des documents reste inchangé — vous pourrez le traduire à la demande dans les versions futures.",
+    "success": "🌍 Langue mise à jour",
+    "successMessage": "Interface et IA en {{language}}"
+  },
+  "appearance": {
+    "title": "🎨 Apparence",
+    "modeLight": "Mode ☀️ Clair",
+    "modeDark": "Mode 🌙 Sombre",
+    "activateDark": "Activer le sombre",
+    "activateLight": "Activer le clair",
+    "customColors": "Couleurs personnalisées",
+    "primaryColor": "Couleur primaire",
+    "primaryDark": "Primaire sombre",
+    "primaryLight": "Primaire clair",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "applied": "Palette appliquée ✅",
+    "resetDone": "Palette réinitialisée"
+  },
+  "errors": {
+    "invalidFile": "Fichier invalide",
+    "onlyImages": "Seules les images sont autorisées",
+    "fileTooBig": "Fichier trop volumineux",
+    "fileTooBigMessage": "Maximum 5 MB",
+    "avatarUploadFailed": "Impossible d'uploader l'avatar",
+    "profileSaveFailed": "Impossible de sauvegarder",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordChangeFailed": "Impossible de changer le mot de passe",
+    "languageChangeFailed": "Impossible de changer la langue"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

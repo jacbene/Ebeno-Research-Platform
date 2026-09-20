@@ -307,6 +307,88 @@
     "memo-created": "📝 New memo: {{title}}"
   }
 },
+"settings": {
+  "title": "⚙️ Settings",
+  "loading": "Loading profile...",
+  "tabs": {
+    "profile": "👤 Profile",
+    "security": "🔒 Security",
+    "language": "🌍 Language",
+    "appearance": "🎨 Appearance"
+  },
+  "profile": {
+    "title": "👤 My profile",
+    "changePhoto": "📷 Change photo",
+    "uploading": "⏳ Uploading...",
+    "nameLabel": "Full name",
+    "emailLabel": "Email",
+    "institutionLabel": "Institution",
+    "institutionPlaceholder": "Ex: University of Paris",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "A few words about you...",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "success": "Profile updated ✅",
+    "avatarSuccess": "Avatar updated ✅"
+  },
+  "security": {
+    "title": "🔒 Security",
+    "currentPassword": "Current password",
+    "currentPasswordPlaceholder": "Your current password",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "At least 6 characters",
+    "confirmPassword": "Confirm new password",
+    "confirmPasswordPlaceholder": "Retype new password",
+    "submit": "Change password",
+    "submitting": "Changing...",
+    "success": "Password changed ✅",
+    "recommendations": "⚠️ Security recommendations",
+    "recommendation1": "Use a unique and complex password (8+ characters)",
+    "recommendation2": "Never share your password",
+    "recommendation3": "Change it regularly"
+  },
+  "language": {
+    "title": "🌍 Working language",
+    "intro": "Choose the language you use to work on the platform. This language will be used for:",
+    "feature1": "📝 AI-generated summaries and analyses",
+    "feature2": "🏷️ Entity extraction (people, places, organizations)",
+    "feature3": "🔔 Notifications and system messages",
+    "feature4": "🎯 Code suggestions",
+    "activeLabel": "Active language",
+    "saving": "⏳ Saving...",
+    "aboutTitle": "💡 About multilingual",
+    "aboutText": "This language applies to your personal interface and AI responses. Document content remains unchanged — you will be able to translate it on demand in future versions.",
+    "success": "🌍 Language updated",
+    "successMessage": "Interface and AI in {{language}}"
+  },
+  "appearance": {
+    "title": "🎨 Appearance",
+    "modeLight": "☀️ Light mode",
+    "modeDark": "🌙 Dark mode",
+    "activateDark": "Activate dark",
+    "activateLight": "Activate light",
+    "customColors": "Custom colors",
+    "primaryColor": "Primary color",
+    "primaryDark": "Primary dark",
+    "primaryLight": "Primary light",
+    "apply": "Apply",
+    "reset": "Reset",
+    "applied": "Palette applied ✅",
+    "resetDone": "Palette reset"
+  },
+  "errors": {
+    "invalidFile": "Invalid file",
+    "onlyImages": "Only images are allowed",
+    "fileTooBig": "File too large",
+    "fileTooBigMessage": "Maximum 5 MB",
+    "avatarUploadFailed": "Could not upload avatar",
+    "profileSaveFailed": "Could not save",
+    "passwordMismatch": "Passwords don't match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordChangeFailed": "Could not change password",
+    "languageChangeFailed": "Could not change language"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

@@ -1,5 +1,6 @@
 // frontend/src/pages/SettingsPage.tsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Card } from '../components/ui/Card';
@@ -15,13 +16,12 @@ const SettingsPage: React.FC = () => {
   const { mode, toggleMode, colors, setCustomPalette } = useTheme();
   const { language, supportedLanguages, changeLanguage } = useLanguage();
   const toast = useToast();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
 
-  // Utilisateur courant
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Formulaires
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -39,14 +39,12 @@ const SettingsPage: React.FC = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState(false);
 
-  // Couleurs personnalisées
   const [primaryColor, setPrimaryColor] = useState(colors.primary);
   const [primaryDark, setPrimaryDark] = useState(colors.primaryDark);
   const [primaryLight, setPrimaryLight] = useState(colors.primaryLight);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Charger le profil
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -76,12 +74,20 @@ const SettingsPage: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.addToast({ type: 'error', title: 'Fichier invalide', message: 'Seules les images sont autorisées' });
+      toast.addToast({
+        type: 'error',
+        title: t('settings.errors.invalidFile'),
+        message: t('settings.errors.onlyImages'),
+      });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.addToast({ type: 'error', title: 'Fichier trop volumineux', message: 'Maximum 5 MB' });
+      toast.addToast({
+        type: 'error',
+        title: t('settings.errors.fileTooBig'),
+        message: t('settings.errors.fileTooBigMessage'),
+      });
       return;
     }
 
@@ -100,12 +106,12 @@ const SettingsPage: React.FC = () => {
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, avatar: newAvatarUrl }));
 
-      toast.addToast({ type: 'success', title: 'Avatar mis à jour ✅' });
+      toast.addToast({ type: 'success', title: t('settings.profile.avatarSuccess') });
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Impossible d\'uploader l\'avatar',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('settings.errors.avatarUploadFailed'),
       });
     } finally {
       setUploadingAvatar(false);
@@ -131,12 +137,12 @@ const SettingsPage: React.FC = () => {
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, ...res.data.user }));
 
-      toast.addToast({ type: 'success', title: 'Profil mis à jour ✅' });
+      toast.addToast({ type: 'success', title: t('settings.profile.success') });
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Impossible de sauvegarder',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('settings.errors.profileSaveFailed'),
       });
     } finally {
       setSavingProfile(false);
@@ -150,11 +156,11 @@ const SettingsPage: React.FC = () => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-      toast.addToast({ type: 'error', title: 'Erreur', message: 'Les mots de passe ne correspondent pas' });
+      toast.addToast({ type: 'error', title: t('common.error'), message: t('settings.errors.passwordMismatch') });
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      toast.addToast({ type: 'error', title: 'Erreur', message: 'Le mot de passe doit contenir au moins 6 caractères' });
+      toast.addToast({ type: 'error', title: t('common.error'), message: t('settings.errors.passwordTooShort') });
       return;
     }
 
@@ -166,12 +172,12 @@ const SettingsPage: React.FC = () => {
       });
 
       setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-      toast.addToast({ type: 'success', title: 'Mot de passe changé ✅' });
+      toast.addToast({ type: 'success', title: t('settings.security.success') });
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: error.response?.data?.message || 'Impossible de changer le mot de passe',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('settings.errors.passwordChangeFailed'),
       });
     } finally {
       setSavingPassword(false);
@@ -187,16 +193,17 @@ const SettingsPage: React.FC = () => {
     setSavingLanguage(true);
     try {
       await changeLanguage(code);
+      const langLabel = supportedLanguages.find((l) => l.code === code)?.label || code;
       toast.addToast({
         type: 'success',
-        title: '🌍 Langue mise à jour',
-        message: `Interface et IA en ${supportedLanguages.find((l) => l.code === code)?.label || code}`,
+        title: t('settings.language.success'),
+        message: t('settings.language.successMessage', { language: langLabel }),
       });
     } catch (error: any) {
       toast.addToast({
         type: 'error',
-        title: 'Erreur',
-        message: 'Impossible de changer la langue',
+        title: t('common.error'),
+        message: t('settings.errors.languageChangeFailed'),
       });
     } finally {
       setSavingLanguage(false);
@@ -210,7 +217,7 @@ const SettingsPage: React.FC = () => {
     const palette = { primary: primaryColor, primaryDark, primaryLight };
     setCustomPalette(palette);
     localStorage.setItem('customPalette', JSON.stringify(palette));
-    toast.addToast({ type: 'success', title: 'Palette appliquée ✅' });
+    toast.addToast({ type: 'success', title: t('settings.appearance.applied') });
   };
 
   const resetPalette = () => {
@@ -219,10 +226,9 @@ const SettingsPage: React.FC = () => {
     setPrimaryColor('#4A6CF7');
     setPrimaryDark('#3651B5');
     setPrimaryLight('#6B8AFF');
-    toast.addToast({ type: 'info', title: 'Palette réinitialisée' });
+    toast.addToast({ type: 'info', title: t('settings.appearance.resetDone') });
   };
 
-  // Helpers
   const getInitials = (name: string) => {
     if (!name) return '?';
     const parts = name.trim().split(/\s+/);
@@ -231,19 +237,20 @@ const SettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Chargement du profil...</div>;
+    return <div style={{ padding: '40px', textAlign: 'center' }}>{t('settings.loading')}</div>;
   }
 
+  // ✅ Onglets traduits
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'profile', label: '👤 Profil' },
-    { key: 'security', label: '🔒 Sécurité' },
-    { key: 'language', label: '🌍 Langue' },
-    { key: 'appearance', label: '🎨 Apparence' },
+    { key: 'profile', label: t('settings.tabs.profile') },
+    { key: 'security', label: t('settings.tabs.security') },
+    { key: 'language', label: t('settings.tabs.language') },
+    { key: 'appearance', label: t('settings.tabs.appearance') },
   ];
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ marginBottom: theme.spacing.lg }}>⚙️ Paramètres</h1>
+      <h1 style={{ marginBottom: theme.spacing.lg }}>{t('settings.title')}</h1>
 
       {/* Onglets */}
       <div
@@ -275,12 +282,9 @@ const SettingsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* ============================================================ */}
       {/* ONGLET PROFIL */}
-      {/* ============================================================ */}
       {activeTab === 'profile' && (
-        <Card title="👤 Mon profil">
-          {/* Avatar */}
+        <Card title={t('settings.profile.title')}>
           <div
             style={{
               display: 'flex',
@@ -350,16 +354,15 @@ const SettingsPage: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
                 >
-                  {uploadingAvatar ? '⏳ Upload...' : '📷 Changer la photo'}
+                  {uploadingAvatar ? t('settings.profile.uploading') : t('settings.profile.changePhoto')}
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Formulaire profil */}
           <form onSubmit={saveProfile}>
             <Input
-              label="Nom complet"
+              label={t('settings.profile.nameLabel')}
               type="text"
               value={profileData.name}
               onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
@@ -367,7 +370,7 @@ const SettingsPage: React.FC = () => {
             />
 
             <Input
-              label="Email"
+              label={t('settings.profile.emailLabel')}
               type="email"
               value={profileData.email}
               onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
@@ -375,11 +378,11 @@ const SettingsPage: React.FC = () => {
             />
 
             <Input
-              label="Institution"
+              label={t('settings.profile.institutionLabel')}
               type="text"
               value={profileData.institution}
               onChange={(e) => setProfileData({ ...profileData, institution: e.target.value })}
-              placeholder="Ex: Université de Paris"
+              placeholder={t('settings.profile.institutionPlaceholder')}
             />
 
             <div style={{ marginTop: theme.spacing.md }}>
@@ -391,12 +394,12 @@ const SettingsPage: React.FC = () => {
                   color: colors.gray[700],
                 }}
               >
-                Bio
+                {t('settings.profile.bioLabel')}
               </label>
               <textarea
                 value={profileData.bio}
                 onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                placeholder="Quelques mots sur vous..."
+                placeholder={t('settings.profile.bioPlaceholder')}
                 rows={3}
                 style={{
                   width: '100%',
@@ -416,42 +419,40 @@ const SettingsPage: React.FC = () => {
               disabled={savingProfile}
               style={{ marginTop: theme.spacing.md }}
             >
-              {savingProfile ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              {savingProfile ? t('settings.profile.saving') : t('settings.profile.save')}
             </Button>
           </form>
         </Card>
       )}
 
-      {/* ============================================================ */}
       {/* ONGLET SÉCURITÉ */}
-      {/* ============================================================ */}
       {activeTab === 'security' && (
-        <Card title="🔒 Sécurité">
+        <Card title={t('settings.security.title')}>
           <form onSubmit={changePassword}>
             <Input
-              label="Mot de passe actuel"
+              label={t('settings.security.currentPassword')}
               type="password"
               value={passwordData.currentPassword}
               onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-              placeholder="Votre mot de passe actuel"
+              placeholder={t('settings.security.currentPasswordPlaceholder')}
               required
             />
 
             <Input
-              label="Nouveau mot de passe"
+              label={t('settings.security.newPassword')}
               type="password"
               value={passwordData.newPassword}
               onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              placeholder="Au moins 6 caractères"
+              placeholder={t('settings.security.newPasswordPlaceholder')}
               required
             />
 
             <Input
-              label="Confirmer le nouveau mot de passe"
+              label={t('settings.security.confirmPassword')}
               type="password"
               value={passwordData.confirmNewPassword}
               onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-              placeholder="Retapez le nouveau mot de passe"
+              placeholder={t('settings.security.confirmPasswordPlaceholder')}
               required
             />
 
@@ -460,7 +461,7 @@ const SettingsPage: React.FC = () => {
               disabled={savingPassword}
               style={{ marginTop: theme.spacing.md }}
             >
-              {savingPassword ? 'Modification...' : 'Changer le mot de passe'}
+              {savingPassword ? t('settings.security.submitting') : t('settings.security.submit')}
             </Button>
           </form>
 
@@ -475,21 +476,19 @@ const SettingsPage: React.FC = () => {
               color: '#856404',
             }}
           >
-            ⚠️ <strong>Recommandations de sécurité</strong>
+            <strong>{t('settings.security.recommendations')}</strong>
             <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-              <li>Utilisez un mot de passe unique et complexe (8+ caractères)</li>
-              <li>Ne partagez jamais votre mot de passe</li>
-              <li>Changez-le régulièrement</li>
+              <li>{t('settings.security.recommendation1')}</li>
+              <li>{t('settings.security.recommendation2')}</li>
+              <li>{t('settings.security.recommendation3')}</li>
             </ul>
           </div>
         </Card>
       )}
 
-      {/* ============================================================ */}
       {/* ONGLET LANGUE */}
-      {/* ============================================================ */}
       {activeTab === 'language' && (
-        <Card title="🌍 Langue de travail">
+        <Card title={t('settings.language.title')}>
           <p
             style={{
               margin: '0 0 20px 0',
@@ -498,8 +497,7 @@ const SettingsPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Choisissez la langue que vous utilisez pour travailler sur la plateforme.
-            Cette langue sera utilisée pour :
+            {t('settings.language.intro')}
           </p>
 
           <ul
@@ -511,14 +509,14 @@ const SettingsPage: React.FC = () => {
               lineHeight: 1.8,
             }}
           >
-            <li>📝 Les résumés et analyses générés par l'IA</li>
-            <li>🏷️ L'extraction des entités (personnes, lieux, organisations)</li>
-            <li>🔔 Les notifications et messages système</li>
-            <li>🎯 Les suggestions de codes</li>
+            <li>{t('settings.language.feature1')}</li>
+            <li>{t('settings.language.feature2')}</li>
+            <li>{t('settings.language.feature3')}</li>
+            <li>{t('settings.language.feature4')}</li>
           </ul>
 
           <h4 style={{ marginBottom: '12px', fontSize: '15px', color: colors.dark }}>
-            Langue active
+            {t('settings.language.activeLabel')}
           </h4>
 
           <div
@@ -592,11 +590,10 @@ const SettingsPage: React.FC = () => {
                 textAlign: 'center',
               }}
             >
-              ⏳ Enregistrement...
+              {t('settings.language.saving')}
             </div>
           )}
 
-          {/* Encart d'information */}
           <div
             style={{
               marginTop: '24px',
@@ -609,21 +606,17 @@ const SettingsPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            💡 <strong>À propos du multilingue</strong>
+            <strong>{t('settings.language.aboutTitle')}</strong>
             <p style={{ margin: '6px 0 0 0' }}>
-              Cette langue concerne votre interface personnelle et les réponses de l'IA.
-              Le contenu des documents reste inchangé — vous pourrez le traduire à la demande
-              dans les versions futures.
+              {t('settings.language.aboutText')}
             </p>
           </div>
         </Card>
       )}
 
-      {/* ============================================================ */}
       {/* ONGLET APPARENCE */}
-      {/* ============================================================ */}
       {activeTab === 'appearance' && (
-        <Card title="🎨 Apparence">
+        <Card title={t('settings.appearance.title')}>
           <div
             style={{
               display: 'flex',
@@ -632,7 +625,7 @@ const SettingsPage: React.FC = () => {
               marginBottom: '20px',
             }}
           >
-            <span>Mode {mode === 'light' ? '☀️ Clair' : '🌙 Sombre'}</span>
+            <span>{mode === 'light' ? t('settings.appearance.modeLight') : t('settings.appearance.modeDark')}</span>
             <button
               onClick={toggleMode}
               style={{
@@ -645,14 +638,14 @@ const SettingsPage: React.FC = () => {
                 fontSize: '14px',
               }}
             >
-              {mode === 'light' ? 'Activer le sombre' : 'Activer le clair'}
+              {mode === 'light' ? t('settings.appearance.activateDark') : t('settings.appearance.activateLight')}
             </button>
           </div>
 
-          <h4 style={{ marginTop: '20px' }}>Couleurs personnalisées</h4>
+          <h4 style={{ marginTop: '20px' }}>{t('settings.appearance.customColors')}</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
             <div>
-              <label>Couleur primaire</label>
+              <label>{t('settings.appearance.primaryColor')}</label>
               <input
                 type="color"
                 value={primaryColor}
@@ -661,7 +654,7 @@ const SettingsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label>Primaire sombre</label>
+              <label>{t('settings.appearance.primaryDark')}</label>
               <input
                 type="color"
                 value={primaryDark}
@@ -670,7 +663,7 @@ const SettingsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label>Primaire clair</label>
+              <label>{t('settings.appearance.primaryLight')}</label>
               <input
                 type="color"
                 value={primaryLight}
@@ -681,10 +674,10 @@ const SettingsPage: React.FC = () => {
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
             <Button variant="primary" onClick={applyCustomPalette}>
-              Appliquer
+              {t('settings.appearance.apply')}
             </Button>
             <Button variant="outline" onClick={resetPalette}>
-              Réinitialiser
+              {t('settings.appearance.reset')}
             </Button>
           </div>
         </Card>
