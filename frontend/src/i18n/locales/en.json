@@ -403,7 +403,7 @@
     "uploadFailed": "❌ Server connection error",
     "serverError": "❌ Error: {{message}}"
   }
-}
+},
   "language": {
     "fr": "Français",
     "en": "English",
