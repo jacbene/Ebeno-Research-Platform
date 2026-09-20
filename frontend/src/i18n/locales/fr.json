@@ -389,6 +389,21 @@
     "languageChangeFailed": "Impossible de changer la langue"
   }
 },
+"textUpload": {
+  "title": "📄 Importer un texte",
+  "targetProject": "📁 Projet cible :",
+  "supportedFormats": "Formats supportés",
+  "uploading": "⏳ Upload en cours...",
+  "submit": "📤 Importer le texte",
+  "back": "← Retour",
+  "success": "✅ Texte importé avec succès ! Redirection...",
+  "errors": {
+    "noProject": "Aucun projet sélectionné. Veuillez passer par la page d'un projet.",
+    "noProjectShort": "Aucun projet sélectionné",
+    "uploadFailed": "❌ Erreur de connexion au serveur",
+    "serverError": "❌ Erreur: {{message}}"
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",
