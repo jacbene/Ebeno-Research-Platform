@@ -31,6 +31,7 @@ import healthRoutes from './routes/healthRoutes';
 import searchRoutes from './routes/searchRoutes';
 import statsRoutes from './routes/statsRoutes';
 import languageRoutes from './routes/languageRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -166,6 +167,7 @@ app.use('/api/activity', activityRoutes);       // ✅ Activité
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/language', languageRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES
