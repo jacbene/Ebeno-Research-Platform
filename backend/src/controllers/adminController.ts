@@ -4,12 +4,8 @@ import { v2 as cloudinary } from 'cloudinary';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
 
-// Configuration Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configuration Cloudinary — utilise CLOUDINARY_URL automatiquement
+cloudinary.config();
 
 /**
  * GET /api/admin/backup/cloudinary
