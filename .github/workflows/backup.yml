@@ -20,26 +20,45 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
-      - name: Create database backup
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
-        run: |
-          set -e
-          TIMESTAMP=$(date +%Y%m%d_%H%M)
-          FILENAME="backup_${TIMESTAMP}.sql.gz"
+- name: Create database backup
+  env:
+    DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
+  run: |
+    set -e
+    set -o pipefail
+    TIMESTAMP=$(date +%Y%m%d_%H%M)
+    FILENAME="backup_${TIMESTAMP}.sql.gz"
 
-          echo "🔍 Test de connexion..."
-          psql "$DATABASE_URL" -c "SELECT version();" | head -3
+    echo "🔍 Test de connexion..."
+    psql "$DATABASE_URL" -c "SELECT current_database(), current_user;"
 
-          echo "📦 Création du backup..."
-          pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists | gzip > "$FILENAME"
+    echo ""
+    echo "📊 Liste des tables :"
+    psql "$DATABASE_URL" -c "\dt" || echo "⚠️ Impossible de lister les tables"
 
-          SIZE=$(du -h "$FILENAME" | cut -f1)
-          echo "✅ Backup créé : $FILENAME ($SIZE)"
+    echo ""
+    echo "📦 Création du backup..."
+    pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists | gzip > "$FILENAME"
 
-          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
-          echo "SIZE=$SIZE" >> $GITHUB_ENV
+    SIZE=$(du -h "$FILENAME" | cut -f1)
+    SIZE_BYTES=$(stat -c%s "$FILENAME" 2>/dev/null || stat -f%z "$FILENAME")
 
+    echo "✅ Backup créé : $FILENAME ($SIZE)"
+
+    if [ "$SIZE_BYTES" -lt 10000 ]; then
+      echo ""
+      echo "❌ ERREUR : Le backup est trop petit ($SIZE) — probablement vide !"
+      echo ""
+      echo "Contenu du backup (premières lignes) :"
+      gunzip -c "$FILENAME" | head -30
+      exit 1
+    fi
+
+    echo "✅ Taille OK : $SIZE"
+
+    echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+    echo "SIZE=$SIZE" >> $GITHUB_ENV
+    
       - name: Upload backup as artifact
         uses: actions/upload-artifact@v4
         with:
