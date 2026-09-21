@@ -1,0 +1,523 @@
+{
+  "common": {
+    "save": "حفظ",
+    "saving": "جاري الحفظ...",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "creating": "جاري الإنشاء...",
+    "close": "إغلاق",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "confirm": "تأكيد",
+    "yes": "نعم",
+    "no": "لا",
+    "back": "رجوع",
+    "open": "فتح",
+    "reset": "إعادة تعيين",
+    "apply": "تطبيق",
+    "upload": "تحميل",
+    "download": "تنزيل",
+    "search": "بحث",
+    "noResults": "لا توجد نتائج"
+  },
+  "auth": {
+    "appName": "إيبينو ريسيرش",
+    "appTagline": "منصة البحث التعاوني",
+    "login": {
+      "title": "تسجيل الدخول",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "test@test.com",
+      "password": "كلمة المرور",
+      "passwordPlaceholder": "••••••••",
+      "submit": "تسجيل الدخول",
+      "submitting": "جاري تسجيل الدخول...",
+      "noAccount": "ليس لديك حساب بعد؟",
+      "registerLink": "إنشاء حساب",
+      "testHint": "اختبار: test@test.com / 123456"
+    },
+    "register": {
+      "title": "التسجيل",
+      "name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "submit": "إنشاء حساب",
+      "submitting": "جاري الإنشاء...",
+      "hasAccount": "لديك حساب بالفعل؟",
+      "loginLink": "تسجيل الدخول"
+    },
+    "errors": {
+      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      "missingFields": "يرجى ملء جميع الحقول",
+      "serverError": "خطأ في الاتصال بالخادم",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين",
+      "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل"
+    }
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "transcription": "النسخ",
+    "textUpload": "استيراد نص",
+    "transcriptions": "النسخ الخاصة بي",
+    "chat": "محادثة الذكاء الاصطناعي",
+    "collaboration": "التعاون",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "user": "المستخدم",
+    "menu": "القائمة"
+  },
+  "theme": {
+    "light": "☀️ فاتح",
+    "dark": "🌙 داكن",
+    "system": "💻 النظام",
+    "tooltip": "المظهر: {{label}}"
+  },
+  "dashboard": {
+    "greeting": "مرحباً {{name}}!",
+    "welcome": "مرحباً بك في منصة إيبينو ريسيرش.",
+    "summary": "لديك {{projects}} مشروع/مشاريع، {{documents}} مستند/مستندات و {{entities}} كيان/كيانات.",
+    "viewProject": "عرض المشروع: {{title}}",
+    "newProject": "مشروع جديد",
+    "cancel": "إلغاء",
+    "filterByProject": "تصفية حسب المشروع:",
+    "allProjects": "جميع مشاريعي",
+    "reset": "إعادة تعيين",
+    "loadingStats": "جاري تحميل الإحصائيات...",
+    "createProject": {
+      "title": "إنشاء مشروع جديد",
+      "titleLabel": "العنوان *",
+      "titlePlaceholder": "مشروعي البحثي",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف مشروعك...",
+      "submit": "إنشاء المشروع",
+      "cancel": "إلغاء",
+      "success": "تم إنشاء المشروع ✅",
+      "error": "خطأ أثناء الإنشاء",
+      "errorServer": "خطأ في الاتصال بالخادم"
+    },
+    "stats": {
+      "projects": "المشاريع",
+      "files": "ملفاتي",
+      "filesOfProject": "ملفات المشروع",
+      "audioTranscriptions": "النسخ الصوتية",
+      "textDocuments": "النصوص المستوردة",
+      "memos": "مذكراتي",
+      "memosOfProject": "مذكرات المشروع",
+      "entities": "الكيانات",
+      "collaborativeDocs": "المستندات التعاونية"
+    },
+    "topEntities": {
+      "title": "🏷️ أهم الكيانات المستخرجة",
+      "all": "الكل",
+      "summary": "💡 {{types}} نوع/أنواع من الكيانات • {{unique}} كيان/كيانات فريدة • {{total}} تكرار/تكرارات إجمالية",
+      "occurrences": "{{count}} تكرار",
+      "occurrences_plural": "{{count}} تكرارات"
+    },
+    "recentFiles": "📎 الملفات الحديثة لمشاريعي",
+    "recentFilesOfProject": "📎 الملفات الحديثة للمشروع",
+    "uploadedBy": "تم التحميل بواسطة {{name}}",
+    "transcriptionStatus": "🎙️ حالة النسخ الصوتية",
+    "status": {
+      "pending": "قيد الانتظار",
+      "processing": "قيد المعالجة",
+      "completed": "مكتملة",
+      "failed": "فشل"
+    },
+    "recentActivity": "📋 النشاط الأخير",
+    "recentProjects": "📁 المشاريع الحديثة",
+    "allMyProjects": "📚 جميع مشاريعي",
+    "noProjects": "لم يتم العثور على مشاريع",
+    "noProjectsHint": "انقر على \"مشروع جديد\" للبدء",
+    "noDescription": "لا يوجد وصف",
+    "owner": "👑",
+    "ownerBadge": "👑 المالك",
+    "open": "فتح →",
+    "modifiedOn": "تم التعديل في {{date}}",
+    "createdOn": "تم الإنشاء في {{date}}",
+    "fileUploadedBy": "تم التحميل بواسطة",
+    "relativeTime": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} دقيقة",
+      "hoursAgo": "منذ {{count}} ساعة",
+      "daysAgo": "منذ {{count}} يوم"
+    },
+    "actions": {
+      "file-uploaded": "حمّل ملفاً",
+      "file-trashed": "نقل ملفاً إلى سلة المهملات",
+      "file-restored": "استعاد ملفاً",
+      "file-deleted-permanently": "حذف ملفاً",
+      "transcription-uploaded": "أضاف نسخة",
+      "transcription-trashed": "نقل نسخة إلى سلة المهملات",
+      "transcription-restored": "استعاد نسخة",
+      "transcription-deleted-permanently": "حذف نسخة",
+      "trash-emptied": "أفرغ سلة المهملات",
+      "memo-created": "أنشأ مذكرة",
+      "text-uploaded": "استورد نصاً",
+      "document-created": "أنشأ مستنداً",
+      "document-renamed": "أعاد تسمية مستند",
+      "document-deleted": "حذف مستنداً",
+      "member-added": "أضاف عضواً",
+      "member-removed": "أزال عضواً"
+    },
+    "entityTypes": {
+      "Person": "الأشخاص",
+      "Place": "الأماكن",
+      "Organization": "المؤسسات",
+      "Date": "التواريخ",
+      "Email": "البريد الإلكتروني",
+      "Phone": "الهواتف",
+      "Url": "الروابط"
+    }
+  },
+  "projectDetail": {
+    "loading": "جاري التحميل...",
+    "notFound": "لم يتم العثور على المشروع",
+    "owner": "👑 المالك",
+    "editProject": "تعديل المشروع",
+    "noDescription": "لا يوجد وصف",
+    "createdOn": "تم الإنشاء في {{date}}",
+    "actions": {
+      "newTranscription": "🎙️ نسخة جديدة",
+      "importText": "📄 استيراد نص",
+      "exportProject": "📥 تصدير المشروع",
+      "exporting": "⏳ جاري التصدير..."
+    },
+    "searchPlaceholder": "ابحث في هذا المشروع...",
+    "searchResults": "🔍 نتائج البحث",
+    "sourceTypes": {
+      "transcription": "نسخة",
+      "memo": "مذكرة",
+      "file": "ملف"
+    },
+    "tabs": {
+      "audio": "🎙️ صوتيات ({{count}})",
+      "memos": "📝 مذكرات ({{count}})",
+      "analysis": "📊 تحليل",
+      "members": "👥 الأعضاء",
+      "documents": "📁 مستندات ({{count}})",
+      "activity": "📋 نشاط ({{count}})",
+      "trash": "🗑️ سلة المهملات ({{count}})",
+      "presence": "👥 الحضور ({{count}})"
+    },
+    "audio": {
+      "title": "النسخ الصوتية",
+      "empty": "لا توجد نسخ صوتية.",
+      "retry": "🔄 إعادة المحاولة",
+      "retryConfirm": "إعادة بدء النسخ؟",
+      "retrySuccess": "🔄 تم إعادة بدء النسخ",
+      "retryError": "تعذر إعادة البدء"
+    },
+    "memos": {
+      "title": "مذكرات البحث",
+      "placeholderTitle": "عنوان المذكرة",
+      "placeholderContent": "محتوى المذكرة...",
+      "addButton": "+ إضافة مذكرة",
+      "adding": "جاري الإنشاء...",
+      "empty": "لا توجد مذكرات.",
+      "deleteConfirm": "حذف هذه المذكرة؟"
+    },
+    "analysis": {
+      "title": "📊 التحليل النوعي للمشروع",
+      "loading": "جاري تحميل التحليل...",
+      "totalWords": "إجمالي الكلمات",
+      "uniqueWords": "الكلمات الفريدة",
+      "keywords": "🏷️ الكلمات المفتاحية الأكثر شيوعاً",
+      "wordCloudLoading": "جاري تحميل سحابة الكلمات...",
+      "noData": "لا توجد بيانات تحليل متاحة لهذا المشروع.",
+      "generate": "🔄 توليد التحليل"
+    },
+    "members": {
+      "title": "إدارة الأعضاء"
+    },
+    "activity": {
+      "title": "📋 النشاط الأخير للمشروع"
+    },
+    "presence": {
+      "title": "👥 الحضور في الوقت الفعلي"
+    },
+    "documents": {
+      "title": "📁 مستندات المشروع",
+      "listTitle": "📚 قائمة المستندات ({{count}})",
+      "sortDate": "📅 الفرز حسب التاريخ",
+      "sortName": "🔤 الفرز حسب الاسم",
+      "sortSize": "📊 الفرز حسب الحجم",
+      "sortType": "📂 الفرز حسب النوع",
+      "empty": "لا يوجد مستند في هذا المشروع.",
+      "emptyHint": "قم بتحميل ملف للبدء.",
+      "addedOn": "📅 تمت الإضافة في {{date}}",
+      "deleteTooltip": "النقل إلى سلة المهملات",
+      "typeTranscription": "نسخة",
+      "typeText": "📄 نص مستورد",
+      "typeTranscriptionShort": "📝 نسخة",
+      "typeFile": "📎 ملف محمّل"
+    },
+    "trash": {
+      "title": "🗑️ سلة المهملات",
+      "empty": "سلة المهملات فارغة.",
+      "emptyHint": "ستظهر العناصر المحذوفة هنا.",
+      "warning": "⚠️ {{count}} عنصر/عناصر في سلة المهملات. يمكن استعادة العناصر أو حذفها نهائياً.",
+      "emptyButton": "💥 إفراغ سلة المهملات",
+      "files": "📎 الملفات ({{count}})",
+      "transcriptions": "🎙️ النسخ ({{count}})",
+      "restore": "♻️ استعادة",
+      "restoreConfirm": "استعادة \"{{name}}\"؟",
+      "permanentDeleteConfirm": "⚠️ حذف \"{{name}}\" نهائياً؟\\n\\nهذا الإجراء لا رجعة فيه.",
+      "deletedOn": "🗑️ تم الحذف في {{date}}",
+      "emptyAlready": "سلة المهملات فارغة بالفعل.",
+      "emptyConfirm": "⚠️ إفراغ سلة المهملات بالكامل؟\\n\\nسيتم حذف {{count}} عنصر/عناصر نهائياً (بما في ذلك Cloudinary).\\n\\nهذا الإجراء لا رجعة فيه.",
+      "emptySuccess": "✅ تم إفراغ سلة المهملات بنجاح.",
+      "emptyError": "خطأ أثناء إفراغ سلة المهملات",
+      "restoreError": "خطأ أثناء الاستعادة",
+      "deleteError": "خطأ أثناء الحذف",
+      "deleteConfirm": "نقل \"{{name}}\" إلى سلة المهملات؟"
+    },
+    "editModal": {
+      "title": "✏️ تعديل المشروع",
+      "titleLabel": "العنوان *",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف مشروعك...",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "saving": "جاري الحفظ...",
+      "titleRequired": "العنوان مطلوب (3 أحرف كحد أدنى)",
+      "success": "تم تحديث المشروع ✅",
+      "error": "تعذر التحديث"
+    },
+    "status": {
+      "COMPLETED": "✅ مكتمل",
+      "PENDING": "⏳ قيد الانتظار",
+      "PROCESSING": "⚙️ قيد المعالجة",
+      "FAILED": "❌ فشل",
+      "unknown": "غير معروف"
+    },
+    "events": {
+      "file-uploaded": "📤 تم تحميل {{name}}",
+      "file-trashed": "🗑️ تم نقل {{name}} إلى سلة المهملات",
+      "file-restored": "♻️ تم استعادة {{name}}",
+      "file-deleted-permanently": "💥 تم حذف {{name}} نهائياً",
+      "transcription-uploaded": "🎙️ نسخة جديدة: {{title}}",
+      "transcription-trashed": "🗑️ تم نقل النسخة إلى سلة المهملات",
+      "transcription-restored": "♻️ تم استعادة النسخة",
+      "transcription-deleted-permanently": "💥 تم حذف النسخة",
+      "trash-emptied": "🧹 تم إفراغ سلة المهملات ({{count}} عناصر)",
+      "document-uploaded": "📄 تم استيراد {{name}}",
+      "memo-created": "📝 مذكرة جديدة: {{title}}"
+    }
+  },
+  "settings": {
+    "title": "⚙️ الإعدادات",
+    "loading": "جاري تحميل الملف الشخصي...",
+    "tabs": {
+      "profile": "👤 الملف الشخصي",
+      "security": "🔒 الأمان",
+      "language": "🌍 اللغة",
+      "appearance": "🎨 المظهر"
+    },
+    "profile": {
+      "title": "👤 ملفي الشخصي",
+      "changePhoto": "📷 تغيير الصورة",
+      "uploading": "⏳ جاري التحميل...",
+      "nameLabel": "الاسم الكامل",
+      "emailLabel": "البريد الإلكتروني",
+      "institutionLabel": "المؤسسة",
+      "institutionPlaceholder": "مثال: جامعة باريس",
+      "bioLabel": "السيرة الذاتية",
+      "bioPlaceholder": "كلمات قليلة عنك...",
+      "save": "حفظ التعديلات",
+      "saving": "جاري الحفظ...",
+      "success": "تم تحديث الملف الشخصي ✅",
+      "avatarSuccess": "تم تحديث الصورة الرمزية ✅"
+    },
+    "security": {
+      "title": "🔒 الأمان",
+      "currentPassword": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "6 أحرف على الأقل",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أعد كتابة كلمة المرور الجديدة",
+      "submit": "تغيير كلمة المرور",
+      "submitting": "جاري التغيير...",
+      "success": "تم تغيير كلمة المرور ✅",
+      "recommendations": "⚠️ توصيات الأمان",
+      "recommendation1": "استخدم كلمة مرور فريدة ومعقدة (8 أحرف أو أكثر)",
+      "recommendation2": "لا تشارك كلمة المرور أبداً",
+      "recommendation3": "غيّرها بانتظام"
+    },
+    "language": {
+      "title": "🌍 لغة العمل",
+      "intro": "اختر اللغة التي تستخدمها للعمل على المنصة. ستُستخدم هذه اللغة لـ:",
+      "feature1": "📝 الملخصات والتحليلات التي ينشئها الذكاء الاصطناعي",
+      "feature2": "🏷️ استخراج الكيانات (الأشخاص والأماكن والمؤسسات)",
+      "feature3": "🔔 الإشعارات ورسائل النظام",
+      "feature4": "🎯 اقتراحات الرموز",
+      "activeLabel": "اللغة النشطة",
+      "saving": "⏳ جاري الحفظ...",
+      "aboutTitle": "💡 حول تعدد اللغات",
+      "aboutText": "تنطبق هذه اللغة على واجهتك الشخصية وردود الذكاء الاصطناعي. يبقى محتوى المستندات دون تغيير — ستتمكن من ترجمته عند الطلب في الإصدارات المستقبلية.",
+      "success": "🌍 تم تحديث اللغة",
+      "successMessage": "الواجهة والذكاء الاصطناعي بـ {{language}}"
+    },
+    "appearance": {
+      "title": "🎨 المظهر",
+      "modeLight": "الوضع ☀️ فاتح",
+      "modeDark": "الوضع 🌙 داكن",
+      "activateDark": "تفعيل الداكن",
+      "activateLight": "تفعيل الفاتح",
+      "customColors": "ألوان مخصصة",
+      "primaryColor": "اللون الأساسي",
+      "primaryDark": "الأساسي الداكن",
+      "primaryLight": "الأساسي الفاتح",
+      "apply": "تطبيق",
+      "reset": "إعادة تعيين",
+      "applied": "تم تطبيق اللوحة ✅",
+      "resetDone": "تمت إعادة تعيين اللوحة"
+    },
+    "errors": {
+      "invalidFile": "ملف غير صالح",
+      "onlyImages": "يُسمح بالصور فقط",
+      "fileTooBig": "الملف كبير جداً",
+      "fileTooBigMessage": "الحد الأقصى 5 ميغابايت",
+      "avatarUploadFailed": "تعذر تحميل الصورة الرمزية",
+      "profileSaveFailed": "تعذر الحفظ",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين",
+      "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
+      "passwordChangeFailed": "تعذر تغيير كلمة المرور",
+      "languageChangeFailed": "تعذر تغيير اللغة"
+    }
+  },
+  "textUpload": {
+    "title": "📄 استيراد نص",
+    "targetProject": "📁 المشروع المستهدف:",
+    "supportedFormats": "الصيغ المدعومة",
+    "uploading": "⏳ جاري التحميل...",
+    "submit": "📤 استيراد النص",
+    "back": "← رجوع",
+    "success": "✅ تم استيراد النص بنجاح! جاري إعادة التوجيه...",
+    "errors": {
+      "noProject": "لم يتم تحديد أي مشروع. يرجى الانتقال إلى صفحة مشروع.",
+      "noProjectShort": "لم يتم تحديد أي مشروع",
+      "uploadFailed": "❌ خطأ في الاتصال بالخادم",
+      "serverError": "❌ خطأ: {{message}}"
+    }
+  },
+  "chat": {
+    "title": "🤖 مساعد الذكاء الاصطناعي",
+    "welcome": "مرحباً! أنا مساعد الذكاء الاصطناعي لمنصة إيبينو ريسيرش. كيف يمكنني مساعدتك؟",
+    "loading": "⏳ المساعد يفكر...",
+    "placeholder": "اطرح سؤالك...",
+    "fallbackResponse": "تم استلام الرد بنجاح.",
+    "errors": {
+      "communication": "خطأ في التواصل مع المساعد",
+      "assistantError": "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.",
+      "server": "خطأ في الاتصال بالخادم",
+      "serverUnreachable": "عذراً، الخادم غير متاح. يرجى المحاولة لاحقاً."
+    }
+  },
+  "transcriptionList": {
+    "title": "📜 النسخ الخاصة بي",
+    "loading": "جاري التحميل...",
+    "empty": "لم يتم العثور على عناصر.",
+    "noText": "لا يوجد نص متاح.",
+    "failed": "فشلت عملية النسخ. انقر على \"🔄 إعادة المحاولة\" لإعادة البدء.",
+    "processing": "جاري النسخ...",
+    "noTitle": "بدون عنوان",
+    "filters": {
+      "all": "📋 الكل",
+      "audio": "🎙️ صوتيات",
+      "text": "📄 نصوص"
+    },
+    "status": {
+      "COMPLETED": "✅ مكتمل",
+      "PENDING": "⏳ قيد الانتظار",
+      "PROCESSING": "⚙️ قيد المعالجة",
+      "FAILED": "❌ فشل",
+      "unknown": "غير معروف"
+    },
+    "retry": {
+      "button": "🔄 إعادة المحاولة",
+      "retrying": "⏳ قيد التنفيذ...",
+      "confirm": "إعادة بدء نسخ هذا الملف الصوتي؟",
+      "success": "🔄 تم إعادة بدء النسخ",
+      "successMessage": "تمت إعادة بدء المعالجة.",
+      "error": "تعذر إعادة البدء",
+      "connectionError": "خطأ في الاتصال",
+      "tooltip": "إعادة محاولة النسخ"
+    },
+    "analysis": {
+      "title": "☁️ التحليل النوعي",
+      "loading": "جاري تحميل التحليل...",
+      "totalWords": "📊 إجمالي الكلمات",
+      "uniqueWords": "🔤 الكلمات الفريدة",
+      "keywords": "الكلمات المفتاحية الأكثر شيوعاً",
+      "unavailable": "التحليل غير متاح."
+    },
+    "error": {
+      "label": "❌ خطأ:"
+    }
+  },
+  "collaboration": {
+    "title": "🤝 التعاون في الوقت الفعلي",
+    "loadingProjects": "جاري تحميل مشاريعك...",
+    "noProjects": "ليس لديك أي مشروع بعد. أنشئ مشروعاً أولاً من لوحة التحكم.",
+    "projectLabel": "📁 المشروع",
+    "noDescription": "لا يوجد وصف",
+    "selectProjectAlert": "يرجى تحديد مشروع",
+    "members": {
+      "title": "👥 أعضاء المشروع",
+      "empty": "لا يوجد أعضاء",
+      "shareTooltip": "نسخ رسالة دعوة",
+      "shareCopied": "✅ تم نسخ الرسالة لـ {{name}}. الصقها في بريد إلكتروني.",
+      "sharePrompt": "انسخ هذه الرسالة:",
+      "shareMessage": "مرحباً {{name}}،\n\nانضم إليّ في المستند التعاوني للمشروع \"{{project}}\":\n{{url}}\n\nإلى اللقاء قريباً!"
+    },
+    "documents": {
+      "newButton": "+ مستند جديد",
+      "creating": "⏳ جاري الإنشاء...",
+      "title": "📄 المستندات ({{count}})",
+      "loading": "جاري التحميل...",
+      "empty": "لا توجد مستندات",
+      "download": "تنزيل",
+      "rename": "إعادة تسمية",
+      "formatPdf": "📕 صيغة PDF (.pdf)",
+      "formatWord": "📘 صيغة Word (.doc)",
+      "formatTxt": "📄 نص عادي (.txt)"
+    },
+    "editor": {
+      "empty": "📄 حدد مستنداً",
+      "emptyHint": "أو أنشئ واحداً جديداً للبدء بالتعاون",
+      "pdf": "📕 PDF",
+      "word": "📘 Word",
+      "txt": "📄 TXT"
+    },
+    "toasts": {
+      "renamed": "تمت إعادة تسمية المستند ✅",
+      "renameFailed": "تعذرت إعادة التسمية",
+      "downloaded": "📥 تم تنزيل \"{{name}}\"",
+      "downloadFailed": "تعذر تنزيل المستند",
+      "docRenamedBy": "📝 أعاد {{name}} تسمية المستند إلى \"{{title}}\"",
+      "created": "تم إنشاء المستند ✅",
+      "createFailed": "خطأ أثناء الإنشاء"
+    }
+  },
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "pt": "Português",
+    "ar": "العربية"
+  },
+  "badges": {
+    "languageTooltip": "اللغة: {{language}}",
+    "owner": "👑",
+    "status": {
+      "COMPLETED": "مكتمل",
+      "PENDING": "قيد الانتظار",
+      "PROCESSING": "قيد المعالجة",
+      "FAILED": "فشل"
+    }
+  }
+}

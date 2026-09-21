@@ -14,6 +14,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
 import { useTranslation } from 'react-i18next';  // ✅ Pour le composant Login
+import { useRTL } from './i18n/useRTL';
 
 // ============================================================
 // ✅ LAZY-LOADED PAGES (chunks séparés, chargés à la demande)
@@ -186,6 +187,7 @@ const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () =>
 // APP PRINCIPALE
 // ============================================================
 const App: React.FC = () => {
+  useRTL();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');

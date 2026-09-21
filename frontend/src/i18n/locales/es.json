@@ -1,0 +1,523 @@
+{
+  "common": {
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "creating": "Creando...",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "back": "Volver",
+    "open": "Abrir",
+    "reset": "Restablecer",
+    "apply": "Aplicar",
+    "upload": "Subir",
+    "download": "Descargar",
+    "search": "Buscar",
+    "noResults": "Sin resultados"
+  },
+  "auth": {
+    "appName": "Ebeno Research",
+    "appTagline": "Plataforma de investigación colaborativa",
+    "login": {
+      "title": "Iniciar sesión",
+      "email": "Correo electrónico",
+      "emailPlaceholder": "test@test.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Iniciar sesión",
+      "submitting": "Iniciando sesión...",
+      "noAccount": "¿Aún no tienes cuenta?",
+      "registerLink": "Registrarse",
+      "testHint": "Prueba: test@test.com / 123456"
+    },
+    "register": {
+      "title": "Registro",
+      "name": "Nombre completo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Crear cuenta",
+      "submitting": "Creando...",
+      "hasAccount": "¿Ya tienes una cuenta?",
+      "loginLink": "Iniciar sesión"
+    },
+    "errors": {
+      "invalidCredentials": "Correo o contraseña incorrectos",
+      "missingFields": "Por favor, complete todos los campos",
+      "serverError": "Error de conexión con el servidor",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres"
+    }
+  },
+  "nav": {
+    "dashboard": "Panel de control",
+    "transcription": "Transcripción",
+    "textUpload": "Importar texto",
+    "transcriptions": "Mis transcripciones",
+    "chat": "Chat IA",
+    "collaboration": "Colaboración",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión",
+    "user": "Usuario",
+    "menu": "Menú"
+  },
+  "theme": {
+    "light": "☀️ Claro",
+    "dark": "🌙 Oscuro",
+    "system": "💻 Sistema",
+    "tooltip": "Tema: {{label}}"
+  },
+  "dashboard": {
+    "greeting": "¡Hola {{name}}!",
+    "welcome": "Bienvenido a la plataforma Ebeno Research.",
+    "summary": "Tiene {{projects}} proyecto(s), {{documents}} documento(s) y {{entities}} entidad(es).",
+    "viewProject": "Vista del proyecto: {{title}}",
+    "newProject": "Nuevo proyecto",
+    "cancel": "Cancelar",
+    "filterByProject": "Filtrar por proyecto:",
+    "allProjects": "Todos mis proyectos",
+    "reset": "Restablecer",
+    "loadingStats": "Cargando estadísticas...",
+    "createProject": {
+      "title": "Crear un nuevo proyecto",
+      "titleLabel": "Título *",
+      "titlePlaceholder": "Mi proyecto de investigación",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describa su proyecto...",
+      "submit": "Crear proyecto",
+      "cancel": "Cancelar",
+      "success": "Proyecto creado ✅",
+      "error": "Error al crear",
+      "errorServer": "Error de conexión con el servidor"
+    },
+    "stats": {
+      "projects": "Proyectos",
+      "files": "Mis archivos",
+      "filesOfProject": "Archivos del proyecto",
+      "audioTranscriptions": "Transcripciones de audio",
+      "textDocuments": "Textos importados",
+      "memos": "Mis memos",
+      "memosOfProject": "Memos del proyecto",
+      "entities": "Entidades",
+      "collaborativeDocs": "Documentos colaborativos"
+    },
+    "topEntities": {
+      "title": "🏷️ Entidades principales extraídas",
+      "all": "Todo",
+      "summary": "💡 {{types}} tipo(s) de entidades • {{unique}} entidad(es) única(s) • {{total}} ocurrencia(s) total(es)",
+      "occurrences": "{{count}} ocurrencia",
+      "occurrences_plural": "{{count}} ocurrencias"
+    },
+    "recentFiles": "📎 Archivos recientes de mis proyectos",
+    "recentFilesOfProject": "📎 Archivos recientes del proyecto",
+    "uploadedBy": "Subido por {{name}}",
+    "transcriptionStatus": "🎙️ Estado de las transcripciones de audio",
+    "status": {
+      "pending": "Pendiente",
+      "processing": "En curso",
+      "completed": "Completadas",
+      "failed": "Fallos"
+    },
+    "recentActivity": "📋 Actividad reciente",
+    "recentProjects": "📁 Proyectos recientes",
+    "allMyProjects": "📚 Todos mis proyectos",
+    "noProjects": "No se encontraron proyectos",
+    "noProjectsHint": "Haga clic en \"Nuevo proyecto\" para comenzar",
+    "noDescription": "Sin descripción",
+    "owner": "👑",
+    "ownerBadge": "👑 Propietario",
+    "open": "Abrir →",
+    "modifiedOn": "Modificado el {{date}}",
+    "createdOn": "Creado el {{date}}",
+    "fileUploadedBy": "Subido por",
+    "relativeTime": {
+      "justNow": "ahora mismo",
+      "minutesAgo": "hace {{count}} min",
+      "hoursAgo": "hace {{count}} h",
+      "daysAgo": "hace {{count}} d"
+    },
+    "actions": {
+      "file-uploaded": "subió un archivo",
+      "file-trashed": "movió un archivo a la papelera",
+      "file-restored": "restauró un archivo",
+      "file-deleted-permanently": "eliminó un archivo",
+      "transcription-uploaded": "agregó una transcripción",
+      "transcription-trashed": "movió una transcripción a la papelera",
+      "transcription-restored": "restauró una transcripción",
+      "transcription-deleted-permanently": "eliminó una transcripción",
+      "trash-emptied": "vació la papelera",
+      "memo-created": "creó un memo",
+      "text-uploaded": "importó un texto",
+      "document-created": "creó un documento",
+      "document-renamed": "renombró un documento",
+      "document-deleted": "eliminó un documento",
+      "member-added": "agregó un miembro",
+      "member-removed": "retiró un miembro"
+    },
+    "entityTypes": {
+      "Person": "Personas",
+      "Place": "Lugares",
+      "Organization": "Organizaciones",
+      "Date": "Fechas",
+      "Email": "Correos electrónicos",
+      "Phone": "Teléfonos",
+      "Url": "URLs"
+    }
+  },
+  "projectDetail": {
+    "loading": "Cargando...",
+    "notFound": "Proyecto no encontrado",
+    "owner": "👑 Propietario",
+    "editProject": "Editar proyecto",
+    "noDescription": "Sin descripción",
+    "createdOn": "Creado el {{date}}",
+    "actions": {
+      "newTranscription": "🎙️ Nueva transcripción",
+      "importText": "📄 Importar texto",
+      "exportProject": "📥 Exportar proyecto",
+      "exporting": "⏳ Exportando..."
+    },
+    "searchPlaceholder": "Buscar en este proyecto...",
+    "searchResults": "🔍 Resultados de búsqueda",
+    "sourceTypes": {
+      "transcription": "Transcripción",
+      "memo": "Memo",
+      "file": "Archivo"
+    },
+    "tabs": {
+      "audio": "🎙️ Audio ({{count}})",
+      "memos": "📝 Memos ({{count}})",
+      "analysis": "📊 Análisis",
+      "members": "👥 Miembros",
+      "documents": "📁 Documentos ({{count}})",
+      "activity": "📋 Actividad ({{count}})",
+      "trash": "🗑️ Papelera ({{count}})",
+      "presence": "👥 Presencia ({{count}})"
+    },
+    "audio": {
+      "title": "Transcripciones de audio",
+      "empty": "Sin transcripciones de audio.",
+      "retry": "🔄 Reintentar",
+      "retryConfirm": "¿Reiniciar la transcripción?",
+      "retrySuccess": "🔄 Transcripción reiniciada",
+      "retryError": "No se pudo reiniciar"
+    },
+    "memos": {
+      "title": "Memos de investigación",
+      "placeholderTitle": "Título del memo",
+      "placeholderContent": "Contenido del memo...",
+      "addButton": "+ Agregar un memo",
+      "adding": "Creando...",
+      "empty": "Sin memos.",
+      "deleteConfirm": "¿Eliminar este memo?"
+    },
+    "analysis": {
+      "title": "📊 Análisis cualitativo del proyecto",
+      "loading": "Cargando el análisis...",
+      "totalWords": "Total palabras",
+      "uniqueWords": "Palabras únicas",
+      "keywords": "🏷️ Palabras clave más frecuentes",
+      "wordCloudLoading": "Cargando la nube de palabras...",
+      "noData": "No hay datos de análisis disponibles para este proyecto.",
+      "generate": "🔄 Generar análisis"
+    },
+    "members": {
+      "title": "Gestión de miembros"
+    },
+    "activity": {
+      "title": "📋 Actividad reciente del proyecto"
+    },
+    "presence": {
+      "title": "👥 Presencia en tiempo real"
+    },
+    "documents": {
+      "title": "📁 Documentos del proyecto",
+      "listTitle": "📚 Lista de documentos ({{count}})",
+      "sortDate": "📅 Ordenar por fecha",
+      "sortName": "🔤 Ordenar por nombre",
+      "sortSize": "📊 Ordenar por tamaño",
+      "sortType": "📂 Ordenar por tipo",
+      "empty": "Ningún documento en este proyecto.",
+      "emptyHint": "Suba un archivo para comenzar.",
+      "addedOn": "📅 Agregado el {{date}}",
+      "deleteTooltip": "Mover a la papelera",
+      "typeTranscription": "TRANSCRIPCIÓN",
+      "typeText": "📄 Texto importado",
+      "typeTranscriptionShort": "📝 Transcripción",
+      "typeFile": "📎 Archivo subido"
+    },
+    "trash": {
+      "title": "🗑️ Papelera",
+      "empty": "La papelera está vacía.",
+      "emptyHint": "Los elementos eliminados aparecerán aquí.",
+      "warning": "⚠️ {{count}} elemento(s) en la papelera. Los elementos se pueden restaurar o eliminar permanentemente.",
+      "emptyButton": "💥 Vaciar la papelera",
+      "files": "📎 Archivos ({{count}})",
+      "transcriptions": "🎙️ Transcripciones ({{count}})",
+      "restore": "♻️ Restaurar",
+      "restoreConfirm": "¿Restaurar \"{{name}}\"?",
+      "permanentDeleteConfirm": "⚠️ ¿Eliminar PERMANENTEMENTE \"{{name}}\"?\\n\\nEsta acción es IRREVERSIBLE.",
+      "deletedOn": "🗑️ Eliminado el {{date}}",
+      "emptyAlready": "La papelera ya está vacía.",
+      "emptyConfirm": "⚠️ ¿Vaciar completamente la papelera?\\n\\n{{count}} elemento(s) se eliminarán PERMANENTEMENTE (Cloudinary incluido).\\n\\nEsta acción es IRREVERSIBLE.",
+      "emptySuccess": "✅ Papelera vaciada con éxito.",
+      "emptyError": "Error al vaciar la papelera",
+      "restoreError": "Error al restaurar",
+      "deleteError": "Error al eliminar",
+      "deleteConfirm": "¿Mover \"{{name}}\" a la papelera?"
+    },
+    "editModal": {
+      "title": "✏️ Editar el proyecto",
+      "titleLabel": "Título *",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describa su proyecto...",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "titleRequired": "El título es obligatorio (3 caracteres mín.)",
+      "success": "Proyecto actualizado ✅",
+      "error": "No se pudo actualizar"
+    },
+    "status": {
+      "COMPLETED": "✅ Completado",
+      "PENDING": "⏳ Pendiente",
+      "PROCESSING": "⚙️ Procesando",
+      "FAILED": "❌ Fallo",
+      "unknown": "Desconocido"
+    },
+    "events": {
+      "file-uploaded": "📤 {{name}} ha sido subido",
+      "file-trashed": "🗑️ {{name}} ha sido movido a la papelera",
+      "file-restored": "♻️ {{name}} ha sido restaurado",
+      "file-deleted-permanently": "💥 {{name}} ha sido eliminado permanentemente",
+      "transcription-uploaded": "🎙️ Nueva transcripción: {{title}}",
+      "transcription-trashed": "🗑️ Transcripción movida a la papelera",
+      "transcription-restored": "♻️ Transcripción restaurada",
+      "transcription-deleted-permanently": "💥 Transcripción eliminada",
+      "trash-emptied": "🧹 Papelera vaciada ({{count}} elementos)",
+      "document-uploaded": "📄 {{name}} ha sido importado",
+      "memo-created": "📝 Nuevo memo: {{title}}"
+    }
+  },
+  "settings": {
+    "title": "⚙️ Ajustes",
+    "loading": "Cargando el perfil...",
+    "tabs": {
+      "profile": "👤 Perfil",
+      "security": "🔒 Seguridad",
+      "language": "🌍 Idioma",
+      "appearance": "🎨 Apariencia"
+    },
+    "profile": {
+      "title": "👤 Mi perfil",
+      "changePhoto": "📷 Cambiar foto",
+      "uploading": "⏳ Subiendo...",
+      "nameLabel": "Nombre completo",
+      "emailLabel": "Correo electrónico",
+      "institutionLabel": "Institución",
+      "institutionPlaceholder": "Ej: Universidad de París",
+      "bioLabel": "Biografía",
+      "bioPlaceholder": "Algunas palabras sobre usted...",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
+      "success": "Perfil actualizado ✅",
+      "avatarSuccess": "Avatar actualizado ✅"
+    },
+    "security": {
+      "title": "🔒 Seguridad",
+      "currentPassword": "Contraseña actual",
+      "currentPasswordPlaceholder": "Su contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "newPasswordPlaceholder": "Al menos 6 caracteres",
+      "confirmPassword": "Confirmar nueva contraseña",
+      "confirmPasswordPlaceholder": "Reescriba la nueva contraseña",
+      "submit": "Cambiar contraseña",
+      "submitting": "Cambiando...",
+      "success": "Contraseña cambiada ✅",
+      "recommendations": "⚠️ Recomendaciones de seguridad",
+      "recommendation1": "Use una contraseña única y compleja (8+ caracteres)",
+      "recommendation2": "Nunca comparta su contraseña",
+      "recommendation3": "Cámbiela regularmente"
+    },
+    "language": {
+      "title": "🌍 Idioma de trabajo",
+      "intro": "Elija el idioma que utiliza para trabajar en la plataforma. Este idioma se utilizará para:",
+      "feature1": "📝 Los resúmenes y análisis generados por la IA",
+      "feature2": "🏷️ La extracción de entidades (personas, lugares, organizaciones)",
+      "feature3": "🔔 Las notificaciones y mensajes del sistema",
+      "feature4": "🎯 Las sugerencias de códigos",
+      "activeLabel": "Idioma activo",
+      "saving": "⏳ Guardando...",
+      "aboutTitle": "💡 Acerca del multilingüe",
+      "aboutText": "Este idioma se aplica a su interfaz personal y a las respuestas de la IA. El contenido de los documentos permanece sin cambios — podrá traducirlo bajo demanda en versiones futuras.",
+      "success": "🌍 Idioma actualizado",
+      "successMessage": "Interfaz e IA en {{language}}"
+    },
+    "appearance": {
+      "title": "🎨 Apariencia",
+      "modeLight": "Modo ☀️ Claro",
+      "modeDark": "Modo 🌙 Oscuro",
+      "activateDark": "Activar oscuro",
+      "activateLight": "Activar claro",
+      "customColors": "Colores personalizados",
+      "primaryColor": "Color primario",
+      "primaryDark": "Primario oscuro",
+      "primaryLight": "Primario claro",
+      "apply": "Aplicar",
+      "reset": "Restablecer",
+      "applied": "Paleta aplicada ✅",
+      "resetDone": "Paleta restablecida"
+    },
+    "errors": {
+      "invalidFile": "Archivo no válido",
+      "onlyImages": "Solo se permiten imágenes",
+      "fileTooBig": "Archivo demasiado grande",
+      "fileTooBigMessage": "Máximo 5 MB",
+      "avatarUploadFailed": "No se pudo subir el avatar",
+      "profileSaveFailed": "No se pudo guardar",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
+      "passwordChangeFailed": "No se pudo cambiar la contraseña",
+      "languageChangeFailed": "No se pudo cambiar el idioma"
+    }
+  },
+  "textUpload": {
+    "title": "📄 Importar un texto",
+    "targetProject": "📁 Proyecto destino:",
+    "supportedFormats": "Formatos compatibles",
+    "uploading": "⏳ Subiendo...",
+    "submit": "📤 Importar el texto",
+    "back": "← Volver",
+    "success": "✅ ¡Texto importado con éxito! Redirigiendo...",
+    "errors": {
+      "noProject": "Ningún proyecto seleccionado. Vaya a la página de un proyecto.",
+      "noProjectShort": "Ningún proyecto seleccionado",
+      "uploadFailed": "❌ Error de conexión con el servidor",
+      "serverError": "❌ Error: {{message}}"
+    }
+  },
+  "chat": {
+    "title": "🤖 Asistente IA",
+    "welcome": "¡Hola! Soy el asistente IA de la plataforma Ebeno Research. ¿Cómo puedo ayudarle?",
+    "loading": "⏳ El asistente está pensando...",
+    "placeholder": "Haga su pregunta...",
+    "fallbackResponse": "Respuesta recibida con éxito.",
+    "errors": {
+      "communication": "Error de comunicación con el asistente",
+      "assistantError": "Lo sentimos, ocurrió un error. Por favor, inténtelo de nuevo.",
+      "server": "Error de conexión con el servidor",
+      "serverUnreachable": "Lo sentimos, el servidor no está disponible. Por favor, inténtelo más tarde."
+    }
+  },
+  "transcriptionList": {
+    "title": "📜 Mis transcripciones",
+    "loading": "Cargando...",
+    "empty": "No se encontraron elementos.",
+    "noText": "Ningún texto disponible.",
+    "failed": "La transcripción falló. Haga clic en \"🔄 Reintentar\" para reiniciar.",
+    "processing": "La transcripción está en curso...",
+    "noTitle": "Sin título",
+    "filters": {
+      "all": "📋 Todo",
+      "audio": "🎙️ Audio",
+      "text": "📄 Texto"
+    },
+    "status": {
+      "COMPLETED": "✅ Completado",
+      "PENDING": "⏳ Pendiente",
+      "PROCESSING": "⚙️ Procesando",
+      "FAILED": "❌ Fallo",
+      "unknown": "Desconocido"
+    },
+    "retry": {
+      "button": "🔄 Reintentar",
+      "retrying": "⏳ En curso...",
+      "confirm": "¿Reiniciar la transcripción de este archivo de audio?",
+      "success": "🔄 Transcripción reiniciada",
+      "successMessage": "El procesamiento se ha reiniciado.",
+      "error": "No se pudo reiniciar",
+      "connectionError": "Error de conexión",
+      "tooltip": "Reintentar la transcripción"
+    },
+    "analysis": {
+      "title": "☁️ Análisis cualitativo",
+      "loading": "Cargando el análisis...",
+      "totalWords": "📊 Total palabras",
+      "uniqueWords": "🔤 Palabras únicas",
+      "keywords": "Palabras clave más frecuentes",
+      "unavailable": "Análisis no disponible."
+    },
+    "error": {
+      "label": "❌ Error:"
+    }
+  },
+  "collaboration": {
+    "title": "🤝 Colaboración en tiempo real",
+    "loadingProjects": "Cargando sus proyectos...",
+    "noProjects": "Aún no tiene ningún proyecto. Cree uno primero desde el panel de control.",
+    "projectLabel": "📁 Proyecto",
+    "noDescription": "Sin descripción",
+    "selectProjectAlert": "Por favor, seleccione un proyecto",
+    "members": {
+      "title": "👥 Miembros del proyecto",
+      "empty": "Sin miembros",
+      "shareTooltip": "Copiar un mensaje de invitación",
+      "shareCopied": "✅ Mensaje copiado para {{name}}. Pégalo en un correo.",
+      "sharePrompt": "Copie este mensaje:",
+      "shareMessage": "Hola {{name}},\n\nÚnete a mí en el documento colaborativo del proyecto \"{{project}}\":\n{{url}}\n\n¡Hasta pronto!"
+    },
+    "documents": {
+      "newButton": "+ Nuevo documento",
+      "creating": "⏳ Creando...",
+      "title": "📄 Documentos ({{count}})",
+      "loading": "Cargando...",
+      "empty": "Sin documentos",
+      "download": "Descargar",
+      "rename": "Renombrar",
+      "formatPdf": "📕 Formato PDF (.pdf)",
+      "formatWord": "📘 Formato Word (.doc)",
+      "formatTxt": "📄 Texto plano (.txt)"
+    },
+    "editor": {
+      "empty": "📄 Seleccione un documento",
+      "emptyHint": "o cree uno nuevo para comenzar a colaborar",
+      "pdf": "📕 PDF",
+      "word": "📘 Word",
+      "txt": "📄 TXT"
+    },
+    "toasts": {
+      "renamed": "Documento renombrado ✅",
+      "renameFailed": "No se pudo renombrar",
+      "downloaded": "📥 \"{{name}}\" descargado",
+      "downloadFailed": "No se pudo descargar el documento",
+      "docRenamedBy": "📝 {{name}} renombró el documento a \"{{title}}\"",
+      "created": "Documento creado ✅",
+      "createFailed": "Error al crear"
+    }
+  },
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "pt": "Português",
+    "ar": "العربية"
+  },
+  "badges": {
+    "languageTooltip": "Idioma: {{language}}",
+    "owner": "👑",
+    "status": {
+      "COMPLETED": "Completado",
+      "PENDING": "Pendiente",
+      "PROCESSING": "Procesando",
+      "FAILED": "Fallo"
+    }
+  }
+}

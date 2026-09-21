@@ -230,3 +230,50 @@ body {
     size: A4 portrait;
   }
 }
+/* ============================================================
+   Support RTL (arabe, hébreu, etc.)
+   ============================================================ */
+
+/* Force la direction globale quand <html dir="rtl"> */
+html[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Corriger les conteneurs flex qui ont un `direction: row` explicite */
+html[dir="rtl"] .flex-row-force-ltr {
+  direction: ltr;
+}
+
+/* Flip des marges/paddings asymétriques */
+html[dir="rtl"] .dashboard-container {
+  /* Aucun besoin normalement, direction: rtl suffit */
+}
+
+/* Inputs et textareas : aligner le texte à droite */
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Code, URLs et emails : toujours en LTR */
+html[dir="rtl"] code,
+html[dir="rtl"] pre,
+html[dir="rtl"] .force-ltr {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: embed;
+}
+
+/* Les emojis ne doivent pas être inversés */
+html[dir="rtl"] .emoji {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Fix pour les scrollbars horizontales en RTL sur certains navigateurs */
+html[dir="rtl"] body {
+  overflow-x: hidden;
+}

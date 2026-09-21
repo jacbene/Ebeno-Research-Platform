@@ -12,6 +12,9 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import fr from './i18n/locales/fr.json';
 import en from './i18n/locales/en.json';
+import es from './i18n/locales/es.json';
+import pt from './i18n/locales/pt.json';
+import ar from './i18n/locales/ar.json';
 
 i18n
   .use(LanguageDetector)
@@ -20,9 +23,12 @@ i18n
     resources: {
       fr: { translation: fr },
       en: { translation: en },
+      es: { translation: es },   // ✅ NOUVEAU
+      pt: { translation: pt },   // ✅ NOUVEAU
+      ar: { translation: ar },   // ✅ NOUVEAU
     },
     fallbackLng: 'fr',
-    supportedLngs: ['fr', 'en'],
+   supportedLngs: ['fr', 'en', 'es', 'pt', 'ar'],   // ← 5 langues
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     returnNull: false,
