@@ -9,7 +9,7 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: 2240
+    environment: DATABASE_URL_EXTERBAL
 
     steps:
       - name: Checkout
