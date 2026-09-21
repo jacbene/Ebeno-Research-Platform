@@ -2,9 +2,8 @@ name: Daily Database Backup
 
 on:
   schedule:
-    # 3h UTC = 4h Cameroun (heure creuse)
     - cron: '0 3 * * *'
-  workflow_dispatch: # Permet de lancer manuellement depuis GitHub
+  workflow_dispatch:
 
 jobs:
   backup:
@@ -20,68 +19,39 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
-- name: Create database backup
-  env:
-    DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
-  run: |
-    set -e
-    set -o pipefail
-    TIMESTAMP=$(date +%Y%m%d_%H%M)
-    FILENAME="backup_${TIMESTAMP}.sql.gz"
+      - name: Create database backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
+        run: |
+          set -e
+          set -o pipefail
+          TIMESTAMP=$(date +%Y%m%d_%H%M)
+          FILENAME="backup_${TIMESTAMP}.sql.gz"
 
-    echo "🔍 Test de connexion..."
-    psql "$DATABASE_URL" -c "SELECT current_database(), current_user;"
+          echo "Test de connexion..."
+          psql "$DATABASE_URL" -c "SELECT current_database();"
 
-    echo ""
-    echo "📊 Liste des tables :"
-    psql "$DATABASE_URL" -c "\dt" || echo "⚠️ Impossible de lister les tables"
+          echo "Creation du backup..."
+          pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILENAME"
 
-    echo ""
-    echo "📦 Création du backup..."
-    pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists | gzip > "$FILENAME"
+          SIZE=$(du -h "$FILENAME" | cut -f1)
+          SIZE_BYTES=$(stat -c%s "$FILENAME")
 
-    SIZE=$(du -h "$FILENAME" | cut -f1)
-    SIZE_BYTES=$(stat -c%s "$FILENAME" 2>/dev/null || stat -f%z "$FILENAME")
+          echo "Backup cree : $FILENAME ($SIZE)"
 
-    echo "✅ Backup créé : $FILENAME ($SIZE)"
+          if [ "$SIZE_BYTES" -lt 10000 ]; then
+            echo "ERREUR : backup trop petit ($SIZE)"
+            gunzip -c "$FILENAME" | head -30
+            exit 1
+          fi
 
-    if [ "$SIZE_BYTES" -lt 10000 ]; then
-      echo ""
-      echo "❌ ERREUR : Le backup est trop petit ($SIZE) — probablement vide !"
-      echo ""
-      echo "Contenu du backup (premières lignes) :"
-      gunzip -c "$FILENAME" | head -30
-      exit 1
-    fi
+          echo "Taille OK : $SIZE"
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+          echo "SIZE=$SIZE" >> $GITHUB_ENV
 
-    echo "✅ Taille OK : $SIZE"
-
-    echo "FILENAME=$FILENAME" >> $GITHUB_ENV
-    echo "SIZE=$SIZE" >> $GITHUB_ENV
-    
       - name: Upload backup as artifact
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
           path: ${{ env.FILENAME }}
           retention-days: 90
-          compression-level: 0 # Déjà gzippé
-
-      - name: Summary
-        if: success()
-        run: |
-          echo "### ✅ Backup réussi" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Fichier** : \`${{ env.FILENAME }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Taille** : ${{ env.SIZE }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Rétention** : 90 jours" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Téléchargeable depuis **Actions → cette run → Artifacts**" >> $GITHUB_STEP_SUMMARY
-
-      - name: Failure notification
-        if: failure()
-        run: |
-          echo "### ❌ Backup échoué" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Vérifier les logs ci-dessus." >> $GITHUB_STEP_SUMMARY
-# Auto-detected by GitHub Actions
