@@ -21,18 +21,24 @@ jobs:
 
       - name: Create database backup
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGSSLMODE: require
         run: |
           set -e
           set -o pipefail
           TIMESTAMP=$(date +%Y%m%d_%H%M)
           FILENAME="backup_${TIMESTAMP}.sql.gz"
 
-          echo "Test de connexion..."
-          psql "$DATABASE_URL" -c "SELECT current_database();"
+          echo "Test de connexion a $PGHOST..."
+          psql -c "SELECT current_database(), current_user;"
 
+          echo ""
           echo "Creation du backup..."
-          pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILENAME"
+          pg_dump --no-owner --no-privileges | gzip > "$FILENAME"
 
           SIZE=$(du -h "$FILENAME" | cut -f1)
           SIZE_BYTES=$(stat -c%s "$FILENAME")
