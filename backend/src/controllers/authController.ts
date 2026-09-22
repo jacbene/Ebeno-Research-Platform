@@ -17,7 +17,10 @@ const generateUserId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 };
 
-// ✅ Helper : déchiffre l'email d'un user (fallback sur email en clair)
+// ============================================================
+// HELPERS : déchiffrement avec fallback
+// ============================================================
+
 const getUserEmail = (user: any): string => {
   if (user.emailEncrypted) {
     const decrypted = decrypt(user.emailEncrypted);
@@ -25,6 +28,35 @@ const getUserEmail = (user: any): string => {
   }
   return user.email || '';
 };
+
+const getUserBio = (user: any): string | null => {
+  if (user.bioEncrypted) {
+    const decrypted = decrypt(user.bioEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user.bio || null;
+};
+
+const getUserInstitution = (user: any): string | null => {
+  if (user.institutionEncrypted) {
+    const decrypted = decrypt(user.institutionEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user.institution || null;
+};
+
+/**
+ * Retourne un objet user "public" avec tous les champs déchiffrés.
+ */
+const sanitizeUser = (user: any) => ({
+  id: user.id,
+  email: getUserEmail(user),
+  name: user.name,
+  role: user.role,
+  avatar: user.avatar || null,
+  bio: getUserBio(user),
+  institution: getUserInstitution(user),
+});
 
 // ============================================================
 // INSCRIPTION
@@ -47,9 +79,7 @@ export const register = async (req: Request, res: Response) => {
     const emailLower = email.toLowerCase().trim();
     const emailHash = hashEmail(emailLower);
 
-    // ✅ Recherche par hash (déterministe)
     const existingUser = await db('users').where({ emailHash }).first();
-    // Fallback : chercher aussi par email en clair (compat anciens users)
     const existingLegacy = !existingUser
       ? await db('users').where({ email: emailLower }).first()
       : null;
@@ -70,19 +100,23 @@ export const register = async (req: Request, res: Response) => {
     const now = new Date().toISOString();
 
     const emailEncrypted = encrypt(emailLower);
+    const institutionTrimmed = institution?.trim() || null;
+    const institutionEncrypted = institutionTrimmed ? encrypt(institutionTrimmed) : null;
 
     await db('users').insert({
       id,
-      email: emailLower,              // ⚠️ gardé en clair pour transition
-      emailEncrypted,                 // ✅ chiffré
-      emailHash,                      // ✅ hash pour recherche
+      email: emailLower,
+      emailEncrypted,
+      emailHash,
       password: hashedPassword,
       name: name.trim(),
       role: 'RESEARCHER',
       isVerified: false,
-      institution: institution?.trim() || null,
+      institution: institutionTrimmed,                    // compat
+      institutionEncrypted,                                // ✅ chiffré
       avatar: null,
       bio: null,
+      bioEncrypted: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -101,7 +135,7 @@ export const register = async (req: Request, res: Response) => {
       targetId: id,
       targetName: name.trim(),
       status: 'success',
-      metadata: { institution: institution?.trim() || null },
+      metadata: { institution: institutionTrimmed },
     });
 
     return res.status(201).json({
@@ -113,7 +147,7 @@ export const register = async (req: Request, res: Response) => {
         email: emailLower,
         name: name.trim(),
         role: 'RESEARCHER',
-        institution: institution?.trim() || null,
+        institution: institutionTrimmed,
         avatar: null,
         bio: null,
       },
@@ -139,7 +173,6 @@ export const login = async (req: Request, res: Response) => {
     const emailLower = email.toLowerCase().trim();
     const emailHash = hashEmail(emailLower);
 
-    // ✅ Recherche par hash (nouveau) + fallback email clair (compat)
     let user = await db('users').where({ emailHash }).first();
     if (!user) {
       user = await db('users').where({ email: emailLower }).first();
@@ -189,15 +222,7 @@ export const login = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        email: getUserEmail(user),
-        name: user.name,
-        role: user.role,
-        avatar: user.avatar || null,
-        bio: user.bio || null,
-        institution: user.institution || null,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error: any) {
     console.error('❌ Erreur login:', error);
@@ -217,7 +242,12 @@ export const getProfile = async (req: Request, res: Response) => {
     }
 
     const user = await db('users')
-      .select('id', 'email', 'emailEncrypted', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
+      .select(
+        'id', 'email', 'emailEncrypted', 'name', 'role',
+        'avatar', 'bio', 'bioEncrypted',
+        'institution', 'institutionEncrypted',
+        'createdAt'
+      )
       .where({ id: userId })
       .first();
 
@@ -225,11 +255,15 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    // ✅ Déchiffrer l'email
-    const { emailEncrypted, ...userData } = user;
     return res.json({
-      ...userData,
+      id: user.id,
       email: getUserEmail(user),
+      name: user.name,
+      role: user.role,
+      avatar: user.avatar,
+      bio: getUserBio(user),
+      institution: getUserInstitution(user),
+      createdAt: user.createdAt,
     });
   } catch (error) {
     console.error('❌ Erreur getProfile:', error);
@@ -260,7 +294,6 @@ export const updateProfile = async (req: Request, res: Response) => {
       const emailLower = email.toLowerCase().trim();
       const newHash = hashEmail(emailLower);
 
-      // Vérifier qu'aucun autre user n'a ce hash
       const existing = await db('users')
         .where({ emailHash: newHash })
         .whereNot({ id: userId })
@@ -269,19 +302,34 @@ export const updateProfile = async (req: Request, res: Response) => {
         return res.status(400).json({ message: 'Cet email est déjà utilisé' });
       }
 
-      updates.email = emailLower;                       // compat
-      updates.emailEncrypted = encrypt(emailLower);    // ✅ chiffré
-      updates.emailHash = newHash;                     // ✅ hash
+      updates.email = emailLower;
+      updates.emailEncrypted = encrypt(emailLower);
+      updates.emailHash = newHash;
     }
 
     if (name) updates.name = name.trim();
-    if (bio !== undefined) updates.bio = bio?.trim() || null;
-    if (institution !== undefined) updates.institution = institution?.trim() || null;
+
+    if (bio !== undefined) {
+      const bioTrimmed = bio?.trim() || '';
+      updates.bio = bioTrimmed || null;                               // compat
+      updates.bioEncrypted = bioTrimmed ? encrypt(bioTrimmed) : null;  // ✅ chiffré
+    }
+
+    if (institution !== undefined) {
+      const instTrimmed = institution?.trim() || '';
+      updates.institution = instTrimmed || null;                                // compat
+      updates.institutionEncrypted = instTrimmed ? encrypt(instTrimmed) : null;  // ✅ chiffré
+    }
 
     await db('users').where({ id: userId }).update(updates);
 
     const updatedUser = await db('users')
-      .select('id', 'email', 'emailEncrypted', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
+      .select(
+        'id', 'email', 'emailEncrypted', 'name', 'role',
+        'avatar', 'bio', 'bioEncrypted',
+        'institution', 'institutionEncrypted',
+        'createdAt'
+      )
       .where({ id: userId })
       .first();
 
@@ -296,13 +344,18 @@ export const updateProfile = async (req: Request, res: Response) => {
       metadata: { fields: Object.keys(req.body) },
     });
 
-    const { emailEncrypted: _, ...cleanUser } = updatedUser as any;
     return res.json({
       success: true,
       message: 'Profil mis à jour',
       user: {
-        ...cleanUser,
+        id: updatedUser.id,
         email: getUserEmail(updatedUser),
+        name: updatedUser.name,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        bio: getUserBio(updatedUser),
+        institution: getUserInstitution(updatedUser),
+        createdAt: updatedUser.createdAt,
       },
     });
   } catch (error: any) {
