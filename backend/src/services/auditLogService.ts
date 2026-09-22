@@ -87,31 +87,23 @@ export const getAuditLog = async (query: AuditQuery) => {
   const limit = Math.min(Number(query.limit) || 100, 500);
   const offset = Number(query.offset) || 0;
 
-  let q = db('audit_log').orderBy('createdAt', 'desc');
+  // ✅ Base query SANS orderBy (pour le count)
+  let baseQuery = db('audit_log');
 
-  if (query.userId) q = q.where('userId', query.userId);
-  if (query.action) q = q.where('action', query.action);
-  if (query.targetType) q = q.where('targetType', query.targetType);
-  if (query.status) q = q.where('status', query.status);
-  if (query.from) q = q.where('createdAt', '>=', query.from);
-  if (query.to) q = q.where('createdAt', '<=', query.to);
+  if (query.userId) baseQuery = baseQuery.where('userId', query.userId);
+  if (query.action) baseQuery = baseQuery.where('action', query.action);
+  if (query.targetType) baseQuery = baseQuery.where('targetType', query.targetType);
+  if (query.status) baseQuery = baseQuery.where('status', query.status);
+  if (query.from) baseQuery = baseQuery.where('createdAt', '>=', query.from);
+  if (query.to) baseQuery = baseQuery.where('createdAt', '<=', query.to);
 
+  // ✅ Requêtes séparées : entries (avec orderBy + limit) et count (sans orderBy)
   const [entries, countResult] = await Promise.all([
-    q.clone().limit(limit).offset(offset),
-    q.clone().count('id as count').first(),
+    baseQuery.clone().orderBy('createdAt', 'desc').limit(limit).offset(offset),
+    baseQuery.clone().count('id as count').first(),
   ]);
-
-  const total = Number((countResult as any)?.count || 0);
-
-  return {
-    entries: entries.map((e: any) => ({
-      ...e,
-      metadata: e.metadata ? safeJsonParse(e.metadata) : null,
-    })),
-    pagination: { total, limit, offset, hasMore: offset + limit < total },
-  };
-};
-
+ 
+      
 const safeJsonParse = (str: string): any => {
   try {
     return JSON.parse(str);
