@@ -9,6 +9,7 @@ import requestIp from 'request-ip';
 import { sanitizeBody } from './middleware/sanitize';
 import { auditLogger } from './middleware/auditLogger';
 import { startCleanupCron } from './services/cleanupService';
+import { verifyEmailConnection } from './services/emailService';
 import { startAuditPurgeCron } from './services/auditPurgeService';
 
 // Routes
@@ -273,6 +274,10 @@ const startServer = async () => {
 
     startCleanupCron();
     startAuditPurgeCron();
+    // ✅ Vérifier la connexion SMTP (asynchrone, ne bloque pas le démarrage)
+verifyEmailConnection().catch((err) =>
+  logger.warn('⚠️ [email] Vérification SMTP échouée:', err.message)
+);
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
     process.exit(1);
