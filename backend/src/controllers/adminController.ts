@@ -4,6 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
 import { getAuditLog } from '../services/auditLogService';
+import { purgeOldAuditLogs } from '../services/auditPurgeService';
 
 // Configuration Cloudinary — utilise CLOUDINARY_URL automatiquement
 cloudinary.config();
@@ -132,6 +133,16 @@ export const dbInfo = async (req: Request, res: Response) => {
       'project_activity',
       'audit_log',
     ];
+    
+    const auditRetention = Number(process.env.AUDIT_LOG_RETENTION_DAYS) || 365;
+    const cutoffDate = new Date(Date.now() - auditRetention * 24 * 60 * 60 * 1000).toISOString();
+
+    const auditStats = await db('audit_log')
+      .select(
+         db.raw('COUNT(*) as total'),
+         db.raw(`COUNT(*) FILTER (WHERE "createdAt" < ?) as old`, [cutoffDate])
+         )
+       .first();
 
     const counts: Record<string, number> = {};
     for (const table of tables) {
@@ -144,10 +155,16 @@ export const dbInfo = async (req: Request, res: Response) => {
     }
 
     res.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      counts,
-    });
+  success: true,
+  timestamp: new Date().toISOString(),
+  counts,
+  auditRetention: {
+    retentionDays: auditRetention,
+    totalEntries: Number((auditStats as any)?.total || 0),
+    entriesToPurge: Number((auditStats as any)?.old || 0),
+    cutoffDate,
+  },
+});
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -180,6 +197,59 @@ export const getAuditLogs = async (req: Request, res: Response) => {
     res.json({ success: true, ...result });
   } catch (error: any) {
     logger.error('❌ [admin] Erreur audit-log:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const emailDebug = async (req: Request, res: Response) => {
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken !== process.env.ADMIN_TOKEN) {
+    return res.status(403).json({ success: false, message: 'Non autorisé' });
+  }
+
+  const users = await db('users').select('id', 'email', 'emailEncrypted', 'emailHash').limit(3);
+
+  res.json({
+    success: true,
+    users: users.map((u: any) => ({
+      id: u.id,
+      emailClear: u.email,
+      emailEncryptedPreview: u.emailEncrypted ? u.emailEncrypted.substring(0, 50) + '...' : null,
+      emailHashPreview: u.emailHash ? u.emailHash.substring(0, 20) + '...' : null,
+    })),
+  });
+};
+
+/**
+ * POST /api/admin/audit-log/purge
+ * Purge manuelle des logs d'audit anciens.
+ * Query params :
+ *   - retentionDays (optionnel, défaut : env ou 365)
+ *   - dryRun=true (pour tester sans supprimer)
+ */
+export const purgeAuditLogs = async (req: Request, res: Response) => {
+  try {
+    const adminToken = req.headers['x-admin-token'];
+    const expectedToken = process.env.ADMIN_TOKEN;
+
+    if (!expectedToken || adminToken !== expectedToken) {
+      return res.status(403).json({ success: false, message: 'Non autorisé' });
+    }
+
+    const retentionDays = req.query.retentionDays
+      ? Number(req.query.retentionDays)
+      : undefined;
+    const dryRun = req.query.dryRun === 'true';
+
+    const result = await purgeOldAuditLogs(retentionDays, dryRun);
+
+    res.json({
+      success: true,
+      dryRun,
+      ...result,
+    });
+  } catch (error: any) {
+    logger.error('❌ [admin] Erreur purge audit:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

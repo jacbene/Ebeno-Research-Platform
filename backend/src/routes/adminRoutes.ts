@@ -1,6 +1,6 @@
 // backend/src/routes/adminRoutes.ts
 import { Router } from 'express';
-import { backupCloudinary, dbInfo, getAuditLogs } from '../controllers/adminController';
+import { backupCloudinary, dbInfo, getAuditLogs, purgeAuditLogs } from '../controllers/adminController';
 
 const router = Router();
 
@@ -8,5 +8,7 @@ const router = Router();
 router.get('/backup/cloudinary', backupCloudinary);
 router.get('/backup/db-info', dbInfo);
 router.get('/audit-log', getAuditLogs);
+router.get('/audit-log', getAuditLogs);
+router.post('/audit-log/purge', purgeAuditLogs);   // ✅ AJOUTER
 
 export default router;

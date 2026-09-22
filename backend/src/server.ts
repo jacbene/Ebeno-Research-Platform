@@ -8,6 +8,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import requestIp from 'request-ip';
 import { sanitizeBody } from './middleware/sanitize';
 import { auditLogger } from './middleware/auditLogger';
+import { startCleanupCron } from './services/cleanupService';
+import { startAuditPurgeCron } from './services/auditPurgeService';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -38,7 +40,6 @@ import adminRoutes from './routes/adminRoutes';
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
 import { setIO } from './socketManager';
 import { db } from './db/knex';
-import { startCleanupCron } from './services/cleanupService';
 
 // ✅ Middleware de rate limiting
 import {
@@ -269,6 +270,7 @@ const startServer = async () => {
     });
 
     startCleanupCron();
+    startAuditPurgeCron();
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
     process.exit(1);
