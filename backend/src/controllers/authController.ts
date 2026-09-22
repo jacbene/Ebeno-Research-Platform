@@ -5,12 +5,9 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db/knex';
 import { uploadToCloudinary } from '../services/cloudinaryService';
 import { logAuditFromReq } from '../services/auditLogService';
+import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
-
-// ============================================================
-// UTILITAIRES
-// ============================================================
 
 const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -18,6 +15,15 @@ const isValidEmail = (email: string): boolean => {
 
 const generateUserId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+};
+
+// ✅ Helper : déchiffre l'email d'un user (fallback sur email en clair)
+const getUserEmail = (user: any): string => {
+  if (user.emailEncrypted) {
+    const decrypted = decrypt(user.emailEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user.email || '';
 };
 
 // ============================================================
@@ -28,7 +34,6 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, institution } = req.body;
 
-    // Validations
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Email, mot de passe et nom sont requis' });
     }
@@ -39,11 +44,19 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères' });
     }
 
-    // Vérifier si l'email existe déjà
-    const existingUser = await db('users').where({ email: email.toLowerCase() }).first();
-    if (existingUser) {
+    const emailLower = email.toLowerCase().trim();
+    const emailHash = hashEmail(emailLower);
+
+    // ✅ Recherche par hash (déterministe)
+    const existingUser = await db('users').where({ emailHash }).first();
+    // Fallback : chercher aussi par email en clair (compat anciens users)
+    const existingLegacy = !existingUser
+      ? await db('users').where({ email: emailLower }).first()
+      : null;
+
+    if (existingUser || existingLegacy) {
       await logAuditFromReq(req, {
-        userEmail: email.toLowerCase(),
+        userEmail: emailLower,
         action: 'register_failed',
         targetType: 'user',
         status: 'failure',
@@ -52,14 +65,17 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Cet email est déjà utilisé' });
     }
 
-    // Créer l'utilisateur
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = generateUserId();
     const now = new Date().toISOString();
 
+    const emailEncrypted = encrypt(emailLower);
+
     await db('users').insert({
       id,
-      email: email.toLowerCase(),
+      email: emailLower,              // ⚠️ gardé en clair pour transition
+      emailEncrypted,                 // ✅ chiffré
+      emailHash,                      // ✅ hash pour recherche
       password: hashedPassword,
       name: name.trim(),
       role: 'RESEARCHER',
@@ -71,17 +87,15 @@ export const register = async (req: Request, res: Response) => {
       updatedAt: now,
     });
 
-    // Générer le token directement pour auto-login
     const token = jwt.sign(
-      { id, email: email.toLowerCase(), role: 'RESEARCHER' },
+      { id, email: emailLower, role: 'RESEARCHER' },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // ✅ Log succès de l'inscription
     await logAuditFromReq(req, {
       userId: id,
-      userEmail: email.toLowerCase(),
+      userEmail: emailLower,
       action: 'register',
       targetType: 'user',
       targetId: id,
@@ -96,7 +110,7 @@ export const register = async (req: Request, res: Response) => {
       token,
       user: {
         id,
-        email: email.toLowerCase(),
+        email: emailLower,
         name: name.trim(),
         role: 'RESEARCHER',
         institution: institution?.trim() || null,
@@ -122,11 +136,18 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Email et mot de passe requis' });
     }
 
-    const user = await db('users').where({ email: email.toLowerCase() }).first();
+    const emailLower = email.toLowerCase().trim();
+    const emailHash = hashEmail(emailLower);
+
+    // ✅ Recherche par hash (nouveau) + fallback email clair (compat)
+    let user = await db('users').where({ emailHash }).first();
     if (!user) {
-      // ✅ Log échec : utilisateur inexistant
+      user = await db('users').where({ email: emailLower }).first();
+    }
+
+    if (!user) {
       await logAuditFromReq(req, {
-        userEmail: email.toLowerCase(),
+        userEmail: emailLower,
         action: 'login_failed',
         targetType: 'user',
         status: 'failure',
@@ -137,10 +158,9 @@ export const login = async (req: Request, res: Response) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      // ✅ Log échec : mauvais mot de passe
       await logAuditFromReq(req, {
         userId: user.id,
-        userEmail: user.email,
+        userEmail: getUserEmail(user),
         action: 'login_failed',
         targetType: 'user',
         targetId: user.id,
@@ -151,19 +171,18 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: getUserEmail(user), role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // ✅ Log succès de la connexion
     await logAuditFromReq(req, {
       userId: user.id,
-      userEmail: user.email,
+      userEmail: getUserEmail(user),
       action: 'login',
       targetType: 'user',
       targetId: user.id,
-      targetName: user.name || user.email,
+      targetName: user.name || getUserEmail(user),
       status: 'success',
     });
 
@@ -172,7 +191,7 @@ export const login = async (req: Request, res: Response) => {
       token,
       user: {
         id: user.id,
-        email: user.email,
+        email: getUserEmail(user),
         name: user.name,
         role: user.role,
         avatar: user.avatar || null,
@@ -187,7 +206,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // ============================================================
-// PROFIL (alias de getMe)
+// PROFIL
 // ============================================================
 
 export const getProfile = async (req: Request, res: Response) => {
@@ -198,7 +217,7 @@ export const getProfile = async (req: Request, res: Response) => {
     }
 
     const user = await db('users')
-      .select('id', 'email', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
+      .select('id', 'email', 'emailEncrypted', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
       .where({ id: userId })
       .first();
 
@@ -206,7 +225,12 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    return res.json(user);
+    // ✅ Déchiffrer l'email
+    const { emailEncrypted, ...userData } = user;
+    return res.json({
+      ...userData,
+      email: getUserEmail(user),
+    });
   } catch (error) {
     console.error('❌ Erreur getProfile:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
@@ -226,49 +250,60 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     const { name, email, bio, institution } = req.body;
 
-    // Validations
+    const updates: any = { updatedAt: new Date().toISOString() };
+
     if (email) {
       if (!isValidEmail(email)) {
         return res.status(400).json({ message: 'Format d\'email invalide' });
       }
+
+      const emailLower = email.toLowerCase().trim();
+      const newHash = hashEmail(emailLower);
+
+      // Vérifier qu'aucun autre user n'a ce hash
       const existing = await db('users')
-        .where({ email: email.toLowerCase() })
+        .where({ emailHash: newHash })
         .whereNot({ id: userId })
         .first();
       if (existing) {
         return res.status(400).json({ message: 'Cet email est déjà utilisé' });
       }
+
+      updates.email = emailLower;                       // compat
+      updates.emailEncrypted = encrypt(emailLower);    // ✅ chiffré
+      updates.emailHash = newHash;                     // ✅ hash
     }
 
-    const updates: any = { updatedAt: new Date().toISOString() };
     if (name) updates.name = name.trim();
-    if (email) updates.email = email.toLowerCase();
     if (bio !== undefined) updates.bio = bio?.trim() || null;
     if (institution !== undefined) updates.institution = institution?.trim() || null;
 
     await db('users').where({ id: userId }).update(updates);
 
     const updatedUser = await db('users')
-      .select('id', 'email', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
+      .select('id', 'email', 'emailEncrypted', 'name', 'role', 'avatar', 'bio', 'institution', 'createdAt')
       .where({ id: userId })
       .first();
 
-    // ✅ Log modification du profil
     await logAuditFromReq(req, {
       userId,
-      userEmail: updatedUser?.email,
+      userEmail: getUserEmail(updatedUser),
       action: 'profile_update',
       targetType: 'user',
       targetId: userId,
-      targetName: updatedUser?.name || updatedUser?.email,
+      targetName: updatedUser?.name || getUserEmail(updatedUser),
       status: 'success',
       metadata: { fields: Object.keys(req.body) },
     });
 
+    const { emailEncrypted: _, ...cleanUser } = updatedUser as any;
     return res.json({
       success: true,
       message: 'Profil mis à jour',
-      user: updatedUser,
+      user: {
+        ...cleanUser,
+        email: getUserEmail(updatedUser),
+      },
     });
   } catch (error: any) {
     console.error('❌ Erreur updateProfile:', error);
@@ -302,10 +337,9 @@ export const changePassword = async (req: Request, res: Response) => {
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      // ✅ Log échec changement mdp
       await logAuditFromReq(req, {
         userId,
-        userEmail: user.email,
+        userEmail: getUserEmail(user),
         action: 'password_change_failed',
         targetType: 'user',
         targetId: userId,
@@ -320,14 +354,13 @@ export const changePassword = async (req: Request, res: Response) => {
       .where({ id: userId })
       .update({ password: hashedPassword, updatedAt: new Date().toISOString() });
 
-    // ✅ Log succès changement mdp
     await logAuditFromReq(req, {
       userId,
-      userEmail: user.email,
+      userEmail: getUserEmail(user),
       action: 'password_change',
       targetType: 'user',
       targetId: userId,
-      targetName: user.name || user.email,
+      targetName: user.name || getUserEmail(user),
       status: 'success',
     });
 
@@ -350,19 +383,16 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     const file = (req as any).file;
     if (!file) return res.status(400).json({ message: 'Aucun fichier' });
 
-    // Upload vers Cloudinary (dossier avatars)
     const { publicId, secureUrl } = await uploadToCloudinary(
       file.path,
       `avatars/${userId}`,
       'image'
     );
 
-    // Mettre à jour l'utilisateur
     await db('users')
       .where({ id: userId })
       .update({ avatar: secureUrl, updatedAt: new Date().toISOString() });
 
-    // ✅ Log changement d'avatar
     await logAuditFromReq(req, {
       userId,
       action: 'avatar_update',
@@ -388,7 +418,6 @@ export const uploadAvatar = async (req: Request, res: Response) => {
 // ============================================================
 
 export const logout = async (req: Request, res: Response) => {
-  // ✅ Log déconnexion (si user identifié)
   const userId = (req as any).user?.id;
   const userEmail = (req as any).user?.email;
 
