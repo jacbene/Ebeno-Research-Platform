@@ -35,6 +35,7 @@ import searchRoutes from './routes/searchRoutes';
 import statsRoutes from './routes/statsRoutes';
 import languageRoutes from './routes/languageRoutes';
 import adminRoutes from './routes/adminRoutes';
+import twoFactorRoutes from './routes/twoFactorRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -174,6 +175,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/language', languageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/2fa', twoFactorRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES

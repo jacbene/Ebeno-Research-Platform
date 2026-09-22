@@ -6,8 +6,10 @@ import { db } from '../db/knex';
 import { uploadToCloudinary } from '../services/cloudinaryService';
 import { logAuditFromReq } from '../services/auditLogService';
 import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
+import { verifyTotpCode, verifyBackupCode } from '../services/totpService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';   
 
 const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -56,6 +58,7 @@ const sanitizeUser = (user: any) => ({
   avatar: user.avatar || null,
   bio: getUserBio(user),
   institution: getUserInstitution(user),
+  twoFactorEnabled: !!user.twoFactorEnabled,   // ✅ AJOUTER
 });
 
 // ============================================================
@@ -203,6 +206,32 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
+    // ✅ 2FA : si activée, on renvoie un tempToken (pas le JWT complet)
+    if (user.twoFactorEnabled) {
+      const tempToken = jwt.sign(
+        { id: user.id, purpose: '2fa-pending' },
+        TWOFA_TEMP_SECRET,
+        { expiresIn: '5m' }
+      );
+
+      await logAuditFromReq(req, {
+        userId: user.id,
+        userEmail: getUserEmail(user),
+        action: 'login_2fa_required',
+        targetType: 'user',
+        targetId: user.id,
+        status: 'success',
+      });
+
+      return res.json({
+        success: true,
+        requires2FA: true,
+        tempToken,
+        message: '2FA requise',
+      });
+    }
+
+    // Sinon : JWT complet classique
     const token = jwt.sign(
       { id: user.id, email: getUserEmail(user), role: user.role },
       JWT_SECRET,
@@ -228,7 +257,7 @@ export const login = async (req: Request, res: Response) => {
     console.error('❌ Erreur login:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
-};
+};    
 
 // ============================================================
 // PROFIL
@@ -463,6 +492,105 @@ export const uploadAvatar = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('❌ Erreur uploadAvatar:', error);
     return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+};
+
+// ============================================================
+// 2FA : VÉRIFICATION DU CODE AU LOGIN
+// ============================================================
+
+/**
+ * POST /api/auth/2fa-login
+ * Body : { tempToken, code, useBackupCode?: boolean }
+ * Vérifie le tempToken + le code TOTP (ou backup code),
+ * puis retourne le JWT complet.
+ */
+export const verify2FALogin = async (req: Request, res: Response) => {
+  try {
+    const { tempToken, code, useBackupCode } = req.body;
+
+    if (!tempToken || !code) {
+      return res.status(400).json({ message: 'tempToken et code requis' });
+    }
+
+    // 1. Vérifier le tempToken
+    let payload: any;
+    try {
+      payload = jwt.verify(tempToken, TWOFA_TEMP_SECRET);
+    } catch (err: any) {
+      return res.status(401).json({ message: 'Session 2FA expirée. Reconnectez-vous.' });
+    }
+
+    if (payload.purpose !== '2fa-pending') {
+      return res.status(401).json({ message: 'Token invalide' });
+    }
+
+    const userId = payload.id;
+
+    const user = await db('users').where({ id: userId }).first();
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA désactivée' });
+    }
+
+    // 2. Vérifier le code : TOTP ou backup code
+    let isValid = false;
+
+    if (useBackupCode) {
+      const result = await verifyBackupCode(code, user.twoFactorBackupCodes);
+      if (result.valid) {
+        isValid = true;
+        // Consommer le backup code
+        await db('users').where({ id: userId }).update({
+          twoFactorBackupCodes: JSON.stringify(result.remainingHashes),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } else {
+      isValid = verifyTotpCode(code, user.twoFactorSecretEncrypted);
+    }
+
+    if (!isValid) {
+      await logAuditFromReq(req, {
+        userId,
+        userEmail: getUserEmail(user),
+        action: 'login_2fa_failed',
+        targetType: 'user',
+        targetId: userId,
+        status: 'failure',
+        metadata: { reason: useBackupCode ? 'invalid_backup_code' : 'invalid_totp' },
+      });
+      return res.status(401).json({ message: 'Code invalide' });
+    }
+
+    // 3. Succès : générer le JWT complet
+    const token = jwt.sign(
+      { id: user.id, email: getUserEmail(user), role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: getUserEmail(user),
+      action: useBackupCode ? 'login_2fa_backup' : 'login_2fa',
+      targetType: 'user',
+      targetId: user.id,
+      targetName: user.name || getUserEmail(user),
+      status: 'success',
+    });
+
+    return res.json({
+      success: true,
+      token,
+      user: sanitizeUser(user),
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur verify2FALogin:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
