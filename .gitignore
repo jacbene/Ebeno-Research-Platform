@@ -37,3 +37,7 @@ scripts/smoke-test.env
 # DB backups
 backup_*.sql
 *.sql.gz
+
+# Backup files (tests locaux)
+cloudinary_backup*.json
+backup_*.sql*
