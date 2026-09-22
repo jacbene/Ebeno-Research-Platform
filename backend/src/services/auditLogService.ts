@@ -83,7 +83,17 @@ export interface AuditQuery {
   offset?: number;
 }
 
-export const getAuditLog = async (query: AuditQuery) => {
+export interface AuditLogResult {
+  entries: any[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+export const getAuditLog = async (query: AuditQuery): Promise<AuditLogResult> => {
   const limit = Math.min(Number(query.limit) || 100, 500);
   const offset = Number(query.offset) || 0;
 
@@ -102,7 +112,17 @@ export const getAuditLog = async (query: AuditQuery) => {
     baseQuery.clone().orderBy('createdAt', 'desc').limit(limit).offset(offset),
     baseQuery.clone().count('id as count').first(),
   ]);
- 
+
+  const total = Number((countResult as any)?.count || 0);
+
+  return {
+    entries: entries.map((e: any) => ({
+      ...e,
+      metadata: e.metadata ? safeJsonParse(e.metadata) : null,
+    })),
+    pagination: { total, limit, offset, hasMore: offset + limit < total },
+  };
+}; 
       
 const safeJsonParse = (str: string): any => {
   try {
