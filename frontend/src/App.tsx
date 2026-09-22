@@ -15,7 +15,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
-import TwoFactorLogin from './components/TwoFactorLogin';  // ✅ AJOUT 2FA
+import TwoFactorLogin from './components/TwoFactorLogin';
 
 // ============================================================
 // ✅ LAZY-LOADED PAGES
@@ -29,26 +29,21 @@ const TextUploadPage = lazy(() => import('./pages/TextUploadPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Register = lazy(() => import('./pages/Register'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));  // ✅ NOUVEAU
 
 // ============================================================
 // COMPOSANT FALLBACK
 // ============================================================
 const PageLoader: React.FC = () => (
   <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '60vh',
-    color: '#666',
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    minHeight: '60vh', color: '#666',
   }}>
     <div style={{ textAlign: 'center' }}>
       <div style={{
-        width: '40px',
-        height: '40px',
-        border: '3px solid #e0e0e0',
-        borderTop: '3px solid #4A6CF7',
-        borderRadius: '50%',
-        margin: '0 auto 12px',
+        width: '40px', height: '40px',
+        border: '3px solid #e0e0e0', borderTop: '3px solid #4A6CF7',
+        borderRadius: '50%', margin: '0 auto 12px',
         animation: 'spin 0.8s linear infinite',
       }} />
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
@@ -58,12 +53,12 @@ const PageLoader: React.FC = () => (
 );
 
 // ============================================================
-// COMPOSANT LOGIN (avec support 2FA)
+// COMPOSANT LOGIN (avec support 2FA + email non vérifié)
 // ============================================================
 const Login: React.FC<{
   onLogin: () => void;
   onSwitchToRegister: () => void;
-  onRequires2FA: (tempToken: string) => void;   // ✅ AJOUT 2FA
+  onRequires2FA: (tempToken: string) => void;
 }> = ({ onLogin, onSwitchToRegister, onRequires2FA }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,14 +67,20 @@ const Login: React.FC<{
   const { colors } = useTheme();
   const { t } = useTranslation();
 
+  // ✅ NOUVEAU : état "email non vérifié"
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setVerificationEmail(null);
+    setResendSuccess(false);
     setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
 
-      // ✅ 2FA requise : on bascule sur TwoFactorLogin
       if (response.data.requires2FA && response.data.tempToken) {
         onRequires2FA(response.data.tempToken);
         return;
@@ -93,6 +94,11 @@ const Login: React.FC<{
         setError(response.data.message || 'Erreur de connexion');
       }
     } catch (err: any) {
+      // ✅ NOUVEAU : détecter email non vérifié (403)
+      if (err.response?.status === 403 && err.response?.data?.requiresVerification) {
+        setVerificationEmail(err.response.data.email || email);
+        return;
+      }
       const message =
         err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
       setError(message);
@@ -101,15 +107,81 @@ const Login: React.FC<{
     }
   };
 
+  const handleResend = async () => {
+    if (!verificationEmail) return;
+    setResending(true);
+    try {
+      await api.post('/auth/resend-verification', { email: verificationEmail });
+      setResendSuccess(true);
+    } catch {
+      // Anti-énumération : toujours succès côté UI
+      setResendSuccess(true);
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const wrapperStyle: React.CSSProperties = {
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    minHeight: '100vh',
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+    padding: '20px',
+  };
+
+  // ─── Vue : email non vérifié ──────────────────────────────
+  if (verificationEmail) {
+    return (
+      <div style={wrapperStyle}>
+        <Card style={{ maxWidth: '440px', width: '100%' }}>
+          <div style={{ textAlign: 'center', marginBottom: theme.spacing.lg }}>
+            <div style={{ fontSize: '56px', marginBottom: '8px' }}>📧</div>
+            <h2 style={{ color: colors.dark, margin: '0 0 8px' }}>
+              {t('verifyEmail.notVerifiedTitle')}
+            </h2>
+            <p style={{ color: colors.gray[600], margin: 0, fontSize: '14px' }}>
+              {t('verifyEmail.notVerifiedMessage', { email: verificationEmail })}
+            </p>
+          </div>
+
+          {resendSuccess ? (
+            <div style={{
+              backgroundColor: '#D1FAE5', color: '#065F46',
+              padding: theme.spacing.md,
+              borderRadius: theme.borderRadius.md,
+              textAlign: 'center', fontSize: '14px',
+            }}>
+              ✅ {t('verifyEmail.resendSuccess')}
+            </div>
+          ) : (
+            <Button
+              onClick={handleResend}
+              disabled={resending}
+              style={{ width: '100%' }}
+            >
+              {resending ? t('verifyEmail.resendSending') : t('verifyEmail.resendButton')}
+            </Button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => { setVerificationEmail(null); setResendSuccess(false); }}
+            style={{
+              display: 'block', margin: `${theme.spacing.lg} auto 0`,
+              background: 'none', border: 'none',
+              color: colors.primary, fontWeight: 'bold',
+              cursor: 'pointer', font: 'inherit', fontSize: '14px',
+            }}
+          >
+            {t('verifyEmail.backToLogin')}
+          </button>
+        </Card>
+      </div>
+    );
+  }
+
+  // ─── Vue : login classique ────────────────────────────────
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-      padding: '20px',
-    }}>
+    <div style={wrapperStyle}>
       <Card style={{ maxWidth: '420px', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: theme.spacing.xl }}>
           <h1 style={{
@@ -124,13 +196,11 @@ const Login: React.FC<{
 
         {error && (
           <div style={{
-            backgroundColor: '#FEE2E2',
-            color: colors.danger,
+            backgroundColor: '#FEE2E2', color: colors.danger,
             padding: theme.spacing.md,
             borderRadius: theme.borderRadius.md,
             marginBottom: theme.spacing.md,
-            textAlign: 'center',
-            fontSize: '14px',
+            textAlign: 'center', fontSize: '14px',
           }}>
             ❌ {error}
           </div>
@@ -159,10 +229,8 @@ const Login: React.FC<{
         </form>
 
         <p style={{
-          textAlign: 'center',
-          marginTop: theme.spacing.lg,
-          fontSize: theme.typography.fontSize.sm,
-          color: colors.gray[600],
+          textAlign: 'center', marginTop: theme.spacing.lg,
+          fontSize: theme.typography.fontSize.sm, color: colors.gray[600],
         }}>
           {t('auth.login.noAccount')}{' '}
           <a
@@ -172,15 +240,6 @@ const Login: React.FC<{
           >
             {t('auth.login.registerLink')}
           </a>
-        </p>
-
-        <p style={{
-          textAlign: 'center',
-          marginTop: theme.spacing.md,
-          fontSize: '11px',
-          color: colors.gray[400],
-        }}>
-          {t('auth.login.testHint')}
         </p>
       </Card>
     </div>
@@ -206,7 +265,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);  // ✅ AJOUT 2FA
+  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -229,7 +288,7 @@ const App: React.FC = () => {
     setIsAuthenticated(false);
     setUser(null);
     setAuthMode('login');
-    setTwoFactorToken(null);  // ✅ Réinitialiser
+    setTwoFactorToken(null);
   };
 
   return (
@@ -237,52 +296,61 @@ const App: React.FC = () => {
       <LanguageProvider>
         <ToastProvider>
           <Router future={{ v7_relativeSplatPath: true }}>
-            {!isAuthenticated ? (
-              // ✅ 2FA : si un tempToken est présent, on affiche TwoFactorLogin
-              twoFactorToken ? (
-                <TwoFactorLogin
-                  tempToken={twoFactorToken}
-                  onSuccess={() => {
-                    setTwoFactorToken(null);
-                    handleLogin();
-                  }}
-                  onCancel={() => {
-                    setTwoFactorToken(null);
-                  }}
-                />
-              ) : authMode === 'login' ? (
-                <Login
-                  onLogin={handleLogin}
-                  onSwitchToRegister={() => setAuthMode('register')}
-                  onRequires2FA={(tempToken) => setTwoFactorToken(tempToken)}
+            <Routes>
+              {/* ✅ Route PUBLIQUE — accessible même déconnecté */}
+              <Route
+                path="/verify-email"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <VerifyEmailPage onVerified={handleLogin} />
+                  </Suspense>
+                }
+              />
+
+              {/* Routes conditionnelles */}
+              {!isAuthenticated ? (
+                <Route
+                  path="*"
+                  element={
+                    twoFactorToken ? (
+                      <TwoFactorLogin
+                        tempToken={twoFactorToken}
+                        onSuccess={() => {
+                          setTwoFactorToken(null);
+                          handleLogin();
+                        }}
+                        onCancel={() => setTwoFactorToken(null)}
+                      />
+                    ) : authMode === 'login' ? (
+                      <Login
+                        onLogin={handleLogin}
+                        onSwitchToRegister={() => setAuthMode('register')}
+                        onRequires2FA={(tempToken) => setTwoFactorToken(tempToken)}
+                      />
+                    ) : (
+                      <Suspense fallback={<PageLoader />}>
+                        <RegisterWrapper
+                          onRegister={handleLogin}
+                          onSwitchToLogin={() => setAuthMode('login')}
+                        />
+                      </Suspense>
+                    )
+                  }
                 />
               ) : (
-                <Suspense fallback={<PageLoader />}>
-                  <RegisterWrapper
-                    onRegister={handleLogin}
-                    onSwitchToLogin={() => setAuthMode('login')}
-                  />
-                </Suspense>
-              )
-            ) : (
-              <ErrorBoundary>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    <Route element={<Layout user={user} onLogout={handleLogout} />}>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/transcription" element={<TranscriptionPage />} />
-                      <Route path="/text-upload" element={<TextUploadPage />} />
-                      <Route path="/transcriptions" element={<TranscriptionList />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/collaboration" element={<CollaborationPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/project/:id" element={<ProjectDetail />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Route>
-                  </Routes>
-                </Suspense>
-              </ErrorBoundary>
-            )}
+                <Route element={<Layout user={user} onLogout={handleLogout} />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/transcription" element={<TranscriptionPage />} />
+                  <Route path="/text-upload" element={<TextUploadPage />} />
+                  <Route path="/transcriptions" element={<TranscriptionList />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/collaboration" element={<CollaborationPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/project/:id" element={<ProjectDetail />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              )}
+            </Routes>
           </Router>
 
           <ToastContainer />

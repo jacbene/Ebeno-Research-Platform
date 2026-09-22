@@ -503,6 +503,23 @@
     "createFailed": "Erreur lors de la création"
   }
 },
+"verifyEmail": {
+  "verifying": "Vérification en cours…",
+  "verifyingHint": "Merci de patienter quelques secondes.",
+  "successTitle": "Email vérifié !",
+  "successMessage": "Votre compte est maintenant actif. Redirection…",
+  "errorTitle": "Lien invalide ou expiré",
+  "errorMessage": "Ce lien de vérification n'est plus valide. Demandez un nouveau lien ci-dessous.",
+  "missingToken": "Aucun token fourni dans le lien.",
+  "resendTitle": "Recevoir un nouveau lien",
+  "resendHint": "Saisissez votre email pour recevoir un nouveau lien de vérification.",
+  "resendButton": "📧 Renvoyer l'email",
+  "resendSending": "Envoi en cours…",
+  "resendSuccess": "Si un compte existe avec cet email, un nouveau lien a été envoyé.",
+  "backToLogin": "← Retour à la connexion",
+  "notVerifiedTitle": "Email non vérifié",
+  "notVerifiedMessage": "Votre compte existe mais l'email {{email}} n'a pas encore été vérifié. Consultez votre boîte mail ou demandez un nouveau lien."
+},
   "language": {
     "fr": "Français",
     "en": "English",

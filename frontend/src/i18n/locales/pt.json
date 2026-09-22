@@ -503,6 +503,23 @@
       "createFailed": "Erro ao criar"
     }
   },
+  "verifyEmail": {
+  "verifying": "Verificando…",
+  "verifyingHint": "Aguarde alguns segundos.",
+  "successTitle": "Email verificado!",
+  "successMessage": "Sua conta está ativa. Redirecionando…",
+  "errorTitle": "Link inválido ou expirado",
+  "errorMessage": "Este link não é mais válido. Solicite um novo abaixo.",
+  "missingToken": "Nenhum token fornecido no link.",
+  "resendTitle": "Receber um novo link",
+  "resendHint": "Digite seu email para receber um novo link.",
+  "resendButton": "📧 Reenviar email",
+  "resendSending": "Enviando…",
+  "resendSuccess": "Se existir uma conta com este email, um novo link foi enviado.",
+  "backToLogin": "← Voltar ao login",
+  "notVerifiedTitle": "Email não verificado",
+  "notVerifiedMessage": "Sua conta existe mas o email {{email}} ainda não foi verificado. Verifique sua caixa de entrada ou solicite um novo link."
+},
   "language": {
     "fr": "Français",
     "en": "English",
