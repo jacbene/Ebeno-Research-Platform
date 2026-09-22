@@ -116,15 +116,6 @@ app.use(requestLogger);
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
 
-// 🧪 TEST MIDDLEWARE — à retirer après diagnostic
-app.use('/api', (req, res, next) => {
-  console.log(`🔥 [TEST] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
-// ✅ Audit log automatique (POST/PUT/PATCH/DELETE)
-app.use('/api', auditLogger);
-
 // ✅ Audit log automatique (POST/PUT/PATCH/DELETE)
 app.use('/api', auditLogger);
 
