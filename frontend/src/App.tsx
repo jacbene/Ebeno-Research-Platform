@@ -13,11 +13,12 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
-import { useTranslation } from 'react-i18next';  // ✅ Pour le composant Login
+import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
+import TwoFactorLogin from './components/TwoFactorLogin';  // ✅ AJOUT 2FA
 
 // ============================================================
-// ✅ LAZY-LOADED PAGES (chunks séparés, chargés à la demande)
+// ✅ LAZY-LOADED PAGES
 // ============================================================
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
@@ -30,7 +31,7 @@ const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Register = lazy(() => import('./pages/Register'));
 
 // ============================================================
-// COMPOSANT FALLBACK (loader global)
+// COMPOSANT FALLBACK
 // ============================================================
 const PageLoader: React.FC = () => (
   <div style={{
@@ -57,12 +58,13 @@ const PageLoader: React.FC = () => (
 );
 
 // ============================================================
-// COMPOSANT LOGIN (reste statique — 1ère page vue par l'utilisateur)
+// COMPOSANT LOGIN (avec support 2FA)
 // ============================================================
 const Login: React.FC<{
   onLogin: () => void;
   onSwitchToRegister: () => void;
-}> = ({ onLogin, onSwitchToRegister }) => {
+  onRequires2FA: (tempToken: string) => void;   // ✅ AJOUT 2FA
+}> = ({ onLogin, onSwitchToRegister, onRequires2FA }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -76,6 +78,13 @@ const Login: React.FC<{
     setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
+
+      // ✅ 2FA requise : on bascule sur TwoFactorLogin
+      if (response.data.requires2FA && response.data.tempToken) {
+        onRequires2FA(response.data.tempToken);
+        return;
+      }
+
       if (response.data.token) {
         localStorage.setItem('authToken', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -84,7 +93,8 @@ const Login: React.FC<{
         setError(response.data.message || 'Erreur de connexion');
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
+      const message =
+        err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
       setError(message);
     } finally {
       setLoading(false);
@@ -102,7 +112,11 @@ const Login: React.FC<{
     }}>
       <Card style={{ maxWidth: '420px', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: theme.spacing.xl }}>
-          <h1 style={{ fontSize: theme.typography.fontSize.xxl, fontWeight: theme.typography.fontWeight.bold, color: colors.dark }}>
+          <h1 style={{
+            fontSize: theme.typography.fontSize.xxl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: colors.dark,
+          }}>
             🎓 {t('auth.appName')}
           </h1>
           <p style={{ color: colors.gray[600] }}>{t('auth.appTagline')}</p>
@@ -140,7 +154,7 @@ const Login: React.FC<{
             required
           />
           <Button type="submit" disabled={loading} style={{ width: '100%' }}>
-           {loading ? t('auth.login.submitting') : t('auth.login.submit')}
+            {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </Button>
         </form>
 
@@ -156,7 +170,7 @@ const Login: React.FC<{
             onClick={(e) => { e.preventDefault(); onSwitchToRegister(); }}
             style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}
           >
-             {t('auth.login.registerLink')}
+            {t('auth.login.registerLink')}
           </a>
         </p>
 
@@ -176,10 +190,10 @@ const Login: React.FC<{
 // ============================================================
 // WRAPPER REGISTER (lazy)
 // ============================================================
-const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () => void }> = ({
-  onRegister,
-  onSwitchToLogin,
-}) => {
+const RegisterWrapper: React.FC<{
+  onRegister: () => void;
+  onSwitchToLogin: () => void;
+}> = ({ onRegister, onSwitchToLogin }) => {
   return <Register onRegister={onRegister} onSwitchToLogin={onSwitchToLogin} />;
 };
 
@@ -188,9 +202,11 @@ const RegisterWrapper: React.FC<{ onRegister: () => void; onSwitchToLogin: () =>
 // ============================================================
 const App: React.FC = () => {
   useRTL();
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);  // ✅ AJOUT 2FA
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -213,53 +229,65 @@ const App: React.FC = () => {
     setIsAuthenticated(false);
     setUser(null);
     setAuthMode('login');
+    setTwoFactorToken(null);  // ✅ Réinitialiser
   };
 
   return (
     <ThemeProvider>
-     <LanguageProvider>
-      <ToastProvider>
-        <Router future={{ v7_relativeSplatPath: true }}>
-          {!isAuthenticated ? (
-            authMode === 'login' ? (
-              <Login
-                onLogin={handleLogin}
-                onSwitchToRegister={() => setAuthMode('register')}
-              />
-            ) : (
-              // ✅ Register est lazy-loaded (page rarement visitée)
-              <Suspense fallback={<PageLoader />}>
-                <RegisterWrapper
-                  onRegister={handleLogin}
-                  onSwitchToLogin={() => setAuthMode('login')}
+      <LanguageProvider>
+        <ToastProvider>
+          <Router future={{ v7_relativeSplatPath: true }}>
+            {!isAuthenticated ? (
+              // ✅ 2FA : si un tempToken est présent, on affiche TwoFactorLogin
+              twoFactorToken ? (
+                <TwoFactorLogin
+                  tempToken={twoFactorToken}
+                  onSuccess={() => {
+                    setTwoFactorToken(null);
+                    handleLogin();
+                  }}
+                  onCancel={() => {
+                    setTwoFactorToken(null);
+                  }}
                 />
-              </Suspense>
-            )
-          ) : (
-            <ErrorBoundary>
-              {/* ✅ Suspense global pour toutes les pages lazy-loaded */}
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route element={<Layout user={user} onLogout={handleLogout} />}>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/transcription" element={<TranscriptionPage />} />
-                    <Route path="/text-upload" element={<TextUploadPage />} />
-                    <Route path="/transcriptions" element={<TranscriptionList />} />
-                    <Route path="/chat" element={<ChatPage />} />
-                    <Route path="/collaboration" element={<CollaborationPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/project/:id" element={<ProjectDetail />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          )}
-        </Router>
+              ) : authMode === 'login' ? (
+                <Login
+                  onLogin={handleLogin}
+                  onSwitchToRegister={() => setAuthMode('register')}
+                  onRequires2FA={(tempToken) => setTwoFactorToken(tempToken)}
+                />
+              ) : (
+                <Suspense fallback={<PageLoader />}>
+                  <RegisterWrapper
+                    onRegister={handleLogin}
+                    onSwitchToLogin={() => setAuthMode('login')}
+                  />
+                </Suspense>
+              )
+            ) : (
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route element={<Layout user={user} onLogout={handleLogout} />}>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/transcription" element={<TranscriptionPage />} />
+                      <Route path="/text-upload" element={<TextUploadPage />} />
+                      <Route path="/transcriptions" element={<TranscriptionList />} />
+                      <Route path="/chat" element={<ChatPage />} />
+                      <Route path="/collaboration" element={<CollaborationPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/project/:id" element={<ProjectDetail />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            )}
+          </Router>
 
-        <ToastContainer />
-      </ToastProvider>
-    </LanguageProvider>
+          <ToastContainer />
+        </ToastProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 };

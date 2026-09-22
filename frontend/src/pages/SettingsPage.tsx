@@ -9,6 +9,7 @@ import { Input } from '../components/ui/Input';
 import { theme } from '../theme';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 
 type Tab = 'profile' | 'security' | 'language' | 'appearance' | 'gdpr';
 
@@ -560,6 +561,19 @@ const SettingsPage: React.FC = () => {
               <li>{t('settings.security.recommendation3')}</li>
             </ul>
           </div>
+{/* ✅ Section 2FA */}
+<div
+  style={{
+    marginTop: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
+    borderTop: `1px solid ${colors.gray[200]}`,
+  }}
+>
+  <h4 style={{ marginTop: 0, marginBottom: '12px', color: colors.dark }}>
+    🔐 Authentification à deux facteurs (2FA)
+  </h4>
+  <TwoFactorSetup />
+</div>          
         </Card>
       )}
 
