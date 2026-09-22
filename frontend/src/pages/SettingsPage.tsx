@@ -10,7 +10,7 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
-type Tab = 'profile' | 'security' | 'language' | 'appearance';
+type Tab = 'profile' | 'security' | 'language' | 'appearance' | 'gdpr';
 
 const SettingsPage: React.FC = () => {
   const { mode, toggleMode, colors, setCustomPalette } = useTheme();
@@ -39,12 +39,39 @@ const SettingsPage: React.FC = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState(false);
 
+  // ✅ Export RGPD
+  const [gdprCounts, setGdprCounts] = useState<any>(null);
+  const [gdprLoading, setGdprLoading] = useState(false);
+  const [gdprExporting, setGdprExporting] = useState(false);
+
   const [primaryColor, setPrimaryColor] = useState(colors.primary);
   const [primaryDark, setPrimaryDark] = useState(colors.primaryDark);
   const [primaryLight, setPrimaryLight] = useState(colors.primaryLight);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ Charger les infos d'export RGPD quand on ouvre l'onglet
+  useEffect(() => {
+    if (activeTab !== 'gdpr' || gdprCounts) return;
+
+    const loadGdprInfo = async () => {
+      setGdprLoading(true);
+      try {
+        const res = await api.get('/users/me/export-info');
+        if (res.data.success) {
+          setGdprCounts(res.data.data.counts);
+        }
+      } catch (error) {
+        console.error('❌ Erreur chargement info RGPD:', error);
+      } finally {
+        setGdprLoading(false);
+      }
+    };
+
+    loadGdprInfo();
+  }, [activeTab, gdprCounts]);
+
+  // Charger le profil
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -156,11 +183,19 @@ const SettingsPage: React.FC = () => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-      toast.addToast({ type: 'error', title: t('common.error'), message: t('settings.errors.passwordMismatch') });
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('settings.errors.passwordMismatch'),
+      });
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      toast.addToast({ type: 'error', title: t('common.error'), message: t('settings.errors.passwordTooShort') });
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('settings.errors.passwordTooShort'),
+      });
       return;
     }
 
@@ -229,6 +264,43 @@ const SettingsPage: React.FC = () => {
     toast.addToast({ type: 'info', title: t('settings.appearance.resetDone') });
   };
 
+  // ============================================================
+  // EXPORT RGPD
+  // ============================================================
+  const handleExportGdpr = async () => {
+    setGdprExporting(true);
+    try {
+      const response = await api.get('/users/me/export-data', {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      const contentDisposition = response.headers['content-disposition'];
+      const fileName =
+        contentDisposition?.split('filename=')[1]?.replace(/"/g, '') ||
+        `ebeno_export_${Date.now()}.json`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.addToast({ type: 'success', title: t('gdpr.success') });
+    } catch (error: any) {
+      console.error('❌ Erreur export RGPD:', error);
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('gdpr.error'),
+      });
+    } finally {
+      setGdprExporting(false);
+    }
+  };
+
+  // Helpers
   const getInitials = (name: string) => {
     if (!name) return '?';
     const parts = name.trim().split(/\s+/);
@@ -240,12 +312,13 @@ const SettingsPage: React.FC = () => {
     return <div style={{ padding: '40px', textAlign: 'center' }}>{t('settings.loading')}</div>;
   }
 
-  // ✅ Onglets traduits
+  // ✅ Onglets traduits (avec GDPR)
   const tabs: { key: Tab; label: string }[] = [
     { key: 'profile', label: t('settings.tabs.profile') },
     { key: 'security', label: t('settings.tabs.security') },
     { key: 'language', label: t('settings.tabs.language') },
     { key: 'appearance', label: t('settings.tabs.appearance') },
+    { key: 'gdpr', label: t('gdpr.tab') },
   ];
 
   return (
@@ -282,7 +355,9 @@ const SettingsPage: React.FC = () => {
         ))}
       </div>
 
+      {/* ============================================================ */}
       {/* ONGLET PROFIL */}
+      {/* ============================================================ */}
       {activeTab === 'profile' && (
         <Card title={t('settings.profile.title')}>
           <div
@@ -425,7 +500,9 @@ const SettingsPage: React.FC = () => {
         </Card>
       )}
 
+      {/* ============================================================ */}
       {/* ONGLET SÉCURITÉ */}
+      {/* ============================================================ */}
       {activeTab === 'security' && (
         <Card title={t('settings.security.title')}>
           <form onSubmit={changePassword}>
@@ -486,7 +563,9 @@ const SettingsPage: React.FC = () => {
         </Card>
       )}
 
+      {/* ============================================================ */}
       {/* ONGLET LANGUE */}
+      {/* ============================================================ */}
       {activeTab === 'language' && (
         <Card title={t('settings.language.title')}>
           <p
@@ -614,7 +693,9 @@ const SettingsPage: React.FC = () => {
         </Card>
       )}
 
+      {/* ============================================================ */}
       {/* ONGLET APPARENCE */}
+      {/* ============================================================ */}
       {activeTab === 'appearance' && (
         <Card title={t('settings.appearance.title')}>
           <div
@@ -680,6 +761,162 @@ const SettingsPage: React.FC = () => {
               {t('settings.appearance.reset')}
             </Button>
           </div>
+        </Card>
+      )}
+
+      {/* ============================================================ */}
+      {/* ONGLET RGPD — Mes données */}
+      {/* ============================================================ */}
+      {activeTab === 'gdpr' && (
+        <Card title={t('gdpr.title')}>
+          <p
+            style={{
+              margin: '0 0 20px 0',
+              fontSize: '14px',
+              color: colors.gray[600],
+              lineHeight: 1.6,
+            }}
+          >
+            {t('gdpr.intro')}
+          </p>
+
+          {/* Volume de données */}
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              backgroundColor: colors.gray[50] || '#fafafa',
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${colors.gray[200]}`,
+            }}
+          >
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: colors.dark }}>
+              {t('gdpr.countsTitle')}
+            </h4>
+
+            {gdprLoading ? (
+              <p style={{ margin: 0, fontSize: '13px', color: colors.gray[500] }}>
+                {t('gdpr.loadingCounts')}
+              </p>
+            ) : gdprCounts ? (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  fontSize: '13px',
+                  color: colors.dark,
+                }}
+              >
+                <span>
+                  📁 <strong>{gdprCounts.projects}</strong> {t('gdpr.countProjects')}
+                </span>
+                <span>
+                  🎙️ <strong>{gdprCounts.transcriptions}</strong>{' '}
+                  {t('gdpr.countTranscriptions')}
+                </span>
+                <span>
+                  📝 <strong>{gdprCounts.memos}</strong> {t('gdpr.countMemos')}
+                </span>
+                <span>
+                  📎 <strong>{gdprCounts.files}</strong> {t('gdpr.countFiles')}
+                </span>
+                <span>
+                  🏷️ <strong>{gdprCounts.codes}</strong> {t('gdpr.countCodes')}
+                </span>
+              </div>
+            ) : (
+              <p style={{ margin: 0, fontSize: '13px', color: colors.gray[500] }}>
+                {t('gdpr.loadingInfo')}
+              </p>
+            )}
+          </div>
+
+          {/* Contenu / Exclusions */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '24px',
+            }}
+          >
+            <div
+              style={{
+                padding: '14px',
+                backgroundColor: `${colors.success}10`,
+                borderLeft: `3px solid ${colors.success}`,
+                borderRadius: theme.borderRadius.md,
+              }}
+            >
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: colors.dark }}>
+                {t('gdpr.includes')}
+              </h4>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: '20px',
+                  fontSize: '13px',
+                  color: colors.gray[700],
+                  lineHeight: 1.7,
+                }}
+              >
+                <li>{t('gdpr.include1')}</li>
+                <li>{t('gdpr.include2')}</li>
+                <li>{t('gdpr.include3')}</li>
+                <li>{t('gdpr.include4')}</li>
+                <li>{t('gdpr.include5')}</li>
+                <li>{t('gdpr.include6')}</li>
+              </ul>
+            </div>
+
+            <div
+              style={{
+                padding: '14px',
+                backgroundColor: `${colors.danger}10`,
+                borderLeft: `3px solid ${colors.danger}`,
+                borderRadius: theme.borderRadius.md,
+              }}
+            >
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: colors.dark }}>
+                {t('gdpr.excludes')}
+              </h4>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: '20px',
+                  fontSize: '13px',
+                  color: colors.gray[700],
+                  lineHeight: 1.7,
+                }}
+              >
+                <li>{t('gdpr.exclude1')}</li>
+                <li>{t('gdpr.exclude2')}</li>
+                <li>{t('gdpr.exclude3')}</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bouton de téléchargement */}
+          <Button
+            variant="primary"
+            onClick={handleExportGdpr}
+            disabled={gdprExporting}
+            style={{ padding: '12px 24px', fontSize: '14px' }}
+          >
+            {gdprExporting ? t('gdpr.downloading') : t('gdpr.downloadButton')}
+          </Button>
+
+          <p
+            style={{
+              marginTop: '12px',
+              fontSize: '12px',
+              color: colors.gray[500],
+              fontStyle: 'italic',
+            }}
+          >
+            {t('gdpr.note')}
+          </p>
         </Card>
       )}
     </div>
