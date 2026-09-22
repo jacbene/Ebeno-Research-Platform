@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import requestIp from 'request-ip';
 import { sanitizeBody } from './middleware/sanitize';
+import { auditLogger } from './middleware/auditLogger';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -114,6 +115,19 @@ app.use(requestLogger);
 
 // ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
+
+// 🧪 TEST MIDDLEWARE — à retirer après diagnostic
+app.use('/api', (req, res, next) => {
+  console.log(`🔥 [TEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// ✅ Audit log automatique (POST/PUT/PATCH/DELETE)
+app.use('/api', auditLogger);
+
+// ✅ Audit log automatique (POST/PUT/PATCH/DELETE)
+app.use('/api', auditLogger);
+
 // ✅ Sanitize global (exclu pour les routes éditoriales)
 app.use('/api', (req, res, next) => {
   const excluded = ['/collaboration', '/summaries', '/deepseek'];
