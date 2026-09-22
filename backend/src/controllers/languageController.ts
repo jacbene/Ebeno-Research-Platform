@@ -7,6 +7,7 @@ import {
   isValidLanguage,
   normalizeLanguage,
 } from '../services/languageService';
+import { logAuditFromReq } from '../services/auditLogService';
 
 /**
  * GET /api/language/supported
@@ -66,6 +67,10 @@ export const updateMyLanguage = async (req: Request, res: Response) => {
       });
     }
 
+    // Récupérer l'ancienne langue pour le log
+    const existing = await db('users').where({ id: userId }).select('language', 'email').first();
+    const previousLanguage = existing?.language || 'fr';
+
     await db('users')
       .where({ id: userId })
       .update({
@@ -74,6 +79,20 @@ export const updateMyLanguage = async (req: Request, res: Response) => {
       });
 
     logger.info(`🌍 Langue mise à jour pour user ${userId} : ${language}`);
+
+    // ✅ Log changement de langue
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: existing?.email,
+      action: 'language_change',
+      targetType: 'user',
+      targetId: userId,
+      status: 'success',
+      metadata: {
+        previousLanguage,
+        newLanguage: language,
+      },
+    });
 
     res.json({
       success: true,

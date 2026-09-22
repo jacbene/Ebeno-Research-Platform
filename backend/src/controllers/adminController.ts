@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
+import { getAuditLog } from '../services/auditLogService';
 
 // Configuration Cloudinary — utilise CLOUDINARY_URL automatiquement
 cloudinary.config();
@@ -129,6 +130,7 @@ export const dbInfo = async (req: Request, res: Response) => {
       'document_summaries',
       'codes',
       'project_activity',
+      'audit_log',
     ];
 
     const counts: Record<string, number> = {};
@@ -147,6 +149,37 @@ export const dbInfo = async (req: Request, res: Response) => {
       counts,
     });
   } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/audit-log
+ * Retourne les entrées d'audit avec filtres.
+ */
+export const getAuditLogs = async (req: Request, res: Response) => {
+  try {
+    const adminToken = req.headers['x-admin-token'];
+    const expectedToken = process.env.ADMIN_TOKEN;
+
+    if (!expectedToken || adminToken !== expectedToken) {
+      return res.status(403).json({ success: false, message: 'Non autorisé' });
+    }
+
+    const result = await getAuditLog({
+      userId: req.query.userId as string | undefined,
+      action: req.query.action as string | undefined,
+      targetType: req.query.targetType as string | undefined,
+      from: req.query.from as string | undefined,
+      to: req.query.to as string | undefined,
+      status: req.query.status as 'success' | 'failure' | undefined,
+      limit: Number(req.query.limit) || 100,
+      offset: Number(req.query.offset) || 0,
+    });
+
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    logger.error('❌ [admin] Erreur audit-log:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

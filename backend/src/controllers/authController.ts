@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/knex';
 import { uploadToCloudinary } from '../services/cloudinaryService';
+import { logAuditFromReq } from '../services/auditLogService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 
@@ -41,6 +42,13 @@ export const register = async (req: Request, res: Response) => {
     // Vérifier si l'email existe déjà
     const existingUser = await db('users').where({ email: email.toLowerCase() }).first();
     if (existingUser) {
+      await logAuditFromReq(req, {
+        userEmail: email.toLowerCase(),
+        action: 'register_failed',
+        targetType: 'user',
+        status: 'failure',
+        metadata: { reason: 'email_already_used' },
+      });
       return res.status(400).json({ message: 'Cet email est déjà utilisé' });
     }
 
@@ -69,6 +77,18 @@ export const register = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // ✅ Log succès de l'inscription
+    await logAuditFromReq(req, {
+      userId: id,
+      userEmail: email.toLowerCase(),
+      action: 'register',
+      targetType: 'user',
+      targetId: id,
+      targetName: name.trim(),
+      status: 'success',
+      metadata: { institution: institution?.trim() || null },
+    });
 
     return res.status(201).json({
       success: true,
@@ -104,11 +124,29 @@ export const login = async (req: Request, res: Response) => {
 
     const user = await db('users').where({ email: email.toLowerCase() }).first();
     if (!user) {
+      // ✅ Log échec : utilisateur inexistant
+      await logAuditFromReq(req, {
+        userEmail: email.toLowerCase(),
+        action: 'login_failed',
+        targetType: 'user',
+        status: 'failure',
+        metadata: { reason: 'user_not_found' },
+      });
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      // ✅ Log échec : mauvais mot de passe
+      await logAuditFromReq(req, {
+        userId: user.id,
+        userEmail: user.email,
+        action: 'login_failed',
+        targetType: 'user',
+        targetId: user.id,
+        status: 'failure',
+        metadata: { reason: 'invalid_password' },
+      });
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
@@ -117,6 +155,17 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // ✅ Log succès de la connexion
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: user.email,
+      action: 'login',
+      targetType: 'user',
+      targetId: user.id,
+      targetName: user.name || user.email,
+      status: 'success',
+    });
 
     return res.json({
       success: true,
@@ -204,6 +253,18 @@ export const updateProfile = async (req: Request, res: Response) => {
       .where({ id: userId })
       .first();
 
+    // ✅ Log modification du profil
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: updatedUser?.email,
+      action: 'profile_update',
+      targetType: 'user',
+      targetId: userId,
+      targetName: updatedUser?.name || updatedUser?.email,
+      status: 'success',
+      metadata: { fields: Object.keys(req.body) },
+    });
+
     return res.json({
       success: true,
       message: 'Profil mis à jour',
@@ -241,6 +302,16 @@ export const changePassword = async (req: Request, res: Response) => {
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
+      // ✅ Log échec changement mdp
+      await logAuditFromReq(req, {
+        userId,
+        userEmail: user.email,
+        action: 'password_change_failed',
+        targetType: 'user',
+        targetId: userId,
+        status: 'failure',
+        metadata: { reason: 'invalid_current_password' },
+      });
       return res.status(401).json({ message: 'Mot de passe actuel incorrect' });
     }
 
@@ -248,6 +319,17 @@ export const changePassword = async (req: Request, res: Response) => {
     await db('users')
       .where({ id: userId })
       .update({ password: hashedPassword, updatedAt: new Date().toISOString() });
+
+    // ✅ Log succès changement mdp
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: user.email,
+      action: 'password_change',
+      targetType: 'user',
+      targetId: userId,
+      targetName: user.name || user.email,
+      status: 'success',
+    });
 
     return res.json({ success: true, message: 'Mot de passe changé avec succès' });
   } catch (error: any) {
@@ -280,6 +362,16 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       .where({ id: userId })
       .update({ avatar: secureUrl, updatedAt: new Date().toISOString() });
 
+    // ✅ Log changement d'avatar
+    await logAuditFromReq(req, {
+      userId,
+      action: 'avatar_update',
+      targetType: 'user',
+      targetId: userId,
+      status: 'success',
+      metadata: { size: file.size, mimeType: file.mimetype },
+    });
+
     return res.json({
       success: true,
       message: 'Avatar mis à jour',
@@ -296,5 +388,20 @@ export const uploadAvatar = async (req: Request, res: Response) => {
 // ============================================================
 
 export const logout = async (req: Request, res: Response) => {
+  // ✅ Log déconnexion (si user identifié)
+  const userId = (req as any).user?.id;
+  const userEmail = (req as any).user?.email;
+
+  if (userId) {
+    await logAuditFromReq(req, {
+      userId,
+      userEmail,
+      action: 'logout',
+      targetType: 'user',
+      targetId: userId,
+      status: 'success',
+    });
+  }
+
   res.json({ success: true, message: 'Déconnexion réussie' });
 };
