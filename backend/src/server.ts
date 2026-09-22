@@ -60,7 +60,7 @@ import { invalidateStatsOnWrite } from './middleware/invalidateStatsCache';
 dotenv.config();
 
 // ============================================================
-/// GESTION DES ERREURS NON CAPTURÉES
+// GESTION DES ERREURS NON CAPTURÉES
 // ============================================================
 
 process.on('uncaughtException', (err) => {
@@ -274,10 +274,14 @@ const startServer = async () => {
 
     startCleanupCron();
     startAuditPurgeCron();
-    // ✅ Vérifier la connexion SMTP (asynchrone, ne bloque pas le démarrage)
-verifyEmailConnection().catch((err) =>
-  logger.warn('⚠️ [email] Vérification SMTP échouée:', err.message)
-);
+
+    // ✅ Vérifier la connexion SMTP Brevo (asynchrone, non bloquant)
+    verifyEmailConnection()
+      .then(() => logger.info('✅ [email] Connexion SMTP Brevo OK'))
+      .catch((err: Error) =>
+        logger.warn('⚠️ [email] Vérification SMTP échouée:', err.message)
+      );
+
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
     process.exit(1);
