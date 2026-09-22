@@ -13,11 +13,16 @@ if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
   logger.warn('⚠️ [email] SMTP non configuré. Les emails ne seront pas envoyés.');
 }
 
+// ✅ Transporter avec timeouts courts + requireTLS en 587
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,
   secure: SMTP_PORT === 465,
+  requireTLS: SMTP_PORT === 587,
   auth: { user: SMTP_USER, pass: SMTP_PASS },
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 15_000,
 });
 
 const htmlWrapper = (title: string, content: string): string => `
@@ -109,6 +114,7 @@ export const sendPasswordResetEmail = async ({ to, name, token }: SendPasswordRe
       subject: '🔑 Réinitialisation de mot de passe — Ebeno Research',
       html: htmlWrapper('Réinitialisation', content),
     });
+    logger.info(`✅ [email] Reset envoyé à ${to}`);
     return true;
   } catch (error: any) {
     logger.error(`❌ [email] Erreur reset à ${to}:`, error.message);
@@ -116,12 +122,30 @@ export const sendPasswordResetEmail = async ({ to, name, token }: SendPasswordRe
   }
 };
 
+// ✅ Relance l'erreur pour que l'appelant sache que ça a échoué
 export const verifyEmailConnection = async (): Promise<void> => {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    logger.warn('⚠️ [email] SMTP non configuré — vérification ignorée');
+    return;
+  }
+
+  logger.info(`📧 [email] Test SMTP → ${SMTP_HOST}:${SMTP_PORT} (user: ${SMTP_USER})`);
+
   try {
     await transporter.verify();
-    logger.info('✅ [email] Connexion SMTP vérifiée');
+    logger.info('✅ [email] Connexion SMTP Brevo OK');
   } catch (error: any) {
-    logger.error('❌ [email] Échec connexion SMTP:', error.message);
+    logger.error('❌ [email] Échec connexion SMTP', {
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode,
+      message: error.message || '(vide)',
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+    });
+    throw error;
   }
 };

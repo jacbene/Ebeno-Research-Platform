@@ -84,7 +84,7 @@ const port = Number(process.env.PORT) || 5001;
 app.set('trust proxy', (ip: string) => {
   if (ip === '127.0.0.1' || ip === '::1') return true;
   if (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return true;
-  return true; // En production derrière Cloudflare, on fait toujours confiance
+  return true;
 });
 
 const httpServer = createServer(app);
@@ -102,7 +102,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 new CollaborationSocketHandler(io);
-setIO(io); // ✅ Enregistrer IO pour les contrôleurs
+setIO(io);
 
 // ============================================================
 // MIDDLEWARES
@@ -113,37 +113,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// ✅ Logs de requêtes HTTP
 app.use(requestLogger);
-
-// ✅ Extraire l'IP réelle du client (derrière Cloudflare)
 app.use(requestIp.mw());
-
-// ✅ Audit log automatique (POST/PUT/PATCH/DELETE)
 app.use('/api', auditLogger);
 
-// ✅ Sanitize global (exclu pour les routes éditoriales)
 app.use('/api', (req, res, next) => {
   const excluded = ['/collaboration', '/summaries', '/deepseek'];
   if (excluded.some((p) => req.path.startsWith(p))) return next();
   return sanitizeBody(req, res, next);
 });
-// ✅ Invalider le cache des stats
+
 app.use('/api', invalidateStatsOnWrite);
 
 // ============================================================
 // RATE LIMITING
 // ============================================================
 
-// Limiteur global (100 req/min)
 app.use('/api', globalLimiter);
 
-// Limiteurs spécifiques (AVANT les routes concernées)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/upload', uploadLimiter);
 
-// Limiteur IA (résumés, analyse, entités, codes)
 app.use('/api/summaries', aiLimiter);
 app.use('/api/analysis', aiLimiter);
 app.use('/api/entities', aiLimiter);
@@ -153,7 +144,7 @@ app.use('/api/codes', aiLimiter);
 // ROUTES
 // ============================================================
 
-app.use('/api/health', healthRoutes);           // ✅ Health + Breakers
+app.use('/api/health', healthRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -171,7 +162,7 @@ app.use('/api/projects/:projectId/files', fileRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/entities', entityRoutes);
 app.use('/api/codes', codeRoutes);
-app.use('/api/activity', activityRoutes);       // ✅ Activité
+app.use('/api/activity', activityRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/language', languageRoutes);
@@ -182,7 +173,6 @@ app.use('/api/2fa', twoFactorRoutes);
 // ROUTES UTILITAIRES
 // ============================================================
 
-// Route racine
 app.get('/', (req, res) => {
   res.json({
     name: 'Ebeno Research Platform API',
@@ -275,11 +265,13 @@ const startServer = async () => {
     startCleanupCron();
     startAuditPurgeCron();
 
-    // ✅ Vérifier la connexion SMTP Brevo (asynchrone, non bloquant)
+    // ✅ Vérifier SMTP (asynchrone, non bloquant)
     verifyEmailConnection()
-      .then(() => logger.info('✅ [email] Connexion SMTP Brevo OK'))
+      .then(() => logger.info('✅ [email] SMTP opérationnel'))
       .catch((err: Error) =>
-        logger.warn('⚠️ [email] Vérification SMTP échouée:', err.message)
+        logger.warn(
+          `⚠️ [email] SMTP indisponible — les emails ne partiront pas: ${err.message || '(timeout)'}`
+        )
       );
 
   } catch (err) {
@@ -287,7 +279,6 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
 
 // ✅ Ne pas démarrer le serveur en mode test
 if (process.env.NODE_ENV !== 'test') {
