@@ -5,11 +5,11 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
 import { uploadToCloudinary } from '../services/cloudinaryService';
-import { extractTextFromUrl } from '../services/textExtractor';        // ✅ NOUVEAU
-import { detectLanguage } from '../services/languageDetectionService'; // ✅ NOUVEAU
-import { logger } from '../utils/logger';                              // ✅ NOUVEAU
+import { extractTextFromUrl } from '../services/textExtractor';
+import { detectLanguage } from '../services/languageDetectionService';
+import { logger } from '../utils/logger';
+import { logAuditFromReq } from '../services/auditLogService';
 
-// Configuration multer (stockage temporaire local)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/temp/';
@@ -27,28 +27,19 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 }).single('file');
 
-// ✅ Types MIME pour lesquels on peut extraire du texte et détecter la langue
 const TEXT_EXTRACTABLE_MIMES = [
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
   'text/plain',
   'text/markdown',
   'text/csv',
 ];
 
-/**
- * Détecte la langue d'un fichier uploadé.
- * Retourne null si :
- *   - le type MIME n'est pas textuel (image, vidéo, audio)
- *   - l'extraction échoue
- *   - le texte est trop court
- */
 const detectFileLanguage = async (
   secureUrl: string,
   mimeType: string
 ): Promise<string | null> => {
-  // Ne pas tenter sur les fichiers non-texte
   const isExtractable = TEXT_EXTRACTABLE_MIMES.some((m) => mimeType.startsWith(m));
   if (!isExtractable) {
     logger.info(`🌍 [upload] Type ${mimeType} non textuel → langue ignorée`);
@@ -122,7 +113,7 @@ export const uploadFile = async (req: Request, res: Response) => {
 
       const { publicId, secureUrl } = await uploadToCloudinary(file.path, folder, resourceType);
 
-      // ✅ 2bis. Détection de langue (avant l'insert pour stocker directement)
+      // 2bis. Détection de langue
       const language = await detectFileLanguage(secureUrl, file.mimetype);
 
       // 3. Insérer dans la base
@@ -137,7 +128,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         filePath: secureUrl,
         fileHash,
         cloudinaryPublicId: publicId,
-        language,                        // ✅ 'fr' | 'en' | ... | null
+        language,
         uploadedAt: Date.now(),
       });
 
@@ -148,14 +139,47 @@ export const uploadFile = async (req: Request, res: Response) => {
         try { fs.unlinkSync(file.path); } catch {}
       }
 
-      res.status(201).json(inserted);
+      // ✅ Log audit (avant la réponse)
+      await logAuditFromReq(req, {
+        userId,
+        userEmail: (req as any).user?.email,
+        action: 'file_uploaded',
+        targetType: 'file',
+        targetId: id,
+        targetName: file.originalname,
+        status: 'success',
+        metadata: {
+          size: file.size,
+          mimeType: file.mimetype,
+          projectId,
+          language: language || null,
+        },
+      });
+
+      return res.status(201).json(inserted);
 
     } catch (error: any) {
       logger.error('❌ Erreur upload file:', error);
       if (file && fs.existsSync(file.path)) {
         try { fs.unlinkSync(file.path); } catch {}
       }
-      res.status(500).json({ error: 'Erreur serveur', details: error.message });
+
+      // ✅ Log audit échec
+      await logAuditFromReq(req, {
+        userId,
+        userEmail: (req as any).user?.email,
+        action: 'file_upload_failed',
+        targetType: 'file',
+        targetName: file?.originalname,
+        status: 'failure',
+        metadata: {
+          error: error.message,
+          projectId,
+          mimeType: file?.mimetype,
+        },
+      });
+
+      return res.status(500).json({ error: 'Erreur serveur', details: error.message });
     }
   });
 };

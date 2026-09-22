@@ -14,6 +14,8 @@ import { db } from '../db/knex';
 import { exportProject } from '../services/exportService';
 import { existsSync } from 'fs';
 import fs from 'fs';
+import requestIp from 'request-ip';
+import { extractReqInfo } from '../services/auditLogService';
 
 const router = Router();
 
@@ -88,7 +90,13 @@ router.get('/:id/export', authenticate, async (req, res) => {
     const userId = (req as any).user?.id;
     const projectId = req.params.id;
 
-    const zipBuffer = await exportProject(projectId, userId);
+  const reqInfo = extractReqInfo(req);
+const zipBuffer = await exportProject(projectId, userId, {
+  ip: reqInfo.ip,
+  userAgent: reqInfo.userAgent,
+  userEmail: (req as any).user?.email,
+});
+
 
     res.set({
       'Content-Type': 'application/zip',

@@ -2,8 +2,8 @@
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
 import { generateId } from '../utils/generateId';
+import { logAuditFromReq } from '../services/auditLogService';
 
-// Types pour les rôles
 const ProjectRole = {
   OWNER: 'OWNER',
   EDITOR: 'EDITOR',
@@ -11,7 +11,6 @@ const ProjectRole = {
   MEMBER: 'MEMBER'
 };
 
-// Utilitaires
 const generateRandomColor = (): string => {
   const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', '#E76F51', '#F4A261', '#2A9D8F', '#9B5DE5', '#F15BB5'];
   return colors[Math.floor(Math.random() * colors.length)];
@@ -30,7 +29,6 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Le titre est requis (3 caractères min)' });
     }
 
-    // ✅ NOUVEAU : ID propre (ex: project-1789601439054-hgs04o)
     const id = generateId('project');
 
     await db('projects').insert({
@@ -44,7 +42,6 @@ export const createProject = async (req: Request, res: Response) => {
       updatedAt: new Date().toISOString()
     });
 
-    // Ajouter le membre (OWNER)
     await db('project_members').insert({
       id: generateId('member'),
       projectId: id,
@@ -54,7 +51,6 @@ export const createProject = async (req: Request, res: Response) => {
       updatedAt: new Date().toISOString()
     });
 
-    // Ajouter les tags si présents
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
         const tagId = generateId('tag');
@@ -76,6 +72,18 @@ export const createProject = async (req: Request, res: Response) => {
     }
 
     const project = await db('projects').where({ id }).first();
+
+    // ✅ Log création projet (AVANT le return)
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: (req as any).user?.email,
+      action: 'project_created',
+      targetType: 'project',
+      targetId: id,
+      targetName: title.trim(),
+      status: 'success',
+      metadata: { hasTags: !!(tags && tags.length > 0) },
+    });
 
     return res.status(201).json({ success: true, data: project, message: 'Projet créé' });
   } catch (error: any) {
@@ -191,7 +199,6 @@ export const updateProject = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    // ✅ Seul le OWNER peut modifier
     const owner = await db('project_members')
       .where({ projectId: id, userId: userId, role: ProjectRole.OWNER })
       .first();
@@ -210,6 +217,18 @@ export const updateProject = async (req: Request, res: Response) => {
     await db('projects').where({ id }).update(updates);
 
     const project = await db('projects').where({ id }).first();
+
+    // ✅ Log mise à jour
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: (req as any).user?.email,
+      action: 'project_updated',
+      targetType: 'project',
+      targetId: id,
+      targetName: project?.title,
+      status: 'success',
+      metadata: { fields: Object.keys(req.body) },
+    });
 
     return res.status(200).json({ success: true, data: project, message: 'Projet mis à jour' });
   } catch (error: any) {
@@ -236,9 +255,23 @@ export const deleteProject = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Seul le propriétaire peut supprimer ce projet' });
     }
 
+    // ✅ Récupérer le projet AVANT suppression (pour le titre dans l'audit)
+    const project = await db('projects').where({ id }).first();
+
     await db('project_tags').where({ projectId: id }).delete();
     await db('project_members').where({ projectId: id }).delete();
     await db('projects').where({ id }).delete();
+
+    // ✅ Log suppression
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: (req as any).user?.email,
+      action: 'project_deleted',
+      targetType: 'project',
+      targetId: id,
+      targetName: project?.title || null,
+      status: 'success',
+    });
 
     return res.status(200).json({ success: true, message: 'Projet supprimé' });
   } catch (error: any) {
@@ -271,7 +304,6 @@ export const addTag = async (req: Request, res: Response) => {
       .first();
 
     if (!tag) {
-      // ✅ NOUVEAU : ID propre
       const tagId = generateId('tag');
       await db('tags').insert({
         id: tagId,

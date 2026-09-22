@@ -1,9 +1,21 @@
-import { existsSync, mkdirSync, readFileSync } from 'fs';
+// backend/src/services/exportService.ts
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import AdmZip from 'adm-zip';
 import { db } from '../db/knex';
+import { logAudit } from './auditLogService';
 
-export const exportProject = async (projectId: string, userId: string): Promise<Buffer> => {
+export interface ExportAuditContext {
+  ip: string | null;
+  userAgent: string | null;
+  userEmail?: string | null;
+}
+
+export const exportProject = async (
+  projectId: string,
+  userId: string,
+  auditContext?: ExportAuditContext
+): Promise<Buffer> => {
   // 1. Vérifier l'autorisation
   const member = await db('project_members')
     .where({ projectId, userId })
@@ -31,7 +43,7 @@ export const exportProject = async (projectId: string, userId: string): Promise<
   const files = await db('project_files')
     .where({ projectId })
     .select('*')
-    .orderBy('uploaded_at', 'desc');
+    .orderBy('uploadedAt', 'desc');
 
   // 3. Créer l'archive ZIP
   const zip = new AdmZip();
@@ -58,8 +70,8 @@ export const exportProject = async (projectId: string, userId: string): Promise<
   zip.addFile(`${projectFolder}/metadata.json`, Buffer.from(JSON.stringify(metadata, null, 2), 'utf-8'));
 
   // 3.2 README
-  const readme = `# Export du projet : ${project.title}\n\n`;
-  const readmeContent = `${readme}
+  const readmeContent = `# Export du projet : ${project.title}
+
 ## 📋 Description
 ${project.description || 'Aucune description'}
 
@@ -99,12 +111,36 @@ ${new Date().toLocaleDateString()}
         const fileContent = readFileSync(filePath);
         zip.addFile(`${projectFolder}/fichiers/${f.fileName}`, fileContent);
       } else {
-        const meta = `Fichier introuvable : ${f.fileName}\nTaille : ${f.fileSize} octets\nType : ${f.mimeType}\nDate : ${new Date(f.uploaded_at).toLocaleDateString()}`;
+        const meta = `Fichier introuvable : ${f.fileName}\nTaille : ${f.fileSize} octets\nType : ${f.mimeType}`;
         zip.addFile(`${projectFolder}/fichiers/${f.fileName}.meta.txt`, Buffer.from(meta, 'utf-8'));
       }
     });
   }
 
-  // Retourner le buffer ZIP
-  return zip.toBuffer();
+  const zipBuffer = zip.toBuffer();
+
+  // ✅ Log audit (si le contexte est fourni)
+  if (auditContext) {
+    try {
+      await logAudit({
+        userId,
+        userEmail: auditContext.userEmail,
+        action: 'project_exported',
+        targetType: 'project',
+        targetId: projectId,
+        targetName: project.title,
+        status: 'success',
+        metadata: {
+          sizeBytes: zipBuffer.length,
+          stats: metadata.stats,
+        },
+        ip: auditContext.ip,
+        userAgent: auditContext.userAgent,
+      });
+    } catch (err: any) {
+      console.error('⚠️ [export] Audit log échoué:', err.message);
+    }
+  }
+
+  return zipBuffer;
 };
