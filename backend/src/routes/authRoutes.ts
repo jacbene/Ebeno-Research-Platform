@@ -6,19 +6,21 @@ import fs from 'fs';
 import {
   register,
   login,
+  verifyEmail,
+  resendVerificationEmail,
   getProfile,
   getMe,
   updateProfile,
   changePassword,
   uploadAvatar,
   logout,
+  verify2FALogin,
 } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
-import { verify2FALogin } from '../controllers/authController';
 
 const router = Router();
 
-// Configuration multer pour l'avatar (stockage temporaire)
+// Configuration multer pour l'avatar
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/avatars/';
@@ -33,7 +35,7 @@ const avatarStorage = multer.diskStorage({
 
 const uploadAvatarMiddleware = multer({
   storage: avatarStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -50,6 +52,10 @@ const uploadAvatarMiddleware = multer({
 router.post('/register', register);
 router.post('/login', login);
 router.post('/2fa-login', verify2FALogin);
+
+// ✅ Vérification email (public — l'utilisateur n'a pas encore de JWT)
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerificationEmail);
 
 // ============================================================
 // ROUTES PROTÉGÉES

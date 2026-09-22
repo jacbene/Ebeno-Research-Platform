@@ -7,9 +7,16 @@ import { uploadToCloudinary } from '../services/cloudinaryService';
 import { logAuditFromReq } from '../services/auditLogService';
 import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
 import { verifyTotpCode, verifyBackupCode } from '../services/totpService';
+import { sendVerificationEmail } from '../services/emailService';
+import {
+  createVerificationToken,
+  verifyEmailToken,
+  markEmailVerified,
+} from '../services/emailVerificationService';
+import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
-const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';   
+const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
 
 const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -47,9 +54,6 @@ const getUserInstitution = (user: any): string | null => {
   return user.institution || null;
 };
 
-/**
- * Retourne un objet user "public" avec tous les champs déchiffrés.
- */
 const sanitizeUser = (user: any) => ({
   id: user.id,
   email: getUserEmail(user),
@@ -58,7 +62,9 @@ const sanitizeUser = (user: any) => ({
   avatar: user.avatar || null,
   bio: getUserBio(user),
   institution: getUserInstitution(user),
-  twoFactorEnabled: !!user.twoFactorEnabled,   // ✅ AJOUTER
+  twoFactorEnabled: !!user.twoFactorEnabled,
+  isVerified: !!user.isVerified,          // ✅ AJOUTÉ
+  createdAt: user.createdAt || null,      // ✅ AJOUTÉ
 });
 
 // ============================================================
@@ -114,9 +120,9 @@ export const register = async (req: Request, res: Response) => {
       password: hashedPassword,
       name: name.trim(),
       role: 'RESEARCHER',
-      isVerified: false,
-      institution: institutionTrimmed,                    // compat
-      institutionEncrypted,                                // ✅ chiffré
+      isVerified: false,                          // ✅ Reste false jusqu'à vérif
+      institution: institutionTrimmed,
+      institutionEncrypted,
       avatar: null,
       bio: null,
       bioEncrypted: null,
@@ -124,11 +130,22 @@ export const register = async (req: Request, res: Response) => {
       updatedAt: now,
     });
 
-    const token = jwt.sign(
-      { id, email: emailLower, role: 'RESEARCHER' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // ✅ Générer token + envoyer email de vérification
+    let emailSent = false;
+    try {
+      const verificationToken = await createVerificationToken(id);
+      emailSent = await sendVerificationEmail({
+        to: emailLower,
+        name: name.trim(),
+        token: verificationToken,
+      });
+      if (!emailSent) {
+        logger.warn(`⚠️ [register] Email de vérification non envoyé à ${emailLower}`);
+      }
+    } catch (err: any) {
+      logger.error(`❌ [register] Erreur envoi email vérification: ${err.message}`);
+      // On continue : le compte est créé, l'utilisateur pourra demander un renvoi
+    }
 
     await logAuditFromReq(req, {
       userId: id,
@@ -138,13 +155,16 @@ export const register = async (req: Request, res: Response) => {
       targetId: id,
       targetName: name.trim(),
       status: 'success',
-      metadata: { institution: institutionTrimmed },
+      metadata: { institution: institutionTrimmed, emailSent },
     });
 
+    // ✅ PAS de JWT retourné : l'utilisateur doit d'abord vérifier son email
     return res.status(201).json({
       success: true,
-      message: 'Compte créé avec succès',
-      token,
+      message: 'Compte créé. Vérifiez votre boîte mail pour activer votre compte.',
+      requiresVerification: true,
+      email: emailLower,
+      emailSent,
       user: {
         id,
         email: emailLower,
@@ -153,6 +173,7 @@ export const register = async (req: Request, res: Response) => {
         institution: institutionTrimmed,
         avatar: null,
         bio: null,
+        isVerified: false,
       },
     });
   } catch (error: any) {
@@ -206,6 +227,26 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
+    // ✅ NOUVEAU : bloquer si email non vérifié
+    if (!user.isVerified) {
+      await logAuditFromReq(req, {
+        userId: user.id,
+        userEmail: getUserEmail(user),
+        action: 'login_blocked_unverified',
+        targetType: 'user',
+        targetId: user.id,
+        status: 'failure',
+        metadata: { reason: 'email_not_verified' },
+      });
+
+      return res.status(403).json({
+        success: false,
+        requiresVerification: true,
+        email: getUserEmail(user),
+        message: 'Votre email n\'est pas encore vérifié. Consultez votre boîte mail.',
+      });
+    }
+
     // ✅ 2FA : si activée, on renvoie un tempToken (pas le JWT complet)
     if (user.twoFactorEnabled) {
       const tempToken = jwt.sign(
@@ -257,7 +298,129 @@ export const login = async (req: Request, res: Response) => {
     console.error('❌ Erreur login:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
-};    
+};
+
+// ============================================================
+// ✅ NOUVEAU : VÉRIFICATION EMAIL
+// ============================================================
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const token = (req.query.token as string) || req.body?.token;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Token manquant' });
+    }
+
+    const userId = await verifyEmailToken(token);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lien invalide ou expiré. Demandez un nouvel email.',
+        code: 'INVALID_TOKEN',
+      });
+    }
+
+    await markEmailVerified(userId);
+
+    const user = await db('users').where({ id: userId }).first();
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // ✅ Connexion automatique après vérification
+    const jwtToken = jwt.sign(
+      { id: user.id, email: getUserEmail(user), role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: getUserEmail(user),
+      action: 'email_verified',
+      targetType: 'user',
+      targetId: user.id,
+      targetName: user.name || getUserEmail(user),
+      status: 'success',
+    });
+
+    return res.json({
+      success: true,
+      message: 'Email vérifié avec succès',
+      token: jwtToken,
+      user: sanitizeUser(user),
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur verifyEmail:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+// ============================================================
+// ✅ NOUVEAU : RENVOI EMAIL DE VÉRIFICATION
+// ============================================================
+
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email requis' });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+    const emailHash = hashEmail(emailLower);
+
+    let user = await db('users').where({ emailHash }).first();
+    if (!user) {
+      user = await db('users').where({ email: emailLower }).first();
+    }
+
+    // ⚠️ Anti-énumération : ne pas révéler si le compte existe
+    if (!user) {
+      return res.json({
+        success: true,
+        message: 'Si un compte existe avec cet email, un nouveau lien a été envoyé.',
+      });
+    }
+
+    if (user.isVerified) {
+      return res.json({
+        success: true,
+        message: 'Cet email est déjà vérifié. Vous pouvez vous connecter.',
+        alreadyVerified: true,
+      });
+    }
+
+    const token = await createVerificationToken(user.id);
+    const sent = await sendVerificationEmail({
+      to: getUserEmail(user),
+      name: user.name || '',
+      token,
+    });
+
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: getUserEmail(user),
+      action: 'verification_email_resent',
+      targetType: 'user',
+      targetId: user.id,
+      status: sent ? 'success' : 'failure',
+      metadata: { sent },
+    });
+
+    return res.json({
+      success: true,
+      message: sent
+        ? 'Nouveau lien envoyé. Vérifiez votre boîte mail.'
+        : 'Impossible d\'envoyer l\'email. Réessayez plus tard.',
+      emailSent: sent,
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur resendVerificationEmail:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
 
 // ============================================================
 // PROFIL
@@ -275,6 +438,8 @@ export const getProfile = async (req: Request, res: Response) => {
         'id', 'email', 'emailEncrypted', 'name', 'role',
         'avatar', 'bio', 'bioEncrypted',
         'institution', 'institutionEncrypted',
+        'isVerified', 'emailVerifiedAt',
+        'twoFactorEnabled',
         'createdAt'
       )
       .where({ id: userId })
@@ -292,6 +457,9 @@ export const getProfile = async (req: Request, res: Response) => {
       avatar: user.avatar,
       bio: getUserBio(user),
       institution: getUserInstitution(user),
+      isVerified: !!user.isVerified,           // ✅ AJOUTÉ
+      emailVerifiedAt: user.emailVerifiedAt,   // ✅ AJOUTÉ
+      twoFactorEnabled: !!user.twoFactorEnabled,
       createdAt: user.createdAt,
     });
   } catch (error) {
@@ -340,14 +508,14 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     if (bio !== undefined) {
       const bioTrimmed = bio?.trim() || '';
-      updates.bio = bioTrimmed || null;                               // compat
-      updates.bioEncrypted = bioTrimmed ? encrypt(bioTrimmed) : null;  // ✅ chiffré
+      updates.bio = bioTrimmed || null;
+      updates.bioEncrypted = bioTrimmed ? encrypt(bioTrimmed) : null;
     }
 
     if (institution !== undefined) {
       const instTrimmed = institution?.trim() || '';
-      updates.institution = instTrimmed || null;                                // compat
-      updates.institutionEncrypted = instTrimmed ? encrypt(instTrimmed) : null;  // ✅ chiffré
+      updates.institution = instTrimmed || null;
+      updates.institutionEncrypted = instTrimmed ? encrypt(instTrimmed) : null;
     }
 
     await db('users').where({ id: userId }).update(updates);
@@ -357,7 +525,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         'id', 'email', 'emailEncrypted', 'name', 'role',
         'avatar', 'bio', 'bioEncrypted',
         'institution', 'institutionEncrypted',
-        'createdAt'
+        'isVerified', 'createdAt'
       )
       .where({ id: userId })
       .first();
@@ -384,6 +552,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         avatar: updatedUser.avatar,
         bio: getUserBio(updatedUser),
         institution: getUserInstitution(updatedUser),
+        isVerified: !!updatedUser.isVerified,
         createdAt: updatedUser.createdAt,
       },
     });
@@ -499,12 +668,6 @@ export const uploadAvatar = async (req: Request, res: Response) => {
 // 2FA : VÉRIFICATION DU CODE AU LOGIN
 // ============================================================
 
-/**
- * POST /api/auth/2fa-login
- * Body : { tempToken, code, useBackupCode?: boolean }
- * Vérifie le tempToken + le code TOTP (ou backup code),
- * puis retourne le JWT complet.
- */
 export const verify2FALogin = async (req: Request, res: Response) => {
   try {
     const { tempToken, code, useBackupCode } = req.body;
@@ -513,7 +676,6 @@ export const verify2FALogin = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'tempToken et code requis' });
     }
 
-    // 1. Vérifier le tempToken
     let payload: any;
     try {
       payload = jwt.verify(tempToken, TWOFA_TEMP_SECRET);
@@ -536,14 +698,12 @@ export const verify2FALogin = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '2FA désactivée' });
     }
 
-    // 2. Vérifier le code : TOTP ou backup code
     let isValid = false;
 
     if (useBackupCode) {
       const result = await verifyBackupCode(code, user.twoFactorBackupCodes);
       if (result.valid) {
         isValid = true;
-        // Consommer le backup code
         await db('users').where({ id: userId }).update({
           twoFactorBackupCodes: JSON.stringify(result.remainingHashes),
           updatedAt: new Date().toISOString(),
@@ -566,7 +726,6 @@ export const verify2FALogin = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Code invalide' });
     }
 
-    // 3. Succès : générer le JWT complet
     const token = jwt.sign(
       { id: user.id, email: getUserEmail(user), role: user.role },
       JWT_SECRET,
