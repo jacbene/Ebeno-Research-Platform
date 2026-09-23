@@ -232,6 +232,7 @@ const Login: React.FC<{
           <Button type="submit" disabled={loading} style={{ width: '100%' }}>
             {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </Button>
+
 <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: theme.spacing.md }}>
   <Link
     to="/forgot-password"
