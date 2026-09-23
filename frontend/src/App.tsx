@@ -18,7 +18,7 @@ import { useRTL } from './i18n/useRTL';
 import TwoFactorLogin from './components/TwoFactorLogin';
 
 // ============================================================
-// ✅ LAZY-LOADED PAGES
+// LAZY-LOADED PAGES
 // ============================================================
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
@@ -53,16 +53,13 @@ const PageLoader: React.FC = () => (
 );
 
 // ============================================================
-// ✅ GUARDS (inline pour éviter des fichiers séparés)
+// GUARDS
 // ============================================================
-
-/** Routes accessibles UNIQUEMENT si non connecté (login, register, 2FA) */
 const PublicOnlyRoute: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
   if (isAuthenticated) return <Navigate to="/" replace />;
   return <Outlet />;
 };
 
-/** Routes accessibles UNIQUEMENT si connecté */
 const PrivateRoute: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <Outlet />;
@@ -264,7 +261,7 @@ const RegisterWrapper: React.FC<{
 };
 
 // ============================================================
-// ✅ ROUTES (composant séparé pour éviter les re-renders inutiles)
+// ROUTES (avec Suspense global)
 // ============================================================
 const AppRoutes: React.FC<{
   isAuthenticated: boolean;
@@ -284,68 +281,61 @@ const AppRoutes: React.FC<{
   };
 
   return (
-    <Routes>
-      {/* ✅ ROUTE PUBLIQUE — accessible connecté ou non */}
-      <Route
-        path="/verify-email"
-        element={
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <VerifyEmailPage onVerified={onLogin} />
-            </Suspense>
-          </ErrorBoundary>
-        }
-      />
-
-      {/* ✅ ROUTES PUBLIQUES (redirigent vers "/" si déjà connecté) */}
-      <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* ✅ ROUTE PUBLIQUE — accessible connecté ou non */}
         <Route
-          path="/login"
-          element={
-            twoFactorToken ? (
-              <TwoFactorLogin
-                tempToken={twoFactorToken}
-                onSuccess={() => {
-                  startTransition(() => setTwoFactorToken(null));
-                  onLogin();
-                }}
-                onCancel={() => startTransition(() => setTwoFactorToken(null))}
-              />
-            ) : authMode === 'login' ? (
-              <Login
-                onLogin={onLogin}
-                onSwitchToRegister={switchToRegister}
-                onRequires2FA={(t) => startTransition(() => setTwoFactorToken(t))}
-              />
-            ) : (
-              <Suspense fallback={<PageLoader />}>
+          path="/verify-email"
+          element={<VerifyEmailPage onVerified={onLogin} />}
+        />
+
+        {/* ✅ ROUTES PUBLIQUES */}
+        <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
+          <Route
+            path="/login"
+            element={
+              twoFactorToken ? (
+                <TwoFactorLogin
+                  tempToken={twoFactorToken}
+                  onSuccess={() => {
+                    startTransition(() => setTwoFactorToken(null));
+                    onLogin();
+                  }}
+                  onCancel={() => startTransition(() => setTwoFactorToken(null))}
+                />
+              ) : authMode === 'login' ? (
+                <Login
+                  onLogin={onLogin}
+                  onSwitchToRegister={switchToRegister}
+                  onRequires2FA={(t) => startTransition(() => setTwoFactorToken(t))}
+                />
+              ) : (
                 <RegisterWrapper
                   onRegister={onLogin}
                   onSwitchToLogin={switchToLogin}
                 />
-              </Suspense>
-            )
-          }
-        />
-        {/* Redirection par défaut : utilisateur non connecté → /login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Route>
-
-      {/* ✅ ROUTES PRIVÉES */}
-      <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-        <Route element={<Layout user={user} onLogout={onLogout} />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/transcription" element={<TranscriptionPage />} />
-          <Route path="/text-upload" element={<TextUploadPage />} />
-          <Route path="/transcriptions" element={<TranscriptionList />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/collaboration" element={<CollaborationPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/project/:id" element={<ProjectDetail />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+              )
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Route>
-      </Route>
-    </Routes>
+
+        {/* ✅ ROUTES PRIVÉES */}
+        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+          <Route element={<Layout user={user} onLogout={onLogout} />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/transcription" element={<TranscriptionPage />} />
+            <Route path="/text-upload" element={<TextUploadPage />} />
+            <Route path="/transcriptions" element={<TranscriptionList />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/collaboration" element={<CollaborationPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Route>
+      </Routes>
+    </Suspense>
   );
 };
 
@@ -357,9 +347,8 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [bootstrapped, setBootstrapped] = useState(false); // évite le flash
+  const [bootstrapped, setBootstrapped] = useState(false);
 
-  // ✅ Restauration de session au démarrage (startTransition)
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
@@ -386,9 +375,7 @@ const App: React.FC = () => {
     if (userStr) {
       try {
         setUser(JSON.parse(userStr));
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     }
     startTransition(() => setIsAuthenticated(true));
   };
@@ -402,7 +389,6 @@ const App: React.FC = () => {
     });
   };
 
-  // ✅ Éviter le flash "login" pendant la restauration
   if (!bootstrapped) {
     return (
       <ThemeProvider>
