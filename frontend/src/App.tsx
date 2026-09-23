@@ -1,6 +1,6 @@
 // src/App.tsx
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
 import { Layout } from './components/layout/Layout';
@@ -29,10 +29,10 @@ const TextUploadPage = lazy(() => import('./pages/TextUploadPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Register = lazy(() => import('./pages/Register'));
-const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));  // ✅ NOUVEAU
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 
 // ============================================================
-// COMPOSANT FALLBACK
+// LOADER
 // ============================================================
 const PageLoader: React.FC = () => (
   <div style={{
@@ -53,7 +53,23 @@ const PageLoader: React.FC = () => (
 );
 
 // ============================================================
-// COMPOSANT LOGIN (avec support 2FA + email non vérifié)
+// ✅ GUARDS (inline pour éviter des fichiers séparés)
+// ============================================================
+
+/** Routes accessibles UNIQUEMENT si non connecté (login, register, 2FA) */
+const PublicOnlyRoute: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
+  if (isAuthenticated) return <Navigate to="/" replace />;
+  return <Outlet />;
+};
+
+/** Routes accessibles UNIQUEMENT si connecté */
+const PrivateRoute: React.FC<{ isAuthenticated: boolean }> = ({ isAuthenticated }) => {
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Outlet />;
+};
+
+// ============================================================
+// LOGIN (avec 2FA + email non vérifié)
 // ============================================================
 const Login: React.FC<{
   onLogin: () => void;
@@ -67,7 +83,6 @@ const Login: React.FC<{
   const { colors } = useTheme();
   const { t } = useTranslation();
 
-  // ✅ NOUVEAU : état "email non vérifié"
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -94,7 +109,6 @@ const Login: React.FC<{
         setError(response.data.message || 'Erreur de connexion');
       }
     } catch (err: any) {
-      // ✅ NOUVEAU : détecter email non vérifié (403)
       if (err.response?.status === 403 && err.response?.data?.requiresVerification) {
         setVerificationEmail(err.response.data.email || email);
         return;
@@ -114,7 +128,6 @@ const Login: React.FC<{
       await api.post('/auth/resend-verification', { email: verificationEmail });
       setResendSuccess(true);
     } catch {
-      // Anti-énumération : toujours succès côté UI
       setResendSuccess(true);
     } finally {
       setResending(false);
@@ -128,7 +141,6 @@ const Login: React.FC<{
     padding: '20px',
   };
 
-  // ─── Vue : email non vérifié ──────────────────────────────
   if (verificationEmail) {
     return (
       <div style={wrapperStyle}>
@@ -153,11 +165,7 @@ const Login: React.FC<{
               ✅ {t('verifyEmail.resendSuccess')}
             </div>
           ) : (
-            <Button
-              onClick={handleResend}
-              disabled={resending}
-              style={{ width: '100%' }}
-            >
+            <Button onClick={handleResend} disabled={resending} style={{ width: '100%' }}>
               {resending ? t('verifyEmail.resendSending') : t('verifyEmail.resendButton')}
             </Button>
           )}
@@ -179,7 +187,6 @@ const Login: React.FC<{
     );
   }
 
-  // ─── Vue : login classique ────────────────────────────────
   return (
     <div style={wrapperStyle}>
       <Card style={{ maxWidth: '420px', width: '100%' }}>
@@ -257,6 +264,92 @@ const RegisterWrapper: React.FC<{
 };
 
 // ============================================================
+// ✅ ROUTES (composant séparé pour éviter les re-renders inutiles)
+// ============================================================
+const AppRoutes: React.FC<{
+  isAuthenticated: boolean;
+  user: any;
+  onLogin: () => void;
+  onLogout: () => void;
+}> = ({ isAuthenticated, user, onLogin, onLogout }) => {
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);
+
+  const switchToRegister = () => {
+    startTransition(() => setAuthMode('register'));
+  };
+
+  const switchToLogin = () => {
+    startTransition(() => setAuthMode('login'));
+  };
+
+  return (
+    <Routes>
+      {/* ✅ ROUTE PUBLIQUE — accessible connecté ou non */}
+      <Route
+        path="/verify-email"
+        element={
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <VerifyEmailPage onVerified={onLogin} />
+            </Suspense>
+          </ErrorBoundary>
+        }
+      />
+
+      {/* ✅ ROUTES PUBLIQUES (redirigent vers "/" si déjà connecté) */}
+      <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
+        <Route
+          path="/login"
+          element={
+            twoFactorToken ? (
+              <TwoFactorLogin
+                tempToken={twoFactorToken}
+                onSuccess={() => {
+                  startTransition(() => setTwoFactorToken(null));
+                  onLogin();
+                }}
+                onCancel={() => startTransition(() => setTwoFactorToken(null))}
+              />
+            ) : authMode === 'login' ? (
+              <Login
+                onLogin={onLogin}
+                onSwitchToRegister={switchToRegister}
+                onRequires2FA={(t) => startTransition(() => setTwoFactorToken(t))}
+              />
+            ) : (
+              <Suspense fallback={<PageLoader />}>
+                <RegisterWrapper
+                  onRegister={onLogin}
+                  onSwitchToLogin={switchToLogin}
+                />
+              </Suspense>
+            )
+          }
+        />
+        {/* Redirection par défaut : utilisateur non connecté → /login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Route>
+
+      {/* ✅ ROUTES PRIVÉES */}
+      <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+        <Route element={<Layout user={user} onLogout={onLogout} />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transcription" element={<TranscriptionPage />} />
+          <Route path="/text-upload" element={<TextUploadPage />} />
+          <Route path="/transcriptions" element={<TranscriptionList />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/collaboration" element={<CollaborationPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/project/:id" element={<ProjectDetail />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Route>
+    </Routes>
+  );
+};
+
+// ============================================================
 // APP PRINCIPALE
 // ============================================================
 const App: React.FC = () => {
@@ -264,95 +357,76 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);
+  const [bootstrapped, setBootstrapped] = useState(false); // évite le flash
 
+  // ✅ Restauration de session au démarrage (startTransition)
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
     if (token && userStr) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(userStr));
+      try {
+        const parsed = JSON.parse(userStr);
+        startTransition(() => {
+          setUser(parsed);
+          setIsAuthenticated(true);
+          setBootstrapped(true);
+        });
+      } catch {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        setBootstrapped(true);
+      }
+    } else {
+      setBootstrapped(true);
     }
   }, []);
 
   const handleLogin = () => {
     const userStr = localStorage.getItem('user');
-    if (userStr) setUser(JSON.parse(userStr));
-    setIsAuthenticated(true);
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch {
+        /* ignore */
+      }
+    }
+    startTransition(() => setIsAuthenticated(true));
   };
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    setIsAuthenticated(false);
-    setUser(null);
-    setAuthMode('login');
-    setTwoFactorToken(null);
+    startTransition(() => {
+      setIsAuthenticated(false);
+      setUser(null);
+    });
   };
+
+  // ✅ Éviter le flash "login" pendant la restauration
+  if (!bootstrapped) {
+    return (
+      <ThemeProvider>
+        <LanguageProvider>
+          <PageLoader />
+        </LanguageProvider>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
       <LanguageProvider>
         <ToastProvider>
           <Router future={{ v7_relativeSplatPath: true }}>
-            <Routes>
-              {/* ✅ Route PUBLIQUE — accessible même déconnecté */}
-              <Route
-                path="/verify-email"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <VerifyEmailPage onVerified={handleLogin} />
-                  </Suspense>
-                }
+            <ErrorBoundary>
+              <AppRoutes
+                isAuthenticated={isAuthenticated}
+                user={user}
+                onLogin={handleLogin}
+                onLogout={handleLogout}
               />
-
-              {/* Routes conditionnelles */}
-              {!isAuthenticated ? (
-                <Route
-                  path="*"
-                  element={
-                    twoFactorToken ? (
-                      <TwoFactorLogin
-                        tempToken={twoFactorToken}
-                        onSuccess={() => {
-                          setTwoFactorToken(null);
-                          handleLogin();
-                        }}
-                        onCancel={() => setTwoFactorToken(null)}
-                      />
-                    ) : authMode === 'login' ? (
-                      <Login
-                        onLogin={handleLogin}
-                        onSwitchToRegister={() => setAuthMode('register')}
-                        onRequires2FA={(tempToken) => setTwoFactorToken(tempToken)}
-                      />
-                    ) : (
-                      <Suspense fallback={<PageLoader />}>
-                        <RegisterWrapper
-                          onRegister={handleLogin}
-                          onSwitchToLogin={() => setAuthMode('login')}
-                        />
-                      </Suspense>
-                    )
-                  }
-                />
-              ) : (
-                <Route element={<Layout user={user} onLogout={handleLogout} />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/transcription" element={<TranscriptionPage />} />
-                  <Route path="/text-upload" element={<TextUploadPage />} />
-                  <Route path="/transcriptions" element={<TranscriptionList />} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/collaboration" element={<CollaborationPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/project/:id" element={<ProjectDetail />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              )}
-            </Routes>
+            </ErrorBoundary>
           </Router>
-
           <ToastContainer />
         </ToastProvider>
       </LanguageProvider>
