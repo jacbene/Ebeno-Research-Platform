@@ -4,8 +4,21 @@ import { db } from '../db/knex';
 import { authenticate } from '../middleware/auth';
 import { logActivity } from '../services/activityService';
 import { emitGlobal } from '../socketManager';
+import { decrypt, hashEmail } from '../services/encryptionService';
+import { logger } from '../utils/logger';
+import { canSendEmail } from '../services/emailPreferencesService';
+import { sendProjectMemberAddedEmail } from '../services/emailService';
 
 const router = Router();
+
+// ✅ Helper : récupérer l'email en clair d'un user (chiffré ou legacy)
+const getUserEmail = (user: any): string => {
+  if (user?.emailEncrypted) {
+    const decrypted = decrypt(user.emailEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user?.email || '';
+};
 
 // ============================================================
 // AJOUTER UN MEMBRE
@@ -31,8 +44,15 @@ router.post('/:projectId/members', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Seul le propriétaire ou un éditeur peut ajouter des membres' });
     }
 
-    // Trouver l'utilisateur par email
-    const userToAdd = await db('users').where({ email: email.toLowerCase() }).first();
+    // ✅ FIX : Rechercher par emailHash OU email legacy (comptes chiffrés)
+    const emailLower = email.toLowerCase().trim();
+    const emailHash = hashEmail(emailLower);
+
+    const userToAdd = await db('users')
+      .where({ emailHash })
+      .orWhere({ email: emailLower })
+      .first();
+
     if (!userToAdd) {
       return res.status(404).json({ error: 'Aucun utilisateur trouvé avec cet email' });
     }
@@ -45,7 +65,7 @@ router.post('/:projectId/members', authenticate, async (req, res) => {
       return res.status(409).json({ error: 'Cet utilisateur est déjà membre du projet' });
     }
 
-    // ✅ Insérer avec des ISO strings (pas Date.now())
+    // ✅ Insérer
     const now = new Date().toISOString();
     const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
@@ -65,7 +85,7 @@ router.post('/:projectId/members', authenticate, async (req, res) => {
       projectId,
       member: {
         ...member,
-        email: userToAdd.email,
+        email: getUserEmail(userToAdd),
         name: userToAdd.name,
         avatar: userToAdd.avatar,
       },
@@ -79,15 +99,54 @@ router.post('/:projectId/members', authenticate, async (req, res) => {
       action: 'member-added',
       targetType: 'member',
       targetId: userToAdd.id,
-      targetName: userToAdd.name || userToAdd.email,
+      targetName: userToAdd.name || getUserEmail(userToAdd),
     });
+
+    // ============================================================
+    // ✅ NOUVEAU : Email de notification (non bloquant)
+    // ============================================================
+    (async () => {
+      try {
+        // 1. Vérifier les préférences email du destinataire
+        const wantsEmail = await canSendEmail(userToAdd.id, 'projectMemberAdded');
+        if (!wantsEmail) {
+          logger.info(`ℹ️  [email] ${userToAdd.id} a désactivé les notifs "membre ajouté"`);
+          return;
+        }
+
+        // 2. Récupérer le nom du projet
+        const project = await db('projects').where({ id: projectId }).first();
+        if (!project) return;
+
+        // 3. Récupérer le nom de l'owner qui ajoute
+        const ownerName = user?.name || getUserEmail(user) || 'Un utilisateur';
+
+        // 4. Envoyer l'email
+        const to = getUserEmail(userToAdd);
+        if (!to) {
+          logger.warn(`⚠️ [email] Pas d'email pour ${userToAdd.id}`);
+          return;
+        }
+
+        await sendProjectMemberAddedEmail({
+          to,
+          name: userToAdd.name || 'chercheur',
+          projectName: project.title || 'Projet',
+          ownerName,
+          projectId,
+          lang: userToAdd.language || 'fr',
+        });
+      } catch (err: any) {
+        logger.warn(`⚠️ [email] Échec notif "membre ajouté": ${err.message}`);
+      }
+    })();
 
     res.status(201).json({
       success: true,
       message: 'Membre ajouté avec succès',
       member: {
         ...member,
-        email: userToAdd.email,
+        email: getUserEmail(userToAdd),
         name: userToAdd.name,
         avatar: userToAdd.avatar,
       },
@@ -114,11 +173,23 @@ router.get('/:projectId/members', authenticate, async (req, res) => {
         'project_members.role',
         'project_members.createdAt',
         'users.email',
+        'users.emailEncrypted',
         'users.name',
         'users.avatar'
       );
 
-    res.json(members);
+    // ✅ Déchiffrer les emails avant retour
+    const sanitized = members.map((m: any) => ({
+      id: m.id,
+      userId: m.userId,
+      role: m.role,
+      createdAt: m.createdAt,
+      email: getUserEmail(m),
+      name: m.name,
+      avatar: m.avatar,
+    }));
+
+    res.json(sanitized);
   } catch (error: any) {
     console.error('❌ Erreur getMembers:', error);
     res.status(500).json({ error: 'Erreur serveur' });
