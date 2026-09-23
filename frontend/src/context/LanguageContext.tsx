@@ -34,40 +34,55 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [supportedLanguages, setSupportedLanguages] = useState<Language[]>(FALLBACK_LANGUAGES);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Charger la langue de l'utilisateur au démarrage
+  // ✅ Chargement initial — UNE SEULE FOIS au mount
   useEffect(() => {
+    let cancelled = false;
+
     const loadLanguage = async () => {
       try {
-        // 1. Langues supportées (backend = source de vérité)
+        // 1. Langues supportées (endpoint public, toujours OK)
         const supportedRes = await api.get('/language/supported');
-        if (supportedRes.data?.success) {
+        if (!cancelled && supportedRes.data?.success) {
           setSupportedLanguages(supportedRes.data.data);
         }
 
-        // 2. Langue de l'utilisateur (backend)
-        const meRes = await api.get('/language/me');
-        if (meRes.data?.success) {
-          const userLang = meRes.data.data.language;
-          setLanguage(userLang);
-          // Synchronise i18next avec la langue du backend
-          if (i18nInstance.language !== userLang) {
-            await i18nInstance.changeLanguage(userLang);
+        // 2. ✅ Langue utilisateur SEULEMENT si connecté (token présent)
+        const token = localStorage.getItem('authToken');
+        if (token && !cancelled) {
+          try {
+            const meRes = await api.get('/language/me');
+            if (!cancelled && meRes.data?.success) {
+              const userLang = meRes.data.data.language;
+              setLanguage(userLang);
+              if (i18nInstance.language !== userLang) {
+                await i18nInstance.changeLanguage(userLang);
+              }
+            }
+          } catch (err: any) {
+            // ✅ 401 = normal si token expiré → on ignore SILENCIEUSEMENT
+            if (err.response?.status !== 401) {
+              console.warn('[language] /language/me échoué:', err.message);
+            }
           }
         }
       } catch (error) {
-        // Fallback : détecter la langue du navigateur
-        const navLang = navigator.language?.split('-')[0] || 'fr';
-        const supported = FALLBACK_LANGUAGES.map((l) => l.code);
-        const detected = supported.includes(navLang) ? navLang : 'fr';
-        setLanguage(detected);
-        await i18nInstance.changeLanguage(detected);
+        // Fallback navigateur
+        if (!cancelled) {
+          const navLang = navigator.language?.split('-')[0] || 'fr';
+          const supported = FALLBACK_LANGUAGES.map((l) => l.code);
+          const detected = supported.includes(navLang) ? navLang : 'fr';
+          setLanguage(detected);
+          await i18nInstance.changeLanguage(detected);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadLanguage();
-  }, [i18nInstance]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Mount only — pas de dépendance i18nInstance (stable)
 
   // ✅ Changer la langue (sync i18next + backend)
   const changeLanguage = useCallback(
@@ -76,13 +91,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLanguage(code); // Optimistic
 
       try {
-        // 1. Applique immédiatement côté UI
         await i18nInstance.changeLanguage(code);
-
-        // 2. Persiste côté backend
         await api.put('/language/me', { language: code });
       } catch (error) {
-        // Rollback en cas d'erreur
+        // Rollback
         setLanguage(previous);
         await i18nInstance.changeLanguage(previous);
         throw error;
@@ -91,7 +103,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [language, i18nInstance]
   );
 
-  // ✅ Délègue la traduction à i18next
   const t = useCallback(
     (key: string, options?: any): string => {
       return i18nT(key, options) as string;

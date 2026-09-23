@@ -7,14 +7,12 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Intercepteur pour ajouter le token d'authentification
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Supprimer Content-Type pour les FormData (laissé à axios)
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -23,17 +21,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Intercepteur pour gérer les erreurs
+// ✅ NE PAS rediriger automatiquement sur 401.
+//    Sinon : boucle infinie car les pages publiques (verify-email) montent
+//    LanguageProvider qui appelle /language/me sans token → 401 → reload → boucle.
+//    On laisse les composants gérer l'erreur (Login, App, etc.)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;
