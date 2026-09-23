@@ -208,6 +208,12 @@ app.get('/', (req, res) => {
 // GESTION 404
 // ============================================================
 
+// ⚠️ TEMPORAIRE — À SUPPRIMER après test Sentry
+app.get('/api/__sentry-test', (req, res) => {
+  throw new Error('🧪 Test Sentry backend — capture OK');
+});
+
+
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route non trouvée', path: req.originalUrl });
 });
