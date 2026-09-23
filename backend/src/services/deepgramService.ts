@@ -9,7 +9,10 @@ import axios from 'axios';
 import { db } from '../db/knex';
 import { isServiceAvailable, recordFailure, recordSuccess } from './circuitBreaker';
 import { logger } from '../utils/logger';
-import { detectLanguage } from './languageDetectionService';   // ✅ NOUVEAU
+import { detectLanguage } from './languageDetectionService';
+import { decrypt } from './encryptionService';
+import { canSendEmail } from './emailPreferencesService';
+import { sendTranscriptionCompleteEmail } from './emailService';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 if (!DEEPGRAM_API_KEY) {
@@ -23,6 +26,15 @@ const TranscriptionStatus = {
   PROCESSING: 'PROCESSING',
   COMPLETED: 'COMPLETED',
   FAILED: 'FAILED',
+};
+
+// ✅ Helper : déchiffre l'email si nécessaire
+const getUserEmail = (user: any): string => {
+  if (user?.emailEncrypted) {
+    const decrypted = decrypt(user.emailEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user?.email || '';
 };
 
 export const processTranscriptionDeepgram = async (transcriptionId: string) => {
@@ -88,7 +100,6 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const transcriptText =
       response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
 
-    // ✅ NOUVEAU : détecter la langue du texte transcrit
     const detection = detectLanguage(transcriptText);
     logger.info(
       `🌍 [Deepgram] Langue détectée pour ${transcriptionId} : ` +
@@ -98,13 +109,50 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
-      language: detection.language,   // ✅ 'fr' | 'en' | ... | null
+      language: detection.language,
       updatedAt: new Date().toISOString(),
     });
 
     logger.info(
       `✅ [Deepgram] Transcription ${transcriptionId} terminée : ${transcriptText.length} caractères`
     );
+
+    // ============================================================
+    // ✅ NOUVEAU : Email de notification (non bloquant)
+    // ============================================================
+    (async () => {
+      try {
+        // 1. Récupérer l'utilisateur qui a uploadé
+        const uploader = await db('users').where({ id: transcription.userId }).first();
+        if (!uploader) return;
+
+        // 2. Vérifier les préférences email
+        const wantsEmail = await canSendEmail(uploader.id, 'transcriptionComplete');
+        if (!wantsEmail) {
+          logger.info(`ℹ️  [email] ${uploader.id} a désactivé les notifs "transcription terminée"`);
+          return;
+        }
+
+        // 3. Récupérer l'email
+        const to = getUserEmail(uploader);
+        if (!to) {
+          logger.warn(`⚠️ [email] Pas d'email pour ${uploader.id}`);
+          return;
+        }
+
+        // 4. Envoyer l'email
+        await sendTranscriptionCompleteEmail({
+          to,
+          name: uploader.name || 'chercheur',
+          transcriptionTitle: transcription.title || 'Transcription',
+          projectId: transcription.projectId || '',
+          lang: uploader.language || 'fr',
+        });
+      } catch (err: any) {
+        logger.warn(`⚠️ [email] Échec notif "transcription terminée": ${err.message}`);
+      }
+    })();
+
   } catch (error: any) {
     const status = error.response?.status;
     const errorData = error.response?.data
