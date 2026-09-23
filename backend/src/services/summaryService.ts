@@ -12,6 +12,9 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
+import { decrypt } from './encryptionService';
+import { canSendEmail } from './emailPreferencesService';
+import { sendSummaryReadyEmail } from './emailService';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 
@@ -20,9 +23,17 @@ const SERVICE_OPENAI = 'openai';
 const SERVICE_DEEPGRAM = 'deepgram';
 const SERVICE_DEEPSEEK = 'deepseek';
 
+// ✅ Helper : déchiffre l'email si nécessaire
+const getUserEmail = (user: any): string => {
+  if (user?.emailEncrypted) {
+    const decrypted = decrypt(user.emailEncrypted);
+    if (decrypted) return decrypted;
+  }
+  return user?.email || '';
+};
+
 /**
  * Résumé via Deepgram Text Intelligence (/v1/read)
- * ⚠️ Deepgram summarization ne supporte QUE l'anglais.
  */
 const generateSummaryWithDeepgram = async (text: string): Promise<string> => {
   if (!DEEPGRAM_API_KEY) {
@@ -85,13 +96,10 @@ const generateHeuristicSummary = (text: string): string => {
 
 /**
  * ✅ Cascade intelligente :
- *   DeepSeek (si clé valide et circuit fermé)          ← NOUVEAU #1
- *   → OpenAI (si clé valide et circuit fermé)          ← fallback
- *   → Deepgram (si clé valide et circuit fermé)        ← fallback
- *   → Heuristique (toujours disponible)                ← dernier recours
+ *   DeepSeek → OpenAI → Deepgram → Heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
-  // 1️⃣ DeepSeek (nouveau, priorité #1)
+  // 1️⃣ DeepSeek
   if (isDeepSeekConfigured() && isServiceAvailable(SERVICE_DEEPSEEK)) {
     try {
       logger.info('🟣 [summary] Tentative DeepSeek...');
@@ -108,7 +116,7 @@ const generateSummary = async (text: string): Promise<string> => {
     logger.info('⚠️ [summary] DeepSeek non configuré');
   }
 
-  // 2️⃣ OpenAI (fallback)
+  // 2️⃣ OpenAI
   if (isOpenAIConfigured() && isServiceAvailable(SERVICE_OPENAI)) {
     try {
       logger.info('🔵 [summary] Tentative OpenAI...');
@@ -125,7 +133,7 @@ const generateSummary = async (text: string): Promise<string> => {
     logger.info('⚠️ [summary] OpenAI non configuré');
   }
 
-  // 3️⃣ Deepgram (fallback — anglais uniquement)
+  // 3️⃣ Deepgram
   if (DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
     try {
       logger.info('🟢 [summary] Tentative Deepgram...');
@@ -142,9 +150,81 @@ const generateSummary = async (text: string): Promise<string> => {
     logger.info('⚠️ [summary] Deepgram non configuré');
   }
 
-  // 4️⃣ Heuristique (fallback final)
+  // 4️⃣ Heuristique
   logger.info('🟠 [summary] Utilisation du résumé heuristique (fallback final)');
   return generateHeuristicSummary(text);
+};
+
+/**
+ * ✅ Récupère le titre + projectId d'un document
+ */
+const getDocumentMeta = async (
+  documentId: string,
+  type: 'transcription' | 'memo' | 'file'
+): Promise<{ title: string; projectId: string | null }> => {
+  try {
+    if (type === 'transcription') {
+      const doc = await db('transcriptions').where({ id: documentId }).select('title', 'projectId').first();
+      return { title: doc?.title || 'Transcription', projectId: doc?.projectId || null };
+    }
+    if (type === 'memo') {
+      const doc = await db('memos').where({ id: documentId }).select('title', 'projectId').first();
+      return { title: doc?.title || 'Memo', projectId: doc?.projectId || null };
+    }
+    if (type === 'file') {
+      const doc = await db('project_files').where({ id: documentId }).select('fileName as title', 'projectId').first();
+      return { title: doc?.title || 'Fichier', projectId: doc?.projectId || null };
+    }
+  } catch (err: any) {
+    logger.warn(`⚠️ [summary] getDocumentMeta échoué: ${err.message}`);
+  }
+  return { title: 'Document', projectId: null };
+};
+
+/**
+ * ✅ Envoie la notification email (non bloquant)
+ */
+const notifySummaryReady = async (
+  userId: string,
+  documentId: string,
+  type: 'transcription' | 'memo' | 'file',
+  summary: string
+): Promise<void> => {
+  (async () => {
+    try {
+      // 1. Vérifier les préférences email
+      const wantsEmail = await canSendEmail(userId, 'summaryReady');
+      if (!wantsEmail) {
+        logger.info(`ℹ️  [email] ${userId} a désactivé les notifs "résumé prêt"`);
+        return;
+      }
+
+      // 2. Récupérer l'utilisateur
+      const user = await db('users').where({ id: userId }).first();
+      if (!user) return;
+
+      const to = getUserEmail(user);
+      if (!to) {
+        logger.warn(`⚠️ [email] Pas d'email pour ${userId}`);
+        return;
+      }
+
+      // 3. Récupérer le titre + projectId
+      const { title, projectId } = await getDocumentMeta(documentId, type);
+
+      // 4. Envoyer
+      await sendSummaryReadyEmail({
+        to,
+        name: user.name || 'chercheur',
+        summaryTitle: title,
+        summaryExcerpt: summary,
+        projectId: projectId || '',
+        lang: user.language || 'fr',
+      });
+    } catch (err: any) {
+      logger.warn(`⚠️ [email] Échec notif "résumé prêt": ${err.message}`);
+    }
+  })();
 };
 
 /**
@@ -211,6 +291,9 @@ export const generateDocumentSummary = async (
       updatedAt: new Date().toISOString(),
     });
   }
+
+  // ✅ NOUVEAU : Notifier par email (non bloquant)
+  await notifySummaryReady(userId, documentId, type, summary);
 
   return summary;
 };
