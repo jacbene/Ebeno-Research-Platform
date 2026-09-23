@@ -1,6 +1,7 @@
 // src/App.tsx
 import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
 import { Layout } from './components/layout/Layout';
@@ -50,6 +51,55 @@ const PageLoader: React.FC = () => (
       }} />
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       <div style={{ fontSize: '14px' }}>Chargement…</div>
+    </div>
+  </div>
+);
+
+// ============================================================
+// ✅ SENTRY FALLBACK — UI affichée quand React crashe
+// ============================================================
+const SentryFallback: React.FC<{ error: Error; resetError: () => void }> = ({ error, resetError }) => (
+  <div style={{
+    display: 'flex', flexDirection: 'column', justifyContent: 'center',
+    alignItems: 'center', minHeight: '100vh', padding: '20px',
+    textAlign: 'center', fontFamily: 'system-ui, -apple-system, sans-serif',
+    background: 'linear-gradient(135deg, #4A6CF7 0%, #3651B5 100%)',
+  }}>
+    <div style={{
+      background: 'white', padding: '40px 32px', borderRadius: '16px',
+      maxWidth: '520px', width: '100%',
+      boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+    }}>
+      <div style={{ fontSize: '64px', marginBottom: '16px' }}>😵</div>
+      <h1 style={{ fontSize: '22px', marginBottom: '12px', color: '#1a1a1a' }}>
+        Oups, quelque chose s'est mal passé
+      </h1>
+      <p style={{ color: '#666', marginBottom: '24px', lineHeight: 1.6, fontSize: '14px' }}>
+        L'erreur a été signalée automatiquement à notre équipe.
+        Vous pouvez essayer de recharger la page.
+      </p>
+      <button
+        onClick={() => {
+          resetError();
+          window.location.reload();
+        }}
+        style={{
+          padding: '12px 24px', backgroundColor: '#4A6CF7', color: 'white',
+          border: 'none', borderRadius: '8px', cursor: 'pointer',
+          fontSize: '15px', fontWeight: 'bold', width: '100%',
+        }}
+      >
+        🔄 Recharger la page
+      </button>
+      {process.env.NODE_ENV !== 'production' && (
+        <pre style={{
+          marginTop: '20px', padding: '12px', backgroundColor: '#f5f5f5',
+          borderRadius: '6px', fontSize: '11px', textAlign: 'left',
+          overflow: 'auto', maxHeight: '200px', color: '#c0392b',
+        }}>
+          {error.message}
+        </pre>
+      )}
     </div>
   </div>
 );
@@ -233,19 +283,19 @@ const Login: React.FC<{
             {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </Button>
 
-<div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: theme.spacing.md }}>
-  <Link
-    to="/forgot-password"
-    style={{
-      color: colors.primary,
-      fontSize: '13px',
-      textDecoration: 'none',
-      fontWeight: 500,
-    }}
-  >
-    {t('auth.login.forgotPassword')}
-  </Link>
-</div>
+          <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: theme.spacing.md }}>
+            <Link
+              to="/forgot-password"
+              style={{
+                color: colors.primary,
+                fontSize: '13px',
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              {t('auth.login.forgotPassword')}
+            </Link>
+          </div>
         </form>
 
         <p style={{
@@ -304,15 +354,16 @@ const AppRoutes: React.FC<{
           path="/verify-email"
           element={<VerifyEmailPage onVerified={onLogin} />}
         />
-          {/* ✅ Reset password (token dans l'URL) */}
-         <Route
-           path="/reset-password"
-           element={<ResetPasswordPage />}
-         />
+
+        {/* ✅ Reset password (token dans l'URL) */}
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
+        />
 
         {/* ✅ ROUTES PUBLIQUES */}
         <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
-         {/* ✅ Mot de passe oublié (public, hors utilisateurs connectés) */}
+          {/* ✅ Mot de passe oublié (public, hors utilisateurs connectés) */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/login"
@@ -427,14 +478,17 @@ const App: React.FC = () => {
       <LanguageProvider>
         <ToastProvider>
           <Router future={{ v7_relativeSplatPath: true }}>
-            <ErrorBoundary>
-              <AppRoutes
-                isAuthenticated={isAuthenticated}
-                user={user}
-                onLogin={handleLogin}
-                onLogout={handleLogout}
-              />
-            </ErrorBoundary>
+            {/* ✅ DOUBLE PROTECTION : Sentry + ErrorBoundary custom */}
+            <Sentry.ErrorBoundary fallback={SentryFallback} showDialog={false}>
+              <ErrorBoundary>
+                <AppRoutes
+                  isAuthenticated={isAuthenticated}
+                  user={user}
+                  onLogin={handleLogin}
+                  onLogout={handleLogout}
+                />
+              </ErrorBoundary>
+            </Sentry.ErrorBoundary>
           </Router>
           <ToastContainer />
         </ToastProvider>

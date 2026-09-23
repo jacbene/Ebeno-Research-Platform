@@ -1,5 +1,5 @@
-// frontend/src/services/api.ts
 import axios from 'axios';
+import * as Sentry from '@sentry/react';
 
 const API_BASE_URL = 'https://ebeno-backend.onrender.com/api';
 
@@ -21,13 +21,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ NE PAS rediriger automatiquement sur 401.
-//    Sinon : boucle infinie car les pages publiques (verify-email) montent
-//    LanguageProvider qui appelle /language/me sans token → 401 → reload → boucle.
-//    On laisse les composants gérer l'erreur (Login, App, etc.)
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    // ✅ Envoyer uniquement les erreurs 5xx à Sentry
+    const status = error.response?.status;
+    if (status && status >= 500) {
+      Sentry.captureException(error, {
+        tags: { type: 'api-error', status: String(status) },
+        contexts: {
+          response: {
+            url: error.config?.url,
+            method: error.config?.method,
+            status,
+          },
+        },
+      });
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api;

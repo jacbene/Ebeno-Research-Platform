@@ -1,4 +1,7 @@
 // backend/src/server.ts
+// ✅ IMPORT SENTRY EN PREMIER (avant tout le reste)
+import './instrument';
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -63,13 +66,23 @@ dotenv.config();
 // GESTION DES ERREURS NON CAPTURÉES
 // ============================================================
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   logError('❌ Uncaught Exception', err);
+  // ✅ Capturer dans Sentry AVANT de mourir
+  Sentry.captureException(err);
+  await Sentry.close(2000); // 2s pour flush
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
   logError('❌ Unhandled Rejection', reason, { promise: String(promise) });
+  // ✅ Capturer dans Sentry AVANT de mourir
+  if (reason instanceof Error) {
+    Sentry.captureException(reason);
+  } else {
+    Sentry.captureMessage(`Unhandled Rejection: ${String(reason)}`, 'error');
+  }
+  await Sentry.close(2000);
   process.exit(1);
 });
 
@@ -203,6 +216,10 @@ app.use('*', (req, res) => {
 // GESTION D'ERREURS
 // ============================================================
 
+// ✅ Sentry : capture toutes les erreurs non gérées
+//    (à placer AVANT votre error handler custom)
+Sentry.setupExpressErrorHandler(app);
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logError('❌ Erreur serveur', err, {
     method: req.method,
@@ -276,6 +293,9 @@ const startServer = async () => {
 
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
+    // ✅ Capturer l'erreur fatale de démarrage dans Sentry
+    Sentry.captureException(err);
+    await Sentry.close(2000);
     process.exit(1);
   }
 };
