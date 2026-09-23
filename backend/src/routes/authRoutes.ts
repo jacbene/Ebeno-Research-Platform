@@ -8,6 +8,8 @@ import {
   login,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,        // ✅ AJOUT
+  resetPassword,         // ✅ AJOUT
   getProfile,
   getMe,
   updateProfile,
@@ -16,7 +18,14 @@ import {
   logout,
   verify2FALogin,
 } from '../controllers/authController';
+  
 import { authenticate } from '../middleware/auth';
+import { sendPasswordResetEmail } from '../services/emailService';
+import {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  clearPasswordResetToken,
+} from '../services/passwordResetService';
 
 const router = Router();
 
@@ -56,6 +65,9 @@ router.post('/2fa-login', verify2FALogin);
 // ✅ Vérification email (public — l'utilisateur n'a pas encore de JWT)
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationEmail);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
 
 // ============================================================
 // ROUTES PROTÉGÉES

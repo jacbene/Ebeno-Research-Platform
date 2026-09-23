@@ -36,7 +36,8 @@
       "submitting": "Signing in...",
       "noAccount": "Don't have an account?",
       "registerLink": "Sign up",
-      "testHint": "Test: test@test.com / 123456"
+      "testHint": "Test: test@test.com / 123456",
+      "forgotPassword": "Forgot Password ?"
     },
     "register": {
       "title": "Sign up",
@@ -519,6 +520,35 @@
   "backToLogin": "← Back to login",
   "notVerifiedTitle": "Email not verified",
   "notVerifiedMessage": "Your account exists but email {{email}} has not been verified yet. Check your inbox or request a new link."
+},
+"forgotPassword": {
+  "title": "Forgot your password?",
+  "intro": "Enter your email. If an account exists, a reset link will be sent to you.",
+  "emailLabel": "Email",
+  "submit": "Send link",
+  "submitting": "Sending…",
+  "successTitle": "Email sent",
+  "successMessage": "If an account exists with this email, a reset link has just been sent. Check your inbox (and spam folder).",
+  "backToLogin": "← Back to login"
+},
+"resetPassword": {
+  "title": "New password",
+  "intro": "Choose a new password for your account.",
+  "newPassword": "New password",
+  "newPasswordPlaceholder": "At least 6 characters",
+  "confirmPassword": "Confirm password",
+  "confirmPasswordPlaceholder": "Retype the password",
+  "submit": "Reset password",
+  "submitting": "Resetting…",
+  "successTitle": "Password updated!",
+  "successMessage": "You can now log in with your new password.",
+  "errorTitle": "Invalid or expired link",
+  "errorMessage": "This reset link is no longer valid. Request a new one.",
+  "missingToken": "No token provided in the link.",
+  "passwordMismatch": "Passwords do not match",
+  "passwordTooShort": "Password must be at least 6 characters",
+  "backToLogin": "← Back to login",
+  "requestNew": "Request a new link"
 },
   "language": {
     "fr": "Français",

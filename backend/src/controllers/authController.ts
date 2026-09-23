@@ -13,7 +13,14 @@ import {
   verifyEmailToken,
   markEmailVerified,
 } from '../services/emailVerificationService';
+import { sendPasswordResetEmail } from '../services/emailService';
+import {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  clearPasswordResetToken,
+} from '../services/passwordResetService';
 import { logger } from '../utils/logger';
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
@@ -468,6 +475,133 @@ export const getProfile = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================
+// ✅ NOUVEAU : MOT DE PASSE OUBLIÉ
+// ============================================================
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email requis' });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+    const emailHash = hashEmail(emailLower);
+
+    let user = await db('users').where({ emailHash }).first();
+    if (!user) {
+      user = await db('users').where({ email: emailLower }).first();
+    }
+
+    // ⚠️ Anti-énumération : réponse identique que le compte existe ou non
+    const genericResponse = {
+      success: true,
+      message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.',
+    };
+
+    if (!user) {
+      await logAuditFromReq(req, {
+        userEmail: emailLower,
+        action: 'password_reset_requested',
+        targetType: 'user',
+        status: 'failure',
+        metadata: { reason: 'user_not_found' },
+      });
+      return res.json(genericResponse);
+    }
+
+    const token = await createPasswordResetToken(user.id);
+    const sent = await sendPasswordResetEmail({
+      to: getUserEmail(user),
+      name: user.name || '',
+      token,
+    });
+
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: getUserEmail(user),
+      action: 'password_reset_requested',
+      targetType: 'user',
+      targetId: user.id,
+      status: sent ? 'success' : 'failure',
+      metadata: { sent, verified: !!user.isVerified },
+    });
+
+    return res.json(genericResponse);
+  } catch (error: any) {
+    console.error('❌ Erreur forgotPassword:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+// ============================================================
+// ✅ NOUVEAU : RÉINITIALISATION MOT DE PASSE
+// ============================================================
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token et nouveau mot de passe requis' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: 'Le mot de passe doit contenir au moins 6 caractères',
+      });
+    }
+
+    const userId = await verifyPasswordResetToken(token);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lien invalide ou expiré. Demandez un nouveau lien.',
+        code: 'INVALID_TOKEN',
+      });
+    }
+
+    const user = await db('users').where({ id: userId }).first();
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    const sameAsOld = await bcrypt.compare(newPassword, user.password);
+    if (sameAsOld) {
+      return res.status(400).json({
+        message: 'Le nouveau mot de passe doit être différent de l\'ancien',
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db('users').where({ id: userId }).update({
+      password: hashedPassword,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await clearPasswordResetToken(userId);
+
+    await logAuditFromReq(req, {
+      userId: user.id,
+      userEmail: getUserEmail(user),
+      action: 'password_reset_completed',
+      targetType: 'user',
+      targetId: user.id,
+      targetName: user.name || getUserEmail(user),
+      status: 'success',
+    });
+
+    return res.json({
+      success: true,
+      message: 'Mot de passe réinitialisé avec succès. Vous pouvez vous connecter.',
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur resetPassword:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
 export const getMe = getProfile;
 
 // ============================================================
@@ -774,3 +908,7 @@ export const logout = async (req: Request, res: Response) => {
 
   res.json({ success: true, message: 'Déconnexion réussie' });
 };
+
+
+
+    

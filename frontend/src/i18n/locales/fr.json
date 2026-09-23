@@ -36,7 +36,8 @@
       "submitting": "Connexion...",
       "noAccount": "Pas encore de compte ?",
       "registerLink": "S'inscrire",
-      "testHint": "Test : test@test.com / 123456"
+      "testHint": "Test : test@test.com / 123456",
+      "forgotPassword": "Mot de passe oublié ?"
     },
     "register": {
       "title": "Inscription",
@@ -519,6 +520,35 @@
   "backToLogin": "← Retour à la connexion",
   "notVerifiedTitle": "Email non vérifié",
   "notVerifiedMessage": "Votre compte existe mais l'email {{email}} n'a pas encore été vérifié. Consultez votre boîte mail ou demandez un nouveau lien."
+},
+"forgotPassword": {
+  "title": "Mot de passe oublié ?",
+  "intro": "Saisissez votre email. Si un compte existe, un lien de réinitialisation vous sera envoyé.",
+  "emailLabel": "Email",
+  "submit": "Envoyer le lien",
+  "submitting": "Envoi en cours…",
+  "successTitle": "Email envoyé",
+  "successMessage": "Si un compte existe avec cet email, un lien de réinitialisation vient d'être envoyé. Vérifiez votre boîte mail (et vos spams).",
+  "backToLogin": "← Retour à la connexion"
+},
+"resetPassword": {
+  "title": "Nouveau mot de passe",
+  "intro": "Choisissez un nouveau mot de passe pour votre compte.",
+  "newPassword": "Nouveau mot de passe",
+  "newPasswordPlaceholder": "Au moins 6 caractères",
+  "confirmPassword": "Confirmer le mot de passe",
+  "confirmPasswordPlaceholder": "Retapez le mot de passe",
+  "submit": "Réinitialiser le mot de passe",
+  "submitting": "Réinitialisation…",
+  "successTitle": "Mot de passe modifié !",
+  "successMessage": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+  "errorTitle": "Lien invalide ou expiré",
+  "errorMessage": "Ce lien de réinitialisation n'est plus valide. Demandez un nouveau lien.",
+  "missingToken": "Aucun token fourni dans le lien.",
+  "passwordMismatch": "Les mots de passe ne correspondent pas",
+  "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+  "backToLogin": "← Retour à la connexion",
+  "requestNew": "Demander un nouveau lien"
 },
   "language": {
     "fr": "Français",

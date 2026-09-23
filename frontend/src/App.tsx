@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
 import { Layout } from './components/layout/Layout';
@@ -30,6 +30,8 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Register = lazy(() => import('./pages/Register'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 // ============================================================
 // LOADER
@@ -230,6 +232,19 @@ const Login: React.FC<{
           <Button type="submit" disabled={loading} style={{ width: '100%' }}>
             {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </Button>
+<div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: theme.spacing.md }}>
+  <Link
+    to="/forgot-password"
+    style={{
+      color: colors.primary,
+      fontSize: '13px',
+      textDecoration: 'none',
+      fontWeight: 500,
+    }}
+  >
+    {t('auth.login.forgotPassword')}
+  </Link>
+</div>
         </form>
 
         <p style={{
@@ -288,9 +303,16 @@ const AppRoutes: React.FC<{
           path="/verify-email"
           element={<VerifyEmailPage onVerified={onLogin} />}
         />
+          {/* ✅ Reset password (token dans l'URL) */}
+         <Route
+           path="/reset-password"
+           element={<ResetPasswordPage />}
+         />
 
         {/* ✅ ROUTES PUBLIQUES */}
         <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
+         {/* ✅ Mot de passe oublié (public, hors utilisateurs connectés) */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/login"
             element={
