@@ -8,8 +8,10 @@ import {
   login,
   verifyEmail,
   resendVerificationEmail,
-  forgotPassword,        // ✅ AJOUT
-  resetPassword,         // ✅ AJOUT
+  forgotPassword,        
+  resetPassword,         
+  getEmailPreferences,
+  setEmailPreferences,
   getProfile,
   getMe,
   updateProfile,
@@ -79,5 +81,7 @@ router.put('/update', authenticate, updateProfile);
 router.put('/change-password', authenticate, changePassword);
 router.post('/avatar', authenticate, uploadAvatarMiddleware, uploadAvatar);
 router.post('/logout', authenticate, logout);
+router.get('/email-preferences', authenticate, getEmailPreferences);
+router.put('/email-preferences', authenticate, setEmailPreferences);
 
 export default router;

@@ -20,7 +20,10 @@ import {
   clearPasswordResetToken,
 } from '../services/passwordResetService';
 import { logger } from '../utils/logger';
-
+import {
+  getUserEmailPreferences,
+  updateEmailPreferences,
+} from '../services/emailPreferencesService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
@@ -142,10 +145,11 @@ export const register = async (req: Request, res: Response) => {
     try {
       const verificationToken = await createVerificationToken(id);
       emailSent = await sendVerificationEmail({
-        to: emailLower,
-        name: name.trim(),
-        token: verificationToken,
-      });
+  to: emailLower,
+  name: name.trim(),
+  token: verificationToken,
+  lang: 'fr', // Nouveau compte → pas encore de préférence, FR par défaut
+});
       if (!emailSent) {
         logger.warn(`⚠️ [register] Email de vérification non envoyé à ${emailLower}`);
       }
@@ -401,10 +405,11 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
 
     const token = await createVerificationToken(user.id);
     const sent = await sendVerificationEmail({
-      to: getUserEmail(user),
-      name: user.name || '',
-      token,
-    });
+  to: getUserEmail(user),
+  name: user.name || '',
+  token,
+  lang: user.language || 'fr',
+});
 
     await logAuditFromReq(req, {
       userId: user.id,
@@ -513,10 +518,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     const token = await createPasswordResetToken(user.id);
     const sent = await sendPasswordResetEmail({
-      to: getUserEmail(user),
-      name: user.name || '',
-      token,
-    });
+  to: getUserEmail(user),
+  name: user.name || '',
+  token,
+  lang: user.language || 'fr',
+});
 
     await logAuditFromReq(req, {
       userId: user.id,
@@ -883,6 +889,53 @@ export const verify2FALogin = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('❌ Erreur verify2FALogin:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+// ============================================================
+// ✅ NOUVEAU : PRÉFÉRENCES EMAIL
+// ============================================================
+
+export const getEmailPreferences = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const prefs = await getUserEmailPreferences(userId);
+    return res.json({ success: true, preferences: prefs });
+  } catch (error: any) {
+    console.error('❌ Erreur getEmailPreferences:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+export const setEmailPreferences = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const { projectMemberAdded, transcriptionComplete, summaryReady } = req.body;
+
+    await updateEmailPreferences(userId, {
+      projectMemberAdded,
+      transcriptionComplete,
+      summaryReady,
+    });
+
+    await logAuditFromReq(req, {
+      userId,
+      action: 'email_preferences_update',
+      targetType: 'user',
+      targetId: userId,
+      status: 'success',
+      metadata: { projectMemberAdded, transcriptionComplete, summaryReady },
+    });
+
+    const updated = await getUserEmailPreferences(userId);
+    return res.json({ success: true, preferences: updated });
+  } catch (error: any) {
+    console.error('❌ Erreur setEmailPreferences:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
 };
