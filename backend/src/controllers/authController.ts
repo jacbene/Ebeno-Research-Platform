@@ -24,6 +24,11 @@ import {
   getUserEmailPreferences,
   updateEmailPreferences,
 } from '../services/emailPreferencesService';
+import {
+  requestAccountDeletion,
+  cancelAccountDeletion,
+} from '../services/accountDeletionService';
+import { sendDeletionScheduledEmail } from '../services/emailService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
@@ -238,25 +243,25 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
 
-    // ✅ NOUVEAU : bloquer si email non vérifié
-    if (!user.isVerified) {
-      await logAuditFromReq(req, {
-        userId: user.id,
-        userEmail: getUserEmail(user),
-        action: 'login_blocked_unverified',
-        targetType: 'user',
-        targetId: user.id,
-        status: 'failure',
-        metadata: { reason: 'email_not_verified' },
-      });
+  // ✅ Bloquer la connexion si suppression programmée (RGPD art. 17)
+  if (user.deletionScheduledFor) {
+  await logAuditFromReq(req, {
+    userId: user.id,
+    userEmail: getUserEmail(user),
+    action: 'login_blocked_pending_deletion',
+    targetType: 'user',
+    targetId: user.id,
+    status: 'failure',
+    metadata: { scheduledFor: user.deletionScheduledFor },
+  });
 
-      return res.status(403).json({
-        success: false,
-        requiresVerification: true,
-        email: getUserEmail(user),
-        message: 'Votre email n\'est pas encore vérifié. Consultez votre boîte mail.',
-      });
-    }
+  return res.status(403).json({
+    success: false,
+    accountPendingDeletion: true,
+    scheduledFor: user.deletionScheduledFor,
+    message: `Votre compte est en cours de suppression (prévu le ${new Date(user.deletionScheduledFor).toLocaleDateString('fr-FR')}). Consultez votre email pour annuler la suppression.`,
+  });
+ }
 
     // ✅ 2FA : si activée, on renvoie un tempToken (pas le JWT complet)
     if (user.twoFactorEnabled) {
@@ -962,6 +967,120 @@ export const logout = async (req: Request, res: Response) => {
   res.json({ success: true, message: 'Déconnexion réussie' });
 };
 
+// ============================================================
+// ✅ SUPPRESSION DE COMPTE (RGPD art. 17)
+// ============================================================
 
+const CONFIRM_PHRASE = 'DELETE MY ACCOUNT';
 
-    
+export const deleteMyAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+    const { password, confirmPhrase, reason } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: 'Mot de passe requis' });
+    }
+    if (confirmPhrase !== CONFIRM_PHRASE) {
+      return res.status(400).json({
+        message: `Phrase de confirmation incorrecte. Tapez exactement : "${CONFIRM_PHRASE}"`,
+      });
+    }
+
+    // 1. Vérifier le mot de passe
+    const user = await db('users').where({ id: userId }).first();
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      await logAuditFromReq(req, {
+        userId,
+        userEmail: getUserEmail(user),
+        action: 'account_deletion_failed',
+        targetType: 'user',
+        targetId: userId,
+        status: 'failure',
+        metadata: { reason: 'invalid_password' },
+      });
+      return res.status(401).json({ message: 'Mot de passe incorrect' });
+    }
+
+    // 2. Programmer la suppression
+    const { token, scheduledFor } = await requestAccountDeletion(userId, reason);
+
+    // 3. Envoyer l'email de confirmation
+    const to = getUserEmail(user);
+    const emailSent = await sendDeletionScheduledEmail({
+      to,
+      name: user.name || '',
+      cancelToken: token,
+      scheduledDate: scheduledFor,
+      lang: user.language || 'fr',
+    });
+
+    // 4. Audit
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: to,
+      action: 'account_deletion_scheduled',
+      targetType: 'user',
+      targetId: userId,
+      targetName: user.name || to,
+      status: 'success',
+      metadata: { scheduledFor, emailSent, reason: reason || null },
+    });
+
+    return res.json({
+      success: true,
+      message: `Suppression programmée. Votre compte sera définitivement supprimé le ${new Date(scheduledFor).toLocaleDateString('fr-FR')}. Un email de confirmation vous a été envoyé.`,
+      scheduledFor,
+      emailSent,
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur deleteMyAccount:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+// ============================================================
+// ✅ ANNULER LA SUPPRESSION (public — via token email)
+// ============================================================
+
+export const cancelAccountDeletionHandler = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token requis' });
+    }
+
+    const userId = await cancelAccountDeletion(token);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lien invalide ou expiré',
+        code: 'INVALID_TOKEN',
+      });
+    }
+
+    const user = await db('users').where({ id: userId }).first();
+
+    await logAuditFromReq(req, {
+      userId,
+      userEmail: user ? getUserEmail(user) : null,
+      action: 'account_deletion_cancelled',
+      targetType: 'user',
+      targetId: userId,
+      status: 'success',
+    });
+
+    return res.json({
+      success: true,
+      message: 'Suppression annulée. Votre compte est de nouveau actif.',
+    });
+  } catch (error: any) {
+    console.error('❌ Erreur cancelAccountDeletion:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+};

@@ -371,6 +371,65 @@ export const sendSummaryReadyEmail = async ({
 };
 
 // ────────────────────────────────────────────────────────────
+// 7. Suppression de compte planifiée
+// ────────────────────────────────────────────────────────────
+
+export interface SendDeletionScheduledParams {
+  to: string;
+  name: string;
+  cancelToken: string;
+  scheduledDate: string; // ISO
+  lang?: string;
+}
+
+export const sendDeletionScheduledEmail = async ({
+  to,
+  name,
+  cancelToken,
+  scheduledDate,
+  lang,
+}: SendDeletionScheduledParams): Promise<boolean> => {
+  if (!BREVO_API_KEY) return false;
+
+  const L = normalizeLang(lang);
+  const S = EMAIL_STRINGS[L];
+  const cancelUrl = `${APP_URL}/cancel-deletion?token=${encodeURIComponent(cancelToken)}`;
+
+  // Formatter la date selon la langue
+  const dateObj = new Date(scheduledDate);
+  const formattedDate = dateObj.toLocaleDateString(
+    L === 'ar' ? 'ar-EG' : L === 'pt' ? 'pt-BR' : L === 'es' ? 'es-ES' : L === 'en' ? 'en-US' : 'fr-FR',
+    { day: 'numeric', month: 'long', year: 'numeric' }
+  );
+
+  const content = `
+    <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${S.deletionHeading}</h2>
+    <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">${interpolate(S.deletionGreeting, { name })}</p>
+    <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">${S.deletionIntro}</p>
+    <div style="background-color:#FFF3CD;border-left:3px solid #FFC107;padding:14px 16px;border-radius:6px;margin:20px 0;">
+      <p style="color:#856404;font-size:14px;line-height:1.6;margin:0;">${interpolate(S.deletionDateLine, { date: formattedDate })}</p>
+    </div>
+    <p style="color:#d63031;font-size:14px;line-height:1.6;margin:0 0 24px 0;">${S.deletionWarning}</p>
+    <div style="text-align:center;"><a href="${cancelUrl}" style="${buttonStyle}">${S.deletionCancelButton}</a></div>
+    <p style="color:#6c757d;font-size:12px;margin:20px 0 0 0;">${S.deletionConfirmText}</p>
+    <p style="color:#6c757d;font-size:11px;background-color:#f8f9fa;padding:10px;border-radius:6px;word-break:break-all;font-family:monospace;margin:8px 0 0 0;">${cancelUrl}</p>
+  `;
+
+  const result = await sendViaBrevo({
+    to: [{ email: to, name }],
+    subject: S.deletionSubject,
+    htmlContent: htmlWrapper(content, L),
+  });
+
+  if (result.success) {
+    logger.info(`✅ [email] Deletion-scheduled envoyé à ${to} [${L}]`);
+    return true;
+  }
+  logger.error(`❌ [email] Échec deletion-scheduled à ${to}: ${result.error}`);
+  return false;
+};
+
+// ────────────────────────────────────────────────────────────
 // 6. Vérification config (démarrage)
 // ────────────────────────────────────────────────────────────
 
