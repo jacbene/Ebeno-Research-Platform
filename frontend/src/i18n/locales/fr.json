@@ -24,7 +24,7 @@
     "noResults": "Aucun résultat"
   },
   "auth": {
-    "appName": "Ebeno Research",
+    "appName": "Ebeno Research Platform",
     "appTagline": "Plateforme de recherche collaborative",
     "login": {
       "title": "Connexion",
@@ -311,12 +311,13 @@
 "settings": {
   "title": "⚙️ Paramètres",
   "loading": "Chargement du profil...",
-  "tabs": {
-    "profile": "👤 Profil",
-    "security": "🔒 Sécurité",
-    "language": "🌍 Langue",
-    "appearance": "🎨 Apparence"
-  },
+ "tabs": {
+  "profile": "👤 Profil",
+  "security": "🔒 Sécurité",
+  "notifications": "🔔 Notifications",
+  "language": "🌍 Langue",
+  "appearance": "🎨 Apparence"
+},
   "profile": {
     "title": "👤 Mon profil",
     "changePhoto": "📷 Changer la photo",
@@ -348,6 +349,29 @@
     "recommendation2": "Ne partagez jamais votre mot de passe",
     "recommendation3": "Changez-le régulièrement"
   },
+  "notifications": {
+  "title": "🔔 Notifications par email",
+  "intro": "Choisissez les notifications que vous souhaitez recevoir. Les modifications sont enregistrées instantanément.",
+  "sectionOptional": "Notifications optionnelles",
+  "sectionOptionalHint": "Vous pouvez les désactiver à tout moment.",
+  "sectionTransactional": "Notifications obligatoires",
+  "sectionTransactionalHint": "Toujours envoyées pour la sécurité et le bon fonctionnement du compte.",
+  "alwaysOn": "Toujours activées",
+  "projectMemberAdded": "Ajouté à un projet",
+  "projectMemberAddedHint": "Quand quelqu'un vous ajoute à un projet.",
+  "transcriptionComplete": "Transcription terminée",
+  "transcriptionCompleteHint": "Quand une transcription audio est prête.",
+  "summaryReady": "Résumé IA prêt",
+  "summaryReadyHint": "Quand un résumé est généré pour un document.",
+  "transactionalEmails": {
+    "verification": "Vérification d'inscription",
+    "passwordReset": "Réinitialisation de mot de passe",
+    "emailChange": "Changement d'adresse email",
+    "security": "Alertes de sécurité du compte"
+  },
+  "success": "Préférences mises à jour",
+  "error": "Impossible d'enregistrer les préférences"
+},
   "language": {
     "title": "🌍 Langue de travail",
     "intro": "Choisissez la langue que vous utilisez pour travailler sur la plateforme. Cette langue sera utilisée pour :",

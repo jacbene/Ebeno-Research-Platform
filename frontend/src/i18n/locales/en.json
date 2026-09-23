@@ -24,7 +24,7 @@
     "noResults": "No results"
   },
   "auth": {
-    "appName": "Ebeno Research",
+    "appName": "Ebeno Research Platform",
     "appTagline": "Collaborative research platform",
     "login": {
       "title": "Sign in",
@@ -311,12 +311,13 @@
 "settings": {
   "title": "⚙️ Settings",
   "loading": "Loading profile...",
-  "tabs": {
-    "profile": "👤 Profile",
-    "security": "🔒 Security",
-    "language": "🌍 Language",
-    "appearance": "🎨 Appearance"
-  },
+ "tabs": {
+  "profile": "👤 Profile",
+  "security": "🔒 Security",
+  "notifications": "🔔 Notifications",
+  "language": "🌍 Language",
+  "appearance": "🎨 Appearance"
+},
   "profile": {
     "title": "👤 My profile",
     "changePhoto": "📷 Change photo",
@@ -348,6 +349,29 @@
     "recommendation2": "Never share your password",
     "recommendation3": "Change it regularly"
   },
+  "notifications": {
+  "title": "🔔 Email notifications",
+  "intro": "Choose the notifications you want to receive. Changes are saved instantly.",
+  "sectionOptional": "Optional notifications",
+  "sectionOptionalHint": "You can turn them off anytime.",
+  "sectionTransactional": "Required notifications",
+  "sectionTransactionalHint": "Always sent for account security and proper functioning.",
+  "alwaysOn": "Always enabled",
+  "projectMemberAdded": "Added to a project",
+  "projectMemberAddedHint": "When someone adds you to a project.",
+  "transcriptionComplete": "Transcription complete",
+  "transcriptionCompleteHint": "When an audio transcription is ready.",
+  "summaryReady": "AI summary ready",
+  "summaryReadyHint": "When a summary is generated for a document.",
+  "transactionalEmails": {
+    "verification": "Signup verification",
+    "passwordReset": "Password reset",
+    "emailChange": "Email address change",
+    "security": "Account security alerts"
+  },
+  "success": "Preferences updated",
+  "error": "Could not save preferences"
+},
   "language": {
     "title": "🌍 Working language",
     "intro": "Choose the language you use to work on the platform. This language will be used for:",

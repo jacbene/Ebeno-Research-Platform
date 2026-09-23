@@ -24,7 +24,7 @@
     "noResults": "لا توجد نتائج"
   },
   "auth": {
-    "appName": "إيبينو ريسيرش",
+    "appName": "Ebeno Research Platform",
     "appTagline": "منصة البحث التعاوني",
     "login": {
       "title": "تسجيل الدخول",
@@ -311,12 +311,13 @@
   "settings": {
     "title": "⚙️ الإعدادات",
     "loading": "جاري تحميل الملف الشخصي...",
-    "tabs": {
-      "profile": "👤 الملف الشخصي",
-      "security": "🔒 الأمان",
-      "language": "🌍 اللغة",
-      "appearance": "🎨 المظهر"
-    },
+  "tabs": {
+  "profile": "👤 الملف الشخصي",
+  "security": "🔒 الأمان",
+  "notifications": "🔔 الإشعارات",
+  "language": "🌍 اللغة",
+  "appearance": "🎨 المظهر"
+},
     "profile": {
       "title": "👤 ملفي الشخصي",
       "changePhoto": "📷 تغيير الصورة",
@@ -348,6 +349,29 @@
       "recommendation2": "لا تشارك كلمة المرور أبداً",
       "recommendation3": "غيّرها بانتظام"
     },
+  "notifications": {
+  "title": "🔔 إشعارات البريد الإلكتروني",
+  "intro": "اختر الإشعارات التي ترغب في تلقيها. يتم حفظ التغييرات فورًا.",
+  "sectionOptional": "إشعارات اختيارية",
+  "sectionOptionalHint": "يمكنك تعطيلها في أي وقت.",
+  "sectionTransactional": "إشعارات إلزامية",
+  "sectionTransactionalHint": "تُرسل دائمًا لأمان الحساب وحسن سيره.",
+  "alwaysOn": "مفعّلة دائمًا",
+  "projectMemberAdded": "أُضفت إلى مشروع",
+  "projectMemberAddedHint": "عندما يضيفك شخص ما إلى مشروع.",
+  "transcriptionComplete": "اكتمل النسخ",
+  "transcriptionCompleteHint": "عندما تصبح نسخة صوتية جاهزة.",
+  "summaryReady": "ملخص الذكاء الاصطناعي جاهز",
+  "summaryReadyHint": "عندما يتم إنشاء ملخص لمستند.",
+  "transactionalEmails": {
+    "verification": "التحقق من التسجيل",
+    "passwordReset": "إعادة تعيين كلمة المرور",
+    "emailChange": "تغيير البريد الإلكتروني",
+    "security": "تنبيهات أمان الحساب"
+  },
+  "success": "تم تحديث التفضيلات",
+  "error": "تعذر حفظ التفضيلات"
+},
     "language": {
       "title": "🌍 لغة العمل",
       "intro": "اختر اللغة التي تستخدمها للعمل على المنصة. ستُستخدم هذه اللغة لـ:",

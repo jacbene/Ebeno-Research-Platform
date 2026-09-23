@@ -24,7 +24,7 @@
     "noResults": "Sin resultados"
   },
   "auth": {
-    "appName": "Ebeno Research",
+    "appName": "Ebeno Research Platform",
     "appTagline": "Plataforma de investigación colaborativa",
     "login": {
       "title": "Iniciar sesión",
@@ -311,12 +311,13 @@
   "settings": {
     "title": "⚙️ Ajustes",
     "loading": "Cargando el perfil...",
-    "tabs": {
-      "profile": "👤 Perfil",
-      "security": "🔒 Seguridad",
-      "language": "🌍 Idioma",
-      "appearance": "🎨 Apariencia"
-    },
+  "tabs": {
+  "profile": "👤 Perfil",
+  "security": "🔒 Seguridad",
+  "notifications": "🔔 Notificaciones",
+  "language": "🌍 Idioma",
+  "appearance": "🎨 Apariencia"
+},
     "profile": {
       "title": "👤 Mi perfil",
       "changePhoto": "📷 Cambiar foto",
@@ -348,6 +349,29 @@
       "recommendation2": "Nunca comparta su contraseña",
       "recommendation3": "Cámbiela regularmente"
     },
+  "notifications": {
+  "title": "🔔 Notificaciones por email",
+  "intro": "Elija las notificaciones que desea recibir. Los cambios se guardan al instante.",
+  "sectionOptional": "Notificaciones opcionales",
+  "sectionOptionalHint": "Puede desactivarlas en cualquier momento.",
+  "sectionTransactional": "Notificaciones obligatorias",
+  "sectionTransactionalHint": "Siempre enviadas por seguridad y correcto funcionamiento de la cuenta.",
+  "alwaysOn": "Siempre activadas",
+  "projectMemberAdded": "Añadido a un proyecto",
+  "projectMemberAddedHint": "Cuando alguien le añade a un proyecto.",
+  "transcriptionComplete": "Transcripción completada",
+  "transcriptionCompleteHint": "Cuando una transcripción de audio está lista.",
+  "summaryReady": "Resumen IA listo",
+  "summaryReadyHint": "Cuando se genera un resumen para un documento.",
+  "transactionalEmails": {
+    "verification": "Verificación de registro",
+    "passwordReset": "Restablecimiento de contraseña",
+    "emailChange": "Cambio de correo electrónico",
+    "security": "Alertas de seguridad de la cuenta"
+  },
+  "success": "Preferencias actualizadas",
+  "error": "No se pudieron guardar las preferencias"
+},
     "language": {
       "title": "🌍 Idioma de trabajo",
       "intro": "Elija el idioma que utiliza para trabajar en la plataforma. Este idioma se utilizará para:",
