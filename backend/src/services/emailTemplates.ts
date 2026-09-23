@@ -64,6 +64,16 @@ export interface EmailStrings {
   summaryExcerptTitle: string;
   summaryButton: string;
   summaryNote: string;
+
+  // ✅ NOUVEAU : Suppression de compte
+  deletionSubject: string;
+  deletionHeading: string;
+  deletionGreeting: string;
+  deletionIntro: string;
+  deletionDateLine: string;
+  deletionWarning: string;
+  deletionCancelButton: string;
+  deletionConfirmText: string;
 }
 
 export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
@@ -107,6 +117,16 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     summaryExcerptTitle: 'Extrait :',
     summaryButton: '📝 Lire le résumé complet',
     summaryNote: 'Le résumé complet est disponible dans votre projet.',
+
+    // Suppression de compte
+    deletionSubject: '⚠️ Suppression de votre compte — Ebeno Research Platform',
+    deletionHeading: 'Suppression de compte planifiée',
+    deletionGreeting: 'Bonjour {name},',
+    deletionIntro: 'Votre demande de suppression de compte a bien été enregistrée sur Ebeno Research Platform.',
+    deletionDateLine: '🗓️ Votre compte sera définitivement supprimé le <strong>{date}</strong> (délai de grâce de 30 jours).',
+    deletionWarning: '⚠️ Après cette date, toutes vos données (projets, documents, transcriptions, memos) seront supprimées définitivement et ne pourront pas être récupérées.',
+    deletionCancelButton: '↩️ Annuler la suppression',
+    deletionConfirmText: 'Si vous n\'êtes pas à l\'origine de cette demande, connectez-vous immédiatement à votre compte pour le sécuriser.',
   },
 
   en: {
@@ -149,6 +169,16 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     summaryExcerptTitle: 'Excerpt:',
     summaryButton: '📝 Read full summary',
     summaryNote: 'The full summary is available in your project.',
+
+    // Account deletion
+    deletionSubject: '⚠️ Account deletion — Ebeno Research Platform',
+    deletionHeading: 'Account deletion scheduled',
+    deletionGreeting: 'Hello {name},',
+    deletionIntro: 'Your account deletion request on Ebeno Research Platform has been recorded.',
+    deletionDateLine: '🗓️ Your account will be permanently deleted on <strong>{date}</strong> (30-day grace period).',
+    deletionWarning: '⚠️ After this date, all your data (projects, documents, transcriptions, memos) will be permanently deleted and cannot be recovered.',
+    deletionCancelButton: '↩️ Cancel deletion',
+    deletionConfirmText: 'If you did not request this, log in to your account immediately to secure it.',
   },
 
   es: {
@@ -191,6 +221,16 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     summaryExcerptTitle: 'Extracto:',
     summaryButton: '📝 Leer el resumen completo',
     summaryNote: 'El resumen completo está disponible en su proyecto.',
+
+    // Eliminación de cuenta
+    deletionSubject: '⚠️ Eliminación de cuenta — Ebeno Research Platform',
+    deletionHeading: 'Eliminación de cuenta programada',
+    deletionGreeting: 'Hola {name},',
+    deletionIntro: 'Su solicitud de eliminación de cuenta en Ebeno Research Platform ha sido registrada.',
+    deletionDateLine: '🗓️ Su cuenta será eliminada permanentemente el <strong>{date}</strong> (período de gracia de 30 días).',
+    deletionWarning: '⚠️ Después de esta fecha, todos sus datos (proyectos, documentos, transcripciones, memos) serán eliminados permanentemente y no podrán recuperarse.',
+    deletionCancelButton: '↩️ Cancelar eliminación',
+    deletionConfirmText: 'Si no solicitó esto, inicie sesión inmediatamente en su cuenta para protegerla.',
   },
 
   pt: {
@@ -233,6 +273,16 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     summaryExcerptTitle: 'Excerto:',
     summaryButton: '📝 Ler o resumo completo',
     summaryNote: 'O resumo completo está disponível no seu projeto.',
+
+    // Eliminação de conta
+    deletionSubject: '⚠️ Eliminação de conta — Ebeno Research Platform',
+    deletionHeading: 'Eliminação de conta agendada',
+    deletionGreeting: 'Olá {name},',
+    deletionIntro: 'O seu pedido de eliminação de conta na Ebeno Research Platform foi registado.',
+    deletionDateLine: '🗓️ A sua conta será eliminada permanentemente em <strong>{date}</strong> (período de graça de 30 dias).',
+    deletionWarning: '⚠️ Após esta data, todos os seus dados (projetos, documentos, transcrições, memos) serão eliminados permanentemente e não poderão ser recuperados.',
+    deletionCancelButton: '↩️ Cancelar eliminação',
+    deletionConfirmText: 'Se não solicitou isto, inicie sessão imediatamente na sua conta para a proteger.',
   },
 
   ar: {
@@ -275,5 +325,15 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     summaryExcerptTitle: ':مقتطف',
     summaryButton: '📝 قراءة الملخص الكامل',
     summaryNote: 'الملخص الكامل متاح في مشروعك.',
+
+    // حذف الحساب
+    deletionSubject: '⚠️ حذف الحساب — Ebeno Research Platform',
+    deletionHeading: 'تم جدولة حذف الحساب',
+    deletionGreeting: '،{name} مرحبًا',
+    deletionIntro: 'تم تسجيل طلب حذف حسابك على Ebeno Research Platform.',
+    deletionDateLine: '🗓️ سيتم حذف حسابك نهائيًا في <strong>{date}</strong> (فترة سماح 30 يومًا).',
+    deletionWarning: '⚠️ بعد هذا التاريخ، سيتم حذف جميع بياناتك (المشاريع، المستندات، النسخ، المذكرات) نهائيًا ولا يمكن استعادتها.',
+    deletionCancelButton: '↩️ إلغاء الحذف',
+    deletionConfirmText: 'إذا لم تطلب ذلك، سجّل الدخول إلى حسابك فورًا لتأمينه.',
   },
 };
