@@ -412,6 +412,24 @@
       "passwordTooShort": "A palavra-passe deve ter pelo menos 6 caracteres",
       "passwordChangeFailed": "Não foi possível alterar a palavra-passe",
       "languageChangeFailed": "Não foi possível alterar o idioma"
+    },
+    "dangerZone": {
+      "title": "⚠️ Zona perigosa",
+      "intro": "Eliminar a sua conta é irreversível. Todos os seus dados (projetos, documentos, transcrições, memos) serão eliminados permanentemente.",
+      "deleteButton": "🗑️ Eliminar a minha conta",
+      "modalTitle": "Eliminar a sua conta",
+      "modalIntro": "Esta ação é definitiva. Para confirmar, introduza a sua palavra-passe e escreva a frase de confirmação abaixo.",
+      "passwordLabel": "A sua palavra-passe",
+      "phraseLabel": "Escreva: \"{{phrase}}\"",
+      "understandCheckbox": "Compreendo que todos os meus dados serão eliminados permanentemente após um período de graça de 30 dias.",
+      "spamWarning": "Ser-lhe-á enviado um email de confirmação. Se não aparecer na sua caixa de entrada, verifique a pasta de Spam / Lixo eletrónico — encontrará lá o link para cancelar a eliminação.",
+      "phraseMismatch": "A frase de confirmação não corresponde",
+      "mustUnderstand": "Deve marcar a caixa para continuar",
+      "confirmButton": "Eliminar permanentemente",
+      "deleting": "A eliminar…",
+      "error": "Erro durante a eliminação",
+      "successTitle": "Eliminação agendada",
+      "successMessage": "Foi-lhe enviado um email. Verifique a pasta de spam se necessário. A terminar sessão em 3 segundos…"
     }
   },
   "textUpload": {
@@ -543,7 +561,8 @@
     "resendSuccess": "Se existir uma conta com este email, um novo link foi enviado.",
     "backToLogin": "← Voltar ao login",
     "notVerifiedTitle": "Email não verificado",
-    "notVerifiedMessage": "Sua conta existe mas o email {{email}} ainda não foi verificado. Verifique sua caixa de entrada ou solicite um novo link."
+    "notVerifiedMessage": "Sua conta existe mas o email {{email}} ainda não foi verificado. Verifique sua caixa de entrada ou solicite um novo link.",
+    "spamHint": "Lembre-se de verificar a pasta de Spam / Lixo eletrónico."
   },
   "forgotPassword": {
     "title": "Esqueceu sua senha?",
@@ -573,6 +592,16 @@
     "passwordTooShort": "A senha deve ter pelo menos 6 caracteres",
     "backToLogin": "← Voltar ao login",
     "requestNew": "Solicitar um novo link"
+  },
+  "cancelDeletion": {
+    "verifying": "A cancelar…",
+    "verifyingHint": "Aguarde alguns segundos.",
+    "successTitle": "Eliminação cancelada",
+    "successMessage": "A sua conta está ativa novamente. Pode iniciar sessão.",
+    "errorTitle": "Link inválido ou expirado",
+    "errorMessage": "Este link de cancelamento já não é válido. Pode já ter sido utilizado ou ter expirado.",
+    "missingToken": "Nenhum token fornecido no link.",
+    "backToLogin": "← Voltar ao login"
   },
   "gdpr": {
     "tab": "📦 Os meus dados",

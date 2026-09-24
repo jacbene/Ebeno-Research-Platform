@@ -412,6 +412,24 @@
       "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
       "passwordChangeFailed": "No se pudo cambiar la contraseña",
       "languageChangeFailed": "No se pudo cambiar el idioma"
+    },
+    "dangerZone": {
+      "title": "⚠️ Zona peligrosa",
+      "intro": "Eliminar su cuenta es irreversible. Todos sus datos (proyectos, documentos, transcripciones, memos) serán eliminados permanentemente.",
+      "deleteButton": "🗑️ Eliminar mi cuenta",
+      "modalTitle": "Eliminar su cuenta",
+      "modalIntro": "Esta acción es definitiva. Para confirmar, introduzca su contraseña y escriba la frase de confirmación a continuación.",
+      "passwordLabel": "Su contraseña",
+      "phraseLabel": "Escriba: \"{{phrase}}\"",
+      "understandCheckbox": "Entiendo que todos mis datos se eliminarán permanentemente después de un período de gracia de 30 días.",
+      "spamWarning": "Se le enviará un correo de confirmación. Si no aparece en su bandeja de entrada, revise su carpeta Spam / Correo no deseado — allí encontrará el enlace para cancelar la eliminación.",
+      "phraseMismatch": "La frase de confirmación no coincide",
+      "mustUnderstand": "Debe marcar la casilla para continuar",
+      "confirmButton": "Eliminar permanentemente",
+      "deleting": "Eliminando…",
+      "error": "Error durante la eliminación",
+      "successTitle": "Eliminación programada",
+      "successMessage": "Se le ha enviado un correo. Revise su carpeta de spam si es necesario. Cerrando sesión en 3 segundos…"
     }
   },
   "textUpload": {
@@ -543,7 +561,8 @@
     "resendSuccess": "Si existe una cuenta con este email, se ha enviado un nuevo enlace.",
     "backToLogin": "← Volver al inicio",
     "notVerifiedTitle": "Email no verificado",
-    "notVerifiedMessage": "Su cuenta existe pero el email {{email}} aún no ha sido verificado. Revise su bandeja o solicite un nuevo enlace."
+    "notVerifiedMessage": "Su cuenta existe pero el email {{email}} aún no ha sido verificado. Revise su bandeja o solicite un nuevo enlace.",
+    "spamHint": "Recuerde revisar su carpeta de Spam / Correo no deseado."
   },
   "forgotPassword": {
     "title": "¿Olvidó su contraseña?",
@@ -573,6 +592,16 @@
     "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
     "backToLogin": "← Volver al inicio",
     "requestNew": "Solicitar un nuevo enlace"
+  },
+  "cancelDeletion": {
+    "verifying": "Cancelando…",
+    "verifyingHint": "Por favor espere unos segundos.",
+    "successTitle": "Eliminación cancelada",
+    "successMessage": "Su cuenta vuelve a estar activa. Puede iniciar sesión.",
+    "errorTitle": "Enlace inválido o expirado",
+    "errorMessage": "Este enlace de cancelación ya no es válido. Puede haber sido usado o haber expirado.",
+    "missingToken": "No se proporcionó token en el enlace.",
+    "backToLogin": "← Volver al inicio"
   },
   "gdpr": {
     "tab": "📦 Mis datos",

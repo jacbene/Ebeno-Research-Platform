@@ -37,7 +37,7 @@
       "noAccount": "Don't have an account?",
       "registerLink": "Sign up",
       "testHint": "Test: test@test.com / 123456",
-      "forgotPassword": "Forgot Password ?"
+      "forgotPassword": "Forgot your password?"
     },
     "register": {
       "title": "Sign up",
@@ -58,522 +58,580 @@
       "passwordTooShort": "Password must be at least 6 characters"
     }
   },
-"nav": {
-  "dashboard": "Dashboard",
-  "transcription": "Transcription",
-  "textUpload": "Upload text",
-  "transcriptions": "My transcriptions",
-  "chat": "AI Chat",
-  "collaboration": "Collaboration",
-  "settings": "Settings",
-  "logout": "Logout",
-  "user": "User",
-  "menu": "Menu"
-},
-"theme": {
-  "light": "☀️ Light",
-  "dark": "🌙 Dark",
-  "system": "💻 System",
-  "tooltip": "Theme: {{label}}"
-},
-"dashboard": {
-  "greeting": "Hello {{name}}!",
-  "welcome": "Welcome to Ebeno Research platform.",
-  "summary": "You have {{projects}} project(s), {{documents}} document(s) and {{entities}} entit(ies).",
-  "viewProject": "Viewing project: {{title}}",
-  "newProject": "New project",
-  "cancel": "Cancel",
-  "filterByProject": "Filter by project:",
-  "allProjects": "All my projects",
-  "reset": "Reset",
-  "loadingStats": "Loading statistics...",
-  "createProject": {
-    "title": "Create a new project",
-    "titleLabel": "Title *",
-    "titlePlaceholder": "My research project",
-    "descriptionLabel": "Description",
-    "descriptionPlaceholder": "Describe your project...",
-    "submit": "Create project",
-    "cancel": "Cancel",
-    "success": "Project created ✅",
-    "error": "Error during creation",
-    "errorServer": "Server connection error"
-  },
-  "stats": {
-    "projects": "Projects",
-    "files": "My files",
-    "filesOfProject": "Project files",
-    "audioTranscriptions": "Audio transcriptions",
-    "textDocuments": "Imported texts",
-    "memos": "My memos",
-    "memosOfProject": "Project memos",
-    "entities": "Entities",
-    "collaborativeDocs": "Collaborative docs"
-  },
-  "topEntities": {
-    "title": "🏷️ Top extracted entities",
-    "all": "All",
-    "summary": "💡 {{types}} type(s) • {{unique}} unique entit(ies) • {{total}} total occurrence(s)",
-    "occurrences": "{{count}} occurrence",
-    "occurrences_plural": "{{count}} occurrences"
-  },
- "recentFiles": "📎 Recent files of my projects",
-"recentFilesOfProject": "📎 Recent project files",
-  "uploadedBy": "Uploaded by {{name}}",
-  "transcriptionStatus": "🎙️ Audio transcription status",
-  "status": {
-    "pending": "Pending",
-    "processing": "Processing",
-    "completed": "Completed",
-    "failed": "Failed"
-  },
-  "recentActivity": "📋 Recent activity",
-  "recentProjects": "📁 Recent projects",
-  "allMyProjects": "📚 All my projects",
-  "noProjects": "No projects found",
-  "noProjectsHint": "Click \"New project\" to start",
-  "noDescription": "No description",
-  "owner": "👑",
-  "ownerBadge": "👑 Owner",
-  "open": "Open →",
-  "modifiedOn": "Modified on {{date}}",
-  "createdOn": "Created on {{date}}",
-  "fileUploadedBy": "Uploaded by",
-  "relativeTime": {
-    "justNow": "just now",
-    "minutesAgo": "{{count}} min ago",
-    "hoursAgo": "{{count}}h ago",
-    "daysAgo": "{{count}}d ago"
-  },
-  "actions": {
-    "file-uploaded": "uploaded a file",
-    "file-trashed": "moved a file to trash",
-    "file-restored": "restored a file",
-    "file-deleted-permanently": "deleted a file permanently",
-    "transcription-uploaded": "added a transcription",
-    "transcription-trashed": "moved a transcription to trash",
-    "transcription-restored": "restored a transcription",
-    "transcription-deleted-permanently": "deleted a transcription",
-    "trash-emptied": "emptied the trash",
-    "memo-created": "created a memo",
-    "text-uploaded": "imported a text",
-    "document-created": "created a document",
-    "document-renamed": "renamed a document",
-    "document-deleted": "deleted a document",
-    "member-added": "added a member",
-    "member-removed": "removed a member"
-  },
-  "entityTypes": {
-    "Person": "People",
-    "Place": "Places",
-    "Organization": "Organizations",
-    "Date": "Dates",
-    "Email": "Emails",
-    "Phone": "Phones",
-    "Url": "URLs"
-  }
-},
-"projectDetail": {
-  "loading": "Loading...",
-  "notFound": "Project not found",
-  "owner": "👑 Owner",
-  "editProject": "Edit project",
-  "noDescription": "No description",
-  "createdOn": "Created on {{date}}",
-  "actions": {
-    "newTranscription": "🎙️ New transcription",
-    "importText": "📄 Import text",
-    "exportProject": "📥 Export project",
-    "exporting": "⏳ Exporting..."
-  },
-  "searchPlaceholder": "Search in this project...",
-  "searchResults": "🔍 Search results",
-  "sourceTypes": {
+  "nav": {
+    "dashboard": "Dashboard",
     "transcription": "Transcription",
-    "memo": "Memo",
-    "file": "File"
+    "textUpload": "Upload text",
+    "transcriptions": "My transcriptions",
+    "chat": "AI Chat",
+    "collaboration": "Collaboration",
+    "settings": "Settings",
+    "logout": "Logout",
+    "user": "User",
+    "menu": "Menu"
   },
-  "tabs": {
-    "audio": "🎙️ Audio ({{count}})",
-    "memos": "📝 Memos ({{count}})",
-    "analysis": "📊 Analysis",
-    "members": "👥 Members",
-    "documents": "📁 Documents ({{count}})",
-    "activity": "📋 Activity ({{count}})",
-    "trash": "🗑️ Trash ({{count}})",
-    "presence": "👥 Presence ({{count}})"
+  "theme": {
+    "light": "☀️ Light",
+    "dark": "🌙 Dark",
+    "system": "💻 System",
+    "tooltip": "Theme: {{label}}"
   },
-  "audio": {
-    "title": "Audio transcriptions",
-    "empty": "No audio transcription.",
-    "retry": "🔄 Retry",
-    "retryConfirm": "Retry the transcription?",
-    "retrySuccess": "🔄 Transcription restarted",
-    "retryError": "Could not retry"
-  },
-  "memos": {
-    "title": "Research memos",
-    "placeholderTitle": "Memo title",
-    "placeholderContent": "Memo content...",
-    "addButton": "+ Add a memo",
-    "adding": "Creating...",
-    "empty": "No memo.",
-    "deleteConfirm": "Delete this memo?"
-  },
-  "analysis": {
-    "title": "📊 Qualitative analysis of the project",
-    "loading": "Loading analysis...",
-    "totalWords": "Total words",
-    "uniqueWords": "Unique words",
-    "keywords": "🏷️ Most frequent keywords",
-    "wordCloudLoading": "Loading word cloud...",
-    "noData": "No analysis data available for this project.",
-    "generate": "🔄 Generate analysis"
-  },
-  "members": {
-    "title": "Members management"
-  },
-  "activity": {
-    "title": "📋 Recent project activity"
-  },
-  "presence": {
-    "title": "👥 Real-time presence"
-  },
-  "documents": {
-    "title": "📁 Project documents",
-    "listTitle": "📚 Document list ({{count}})",
-    "sortDate": "📅 Sort by date",
-    "sortName": "🔤 Sort by name",
-    "sortSize": "📊 Sort by size",
-    "sortType": "📂 Sort by type",
-    "empty": "No document in this project.",
-    "emptyHint": "Upload a file to start.",
-    "addedOn": "📅 Added on {{date}}",
-    "deleteTooltip": "Move to trash",
-    "typeTranscription": "TRANSCRIPTION",
-    "typeText": "📄 Imported text",
-    "typeTranscriptionShort": "📝 Transcription",
-    "typeFile": "📎 Uploaded file"
-  },
-  "trash": {
-    "title": "🗑️ Trash",
-    "empty": "The trash is empty.",
-    "emptyHint": "Deleted items will appear here.",
-    "warning": "⚠️ {{count}} item(s) in trash. Items can be restored or permanently deleted.",
-    "emptyButton": "💥 Empty trash",
-    "files": "📎 Files ({{count}})",
-    "transcriptions": "🎙️ Transcriptions ({{count}})",
-    "restore": "♻️ Restore",
-    "restoreConfirm": "Restore \"{{name}}\"?",
-    "permanentDeleteConfirm": "⚠️ Permanently delete \"{{name}}\"?\\n\\nThis action is IRREVERSIBLE.",
-    "deletedOn": "🗑️ Deleted on {{date}}",
-    "emptyAlready": "The trash is already empty.",
-    "emptyConfirm": "⚠️ Completely empty the trash?\\n\\n{{count}} item(s) will be PERMANENTLY deleted (Cloudinary included).\\n\\nThis action is IRREVERSIBLE.",
-    "emptySuccess": "✅ Trash emptied successfully.",
-    "emptyError": "Error emptying the trash",
-    "restoreError": "Error restoring",
-    "deleteError": "Error during deletion",
-    "deleteConfirm": "Move \"{{name}}\" to trash?"
-  },
-  "editModal": {
-    "title": "✏️ Edit project",
-    "titleLabel": "Title *",
-    "descriptionLabel": "Description",
-    "descriptionPlaceholder": "Describe your project...",
+  "dashboard": {
+    "greeting": "Hello {{name}}!",
+    "welcome": "Welcome to the Ebeno Research Platform.",
+    "summary": "You have {{projects}} project(s), {{documents}} document(s) and {{entities}} entit(ies).",
+    "viewProject": "Viewing project: {{title}}",
+    "newProject": "New project",
     "cancel": "Cancel",
-    "save": "Save",
-    "saving": "Saving...",
-    "titleRequired": "Title is required (min 3 characters)",
-    "success": "Project updated ✅",
-    "error": "Could not update"
+    "filterByProject": "Filter by project:",
+    "allProjects": "All my projects",
+    "reset": "Reset",
+    "loadingStats": "Loading statistics...",
+    "createProject": {
+      "title": "Create a new project",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "My research project",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your project...",
+      "submit": "Create project",
+      "cancel": "Cancel",
+      "success": "Project created ✅",
+      "error": "Error during creation",
+      "errorServer": "Server connection error"
+    },
+    "stats": {
+      "projects": "Projects",
+      "files": "My files",
+      "filesOfProject": "Project files",
+      "audioTranscriptions": "Audio transcriptions",
+      "textDocuments": "Imported texts",
+      "memos": "My memos",
+      "memosOfProject": "Project memos",
+      "entities": "Entities",
+      "collaborativeDocs": "Collaborative docs"
+    },
+    "topEntities": {
+      "title": "🏷️ Top extracted entities",
+      "all": "All",
+      "summary": "💡 {{types}} type(s) • {{unique}} unique entit(ies) • {{total}} total occurrence(s)",
+      "occurrences": "{{count}} occurrence",
+      "occurrences_plural": "{{count}} occurrences"
+    },
+    "recentFiles": "📎 Recent files of my projects",
+    "recentFilesOfProject": "📎 Recent project files",
+    "uploadedBy": "Uploaded by {{name}}",
+    "transcriptionStatus": "🎙️ Audio transcription status",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "recentActivity": "📋 Recent activity",
+    "recentProjects": "📁 Recent projects",
+    "allMyProjects": "📚 All my projects",
+    "noProjects": "No projects found",
+    "noProjectsHint": "Click \"New project\" to start",
+    "noDescription": "No description",
+    "owner": "👑",
+    "ownerBadge": "👑 Owner",
+    "open": "Open →",
+    "modifiedOn": "Modified on {{date}}",
+    "createdOn": "Created on {{date}}",
+    "fileUploadedBy": "Uploaded by",
+    "relativeTime": {
+      "justNow": "just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    },
+    "actions": {
+      "file-uploaded": "uploaded a file",
+      "file-trashed": "moved a file to trash",
+      "file-restored": "restored a file",
+      "file-deleted-permanently": "deleted a file permanently",
+      "transcription-uploaded": "added a transcription",
+      "transcription-trashed": "moved a transcription to trash",
+      "transcription-restored": "restored a transcription",
+      "transcription-deleted-permanently": "deleted a transcription",
+      "trash-emptied": "emptied the trash",
+      "memo-created": "created a memo",
+      "text-uploaded": "imported a text",
+      "document-created": "created a document",
+      "document-renamed": "renamed a document",
+      "document-deleted": "deleted a document",
+      "member-added": "added a member",
+      "member-removed": "removed a member"
+    },
+    "entityTypes": {
+      "Person": "People",
+      "Place": "Places",
+      "Organization": "Organizations",
+      "Date": "Dates",
+      "Email": "Emails",
+      "Phone": "Phones",
+      "Url": "URLs"
+    }
   },
-  "status": {
-    "COMPLETED": "✅ Completed",
-    "PENDING": "⏳ Pending",
-    "PROCESSING": "⚙️ Processing",
-    "FAILED": "❌ Failed",
-    "unknown": "Unknown"
+  "projectDetail": {
+    "loading": "Loading...",
+    "notFound": "Project not found",
+    "owner": "👑 Owner",
+    "editProject": "Edit project",
+    "noDescription": "No description",
+    "createdOn": "Created on {{date}}",
+    "actions": {
+      "newTranscription": "🎙️ New transcription",
+      "importText": "📄 Import text",
+      "exportProject": "📥 Export project",
+      "exporting": "⏳ Exporting..."
+    },
+    "searchPlaceholder": "Search in this project...",
+    "searchResults": "🔍 Search results",
+    "sourceTypes": {
+      "transcription": "Transcription",
+      "memo": "Memo",
+      "file": "File"
+    },
+    "tabs": {
+      "audio": "🎙️ Audio ({{count}})",
+      "memos": "📝 Memos ({{count}})",
+      "analysis": "📊 Analysis",
+      "members": "👥 Members",
+      "documents": "📁 Documents ({{count}})",
+      "activity": "📋 Activity ({{count}})",
+      "trash": "🗑️ Trash ({{count}})",
+      "presence": "👥 Presence ({{count}})"
+    },
+    "audio": {
+      "title": "Audio transcriptions",
+      "empty": "No audio transcription.",
+      "retry": "🔄 Retry",
+      "retryConfirm": "Retry the transcription?",
+      "retrySuccess": "🔄 Transcription restarted",
+      "retryError": "Could not retry"
+    },
+    "memos": {
+      "title": "Research memos",
+      "placeholderTitle": "Memo title",
+      "placeholderContent": "Memo content...",
+      "addButton": "+ Add a memo",
+      "adding": "Creating...",
+      "empty": "No memo.",
+      "deleteConfirm": "Delete this memo?"
+    },
+    "analysis": {
+      "title": "📊 Qualitative analysis of the project",
+      "loading": "Loading analysis...",
+      "totalWords": "Total words",
+      "uniqueWords": "Unique words",
+      "keywords": "🏷️ Most frequent keywords",
+      "wordCloudLoading": "Loading word cloud...",
+      "noData": "No analysis data available for this project.",
+      "generate": "🔄 Generate analysis"
+    },
+    "members": {
+      "title": "Members management"
+    },
+    "activity": {
+      "title": "📋 Recent project activity"
+    },
+    "presence": {
+      "title": "👥 Real-time presence"
+    },
+    "documents": {
+      "title": "📁 Project documents",
+      "listTitle": "📚 Document list ({{count}})",
+      "sortDate": "📅 Sort by date",
+      "sortName": "🔤 Sort by name",
+      "sortSize": "📊 Sort by size",
+      "sortType": "📂 Sort by type",
+      "empty": "No document in this project.",
+      "emptyHint": "Upload a file to start.",
+      "addedOn": "📅 Added on {{date}}",
+      "deleteTooltip": "Move to trash",
+      "typeTranscription": "TRANSCRIPTION",
+      "typeText": "📄 Imported text",
+      "typeTranscriptionShort": "📝 Transcription",
+      "typeFile": "📎 Uploaded file"
+    },
+    "trash": {
+      "title": "🗑️ Trash",
+      "empty": "The trash is empty.",
+      "emptyHint": "Deleted items will appear here.",
+      "warning": "⚠️ {{count}} item(s) in trash. Items can be restored or permanently deleted.",
+      "emptyButton": "💥 Empty trash",
+      "files": "📎 Files ({{count}})",
+      "transcriptions": "🎙️ Transcriptions ({{count}})",
+      "restore": "♻️ Restore",
+      "restoreConfirm": "Restore \"{{name}}\"?",
+      "permanentDeleteConfirm": "⚠️ Permanently delete \"{{name}}\"?\\n\\nThis action is IRREVERSIBLE.",
+      "deletedOn": "🗑️ Deleted on {{date}}",
+      "emptyAlready": "The trash is already empty.",
+      "emptyConfirm": "⚠️ Completely empty the trash?\\n\\n{{count}} item(s) will be PERMANENTLY deleted (Cloudinary included).\\n\\nThis action is IRREVERSIBLE.",
+      "emptySuccess": "✅ Trash emptied successfully.",
+      "emptyError": "Error emptying the trash",
+      "restoreError": "Error restoring",
+      "deleteError": "Error during deletion",
+      "deleteConfirm": "Move \"{{name}}\" to trash?"
+    },
+    "editModal": {
+      "title": "✏️ Edit project",
+      "titleLabel": "Title *",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your project...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "titleRequired": "Title is required (min 3 characters)",
+      "success": "Project updated ✅",
+      "error": "Could not update"
+    },
+    "status": {
+      "COMPLETED": "✅ Completed",
+      "PENDING": "⏳ Pending",
+      "PROCESSING": "⚙️ Processing",
+      "FAILED": "❌ Failed",
+      "unknown": "Unknown"
+    },
+    "events": {
+      "file-uploaded": "📤 {{name}} was uploaded",
+      "file-trashed": "🗑️ {{name}} was moved to trash",
+      "file-restored": "♻️ {{name}} was restored",
+      "file-deleted-permanently": "💥 {{name}} was permanently deleted",
+      "transcription-uploaded": "🎙️ New transcription: {{title}}",
+      "transcription-trashed": "🗑️ Transcription moved to trash",
+      "transcription-restored": "♻️ Transcription restored",
+      "transcription-deleted-permanently": "💥 Transcription deleted",
+      "trash-emptied": "🧹 Trash emptied ({{count}} items)",
+      "document-uploaded": "📄 {{name}} was imported",
+      "memo-created": "📝 New memo: {{title}}"
+    }
   },
-  "events": {
-    "file-uploaded": "📤 {{name}} was uploaded",
-    "file-trashed": "🗑️ {{name}} was moved to trash",
-    "file-restored": "♻️ {{name}} was restored",
-    "file-deleted-permanently": "💥 {{name}} was permanently deleted",
-    "transcription-uploaded": "🎙️ New transcription: {{title}}",
-    "transcription-trashed": "🗑️ Transcription moved to trash",
-    "transcription-restored": "♻️ Transcription restored",
-    "transcription-deleted-permanently": "💥 Transcription deleted",
-    "trash-emptied": "🧹 Trash emptied ({{count}} items)",
-    "document-uploaded": "📄 {{name}} was imported",
-    "memo-created": "📝 New memo: {{title}}"
-  }
-},
-"settings": {
-  "title": "⚙️ Settings",
-  "loading": "Loading profile...",
- "tabs": {
-  "profile": "👤 Profile",
-  "security": "🔒 Security",
-  "notifications": "🔔 Notifications",
-  "language": "🌍 Language",
-  "appearance": "🎨 Appearance"
-},
-  "profile": {
-    "title": "👤 My profile",
-    "changePhoto": "📷 Change photo",
+  "settings": {
+    "title": "⚙️ Settings",
+    "loading": "Loading profile...",
+    "tabs": {
+      "profile": "👤 Profile",
+      "security": "🔒 Security",
+      "notifications": "🔔 Notifications",
+      "language": "🌍 Language",
+      "appearance": "🎨 Appearance"
+    },
+    "profile": {
+      "title": "👤 My profile",
+      "changePhoto": "📷 Change photo",
+      "uploading": "⏳ Uploading...",
+      "nameLabel": "Full name",
+      "emailLabel": "Email",
+      "institutionLabel": "Institution",
+      "institutionPlaceholder": "Ex: University of Paris",
+      "bioLabel": "Bio",
+      "bioPlaceholder": "A few words about you...",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "success": "Profile updated ✅",
+      "avatarSuccess": "Avatar updated ✅"
+    },
+    "security": {
+      "title": "🔒 Security",
+      "currentPassword": "Current password",
+      "currentPasswordPlaceholder": "Your current password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmPassword": "Confirm new password",
+      "confirmPasswordPlaceholder": "Retype new password",
+      "submit": "Change password",
+      "submitting": "Changing...",
+      "success": "Password changed ✅",
+      "recommendations": "⚠️ Security recommendations",
+      "recommendation1": "Use a unique and complex password (8+ characters)",
+      "recommendation2": "Never share your password",
+      "recommendation3": "Change it regularly"
+    },
+    "notifications": {
+      "title": "🔔 Email notifications",
+      "intro": "Choose the notifications you want to receive. Changes are saved instantly.",
+      "sectionOptional": "Optional notifications",
+      "sectionOptionalHint": "You can turn them off anytime.",
+      "sectionTransactional": "Required notifications",
+      "sectionTransactionalHint": "Always sent for account security and proper functioning.",
+      "alwaysOn": "Always enabled",
+      "projectMemberAdded": "Added to a project",
+      "projectMemberAddedHint": "When someone adds you to a project.",
+      "transcriptionComplete": "Transcription complete",
+      "transcriptionCompleteHint": "When an audio transcription is ready.",
+      "summaryReady": "AI summary ready",
+      "summaryReadyHint": "When a summary is generated for a document.",
+      "transactionalEmails": {
+        "verification": "Signup verification",
+        "passwordReset": "Password reset",
+        "emailChange": "Email address change",
+        "security": "Account security alerts"
+      },
+      "success": "Preferences updated",
+      "error": "Could not save preferences"
+    },
+    "language": {
+      "title": "🌍 Working language",
+      "intro": "Choose the language you use to work on the platform. This language will be used for:",
+      "feature1": "📝 AI-generated summaries and analyses",
+      "feature2": "🏷️ Entity extraction (people, places, organizations)",
+      "feature3": "🔔 Notifications and system messages",
+      "feature4": "🎯 Code suggestions",
+      "activeLabel": "Active language",
+      "saving": "⏳ Saving...",
+      "aboutTitle": "💡 About multilingual",
+      "aboutText": "This language applies to your personal interface and AI responses. Document content remains unchanged — you will be able to translate it on demand in future versions.",
+      "success": "🌍 Language updated",
+      "successMessage": "Interface and AI in {{language}}"
+    },
+    "appearance": {
+      "title": "🎨 Appearance",
+      "modeLight": "☀️ Light mode",
+      "modeDark": "🌙 Dark mode",
+      "activateDark": "Activate dark",
+      "activateLight": "Activate light",
+      "customColors": "Custom colors",
+      "primaryColor": "Primary color",
+      "primaryDark": "Primary dark",
+      "primaryLight": "Primary light",
+      "apply": "Apply",
+      "reset": "Reset",
+      "applied": "Palette applied ✅",
+      "resetDone": "Palette reset"
+    },
+    "errors": {
+      "invalidFile": "Invalid file",
+      "onlyImages": "Only images are allowed",
+      "fileTooBig": "File too large",
+      "fileTooBigMessage": "Maximum 5 MB",
+      "avatarUploadFailed": "Could not upload avatar",
+      "profileSaveFailed": "Could not save",
+      "passwordMismatch": "Passwords don't match",
+      "passwordTooShort": "Password must be at least 6 characters",
+      "passwordChangeFailed": "Could not change password",
+      "languageChangeFailed": "Could not change language"
+    },
+    "dangerZone": {
+      "title": "⚠️ Danger zone",
+      "intro": "Deleting your account is irreversible. All your data (projects, documents, transcriptions, memos) will be permanently deleted.",
+      "deleteButton": "🗑️ Delete my account",
+      "modalTitle": "Delete your account",
+      "modalIntro": "This action is permanent. To confirm, enter your password and type the confirmation phrase below.",
+      "passwordLabel": "Your password",
+      "phraseLabel": "Type: \"{{phrase}}\"",
+      "understandCheckbox": "I understand that all my data will be permanently deleted after a 30-day grace period.",
+      "spamWarning": "A confirmation email will be sent to you. If it doesn't appear in your inbox, check your Spam / Junk folder — you'll find the cancellation link there.",
+      "phraseMismatch": "Confirmation phrase doesn't match",
+      "mustUnderstand": "You must check the box to continue",
+      "confirmButton": "Delete permanently",
+      "deleting": "Deleting…",
+      "error": "Error during deletion",
+      "successTitle": "Deletion scheduled",
+      "successMessage": "An email has been sent to you. Check your spam folder if needed. Logging out in 3 seconds…"
+    }
+  },
+  "textUpload": {
+    "title": "📄 Import text",
+    "targetProject": "📁 Target project:",
+    "supportedFormats": "Supported formats",
     "uploading": "⏳ Uploading...",
-    "nameLabel": "Full name",
-    "emailLabel": "Email",
-    "institutionLabel": "Institution",
-    "institutionPlaceholder": "Ex: University of Paris",
-    "bioLabel": "Bio",
-    "bioPlaceholder": "A few words about you...",
-    "save": "Save changes",
-    "saving": "Saving...",
-    "success": "Profile updated ✅",
-    "avatarSuccess": "Avatar updated ✅"
+    "submit": "📤 Import text",
+    "back": "← Back",
+    "success": "✅ Text imported successfully! Redirecting...",
+    "errors": {
+      "noProject": "No project selected. Please go through a project page.",
+      "noProjectShort": "No project selected",
+      "uploadFailed": "❌ Server connection error",
+      "serverError": "❌ Error: {{message}}"
+    }
   },
-  "security": {
-    "title": "🔒 Security",
-    "currentPassword": "Current password",
-    "currentPasswordPlaceholder": "Your current password",
+  "chat": {
+    "title": "🤖 AI Assistant",
+    "welcome": "Hello! I'm the AI assistant of the Ebeno Research Platform. How can I help you?",
+    "loading": "⏳ The assistant is thinking...",
+    "placeholder": "Ask your question...",
+    "fallbackResponse": "Response received successfully.",
+    "errors": {
+      "communication": "Communication error with the assistant",
+      "assistantError": "Sorry, an error occurred. Please try again.",
+      "server": "Server connection error",
+      "serverUnreachable": "Sorry, the server is unreachable. Please try again later."
+    }
+  },
+  "transcriptionList": {
+    "title": "📜 My transcriptions",
+    "loading": "Loading...",
+    "empty": "No items found.",
+    "noText": "No text available.",
+    "failed": "The transcription failed. Click \"🔄 Retry\" to restart.",
+    "processing": "The transcription is in progress...",
+    "noTitle": "Untitled",
+    "filters": {
+      "all": "📋 All",
+      "audio": "🎙️ Audio",
+      "text": "📄 Text"
+    },
+    "status": {
+      "COMPLETED": "✅ Completed",
+      "PENDING": "⏳ Pending",
+      "PROCESSING": "⚙️ Processing",
+      "FAILED": "❌ Failed",
+      "unknown": "Unknown"
+    },
+    "retry": {
+      "button": "🔄 Retry",
+      "retrying": "⏳ Running...",
+      "confirm": "Restart the transcription of this audio file?",
+      "success": "🔄 Transcription restarted",
+      "successMessage": "Processing has restarted.",
+      "error": "Could not restart",
+      "connectionError": "Connection error",
+      "tooltip": "Retry transcription"
+    },
+    "analysis": {
+      "title": "☁️ Qualitative analysis",
+      "loading": "Loading analysis...",
+      "totalWords": "📊 Total words",
+      "uniqueWords": "🔤 Unique words",
+      "keywords": "Most frequent keywords",
+      "unavailable": "Analysis not available."
+    },
+    "error": {
+      "label": "❌ Error:"
+    }
+  },
+  "collaboration": {
+    "title": "🤝 Real-time collaboration",
+    "loadingProjects": "Loading your projects...",
+    "noProjects": "You don't have any project yet. Create one first from the dashboard.",
+    "projectLabel": "📁 Project",
+    "noDescription": "No description",
+    "selectProjectAlert": "Please select a project",
+    "members": {
+      "title": "👥 Project members",
+      "empty": "No members",
+      "shareTooltip": "Copy an invitation message",
+      "shareCopied": "✅ Message copied for {{name}}. Paste it in an email.",
+      "sharePrompt": "Copy this message:",
+      "shareMessage": "Hello {{name}},\n\nJoin me on the collaborative document of project \"{{project}}\":\n{{url}}\n\nSee you soon!"
+    },
+    "documents": {
+      "newButton": "+ New document",
+      "creating": "⏳ Creating...",
+      "title": "📄 Documents ({{count}})",
+      "loading": "Loading...",
+      "empty": "No document",
+      "download": "Download",
+      "rename": "Rename",
+      "formatPdf": "📕 PDF format (.pdf)",
+      "formatWord": "📘 Word format (.doc)",
+      "formatTxt": "📄 Plain text (.txt)"
+    },
+    "editor": {
+      "empty": "📄 Select a document",
+      "emptyHint": "or create a new one to start collaborating",
+      "pdf": "📕 PDF",
+      "word": "📘 Word",
+      "txt": "📄 TXT"
+    },
+    "toasts": {
+      "renamed": "Document renamed ✅",
+      "renameFailed": "Could not rename",
+      "downloaded": "📥 \"{{name}}\" downloaded",
+      "downloadFailed": "Could not download the document",
+      "docRenamedBy": "📝 {{name}} renamed the document to \"{{title}}\"",
+      "created": "Document created ✅",
+      "createFailed": "Error during creation"
+    }
+  },
+  "verifyEmail": {
+    "verifying": "Verifying…",
+    "verifyingHint": "Please wait a few seconds.",
+    "successTitle": "Email verified!",
+    "successMessage": "Your account is now active. Redirecting…",
+    "errorTitle": "Invalid or expired link",
+    "errorMessage": "This verification link is no longer valid. Request a new one below.",
+    "missingToken": "No token provided in the link.",
+    "resendTitle": "Get a new link",
+    "resendHint": "Enter your email to receive a new verification link.",
+    "resendButton": "📧 Resend email",
+    "resendSending": "Sending…",
+    "resendSuccess": "If an account exists with this email, a new link has been sent.",
+    "backToLogin": "← Back to login",
+    "notVerifiedTitle": "Email not verified",
+    "notVerifiedMessage": "Your account exists but email {{email}} has not been verified yet. Check your inbox or request a new link.",
+    "spamHint": "Remember to check your Spam / Junk folder."
+  },
+  "forgotPassword": {
+    "title": "Forgot your password?",
+    "intro": "Enter your email. If an account exists, a reset link will be sent to you.",
+    "emailLabel": "Email",
+    "submit": "Send link",
+    "submitting": "Sending…",
+    "successTitle": "Email sent",
+    "successMessage": "If an account exists with this email, a reset link has just been sent. Check your inbox (and spam folder).",
+    "backToLogin": "← Back to login"
+  },
+  "resetPassword": {
+    "title": "New password",
+    "intro": "Choose a new password for your account.",
     "newPassword": "New password",
     "newPasswordPlaceholder": "At least 6 characters",
-    "confirmPassword": "Confirm new password",
-    "confirmPasswordPlaceholder": "Retype new password",
-    "submit": "Change password",
-    "submitting": "Changing...",
-    "success": "Password changed ✅",
-    "recommendations": "⚠️ Security recommendations",
-    "recommendation1": "Use a unique and complex password (8+ characters)",
-    "recommendation2": "Never share your password",
-    "recommendation3": "Change it regularly"
-  },
-  "notifications": {
-  "title": "🔔 Email notifications",
-  "intro": "Choose the notifications you want to receive. Changes are saved instantly.",
-  "sectionOptional": "Optional notifications",
-  "sectionOptionalHint": "You can turn them off anytime.",
-  "sectionTransactional": "Required notifications",
-  "sectionTransactionalHint": "Always sent for account security and proper functioning.",
-  "alwaysOn": "Always enabled",
-  "projectMemberAdded": "Added to a project",
-  "projectMemberAddedHint": "When someone adds you to a project.",
-  "transcriptionComplete": "Transcription complete",
-  "transcriptionCompleteHint": "When an audio transcription is ready.",
-  "summaryReady": "AI summary ready",
-  "summaryReadyHint": "When a summary is generated for a document.",
-  "transactionalEmails": {
-    "verification": "Signup verification",
-    "passwordReset": "Password reset",
-    "emailChange": "Email address change",
-    "security": "Account security alerts"
-  },
-  "success": "Preferences updated",
-  "error": "Could not save preferences"
-},
-  "language": {
-    "title": "🌍 Working language",
-    "intro": "Choose the language you use to work on the platform. This language will be used for:",
-    "feature1": "📝 AI-generated summaries and analyses",
-    "feature2": "🏷️ Entity extraction (people, places, organizations)",
-    "feature3": "🔔 Notifications and system messages",
-    "feature4": "🎯 Code suggestions",
-    "activeLabel": "Active language",
-    "saving": "⏳ Saving...",
-    "aboutTitle": "💡 About multilingual",
-    "aboutText": "This language applies to your personal interface and AI responses. Document content remains unchanged — you will be able to translate it on demand in future versions.",
-    "success": "🌍 Language updated",
-    "successMessage": "Interface and AI in {{language}}"
-  },
-  "appearance": {
-    "title": "🎨 Appearance",
-    "modeLight": "☀️ Light mode",
-    "modeDark": "🌙 Dark mode",
-    "activateDark": "Activate dark",
-    "activateLight": "Activate light",
-    "customColors": "Custom colors",
-    "primaryColor": "Primary color",
-    "primaryDark": "Primary dark",
-    "primaryLight": "Primary light",
-    "apply": "Apply",
-    "reset": "Reset",
-    "applied": "Palette applied ✅",
-    "resetDone": "Palette reset"
-  },
-  "errors": {
-    "invalidFile": "Invalid file",
-    "onlyImages": "Only images are allowed",
-    "fileTooBig": "File too large",
-    "fileTooBigMessage": "Maximum 5 MB",
-    "avatarUploadFailed": "Could not upload avatar",
-    "profileSaveFailed": "Could not save",
-    "passwordMismatch": "Passwords don't match",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Retype the password",
+    "submit": "Reset password",
+    "submitting": "Resetting…",
+    "successTitle": "Password updated!",
+    "successMessage": "You can now log in with your new password.",
+    "errorTitle": "Invalid or expired link",
+    "errorMessage": "This reset link is no longer valid. Request a new one.",
+    "missingToken": "No token provided in the link.",
+    "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
-    "passwordChangeFailed": "Could not change password",
-    "languageChangeFailed": "Could not change language"
-  }
-},
-"textUpload": {
-  "title": "📄 Import text",
-  "targetProject": "📁 Target project:",
-  "supportedFormats": "Supported formats",
-  "uploading": "⏳ Uploading...",
-  "submit": "📤 Import text",
-  "back": "← Back",
-  "success": "✅ Text imported successfully! Redirecting...",
-  "errors": {
-    "noProject": "No project selected. Please go through a project page.",
-    "noProjectShort": "No project selected",
-    "uploadFailed": "❌ Server connection error",
-    "serverError": "❌ Error: {{message}}"
-  }
-},
-"chat": {
-  "title": "🤖 AI Assistant",
-  "welcome": "Hello! I'm the AI assistant of the Ebeno Research platform. How can I help you?",
-  "loading": "⏳ The assistant is thinking...",
-  "placeholder": "Ask your question...",
-  "fallbackResponse": "Response received successfully.",
-  "errors": {
-    "communication": "Communication error with the assistant",
-    "assistantError": "Sorry, an error occurred. Please try again.",
-    "server": "Server connection error",
-    "serverUnreachable": "Sorry, the server is unreachable. Please try again later."
-  }
-},
-"transcriptionList": {
-  "title": "📜 My transcriptions",
-  "loading": "Loading...",
-  "empty": "No items found.",
-  "noText": "No text available.",
-  "failed": "The transcription failed. Click \"🔄 Retry\" to restart.",
-  "processing": "The transcription is in progress...",
-  "noTitle": "Untitled",
-  "filters": {
-    "all": "📋 All",
-    "audio": "🎙️ Audio",
-    "text": "📄 Text"
+    "backToLogin": "← Back to login",
+    "requestNew": "Request a new link"
   },
-  "status": {
-    "COMPLETED": "✅ Completed",
-    "PENDING": "⏳ Pending",
-    "PROCESSING": "⚙️ Processing",
-    "FAILED": "❌ Failed",
-    "unknown": "Unknown"
+  "cancelDeletion": {
+    "verifying": "Cancelling…",
+    "verifyingHint": "Please wait a few seconds.",
+    "successTitle": "Deletion cancelled",
+    "successMessage": "Your account is active again. You can log in.",
+    "errorTitle": "Invalid or expired link",
+    "errorMessage": "This cancellation link is no longer valid. It may have already been used or expired.",
+    "missingToken": "No token provided in the link.",
+    "backToLogin": "← Back to login"
   },
-  "retry": {
-    "button": "🔄 Retry",
-    "retrying": "⏳ Running...",
-    "confirm": "Restart the transcription of this audio file?",
-    "success": "🔄 Transcription restarted",
-    "successMessage": "Processing has restarted.",
-    "error": "Could not restart",
-    "connectionError": "Connection error",
-    "tooltip": "Retry transcription"
+  "gdpr": {
+    "tab": "📦 My data",
+    "title": "📦 My personal data",
+    "intro": "Under the GDPR (Article 20 — Right to data portability), you can download all your personal data in a JSON file.",
+    "includes": "What the export contains:",
+    "include1": "👤 Your profile (name, email, bio, institution, avatar)",
+    "include2": "📁 All your projects and their content",
+    "include3": "🎙️ Your transcriptions (audio and texts)",
+    "include4": "📝 Your memos and collaborative documents",
+    "include5": "📎 Your uploaded files",
+    "include6": "📋 Your activity and audit history",
+    "excludes": "What is NOT included:",
+    "exclude1": "🔒 Your password (never exported)",
+    "exclude2": "🔑 Your session tokens",
+    "exclude3": "👥 Other users' data",
+    "loadingInfo": "Loading information...",
+    "loadingCounts": "Computing volume...",
+    "countsTitle": "📊 Your data volume",
+    "countProjects": "project(s)",
+    "countTranscriptions": "transcription(s)",
+    "countMemos": "memo(s)",
+    "countFiles": "file(s)",
+    "countCodes": "code(s)",
+    "downloadButton": "📥 Download my data",
+    "downloading": "⏳ Generating export...",
+    "success": "📦 Your data has been downloaded",
+    "error": "Export error",
+    "note": "💡 The export may take a few seconds if you have many documents."
   },
-  "analysis": {
-    "title": "☁️ Qualitative analysis",
-    "loading": "Loading analysis...",
-    "totalWords": "📊 Total words",
-    "uniqueWords": "🔤 Unique words",
-    "keywords": "Most frequent keywords",
-    "unavailable": "Analysis not available."
-  },
-  "error": {
-    "label": "❌ Error:"
-  }
-},
-"collaboration": {
-  "title": "🤝 Real-time collaboration",
-  "loadingProjects": "Loading your projects...",
-  "noProjects": "You don't have any project yet. Create one first from the dashboard.",
-  "projectLabel": "📁 Project",
-  "noDescription": "No description",
-  "selectProjectAlert": "Please select a project",
-  "members": {
-    "title": "👥 Project members",
-    "empty": "No members",
-    "shareTooltip": "Copy an invitation message",
-    "shareCopied": "✅ Message copied for {{name}}. Paste it in an email.",
-    "sharePrompt": "Copy this message:",
-    "shareMessage": "Hello {{name}},\n\nJoin me on the collaborative document of project \"{{project}}\":\n{{url}}\n\nSee you soon!"
-  },
-  "documents": {
-    "newButton": "+ New document",
-    "creating": "⏳ Creating...",
-    "title": "📄 Documents ({{count}})",
-    "loading": "Loading...",
-    "empty": "No document",
-    "download": "Download",
-    "rename": "Rename",
-    "formatPdf": "📕 PDF format (.pdf)",
-    "formatWord": "📘 Word format (.doc)",
-    "formatTxt": "📄 Plain text (.txt)"
-  },
-  "editor": {
-    "empty": "📄 Select a document",
-    "emptyHint": "or create a new one to start collaborating",
-    "pdf": "📕 PDF",
-    "word": "📘 Word",
-    "txt": "📄 TXT"
-  },
-  "toasts": {
-    "renamed": "Document renamed ✅",
-    "renameFailed": "Could not rename",
-    "downloaded": "📥 \"{{name}}\" downloaded",
-    "downloadFailed": "Could not download the document",
-    "docRenamedBy": "📝 {{name}} renamed the document to \"{{title}}\"",
-    "created": "Document created ✅",
-    "createFailed": "Error during creation"
-  }
-},
-"verifyEmail": {
-  "verifying": "Verifying…",
-  "verifyingHint": "Please wait a few seconds.",
-  "successTitle": "Email verified!",
-  "successMessage": "Your account is now active. Redirecting…",
-  "errorTitle": "Invalid or expired link",
-  "errorMessage": "This verification link is no longer valid. Request a new one below.",
-  "missingToken": "No token provided in the link.",
-  "resendTitle": "Get a new link",
-  "resendHint": "Enter your email to receive a new verification link.",
-  "resendButton": "📧 Resend email",
-  "resendSending": "Sending…",
-  "resendSuccess": "If an account exists with this email, a new link has been sent.",
-  "backToLogin": "← Back to login",
-  "notVerifiedTitle": "Email not verified",
-  "notVerifiedMessage": "Your account exists but email {{email}} has not been verified yet. Check your inbox or request a new link."
-},
-"forgotPassword": {
-  "title": "Forgot your password?",
-  "intro": "Enter your email. If an account exists, a reset link will be sent to you.",
-  "emailLabel": "Email",
-  "submit": "Send link",
-  "submitting": "Sending…",
-  "successTitle": "Email sent",
-  "successMessage": "If an account exists with this email, a reset link has just been sent. Check your inbox (and spam folder).",
-  "backToLogin": "← Back to login"
-},
-"resetPassword": {
-  "title": "New password",
-  "intro": "Choose a new password for your account.",
-  "newPassword": "New password",
-  "newPasswordPlaceholder": "At least 6 characters",
-  "confirmPassword": "Confirm password",
-  "confirmPasswordPlaceholder": "Retype the password",
-  "submit": "Reset password",
-  "submitting": "Resetting…",
-  "successTitle": "Password updated!",
-  "successMessage": "You can now log in with your new password.",
-  "errorTitle": "Invalid or expired link",
-  "errorMessage": "This reset link is no longer valid. Request a new one.",
-  "missingToken": "No token provided in the link.",
-  "passwordMismatch": "Passwords do not match",
-  "passwordTooShort": "Password must be at least 6 characters",
-  "backToLogin": "← Back to login",
-  "requestNew": "Request a new link"
-},
   "language": {
     "fr": "Français",
     "en": "English",
@@ -581,35 +639,6 @@
     "pt": "Português",
     "ar": "العربية"
   },
-"gdpr": {
-  "tab": "📦 My data",
-  "title": "📦 My personal data",
-  "intro": "Under the GDPR (Article 20 — Right to data portability), you can download all your personal data in a JSON file.",
-  "includes": "What the export contains:",
-  "include1": "👤 Your profile (name, email, bio, institution, avatar)",
-  "include2": "📁 All your projects and their content",
-  "include3": "🎙️ Your transcriptions (audio and texts)",
-  "include4": "📝 Your memos and collaborative documents",
-  "include5": "📎 Your uploaded files",
-  "include6": "📋 Your activity and audit history",
-  "excludes": "What is NOT included:",
-  "exclude1": "🔒 Your password (never exported)",
-  "exclude2": "🔑 Your session tokens",
-  "exclude3": "👥 Other users' data",
-  "loadingInfo": "Loading information...",
-  "loadingCounts": "Computing volume...",
-  "countsTitle": "📊 Your data volume",
-  "countProjects": "project(s)",
-  "countTranscriptions": "transcription(s)",
-  "countMemos": "memo(s)",
-  "countFiles": "file(s)",
-  "countCodes": "code(s)",
-  "downloadButton": "📥 Download my data",
-  "downloading": "⏳ Generating export...",
-  "success": "📦 Your data has been downloaded",
-  "error": "Export error",
-  "note": "💡 The export may take a few seconds if you have many documents."
-},
   "badges": {
     "languageTooltip": "Language: {{language}}",
     "owner": "👑",

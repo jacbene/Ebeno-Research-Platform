@@ -33,6 +33,7 @@ const Register = lazy(() => import('./pages/Register'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
 
 // ============================================================
 // LOADER
@@ -162,6 +163,13 @@ const Login: React.FC<{
         setVerificationEmail(err.response.data.email || email);
         return;
       }
+      // ✅ Compte en suppression programmée
+if (err.response?.status === 403 && err.response?.data?.accountPendingDeletion) {
+  setError(
+    `${err.response.data.message} 📬 ${t('verifyEmail.spamHint')}`
+  );
+  return;
+}
       const message =
         err.response?.data?.message || err.message || 'Erreur de connexion au serveur';
       setError(message);
@@ -354,6 +362,11 @@ const AppRoutes: React.FC<{
           path="/verify-email"
           element={<VerifyEmailPage onVerified={onLogin} />}
         />
+
+				<Route
+ 					 path="/cancel-deletion"
+ 					 element={<CancelDeletionPage />}
+				/>
 
         {/* ✅ Reset password (token dans l'URL) */}
         <Route

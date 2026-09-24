@@ -78,7 +78,7 @@
   },
   "dashboard": {
     "greeting": "مرحباً {{name}}!",
-    "welcome": "مرحباً بك في منصة إيبينو ريسيرش.",
+    "welcome": "مرحباً بك في منصة Ebeno Research Platform.",
     "summary": "لديك {{projects}} مشروع/مشاريع، {{documents}} مستند/مستندات و {{entities}} كيان/كيانات.",
     "viewProject": "عرض المشروع: {{title}}",
     "newProject": "مشروع جديد",
@@ -311,13 +311,13 @@
   "settings": {
     "title": "⚙️ الإعدادات",
     "loading": "جاري تحميل الملف الشخصي...",
-  "tabs": {
-  "profile": "👤 الملف الشخصي",
-  "security": "🔒 الأمان",
-  "notifications": "🔔 الإشعارات",
-  "language": "🌍 اللغة",
-  "appearance": "🎨 المظهر"
-},
+    "tabs": {
+      "profile": "👤 الملف الشخصي",
+      "security": "🔒 الأمان",
+      "notifications": "🔔 الإشعارات",
+      "language": "🌍 اللغة",
+      "appearance": "🎨 المظهر"
+    },
     "profile": {
       "title": "👤 ملفي الشخصي",
       "changePhoto": "📷 تغيير الصورة",
@@ -349,29 +349,29 @@
       "recommendation2": "لا تشارك كلمة المرور أبداً",
       "recommendation3": "غيّرها بانتظام"
     },
-  "notifications": {
-  "title": "🔔 إشعارات البريد الإلكتروني",
-  "intro": "اختر الإشعارات التي ترغب في تلقيها. يتم حفظ التغييرات فورًا.",
-  "sectionOptional": "إشعارات اختيارية",
-  "sectionOptionalHint": "يمكنك تعطيلها في أي وقت.",
-  "sectionTransactional": "إشعارات إلزامية",
-  "sectionTransactionalHint": "تُرسل دائمًا لأمان الحساب وحسن سيره.",
-  "alwaysOn": "مفعّلة دائمًا",
-  "projectMemberAdded": "أُضفت إلى مشروع",
-  "projectMemberAddedHint": "عندما يضيفك شخص ما إلى مشروع.",
-  "transcriptionComplete": "اكتمل النسخ",
-  "transcriptionCompleteHint": "عندما تصبح نسخة صوتية جاهزة.",
-  "summaryReady": "ملخص الذكاء الاصطناعي جاهز",
-  "summaryReadyHint": "عندما يتم إنشاء ملخص لمستند.",
-  "transactionalEmails": {
-    "verification": "التحقق من التسجيل",
-    "passwordReset": "إعادة تعيين كلمة المرور",
-    "emailChange": "تغيير البريد الإلكتروني",
-    "security": "تنبيهات أمان الحساب"
-  },
-  "success": "تم تحديث التفضيلات",
-  "error": "تعذر حفظ التفضيلات"
-},
+    "notifications": {
+      "title": "🔔 إشعارات البريد الإلكتروني",
+      "intro": "اختر الإشعارات التي ترغب في تلقيها. يتم حفظ التغييرات فورًا.",
+      "sectionOptional": "إشعارات اختيارية",
+      "sectionOptionalHint": "يمكنك تعطيلها في أي وقت.",
+      "sectionTransactional": "إشعارات إلزامية",
+      "sectionTransactionalHint": "تُرسل دائمًا لأمان الحساب وحسن سيره.",
+      "alwaysOn": "مفعّلة دائمًا",
+      "projectMemberAdded": "أُضفت إلى مشروع",
+      "projectMemberAddedHint": "عندما يضيفك شخص ما إلى مشروع.",
+      "transcriptionComplete": "اكتمل النسخ",
+      "transcriptionCompleteHint": "عندما تصبح نسخة صوتية جاهزة.",
+      "summaryReady": "ملخص الذكاء الاصطناعي جاهز",
+      "summaryReadyHint": "عندما يتم إنشاء ملخص لمستند.",
+      "transactionalEmails": {
+        "verification": "التحقق من التسجيل",
+        "passwordReset": "إعادة تعيين كلمة المرور",
+        "emailChange": "تغيير البريد الإلكتروني",
+        "security": "تنبيهات أمان الحساب"
+      },
+      "success": "تم تحديث التفضيلات",
+      "error": "تعذر حفظ التفضيلات"
+    },
     "language": {
       "title": "🌍 لغة العمل",
       "intro": "اختر اللغة التي تستخدمها للعمل على المنصة. ستُستخدم هذه اللغة لـ:",
@@ -412,6 +412,24 @@
       "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
       "passwordChangeFailed": "تعذر تغيير كلمة المرور",
       "languageChangeFailed": "تعذر تغيير اللغة"
+    },
+    "dangerZone": {
+      "title": "⚠️ منطقة الخطر",
+      "intro": "حذف حسابك لا رجعة فيه. سيتم حذف جميع بياناتك (المشاريع، المستندات، النسخ، المذكرات) نهائيًا.",
+      "deleteButton": "🗑️ حذف حسابي",
+      "modalTitle": "حذف حسابك",
+      "modalIntro": "هذا الإجراء نهائي. للتأكيد، أدخل كلمة المرور واكتب عبارة التأكيد أدناه.",
+      "passwordLabel": "كلمة المرور",
+      "phraseLabel": "اكتب: \"{{phrase}}\"",
+      "understandCheckbox": "أفهم أنه سيتم حذف جميع بياناتي نهائيًا بعد فترة سماح مدتها 30 يومًا.",
+      "spamWarning": "سيتم إرسال بريد تأكيد إليك. إذا لم يظهر في صندوق الوارد، تحقق من مجلد البريد العشوائي — ستجد هناك رابط إلغاء الحذف.",
+      "phraseMismatch": "عبارة التأكيد غير مطابقة",
+      "mustUnderstand": "يجب وضع علامة على المربع للمتابعة",
+      "confirmButton": "حذف نهائي",
+      "deleting": "…جارٍ الحذف",
+      "error": "خطأ أثناء الحذف",
+      "successTitle": "تم جدولة الحذف",
+      "successMessage": "تم إرسال بريد إليك. تحقق من مجلد البريد العشوائي إذا لزم الأمر. تسجيل الخروج خلال 3 ثوانٍ…"
     }
   },
   "textUpload": {
@@ -431,7 +449,7 @@
   },
   "chat": {
     "title": "🤖 مساعد الذكاء الاصطناعي",
-    "welcome": "مرحباً! أنا مساعد الذكاء الاصطناعي لمنصة إيبينو ريسيرش. كيف يمكنني مساعدتك؟",
+    "welcome": "مرحباً! أنا مساعد الذكاء الاصطناعي لمنصة Ebeno Research Platform. كيف يمكنني مساعدتك؟",
     "loading": "⏳ المساعد يفكر...",
     "placeholder": "اطرح سؤالك...",
     "fallbackResponse": "تم استلام الرد بنجاح.",
@@ -543,7 +561,8 @@
     "resendSuccess": "إذا كان هناك حساب بهذا البريد، فقد تم إرسال رابط جديد.",
     "backToLogin": "← العودة لتسجيل الدخول",
     "notVerifiedTitle": "لم يتم التحقق من البريد",
-    "notVerifiedMessage": "حسابك موجود لكن البريد {{email}} لم يتم التحقق منه بعد. تحقق من صندوق الوارد أو اطلب رابطًا جديدًا."
+    "notVerifiedMessage": "حسابك موجود لكن البريد {{email}} لم يتم التحقق منه بعد. تحقق من صندوق الوارد أو اطلب رابطًا جديدًا.",
+    "spamHint": "تذكر التحقق من مجلد البريد العشوائي."
   },
   "forgotPassword": {
     "title": "؟هل نسيت كلمة المرور",
@@ -574,12 +593,15 @@
     "backToLogin": "← العودة لتسجيل الدخول",
     "requestNew": "طلب رابط جديد"
   },
-  "language": {
-    "fr": "Français",
-    "en": "English",
-    "es": "Español",
-    "pt": "Português",
-    "ar": "العربية"
+  "cancelDeletion": {
+    "verifying": "…جارٍ الإلغاء",
+    "verifyingHint": "يرجى الانتظار بضع ثوانٍ.",
+    "successTitle": "تم إلغاء الحذف",
+    "successMessage": "حسابك نشط مرة أخرى. يمكنك تسجيل الدخول.",
+    "errorTitle": "رابط غير صالح أو منتهي",
+    "errorMessage": "لم يعد رابط الإلغاء هذا صالحًا. قد يكون قد استُخدم بالفعل أو انتهت صلاحيته.",
+    "missingToken": "لم يتم توفير رمز في الرابط.",
+    "backToLogin": "← العودة لتسجيل الدخول"
   },
   "gdpr": {
     "tab": "📦 بياناتي",
@@ -609,6 +631,13 @@
     "success": "📦 تم تنزيل بياناتك",
     "error": "خطأ أثناء التصدير",
     "note": "💡 قد يستغرق التصدير بضع ثوانٍ إذا كان لديك العديد من المستندات."
+  },
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "pt": "Português",
+    "ar": "العربية"
   },
   "badges": {
     "languageTooltip": "اللغة: {{language}}",

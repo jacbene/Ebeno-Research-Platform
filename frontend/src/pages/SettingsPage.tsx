@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { DeleteAccountModal } from '../components/DeleteAccountModal';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'language' | 'appearance' | 'gdpr';
 
@@ -22,6 +23,8 @@ const SettingsPage: React.FC = () => {
 
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // ✅ Suppression de compte
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -556,6 +559,46 @@ const togglePreference = async (key: keyof typeof emailPrefs) => {
               {savingProfile ? t('settings.profile.saving') : t('settings.profile.save')}
             </Button>
           </form>
+          {/* ✅ Zone dangereuse */}
+<div
+  style={{
+    marginTop: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
+    borderTop: `1px solid ${colors.gray[200]}`,
+  }}
+>
+  			<h4
+    			style={{
+      			margin: '0 0 8px 0',
+      			color: colors.danger,
+      			fontSize: '15px',
+    				}}
+  				>
+    			{t('settings.dangerZone.title')}
+  			</h4>
+  			<p
+    			style={{
+      		margin: '0 0 16px 0',
+      		fontSize: '13px',
+      		color: colors.gray[600],
+      		lineHeight: 1.6,
+    			}}
+  				>
+    			{t('settings.dangerZone.intro')}
+  			</p>
+  			<Button
+    			type="button"
+   			 	variant="outline"
+   			 	onClick={() => setShowDeleteModal(true)}
+   			 	style={{
+     			 borderColor: colors.danger,
+     			 color: colors.danger,
+      			fontWeight: 600,
+   					 }}
+ 						 >
+   					 {t('settings.dangerZone.deleteButton')}
+ 					 </Button>
+					</div>
         </Card>
       )}
 
@@ -1157,6 +1200,25 @@ const togglePreference = async (key: keyof typeof emailPrefs) => {
           </p>
         </Card>
       )}
+{/* ✅ Modal de suppression de compte */}
+<DeleteAccountModal
+  isOpen={showDeleteModal}
+  onClose={() => setShowDeleteModal(false)}
+  onSuccess={() => {
+    setShowDeleteModal(false);
+    toast.addToast({
+      type: 'success',
+      title: t('settings.dangerZone.successTitle'),
+      message: t('settings.dangerZone.successMessage'),
+    });
+    // Déconnexion après 3s
+    setTimeout(() => {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }, 3000);
+  }}
+/>
     </div>
   );
 };
