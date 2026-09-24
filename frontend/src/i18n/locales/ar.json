@@ -603,6 +603,20 @@
     "missingToken": "لم يتم توفير رمز في الرابط.",
     "backToLogin": "← العودة لتسجيل الدخول"
   },
+ "translation": {
+  "modalTitle": "ترجمة المستند",
+  "selectLanguage": "اللغة الهدف",
+  "translateButton": "ترجمة",
+  "translateTooltip": "ترجمة هذا المستند إلى لغة أخرى",
+  "translating": "…جارٍ الترجمة",
+  "success": "تمت الترجمة بنجاح",
+  "error": "خطأ في الترجمة",
+  "unavailable": "خدمة الترجمة غير متاحة مؤقتًا. يرجى المحاولة لاحقًا.",
+  "copied": "تم نسخ الترجمة إلى الحافظة",
+  "copy": "نسخ",
+  "cached": "مترجم بالفعل",
+  "alreadyTranslated": ":مترجم بالفعل إلى"
+},
   "gdpr": {
     "tab": "📦 بياناتي",
     "title": "📦 بياناتي الشخصية",

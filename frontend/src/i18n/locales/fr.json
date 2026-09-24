@@ -603,6 +603,20 @@
     "missingToken": "Aucun token fourni dans le lien.",
     "backToLogin": "← Retour à la connexion"
   },
+ "translation": {
+  "modalTitle": "Traduire le document",
+  "selectLanguage": "Langue cible",
+  "translateButton": "Traduire",
+  "translateTooltip": "Traduire ce document dans une autre langue",
+  "translating": "Traduction en cours…",
+  "success": "Traduction réussie",
+  "error": "Erreur lors de la traduction",
+  "unavailable": "Service de traduction indisponible pour le moment. Réessayez plus tard.",
+  "copied": "Traduit copié dans le presse-papiers",
+  "copy": "Copier",
+  "cached": "Déjà traduit",
+  "alreadyTranslated": "Déjà traduit en :"
+},
   "gdpr": {
     "tab": "📦 Mes données",
     "title": "📦 Mes données personnelles",

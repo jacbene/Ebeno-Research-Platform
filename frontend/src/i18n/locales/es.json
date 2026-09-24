@@ -603,6 +603,20 @@
     "missingToken": "No se proporcionó token en el enlace.",
     "backToLogin": "← Volver al inicio"
   },
+ "translation": {
+  "modalTitle": "Traducir documento",
+  "selectLanguage": "Idioma de destino",
+  "translateButton": "Traducir",
+  "translateTooltip": "Traducir este documento a otro idioma",
+  "translating": "Traduciendo…",
+  "success": "Traducción exitosa",
+  "error": "Error de traducción",
+  "unavailable": "El servicio de traducción no está disponible temporalmente. Inténtelo más tarde.",
+  "copied": "Traducción copiada al portapapeles",
+  "copy": "Copiar",
+  "cached": "Ya traducido",
+  "alreadyTranslated": "Ya traducido a:"
+},
   "gdpr": {
     "tab": "📦 Mis datos",
     "title": "📦 Mis datos personales",
