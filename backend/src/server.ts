@@ -14,7 +14,7 @@ import { auditLogger } from './middleware/auditLogger';
 import { startCleanupCron } from './services/cleanupService';
 import { verifyEmailConnection } from './services/emailService';
 import { startAuditPurgeCron } from './services/auditPurgeService';
-
+import { startAccountDeletionPurgeCron } from './services/accountDeletionService';
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
 import authRoutes from './routes/authRoutes';
@@ -207,13 +207,6 @@ app.get('/', (req, res) => {
 // ============================================================
 // GESTION 404
 // ============================================================
-
-// ⚠️ TEMPORAIRE — À SUPPRIMER après test Sentry
-app.get('/api/__sentry-test', (req, res) => {
-  throw new Error('🧪 Test Sentry backend — capture OK');
-});
-
-
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route non trouvée', path: req.originalUrl });
 });
@@ -285,8 +278,9 @@ const startServer = async () => {
       logError('❌ Erreur du serveur HTTP', err);
     });
 
-    startCleanupCron();
-    startAuditPurgeCron();
+startCleanupCron();
+startAuditPurgeCron();
+startAccountDeletionPurgeCron(); // ✅ purge RGPD 03:30
 
     // ✅ Vérifier SMTP (asynchrone, non bloquant)
     verifyEmailConnection()

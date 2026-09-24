@@ -55,13 +55,18 @@ const sendViaBrevo = async (payload: {
         'api-key': BREVO_API_KEY,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({
-        sender,
-        to: payload.to,
-        subject: payload.subject,
-        htmlContent: payload.htmlContent,
-        textContent: payload.textContent,
-      }),
+     body: JSON.stringify({
+  sender,
+  to: payload.to,
+  subject: payload.subject,
+  htmlContent: payload.htmlContent,
+  textContent: payload.textContent,
+  headers: {
+    'X-Priority': '1',
+    'X-MSMail-Priority': 'High',
+    'Importance': 'high',
+  },
+}),
     });
 
     const data = (await response.json().catch(() => ({}))) as BrevoResponse;
@@ -409,6 +414,9 @@ export const sendDeletionScheduledEmail = async ({
     <div style="background-color:#FFF3CD;border-left:3px solid #FFC107;padding:14px 16px;border-radius:6px;margin:20px 0;">
       <p style="color:#856404;font-size:14px;line-height:1.6;margin:0;">${interpolate(S.deletionDateLine, { date: formattedDate })}</p>
     </div>
+    <div style="background-color:#FEE2E2;border-left:3px solid #EF4444;padding:14px 16px;border-radius:6px;margin:20px 0;">
+    <p style="color:#991B1B;font-size:13px;line-height:1.6;margin:0;">${S.emailSpamWarning}</p>
+    </div>
     <p style="color:#d63031;font-size:14px;line-height:1.6;margin:0 0 24px 0;">${S.deletionWarning}</p>
     <div style="text-align:center;"><a href="${cancelUrl}" style="${buttonStyle}">${S.deletionCancelButton}</a></div>
     <p style="color:#6c757d;font-size:12px;margin:20px 0 0 0;">${S.deletionConfirmText}</p>
@@ -416,9 +424,9 @@ export const sendDeletionScheduledEmail = async ({
   `;
 
   const result = await sendViaBrevo({
-    to: [{ email: to, name }],
-    subject: S.deletionSubject,
-    htmlContent: htmlWrapper(content, L),
+  to: [{ email: to, name }],
+  subject: S.deletionSubject,
+  htmlContent: htmlWrapper(content, L),
   });
 
   if (result.success) {

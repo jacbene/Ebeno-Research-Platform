@@ -74,6 +74,9 @@ export interface EmailStrings {
   deletionWarning: string;
   deletionCancelButton: string;
   deletionConfirmText: string;
+  // Anti-spam
+  emailSpamWarning: string;
+  emailSpamWarningLogin: string;
 }
 
 export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
@@ -127,6 +130,8 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionWarning: '⚠️ Après cette date, toutes vos données (projets, documents, transcriptions, memos) seront supprimées définitivement et ne pourront pas être récupérées.',
     deletionCancelButton: '↩️ Annuler la suppression',
     deletionConfirmText: 'Si vous n\'êtes pas à l\'origine de cette demande, connectez-vous immédiatement à votre compte pour le sécuriser.',
+    emailSpamWarning: '📬 Important : si vous ne voyez pas cet email dans votre boîte de réception, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong> — vous y trouverez le lien pour annuler la suppression.',
+    emailSpamWarningLogin: '📬 Un email de confirmation vous a été envoyé. Si vous ne le voyez pas, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong>.',
   },
 
   en: {
@@ -179,6 +184,8 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionWarning: '⚠️ After this date, all your data (projects, documents, transcriptions, memos) will be permanently deleted and cannot be recovered.',
     deletionCancelButton: '↩️ Cancel deletion',
     deletionConfirmText: 'If you did not request this, log in to your account immediately to secure it.',
+    emailSpamWarning: '📬 Important: if you don\'t see this email in your inbox, check your <strong>Spam / Junk folder</strong> — you\'ll find the cancellation link there.',
+    emailSpamWarningLogin: '📬 A confirmation email has been sent to you. If you don\'t see it, check your <strong>Spam / Junk folder</strong>.',
   },
 
   es: {
@@ -231,6 +238,8 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionWarning: '⚠️ Después de esta fecha, todos sus datos (proyectos, documentos, transcripciones, memos) serán eliminados permanentemente y no podrán recuperarse.',
     deletionCancelButton: '↩️ Cancelar eliminación',
     deletionConfirmText: 'Si no solicitó esto, inicie sesión inmediatamente en su cuenta para protegerla.',
+    emailSpamWarning: '📬 Importante: si no ve este correo en su bandeja de entrada, revise su carpeta de <strong>Spam / Correo no deseado</strong> — allí encontrará el enlace para cancelar la eliminación.',
+    emailSpamWarningLogin: '📬 Se le ha enviado un correo de confirmación. Si no lo ve, revise su carpeta de <strong>Spam / Correo no deseado</strong>.',
   },
 
   pt: {
@@ -283,6 +292,8 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionWarning: '⚠️ Após esta data, todos os seus dados (projetos, documentos, transcrições, memos) serão eliminados permanentemente e não poderão ser recuperados.',
     deletionCancelButton: '↩️ Cancelar eliminação',
     deletionConfirmText: 'Se não solicitou isto, inicie sessão imediatamente na sua conta para a proteger.',
+    emailSpamWarning: '📬 Importante: se não vir este email na sua caixa de entrada, verifique a pasta de <strong>Spam / Lixo eletrónico</strong> — encontrará lá o link para cancelar a eliminação.',
+    emailSpamWarningLogin: '📬 Foi-lhe enviado um email de confirmação. Se não o vir, verifique a pasta de <strong>Spam / Lixo eletrónico</strong>.',
   },
 
   ar: {
@@ -335,5 +346,7 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionWarning: '⚠️ بعد هذا التاريخ، سيتم حذف جميع بياناتك (المشاريع، المستندات، النسخ، المذكرات) نهائيًا ولا يمكن استعادتها.',
     deletionCancelButton: '↩️ إلغاء الحذف',
     deletionConfirmText: 'إذا لم تطلب ذلك، سجّل الدخول إلى حسابك فورًا لتأمينه.',
+    emailSpamWarning: '📬 مهم: إذا لم ترَ هذا البريد في صندوق الوارد، تحقق من مجلد <strong>البريد العشوائي</strong> — ستجد هناك رابط إلغاء الحذف.',
+    emailSpamWarningLogin: '📬 تم إرسال بريد تأكيد إليك. إذا لم تره، تحقق من مجلد <strong>البريد العشوائي</strong>.',
   },
 };

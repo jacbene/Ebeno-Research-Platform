@@ -1,5 +1,6 @@
 // backend/src/services/accountDeletionService.ts
 import crypto from 'crypto';
+import cron from 'node-cron';   
 import { db } from '../db/knex';
 import { encrypt, decrypt } from './encryptionService';
 import { logger } from '../utils/logger';
@@ -191,6 +192,25 @@ export const purgeDeletedAccounts = async (): Promise<number> => {
 
   logger.info(`🧹 [account-deletion] ${count} compte(s) purgé(s)`);
   return count;
+};
+
+// ============================================================
+// ✅ CRON DE PURGE AUTOMATIQUE (03:30 quotidien)
+// ============================================================
+
+export const startAccountDeletionPurgeCron = (): void => {
+  // ⏰ Tous les jours à 03:30
+  cron.schedule('30 3 * * *', async () => {
+    logger.info('🗑️ [account-deletion-cron] Démarrage de la purge...');
+    try {
+      const count = await purgeDeletedAccounts();
+      logger.info(`✅ [account-deletion-cron] Purge terminée (${count} compte(s))`);
+    } catch (err: any) {
+      logger.error(`❌ [account-deletion-cron] Erreur: ${err.message}`);
+    }
+  });
+
+  logger.info('✅ [account-deletion-cron] Cron activé (03:30 quotidien, délai 30j)');
 };
 
 export const GRACE_PERIOD = GRACE_PERIOD_DAYS;
