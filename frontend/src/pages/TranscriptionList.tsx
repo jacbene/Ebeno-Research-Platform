@@ -6,6 +6,7 @@ import { WordCloudComponent } from '../components/WordCloud';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
+import { LanguageBadge } from '../components/LanguageBadge';
 
 interface Transcription {
   id: string;
@@ -15,6 +16,7 @@ interface Transcription {
   audioUrl: string | null;
   type?: 'audio' | 'text';
   fileName?: string;
+  language?: string | null; // ✅ Langue détectée (Deepgram ou Whisper)
   createdAt: string;
   updatedAt: string;
   projectId?: string | null;
@@ -261,18 +263,20 @@ const TranscriptionList: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '20px' }}>{getTypeIcon(t_item.type)}</span>
-                    <span style={{ fontWeight: '500', color: colors.dark }}>
-                      {t_item.title || t('transcriptionList.noTitle')}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        color: getStatusColor(t_item.status),
-                        fontWeight: '600',
-                      }}
-                    >
-                      {getStatusLabel(t_item.status)}
-                    </span>
+<span style={{ fontWeight: '500', color: colors.dark }}>
+  {t_item.title || t('transcriptionList.noTitle')}
+</span>
+{/* ✅ Badge langue détectée */}
+<LanguageBadge language={t_item.language} size="sm" showCode />
+<span
+  style={{
+    fontSize: '13px',
+    color: getStatusColor(t_item.status),
+    fontWeight: '600',
+  }}
+>
+  {getStatusLabel(t_item.status)}
+</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
