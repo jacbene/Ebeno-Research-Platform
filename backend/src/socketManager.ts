@@ -11,21 +11,30 @@ export const setIO = (server: SocketIOServer): void => {
 
 export const getIO = (): SocketIOServer | null => io;
 
-/**
- * Broadcast global à tous les sockets connectés.
- * ⚠️ À utiliser avec parcimonie — préférer emitToProject / emitToDocument.
- */
+// ============================================================
+// ✅ Émission générique — route automatiquement vers le project room
+//    si projectId est présent dans les données
+// ============================================================
 export const emitGlobal = (event: string, data: any): void => {
   if (!io) {
     logger.warn('⚠️ [socketManager] IO non initialisé, emitGlobal ignoré');
     return;
   }
+
+  // ✅ Si un projectId est présent → router au room du projet uniquement
+  //    (les utilisateurs membres y sont auto-subscrits à la connexion)
+  if (data?.projectId) {
+    io.to(`project:${data.projectId}`).emit(event, data);
+    return;
+  }
+
+  // Sinon broadcast global (fallback — cas où le projet est inconnu)
   io.emit(event, data);
 };
 
-/**
- * ✅ Émet à tous les utilisateurs d'un projet.
- */
+// ============================================================
+// ✅ Émission ciblée projet (explicite)
+// ============================================================
 export const emitToProject = (
   projectId: string,
   event: string,
@@ -35,9 +44,6 @@ export const emitToProject = (
   io.to(`project:${projectId}`).emit(event, data);
 };
 
-/**
- * ✅ Émet à un projet en excluant un socket (typiquement l'émetteur).
- */
 export const emitToProjectExcept = (
   projectId: string,
   exceptSocketId: string,
@@ -48,9 +54,9 @@ export const emitToProjectExcept = (
   io.to(`project:${projectId}`).except(exceptSocketId).emit(event, data);
 };
 
-/**
- * ✅ Émet à tous les utilisateurs d'un document collaboratif.
- */
+// ============================================================
+// ✅ Émission ciblée document (collaboration temps réel)
+// ============================================================
 export const emitToDocument = (
   documentId: string,
   event: string,
@@ -60,9 +66,6 @@ export const emitToDocument = (
   io.to(`doc:${documentId}`).emit(event, data);
 };
 
-/**
- * ✅ Émet à un document en excluant un socket.
- */
 export const emitToDocumentExcept = (
   documentId: string,
   exceptSocketId: string,

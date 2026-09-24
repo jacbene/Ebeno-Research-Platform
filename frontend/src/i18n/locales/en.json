@@ -646,6 +646,20 @@
     "error": "Export error",
     "note": "💡 The export may take a few seconds if you have many documents."
   },
+ "notifications": {
+  "memberAdded": "👥 {{name}} joined the project",
+  "memberRemoved": "👥 A member was removed from the project",
+  "documentCreated": "📝 New document: {{title}}",
+  "documentRenamed": "✏️ Document renamed to \"{{title}}\"",
+  "documentDeleted": "🗑️ A document was deleted",
+  "transcriptionUploaded": "🎙️ New transcription: {{title}}",
+  "transcriptionRetry": "🔄 A transcription was restarted",
+  "transcriptionTrashed": "🗑️ Transcription moved to trash: {{title}}",
+  "transcriptionRestored": "♻️ Transcription restored: {{title}}",
+  "transcriptionDeletedForever": "💥 Transcription deleted: {{title}}",
+  "memoCreated": "📝 New memo: {{title}}",
+  "trashEmptied": "🧹 Trash emptied ({{count}} item(s))"
+},
   "language": {
     "fr": "Français",
     "en": "English",

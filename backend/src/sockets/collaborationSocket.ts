@@ -1,5 +1,6 @@
 // backend/src/sockets/collaborationSocket.ts
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 import {
   addUser,
@@ -9,6 +10,8 @@ import {
   startPresenceCleanup,
 } from '../services/presenceService';
 import { db } from '../db/knex';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 
 interface JoinPayload {
   projectId: string;
@@ -43,6 +46,19 @@ interface PendingUpdate {
   lastQueuedAt: number;
 }
 
+/**
+ * Extrait le userId depuis le token JWT passé dans handshake.auth.
+ */
+const extractUserIdFromToken = (token?: string): string | null => {
+  if (!token) return null;
+  try {
+    const payload: any = jwt.verify(token, JWT_SECRET);
+    return payload?.id || null;
+  } catch {
+    return null;
+  }
+};
+
 export class CollaborationSocketHandler {
   private io: SocketIOServer;
   private userSockets = new Map<
@@ -54,7 +70,6 @@ export class CollaborationSocketHandler {
     Map<string, { userId: string; userName: string; color: string }>
   >();
 
-  // ✅ Buffer de sauvegardes DB (debounce)
   private pendingUpdates = new Map<string, PendingUpdate>();
   private readonly DEBOUNCE_MS = 500;
 
@@ -64,9 +79,44 @@ export class CollaborationSocketHandler {
     this.startCleanup();
   }
 
+  // ============================================================
+  // ✅ AUTO-JOIN des rooms projets du user à la connexion
+  // ============================================================
+  private async autoJoinUserProjects(
+    socket: Socket,
+    userId: string
+  ): Promise<void> {
+    try {
+      const rows = await db('project_members')
+        .where({ userId })
+        .select('projectId');
+
+      const projectIds = rows.map((r: any) => r.projectId);
+      for (const pid of projectIds) {
+        socket.join(`project:${pid}`);
+      }
+
+      logger.info(
+        `🔔 [socket] ${userId} auto-joint ${projectIds.length} projet(s) pour notifications`
+      );
+    } catch (err: any) {
+      logger.warn(`⚠️ [socket] autoJoinUserProjects échoué: ${err.message}`);
+    }
+  }
+
   private setupHandlers() {
     this.io.on('connection', (socket: Socket) => {
       logger.info(`🔌 [socket] Connexion : ${socket.id}`);
+
+      // ✅ Auto-join des projets du user (pour notifications)
+      const token = socket.handshake?.auth?.token as string | undefined;
+      const userIdFromToken = extractUserIdFromToken(token);
+
+      if (userIdFromToken) {
+        this.autoJoinUserProjects(socket, userIdFromToken).catch(() => {});
+      } else {
+        logger.info(`ℹ️ [socket] Pas de token — notifications désactivées pour ${socket.id}`);
+      }
 
       // ---------- Rejoindre un projet ----------
       socket.on('join-project', async (payload: JoinPayload) => {
@@ -121,6 +171,7 @@ export class CollaborationSocketHandler {
           if (!this.documentUsers.has(documentId)) {
             this.documentUsers.set(documentId, new Map());
           }
+
           const userInfo = this.userSockets.get(socket.id);
           const userColor = color || userInfo?.color || '#4ECDC4';
 
@@ -177,7 +228,6 @@ export class CollaborationSocketHandler {
             });
           }
 
-          // ✅ Si plus personne sur le doc → flush immédiat
           if (docUsers.size === 0) {
             this.documentUsers.delete(documentId);
             await this.flushDocumentSave(documentId);
@@ -192,7 +242,6 @@ export class CollaborationSocketHandler {
           const user = this.userSockets.get(socket.id);
           if (!user || !documentId) return;
 
-          // ✅ Broadcast temps réel immédiat (pour la collaboration)
           socket.to(`doc:${documentId}`).emit('document-updated', {
             content,
             userId: user.userId,
@@ -200,7 +249,6 @@ export class CollaborationSocketHandler {
             version: Date.now(),
           });
 
-          // Cursor
           if (cursorPosition !== undefined) {
             socket.to(`doc:${documentId}`).emit('cursor-moved', {
               userId: user.userId,
@@ -211,7 +259,6 @@ export class CollaborationSocketHandler {
             });
           }
 
-          // ✅ Sauvegarde DB différée (debounce 500ms)
           this.scheduleDocumentSave(documentId, content);
         } catch (error: any) {
           logger.error('❌ [socket] edit-document:', error);
@@ -229,7 +276,9 @@ export class CollaborationSocketHandler {
         const user = this.userSockets.get(socket.id);
         if (!user) return;
 
-        const target = documentId ? `doc:${documentId}` : `project:${projectId}`;
+        const target = documentId
+          ? `doc:${documentId}`
+          : `project:${projectId}`;
         socket.to(target).emit('user-typing', {
           userId: user.userId,
           userName: user.userName,
@@ -257,7 +306,6 @@ export class CollaborationSocketHandler {
           );
         }
 
-        // Nettoyer les documents
         const docsToFlush: string[] = [];
         this.documentUsers.forEach((users, docId) => {
           if (users.has(socket.id)) {
@@ -274,16 +322,16 @@ export class CollaborationSocketHandler {
           }
         });
 
-        // ✅ Flush les documents où plus personne n'édite
-        await Promise.all(docsToFlush.map((id) => this.flushDocumentSave(id)));
+        await Promise.all(
+          docsToFlush.map((id) => this.flushDocumentSave(id))
+        );
       });
     });
   }
 
   // ============================================================
-  // ✅ DEBOUNCE DES SAUVEGARDES DB
+  // Debounce des sauvegardes DB
   // ============================================================
-
   private scheduleDocumentSave(documentId: string, content: string): void {
     const existing = this.pendingUpdates.get(documentId);
     if (existing?.timer) clearTimeout(existing.timer);
@@ -327,16 +375,13 @@ export class CollaborationSocketHandler {
   }
 
   // ============================================================
-  // ✅ CLEANUP PRÉSENCE
+  // Cleanup présence
   // ============================================================
-
   private startCleanup(): void {
     startPresenceCleanup((projectId) => {
-      // Rebroadcast la présence mise à jour
       this.broadcastPresence(projectId);
     });
 
-    // Ping périodique global
     const pingInterval = setInterval(() => {
       this.io.emit('server-ping', { timestamp: Date.now() });
     }, 30000);

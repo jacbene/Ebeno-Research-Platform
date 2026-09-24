@@ -646,6 +646,20 @@
     "error": "Erro durante a exportação",
     "note": "💡 A exportação pode demorar alguns segundos se tiver muitos documentos."
   },
+ "notifications": {
+  "memberAdded": "👥 {{name}} juntou-se ao projeto",
+  "memberRemoved": "👥 Um membro foi removido do projeto",
+  "documentCreated": "📝 Novo documento: {{title}}",
+  "documentRenamed": "✏️ Documento renomeado para «{{title}}»",
+  "documentDeleted": "🗑️ Um documento foi eliminado",
+  "transcriptionUploaded": "🎙️ Nova transcrição: {{title}}",
+  "transcriptionRetry": "🔄 Uma transcrição foi reiniciada",
+  "transcriptionTrashed": "🗑️ Transcrição movida para o lixo: {{title}}",
+  "transcriptionRestored": "♻️ Transcrição restaurada: {{title}}",
+  "transcriptionDeletedForever": "💥 Transcrição eliminada: {{title}}",
+  "memoCreated": "📝 Novo memo: {{title}}",
+  "trashEmptied": "🧹 Lixo esvaziado ({{count}} elemento(s))"
+},
   "language": {
     "fr": "Français",
     "en": "English",

@@ -646,6 +646,20 @@
     "error": "خطأ أثناء التصدير",
     "note": "💡 قد يستغرق التصدير بضع ثوانٍ إذا كان لديك العديد من المستندات."
   },
+ "notifications": {
+  "memberAdded": "👥 انضم {{name}} إلى المشروع",
+  "memberRemoved": "👥 تمت إزالة عضو من المشروع",
+  "documentCreated": "📝 مستند جديد: {{title}}",
+  "documentRenamed": "✏️ تمت إعادة تسمية المستند إلى «{{title}}»",
+  "documentDeleted": "🗑️ تم حذف مستند",
+  "transcriptionUploaded": "🎙️ نسخة جديدة: {{title}}",
+  "transcriptionRetry": "🔄 تمت إعادة بدء نسخة",
+  "transcriptionTrashed": "🗑️ تم نقل النسخة إلى سلة المهملات: {{title}}",
+  "transcriptionRestored": "♻️ تم استعادة النسخة: {{title}}",
+  "transcriptionDeletedForever": "💥 تم حذف النسخة: {{title}}",
+  "memoCreated": "📝 مذكرة جديدة: {{title}}",
+  "trashEmptied": "🧹 تم إفراغ سلة المهملات ({{count}} عنصر)"
+},
   "language": {
     "fr": "Français",
     "en": "English",
