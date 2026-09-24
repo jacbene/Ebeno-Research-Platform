@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WordCloudComponent } from '../components/WordCloud';
+import { LanguageBadge } from '../components/LanguageBadge';
+import TranslateModal from '../components/TranslateModal';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
-import { LanguageBadge } from '../components/LanguageBadge';
 
 interface Transcription {
   id: string;
@@ -16,7 +17,7 @@ interface Transcription {
   audioUrl: string | null;
   type?: 'audio' | 'text';
   fileName?: string;
-  language?: string | null; // ✅ Langue détectée (Deepgram ou Whisper)
+  language?: string | null;
   createdAt: string;
   updatedAt: string;
   projectId?: string | null;
@@ -47,6 +48,14 @@ const TranscriptionList: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  // ✅ Auto-traduction
+  const [translateModal, setTranslateModal] = useState<{
+    open: boolean;
+    documentId: string;
+    documentType: 'transcription' | 'memo' | 'text';
+    title: string;
+  }>({ open: false, documentId: '', documentType: 'transcription', title: '' });
 
   // ✅ Formatage de date robuste (bigint string ou number)
   const formatDateTime = (value: any): string => {
@@ -157,9 +166,9 @@ const TranscriptionList: React.FC = () => {
     navigate(`?type=${filter}`, { replace: true });
   }, [filter, navigate]);
 
-  const filteredTranscriptions = transcriptions.filter((t_item) => {
+  const filteredTranscriptions = transcriptions.filter((item) => {
     if (filter === 'all') return true;
-    return (t_item.type || 'audio') === filter;
+    return (item.type || 'audio') === filter;
   });
 
   const getStatusColor = (status: string) => {
@@ -182,7 +191,7 @@ const TranscriptionList: React.FC = () => {
       setAnalysis(null);
     } else {
       setSelectedId(id);
-      const transcription = transcriptions.find((t_item) => t_item.id === id);
+      const transcription = transcriptions.find((item) => item.id === id);
       if (transcription?.status === 'COMPLETED' && transcription.transcriptText) {
         fetchAnalysis(id);
       } else {
@@ -231,17 +240,17 @@ const TranscriptionList: React.FC = () => {
         <p style={{ color: colors.gray[500] }}>{t('transcriptionList.empty')}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredTranscriptions.map((t_item) => {
-            const isExpanded = selectedId === t_item.id;
-            const isCompleted = t_item.status === 'COMPLETED';
-            const isFailed = t_item.status === 'FAILED';
-            const hasText = !!t_item.transcriptText;
-            const isRetrying = retryingId === t_item.id;
+          {filteredTranscriptions.map((item) => {
+            const isExpanded = selectedId === item.id;
+            const isCompleted = item.status === 'COMPLETED';
+            const isFailed = item.status === 'FAILED';
+            const hasText = !!item.transcriptText;
+            const isRetrying = retryingId === item.id;
 
             return (
               <div
-                key={t_item.id}
-                onClick={() => toggleExpand(t_item.id)}
+                key={item.id}
+                onClick={() => toggleExpand(item.id)}
                 style={{
                   padding: '14px 18px',
                   border: `1px solid ${colors.gray[200]}`,
@@ -262,32 +271,63 @@ const TranscriptionList: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '20px' }}>{getTypeIcon(t_item.type)}</span>
-<span style={{ fontWeight: '500', color: colors.dark }}>
-  {t_item.title || t('transcriptionList.noTitle')}
-</span>
-{/* ✅ Badge langue détectée */}
-<LanguageBadge language={t_item.language} size="sm" showCode />
-<span
-  style={{
-    fontSize: '13px',
-    color: getStatusColor(t_item.status),
-    fontWeight: '600',
-  }}
->
-  {getStatusLabel(t_item.status)}
-</span>
+                    <span style={{ fontSize: '20px' }}>{getTypeIcon(item.type)}</span>
+                    <span style={{ fontWeight: '500', color: colors.dark }}>
+                      {item.title || t('transcriptionList.noTitle')}
+                    </span>
+                    {/* ✅ Badge langue détectée */}
+                    <LanguageBadge language={item.language} size="sm" showCode />
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        color: getStatusColor(item.status),
+                        fontWeight: '600',
+                      }}
+                    >
+                      {getStatusLabel(item.status)}
+                    </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '13px', color: colors.gray[500] }}>
-                      {formatDateTime(t_item.createdAt)}
+                      {formatDateTime(item.createdAt)}
                     </span>
+
+                    {/* ✅ Bouton Traduire (visible si COMPLETED avec texte) */}
+                    {isCompleted && hasText && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTranslateModal({
+                            open: true,
+                            documentId: item.id,
+                            documentType: 'transcription',
+                            title: item.title || t('transcriptionList.noTitle'),
+                          });
+                        }}
+                        title={t('translation.translateTooltip')}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: colors.gray[100] || '#f5f5f5',
+                          color: colors.primary,
+                          border: `1px solid ${colors.primary}40`,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        🌍 {t('translation.translateButton')}
+                      </button>
+                    )}
 
                     {/* ✅ Bouton Réessayer (visible uniquement pour les FAILED) */}
                     {isFailed && (
                       <button
-                        onClick={(e) => handleRetry(t_item.id, e)}
+                        onClick={(e) => handleRetry(item.id, e)}
                         disabled={isRetrying}
                         title={t('transcriptionList.retry.tooltip')}
                         style={{
@@ -313,7 +353,7 @@ const TranscriptionList: React.FC = () => {
                 {isExpanded && (
                   <div style={{ marginTop: '14px' }}>
                     {/* Message d'erreur */}
-                    {t_item.errorMessage && (
+                    {item.errorMessage && (
                       <div
                         style={{
                           padding: '10px 14px',
@@ -325,7 +365,7 @@ const TranscriptionList: React.FC = () => {
                           marginBottom: '10px',
                         }}
                       >
-                        <strong>{t('transcriptionList.error.label')}</strong> {t_item.errorMessage}
+                        <strong>{t('transcriptionList.error.label')}</strong> {item.errorMessage}
                       </div>
                     )}
 
@@ -345,7 +385,7 @@ const TranscriptionList: React.FC = () => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {hasText ? (
-                        t_item.transcriptText
+                        item.transcriptText
                       ) : isCompleted ? (
                         <span style={{ color: colors.gray[500], fontStyle: 'italic' }}>
                           {t('transcriptionList.noText')}
@@ -428,6 +468,15 @@ const TranscriptionList: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* ✅ Modal de traduction */}
+      <TranslateModal
+        isOpen={translateModal.open}
+        onClose={() => setTranslateModal({ ...translateModal, open: false })}
+        documentId={translateModal.documentId}
+        documentType={translateModal.documentType}
+        documentTitle={translateModal.title}
+      />
     </div>
   );
 };
