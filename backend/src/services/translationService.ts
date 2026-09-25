@@ -191,26 +191,40 @@ const translateText = async (
 // Récupération du texte source selon le type de document
 // ────────────────────────────────────────────────────────────
 
-const fetchSourceText = async (
   documentId: string,
   documentType: DocumentType,
   userId: string
 ): Promise<{ text: string; sourceLang: string | null; title: string }> => {
-  if (documentType === 'transcription') {
-    const doc = await db('transcriptions')
-      .where({ id: documentId, userId })
-      .first();
-    if (!doc) throw new Error('Transcription non trouvée');
-    if (doc.status !== 'COMPLETED' || !doc.transcriptText) {
-      throw new Error('La transcription n\'est pas encore terminée');
+  // ✅ Audio ET textes importés — même table "transcriptions"
+  if (documentType === 'transcription' || documentType === 'text') {
+    const doc = await db('transcriptions').where({ id: documentId }).first();
+    if (!doc) throw new Error('Document non trouvé');
+
+    // ✅ Vérifier l'accès (propriétaire OU membre du projet)
+    if (doc.userId !== userId) {
+      if (!doc.projectId) {
+        throw new Error('Accès non autorisé');
+      }
+      const member = await db('project_members')
+        .where({ projectId: doc.projectId, userId })
+        .first();
+      if (!member) throw new Error('Accès non autorisé');
     }
+
+    if (!doc.transcriptText || doc.transcriptText.trim().length < 10) {
+      throw new Error(
+        documentType === 'text'
+          ? 'Le texte est vide ou trop court'
+          : 'La transcription n\'est pas encore prête'
+      );
+    }
+
     return {
       text: doc.transcriptText,
       sourceLang: doc.language || null,
-      title: doc.title || 'Transcription',
+      title: doc.title || (documentType === 'text' ? 'Texte importé' : 'Transcription'),
     };
   }
-
   if (documentType === 'memo') {
   const doc = await db('memos').where({ id: documentId, userId }).first();
   if (!doc) throw new Error('Memo non trouvé');

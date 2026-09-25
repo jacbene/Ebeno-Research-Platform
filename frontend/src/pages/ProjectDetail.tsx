@@ -212,12 +212,13 @@ const [editTitle, setEditTitle] = useState('');
 const [editDescription, setEditDescription] = useState('');
 const [savingProject, setSavingProject] = useState(false);
 
-// ✅ Modal de traduction (memo)
+// ✅ Modal de traduction (memo ou document)
 const [translateTarget, setTranslateTarget] = useState<{
   open: boolean;
   documentId: string;
   documentTitle: string;
-}>({ open: false, documentId: '', documentTitle: '' });
+  documentType: 'memo' | 'text' | 'transcription';
+}>({ open: false, documentId: '', documentTitle: '', documentType: 'memo' });
 
   const encodedId = id ? encodeURIComponent(id) : '';
   const isOwner = project?.userId === currentUser?.id;
@@ -924,13 +925,14 @@ const [translateTarget, setTranslateTarget] = useState<{
   <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
   {/* ✅ Bouton traduire */}
   <button
-    onClick={() =>
-      setTranslateTarget({
-        open: true,
-        documentId: m.id,
-        documentTitle: m.title,
-      })
-    }
+  onClick={() =>
+    setTranslateTarget({
+      open: true,
+      documentId: m.id,
+      documentTitle: m.title,
+      documentType: 'memo',
+    })
+  }
     title={t('translation.translateTooltip')}
     style={{
       padding: '4px 10px',
@@ -1164,32 +1166,64 @@ const [translateTarget, setTranslateTarget] = useState<{
                       </div>
 
                       <div
-                        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <SummaryButton
-                          documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
-                          type={doc.type === 'file' ? 'file' : 'transcription'}
-                          onSummaryGenerated={() => {}}
-                        />
-                        <button
-                          onClick={() => deleteDocument(doc)}
-                          disabled={isDeleting}
-                          title={t('projectDetail.documents.deleteTooltip')}
-                          style={{
-                            padding: '6px 10px',
-                            backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: theme.borderRadius.sm,
-                            cursor: isDeleting ? 'not-allowed' : 'pointer',
-                            fontSize: '13px',
-                            lineHeight: 1,
-                          }}
-                        >
-                          {isDeleting ? '⏳' : '🗑️'}
-                        </button>
-                      </div>
+  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+  onClick={(e) => e.stopPropagation()}
+>
+  {/* ✅ Bouton Traduire (textes importés + transcriptions complétées) */}
+  {(doc.type === 'text' || doc.type === 'transcription') && (
+    <button
+      onClick={() =>
+        setTranslateTarget({
+          open: true,
+          documentId: doc.type === 'transcription' && doc.raw?._originalId
+            ? doc.raw._originalId
+            : doc.id,
+          documentTitle: doc.name,
+          documentType: doc.type === 'text' ? 'text' : 'transcription',
+        })
+      }
+      title={t('translation.translateTooltip')}
+      style={{
+        padding: '6px 10px',
+        backgroundColor: colors.gray[100] || '#f5f5f5',
+        color: colors.primary,
+        border: `1px solid ${colors.primary}40`,
+        borderRadius: theme.borderRadius.sm,
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+      }}
+    >
+      🌍
+    </button>
+  )}
+
+  <SummaryButton
+    documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
+    type={doc.type === 'file' ? 'file' : 'transcription'}
+    onSummaryGenerated={() => {}}
+  />
+  <button
+    onClick={() => deleteDocument(doc)}
+    disabled={isDeleting}
+    title={t('projectDetail.documents.deleteTooltip')}
+    style={{
+      padding: '6px 10px',
+      backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
+      color: 'white',
+      border: 'none',
+      borderRadius: theme.borderRadius.sm,
+      cursor: isDeleting ? 'not-allowed' : 'pointer',
+      fontSize: '13px',
+      lineHeight: 1,
+    }}
+  >
+    {isDeleting ? '⏳' : '🗑️'}
+  </button>
+</div>
                     </div>
                   );
                 })
@@ -1635,14 +1669,14 @@ const [translateTarget, setTranslateTarget] = useState<{
   </div>
 )} 
 
-      {/* ✅ Modal de traduction (memo) */}
-      <TranslateModal
-        isOpen={translateTarget.open}
-        onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
-        documentId={translateTarget.documentId}
-        documentType="memo"
-        documentTitle={translateTarget.documentTitle}
-      />
+      {/* ✅ Modal de traduction */}
+<TranslateModal
+  isOpen={translateTarget.open}
+  onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
+  documentId={translateTarget.documentId}
+  documentType={translateTarget.documentType}
+  documentTitle={translateTarget.documentTitle}
+/>
     </div>
   );
 };
