@@ -217,16 +217,23 @@ export const useProjectSocket = ({
 
     // ---------- Événements de données (upload, trash, etc.) ----------
     const dataEvents = [
-      'file-uploaded',
-      'file-trashed',
-      'file-restored',
-      'file-deleted-permanently',
-      'transcription-uploaded',
-      'transcription-trashed',
-      'transcription-restored',
-      'transcription-deleted-permanently',
-      'trash-emptied',
-    ];
+  'file-uploaded',
+  'file-trashed',
+  'file-restored',
+  'file-deleted-permanently',
+  'transcription-uploaded',
+  'transcription-trashed',
+  'transcription-restored',
+  'transcription-deleted-permanently',
+  'trash-emptied',
+  // ✅ AJOUT : événements manquants
+  'memo-created',
+  'document-created',
+  'document-updated-title',
+  'document-deleted',
+  'member-added',
+  'member-removed',
+];
 
     dataEvents.forEach((eventName) => {
       socket.on(eventName, (data: any) => {

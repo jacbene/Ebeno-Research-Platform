@@ -109,12 +109,14 @@ export const createMemo = async (req: Request, res: Response) => {
 
     if (projectId) {
   emitGlobal('memo-created', {
-    projectId,
-    memo,
-    actorId: userId,
-    actorName: user?.name || user?.email || 'Utilisateur',
-    timestamp: new Date().toISOString(),
-  });
+  projectId,
+  memo,
+  title: memo?.title || 'Sans titre',           // ✅ Titre à la racine
+  memoTitle: memo?.title || 'Sans titre',       // ✅ Double sécurité
+  actorId: userId,
+  actorName: user?.name || user?.email || 'Utilisateur',
+  timestamp: new Date().toISOString(),
+});
 
       await logActivity({
         projectId,

@@ -170,10 +170,11 @@ socket.on('document-created', (data: any) => {
 
     // 📝 Memo créé
 socket.on('memo-created', (data: any) => {
-  // ✅ Le backend envoie { projectId, memo, actorId } → titre dans data.memo.title
+  // ✅ Chercher le titre dans tous les emplacements possibles
   const title =
-    data?.memo?.title ||
     data?.title ||
+    data?.memoTitle ||
+    data?.memo?.title ||
     'Sans titre';
   notify('memo-created', data, (tFn) =>
     tFn('notifications.memoCreated', { title })
