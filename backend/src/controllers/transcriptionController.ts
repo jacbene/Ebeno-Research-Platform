@@ -2,11 +2,28 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';   // ✅ Ajoutez fs s'il manque
+import fs from 'fs';
 import { uploadAndProcessDeepgram, processTranscriptionDeepgram } from '../services/deepgramService';
 import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
+
+// ✅ Helper : vérifier que l'user est membre du projet
+const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
+  const member = await db('project_members')
+    .where({ projectId, userId })
+    .first();
+  return !!member;
+};
+
+// ✅ Helper : vérifier l'accès à une transcription (propriétaire OU membre du projet)
+const canAccessTranscription = async (transcription: any, userId: string): Promise<boolean> => {
+  if (transcription.userId === userId) return true;
+  if (transcription.projectId) {
+    return isProjectMember(transcription.projectId, userId);
+  }
+  return false;
+};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -50,9 +67,25 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       if (!file) return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
 
       const { projectId } = req.body;
+
+      // ✅ Vérifier que l'user est membre du projet (si projectId fourni)
+      if (projectId) {
+        const isMember = await isProjectMember(projectId, userId);
+        if (!isMember) {
+          return res.status(403).json({ success: false, message: 'Vous n\'êtes pas membre de ce projet' });
+        }
+      }
+
       const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
-      emitGlobal('transcription-uploaded', { projectId, id: result.id, title: file.originalname });
+      emitGlobal('transcription-uploaded', {
+        projectId,
+        id: result.id,
+        title: file.originalname,
+        actorId: userId,
+        actorName: userName,
+        timestamp: new Date().toISOString(),
+      });
 
       await logActivity({
         projectId,
@@ -76,27 +109,30 @@ export const uploadTranscription = async (req: Request, res: Response) => {
   });
 };
 
-// ---------- ✅ Réessayer une transcription échouée ----------
+// ---------- Réessayer une transcription échouée ----------
 export const retryTranscription = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
     const { id } = req.params;
 
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    // Récupérer la transcription
-    const transcription = await db('transcriptions')
-      .where({ id, userId })
-      .first();
-
+    // ✅ Récupérer sans filtre userId
+    const transcription = await db('transcriptions').where({ id }).first();
     if (!transcription) {
       return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
     }
 
-    // ✅ Vérifier que le statut permet un retry
+    // ✅ Vérifier l'accès (propriétaire OU membre du projet)
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
+
     if (transcription.status === 'COMPLETED') {
       return res.status(400).json({
         success: false,
@@ -111,7 +147,6 @@ export const retryTranscription = async (req: Request, res: Response) => {
       });
     }
 
-    // ✅ Vérifier que le fichier audio existe
     const audioPath = path.join(
       __dirname,
       '../../uploads/tmp',
@@ -125,7 +160,6 @@ export const retryTranscription = async (req: Request, res: Response) => {
       });
     }
 
-    // ✅ Remettre à PENDING + reset error
     await db('transcriptions')
       .where({ id })
       .update({
@@ -134,12 +168,17 @@ export const retryTranscription = async (req: Request, res: Response) => {
         updatedAt: new Date().toISOString(),
       });
 
-    // ✅ Relancer le traitement en arrière-plan
     processTranscriptionDeepgram(id).catch((err) =>
       console.error('❌ Erreur retry async:', err)
     );
 
-    emitGlobal('transcription-retry', { id, projectId: transcription.projectId });
+    emitGlobal('transcription-retry', {
+      id,
+      projectId: transcription.projectId,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     console.log(`🔄 Retry transcription ${id} par ${userId}`);
 
@@ -158,7 +197,7 @@ export const retryTranscription = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Liste des transcriptions (hors corbeille) ----------
+// ---------- Liste des transcriptions ----------
 export const getUserTranscriptions = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -178,9 +217,22 @@ export const getUserTranscriptions = async (req: Request, res: Response) => {
       if (!isNaN(ts)) toDate = new Date(ts).toISOString();
     }
 
-    let baseQuery = db('transcriptions').where({ userId }).whereNull('deletedAt');
+    // ✅ Si projectId fourni → toutes les transcriptions du projet (après vérif membre)
+    let baseQuery;
+    if (projectId) {
+      const isMember = await isProjectMember(projectId as string, userId);
+      if (!isMember) {
+        return res.status(403).json({ success: false, message: 'Vous n\'êtes pas membre de ce projet' });
+      }
+      baseQuery = db('transcriptions')
+        .where({ projectId: projectId as string })
+        .whereNull('deletedAt');
+    } else {
+      baseQuery = db('transcriptions')
+        .where({ userId })
+        .whereNull('deletedAt');
+    }
 
-    if (projectId) baseQuery = baseQuery.where({ projectId });
     if (type) baseQuery = baseQuery.where({ type });
     if (status) baseQuery = baseQuery.where({ status });
     if (fromDate) baseQuery = baseQuery.where('createdAt', '>=', fromDate);
@@ -219,8 +271,17 @@ export const getTranscription = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const transcription = await db('transcriptions').where({ id, userId }).first();
-    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    // ✅ Récupérer sans filtre userId
+    const transcription = await db('transcriptions').where({ id }).first();
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    // ✅ Vérifier l'accès
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
 
     return res.status(200).json({ success: true, data: transcription });
   } catch (error: any) {
@@ -229,7 +290,7 @@ export const getTranscription = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Soft delete : mettre à la corbeille ----------
+// ---------- Soft delete ----------
 export const deleteTranscription = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -239,11 +300,20 @@ export const deleteTranscription = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const transcription = await db('transcriptions').where({ id, userId }).whereNull('deletedAt').first();
-    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    // ✅ Récupérer sans filtre userId
+    const transcription = await db('transcriptions').where({ id }).whereNull('deletedAt').first();
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    // ✅ Vérifier l'accès
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
 
     await db('transcriptions')
-      .where({ id, userId })
+      .where({ id })
       .update({ deletedAt: new Date().toISOString() });
 
     console.log(`🗑️ Transcription déplacée à la corbeille : ${id}`);
@@ -252,6 +322,9 @@ export const deleteTranscription = async (req: Request, res: Response) => {
       projectId: transcription.projectId,
       id,
       title: transcription.title,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
     });
 
     await logActivity({
@@ -271,17 +344,31 @@ export const deleteTranscription = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Liste des transcriptions en corbeille ----------
+// ---------- Corbeille ----------
 export const getTrashedTranscriptions = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { projectId } = req.query;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    let query = db('transcriptions').where({ userId }).whereNotNull('deletedAt');
-    if (projectId) query = query.where({ projectId });
+    // ✅ Si projectId → toute la corbeille du projet
+    if (projectId) {
+      const isMember = await isProjectMember(projectId as string, userId);
+      if (!isMember) {
+        return res.status(403).json({ success: false, message: 'Vous n\'êtes pas membre de ce projet' });
+      }
+      const trashed = await db('transcriptions')
+        .where({ projectId: projectId as string })
+        .whereNotNull('deletedAt')
+        .orderBy('deletedAt', 'desc');
+      return res.status(200).json({ success: true, data: trashed });
+    }
 
-    const trashed = await query.orderBy('deletedAt', 'desc');
+    // ✅ Sinon → corbeille perso
+    const trashed = await db('transcriptions')
+      .where({ userId })
+      .whereNotNull('deletedAt')
+      .orderBy('deletedAt', 'desc');
     return res.status(200).json({ success: true, data: trashed });
   } catch (error) {
     console.error('Erreur getTrashedTranscriptions:', error);
@@ -289,7 +376,7 @@ export const getTrashedTranscriptions = async (req: Request, res: Response) => {
   }
 };
 
-// ---------- Restaurer une transcription ----------
+// ---------- Restaurer ----------
 export const restoreTranscription = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -299,14 +386,23 @@ export const restoreTranscription = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
+    // ✅ Récupérer sans filtre userId
     const transcription = await db('transcriptions')
-      .where({ id, userId })
+      .where({ id })
       .whereNotNull('deletedAt')
       .first();
 
-    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée dans la corbeille' });
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée dans la corbeille' });
+    }
 
-    await db('transcriptions').where({ id, userId }).update({ deletedAt: null });
+    // ✅ Vérifier l'accès
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
+
+    await db('transcriptions').where({ id }).update({ deletedAt: null });
 
     console.log(`♻️ Transcription restaurée : ${id}`);
 
@@ -314,6 +410,9 @@ export const restoreTranscription = async (req: Request, res: Response) => {
       projectId: transcription.projectId,
       id,
       title: transcription.title,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
     });
 
     await logActivity({
@@ -343,12 +442,21 @@ export const permanentlyDeleteTranscription = async (req: Request, res: Response
 
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const transcription = await db('transcriptions').where({ id, userId }).first();
-    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    // ✅ Récupérer sans filtre userId
+    const transcription = await db('transcriptions').where({ id }).first();
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    // ✅ Vérifier l'accès
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
 
     await db('document_entities').where({ documentId: id, documentType: 'transcription' }).delete();
     await db('document_summaries').where({ documentId: id, type: 'transcription' }).delete();
-    await db('transcriptions').where({ id, userId }).delete();
+    await db('transcriptions').where({ id }).delete();
 
     console.log(`💥 Transcription supprimée définitivement : ${id}`);
 
@@ -356,6 +464,9 @@ export const permanentlyDeleteTranscription = async (req: Request, res: Response
       projectId: transcription.projectId,
       id,
       title: transcription.title,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
     });
 
     await logActivity({
@@ -375,7 +486,7 @@ export const permanentlyDeleteTranscription = async (req: Request, res: Response
   }
 };
 
-// ---------- Vider la corbeille des transcriptions ----------
+// ---------- Vider la corbeille ----------
 export const emptyTrashTranscriptions = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -385,10 +496,22 @@ export const emptyTrashTranscriptions = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    let query = db('transcriptions').where({ userId }).whereNotNull('deletedAt');
-    if (projectId) query = query.where({ projectId });
+    // ✅ Si projectId → vide TOUTE la corbeille du projet
+    let trashed;
+    if (projectId) {
+      const isMember = await isProjectMember(projectId as string, userId);
+      if (!isMember) {
+        return res.status(403).json({ success: false, message: 'Vous n\'êtes pas membre de ce projet' });
+      }
+      trashed = await db('transcriptions')
+        .where({ projectId: projectId as string })
+        .whereNotNull('deletedAt');
+    } else {
+      trashed = await db('transcriptions')
+        .where({ userId })
+        .whereNotNull('deletedAt');
+    }
 
-    const trashed = await query;
     if (trashed.length === 0) {
       return res.json({ success: true, count: 0, message: 'Corbeille déjà vide' });
     }
@@ -407,7 +530,14 @@ export const emptyTrashTranscriptions = async (req: Request, res: Response) => {
 
     console.log(`💥 Corbeille vidée : ${deletedCount} transcription(s)`);
 
-    emitGlobal('trash-emptied', { projectId, type: 'transcriptions', count: deletedCount });
+    emitGlobal('trash-emptied', {
+      projectId,
+      type: 'transcriptions',
+      count: deletedCount,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId: (projectId as string) || '',
@@ -436,8 +566,17 @@ export const getTranscriptionProgress = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 
-    const transcription = await db('transcriptions').where({ id, userId }).first();
-    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    // ✅ Récupérer sans filtre userId
+    const transcription = await db('transcriptions').where({ id }).first();
+    if (!transcription) {
+      return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+    }
+
+    // ✅ Vérifier l'accès
+    const allowed = await canAccessTranscription(transcription, userId);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Accès non autorisé' });
+    }
 
     const progress = transcription.status === 'PROCESSING' ? 50 :
                      transcription.status === 'COMPLETED' ? 100 : 0;

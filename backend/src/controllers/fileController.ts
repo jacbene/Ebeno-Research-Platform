@@ -7,6 +7,7 @@ import { db } from '../db/knex';
 import { deleteFromCloudinary } from '../services/cloudinaryService';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
+import { logger } from '../utils/logger';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -21,6 +22,16 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).single('file');
+
+// ============================================================
+// ✅ Helper : vérifier que l'user est membre du projet
+// ============================================================
+const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
+  const member = await db('project_members')
+    .where({ projectId, userId })
+    .first();
+  return !!member;
+};
 
 // ---------- Upload ----------
 export const uploadFile = async (req: Request, res: Response) => {
@@ -38,6 +49,11 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
+      // ✅ Vérifier que l'user est membre du projet
+      if (!(await isProjectMember(projectId, userId))) {
+        return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+      }
+
       const id = Date.now().toString();
       await db('project_files').insert({
         id,
@@ -53,8 +69,14 @@ export const uploadFile = async (req: Request, res: Response) => {
 
       const inserted = await db('project_files').where({ id }).first();
 
-      // 📡 Socket.IO
-      emitGlobal('file-uploaded', { projectId, file: inserted });
+      // ✅ Socket.IO — avec actorId pour filtrer
+      emitGlobal('file-uploaded', {
+        projectId,
+        file: inserted,
+        actorId: userId,
+        actorName: userName,
+        timestamp: new Date().toISOString(),
+      });
 
       // 📋 Activité
       await logActivity({
@@ -83,8 +105,14 @@ export const getFiles = async (req: Request, res: Response) => {
     const projectId = req.params.projectId;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    // ✅ Vérifier que l'user est membre du projet
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : récupérer TOUS les fichiers du projet (pas juste ceux de l'user)
     const files = await db('project_files')
-      .where({ projectId, userId })
+      .where({ projectId })
       .whereNull('deletedAt')
       .orderBy('uploadedAt', 'desc');
 
@@ -112,8 +140,14 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    // ✅ Vérifier que l'user est membre du projet
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : n'importe quel membre peut supprimer (plus de filtre userId)
     const file = await db('project_files')
-      .where({ id: fileId, projectId, userId })
+      .where({ id: fileId, projectId })
       .whereNull('deletedAt')
       .first();
 
@@ -121,7 +155,14 @@ export const deleteFile = async (req: Request, res: Response) => {
 
     await db('project_files').where({ id: fileId }).update({ deletedAt: Date.now() });
 
-    emitGlobal('file-trashed', { projectId, fileId, fileName: file.fileName });
+    emitGlobal('file-trashed', {
+      projectId,
+      fileId,
+      fileName: file.fileName,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId,
@@ -147,8 +188,14 @@ export const getTrashedFiles = async (req: Request, res: Response) => {
     const projectId = req.params.projectId;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    // ✅ Vérifier que l'user est membre du projet
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : toute la corbeille du projet
     const files = await db('project_files')
-      .where({ projectId, userId })
+      .where({ projectId })
       .whereNotNull('deletedAt')
       .orderBy('deletedAt', 'desc');
 
@@ -169,8 +216,13 @@ export const restoreFile = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : n'importe quel membre peut restaurer
     const file = await db('project_files')
-      .where({ id: fileId, projectId, userId })
+      .where({ id: fileId, projectId })
       .whereNotNull('deletedAt')
       .first();
 
@@ -178,7 +230,14 @@ export const restoreFile = async (req: Request, res: Response) => {
 
     await db('project_files').where({ id: fileId }).update({ deletedAt: null });
 
-    emitGlobal('file-restored', { projectId, fileId, fileName: file.fileName });
+    emitGlobal('file-restored', {
+      projectId,
+      fileId,
+      fileName: file.fileName,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId,
@@ -207,7 +266,12 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
-    const file = await db('project_files').where({ id: fileId, projectId, userId }).first();
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : n'importe quel membre peut supprimer définitivement
+    const file = await db('project_files').where({ id: fileId, projectId }).first();
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
     if (file.cloudinaryPublicId) {
@@ -221,7 +285,14 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
     await db('document_summaries').where({ documentId: fileId, type: 'file' }).delete();
     await db('project_files').where({ id: fileId }).delete();
 
-    emitGlobal('file-deleted-permanently', { projectId, fileId, fileName: file.fileName });
+    emitGlobal('file-deleted-permanently', {
+      projectId,
+      fileId,
+      fileName: file.fileName,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId,
@@ -250,8 +321,13 @@ export const emptyTrash = async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    if (!(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+    }
+
+    // ✅ FIX : vide TOUTE la corbeille du projet
     const trashedFiles = await db('project_files')
-      .where({ projectId, userId })
+      .where({ projectId })
       .whereNotNull('deletedAt');
 
     if (trashedFiles.length === 0) {
@@ -277,7 +353,14 @@ export const emptyTrash = async (req: Request, res: Response) => {
       }
     }
 
-    emitGlobal('trash-emptied', { projectId, type: 'files', count: deletedCount });
+    emitGlobal('trash-emptied', {
+      projectId,
+      type: 'files',
+      count: deletedCount,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId,

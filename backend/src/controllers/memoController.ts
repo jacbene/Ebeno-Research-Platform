@@ -5,6 +5,14 @@ import { logActivity } from '../services/activityService';
 import { emitGlobal } from '../socketManager';
 import { detectLanguage } from '../services/languageDetectionService';
 
+// ✅ Helper : vérifier que l'user est membre du projet
+const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
+  const member = await db('project_members')
+    .where({ projectId, userId })
+    .first();
+  return !!member;
+};
+
 // ============================================================
 // LISTE DES MEMOS (filtrés par user + projet)
 // ============================================================
@@ -15,15 +23,27 @@ export const getMemos = async (req: Request, res: Response) => {
 
     const { projectId } = req.query;
 
-    let query = db('memos')
-      .where({ userId })
-      .whereNull('deletedAt');
-
+    // ✅ Si projectId fourni → tous les memos du projet (après vérif membre)
     if (projectId) {
-      query = query.where({ projectId });
+      const isMember = await isProjectMember(projectId as string, userId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+      }
+
+      const memos = await db('memos')
+        .where({ projectId: projectId as string })
+        .whereNull('deletedAt')
+        .orderBy('createdAt', 'desc');
+
+      return res.json(memos);
     }
 
-    const memos = await query.orderBy('createdAt', 'desc');
+    // ✅ Sinon → uniquement les memos de l'user (page perso)
+    const memos = await db('memos')
+      .where({ userId })
+      .whereNull('deletedAt')
+      .orderBy('createdAt', 'desc');
+
     res.json(memos);
   } catch (error) {
     console.error('Erreur getMemos:', error);
