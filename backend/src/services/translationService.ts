@@ -1,6 +1,5 @@
 // backend/src/services/translationService.ts
 // ✅ Service de traduction à la demande (DeepSeek → OpenAI cascade)
-
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
 import {
@@ -21,7 +20,7 @@ const MAX_TEXT_LENGTH = 50_000;
 const SUPPORTED_LANGS = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 type Lang = typeof SUPPORTED_LANGS[number];
 
-export type DocumentType = 'transcription' | 'memo' | 'text';
+export type DocumentType = 'transcription' | 'memo' | 'text' | 'collaboration';
 
 export interface TranslationResult {
   id: string;
@@ -213,19 +212,40 @@ const fetchSourceText = async (
   }
 
   if (documentType === 'memo') {
-    const doc = await db('memos').where({ id: documentId, userId }).first();
-    if (!doc) throw new Error('Memo non trouvé');
-    if (!doc.content || doc.content.trim().length < 10) {
-      throw new Error('Le memo est vide ou trop court');
-    }
-    return {
-      text: doc.content,
-      sourceLang: doc.language || null,
-      title: doc.title || 'Memo',
-    };
+  const doc = await db('memos').where({ id: documentId, userId }).first();
+  if (!doc) throw new Error('Memo non trouvé');
+  if (!doc.content || doc.content.trim().length < 10) {
+    throw new Error('Le memo est vide ou trop court');
   }
+  return {
+    text: doc.content,
+    sourceLang: doc.language || null,
+    title: doc.title || 'Memo',
+  };
+}
 
-  throw new Error('Type de document non supporté');
+// ✅ NOUVEAU : documents collaboratifs
+if (documentType === 'collaboration') {
+  const doc = await db('collaboration_documents').where({ id: documentId }).first();
+  if (!doc) throw new Error('Document collaboratif non trouvé');
+
+  // ✅ Vérifier que l'user est membre du projet
+  const member = await db('project_members')
+    .where({ projectId: doc.projectId, userId })
+    .first();
+  if (!member) throw new Error('Accès non autorisé à ce document');
+
+  if (!doc.content || doc.content.trim().length < 10) {
+    throw new Error('Le document est vide ou trop court');
+  }
+  return {
+    text: doc.content,
+    sourceLang: null, // non stocké pour les collab docs
+    title: doc.title || 'Document collaboratif',
+  };
+}
+
+throw new Error('Type de document non supporté');
 };
 
 // ────────────────────────────────────────────────────────────

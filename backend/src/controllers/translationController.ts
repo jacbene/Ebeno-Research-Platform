@@ -10,9 +10,9 @@ import {
 import { logAuditFromReq } from '../services/auditLogService';
 import { logger } from '../utils/logger';
 
-type DocumentType = 'transcription' | 'memo' | 'text';
+type DocumentType = 'transcription' | 'memo' | 'text' | 'collaboration';
 
-const VALID_TYPES: DocumentType[] = ['transcription', 'memo', 'text'];
+const VALID_TYPES: DocumentType[] = ['transcription', 'memo', 'text', 'collaboration'];
 
 const isValidType = (t: string): t is DocumentType =>
   VALID_TYPES.includes(t as DocumentType);
