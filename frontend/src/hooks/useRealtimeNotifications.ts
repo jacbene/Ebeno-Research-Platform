@@ -103,12 +103,16 @@ export const useRealtimeNotifications = ({ currentUserId }: NotificationsOptions
     });
 
     // 📝 Document créé
-    socket.on('document-created', (data: any) => {
-      const title = data?.document?.title || 'Sans titre';
-      notify('document-created', data, (tFn) =>
-        tFn('notifications.documentCreated', { title })
-      );
-    });
+socket.on('document-created', (data: any) => {
+  const title =
+    data?.document?.title ||
+    data?.title ||
+    data?.documentTitle ||
+    'Sans titre';
+  notify('document-created', data, (tFn) =>
+    tFn('notifications.documentCreated', { title })
+  );
+});
 
     // ✏️ Document renommé
     socket.on('document-updated-title', (data: any) => {
@@ -165,12 +169,16 @@ export const useRealtimeNotifications = ({ currentUserId }: NotificationsOptions
     });
 
     // 📝 Memo créé
-    socket.on('memo-created', (data: any) => {
-      const title = data?.title || 'Sans titre';
-      notify('memo-created', data, (tFn) =>
-        tFn('notifications.memoCreated', { title })
-      );
-    });
+socket.on('memo-created', (data: any) => {
+  // ✅ Le backend envoie { projectId, memo, actorId } → titre dans data.memo.title
+  const title =
+    data?.memo?.title ||
+    data?.title ||
+    'Sans titre';
+  notify('memo-created', data, (tFn) =>
+    tFn('notifications.memoCreated', { title })
+  );
+});
 
     // 🧹 Corbeille vidée
     socket.on('trash-emptied', (data: any) => {

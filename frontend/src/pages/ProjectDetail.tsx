@@ -207,7 +207,7 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-  const [editingProject, setEditingProject] = useState(false);
+const [editingProject, setEditingProject] = useState(false);
 const [editTitle, setEditTitle] = useState('');
 const [editDescription, setEditDescription] = useState('');
 const [savingProject, setSavingProject] = useState(false);
@@ -256,7 +256,7 @@ const [translateTarget, setTranslateTarget] = useState<{
         'transcription-deleted-permanently': { key: 'projectDetail.events.transcription-deleted-permanently', params: {}, type: 'error' },
         'trash-emptied': { key: 'projectDetail.events.trash-emptied', params: { count: data?.count || 0 }, type: 'warning' },
         'document-uploaded': { key: 'projectDetail.events.document-uploaded', params: { name: data?.fileName || '' }, type: 'info' },
-        'memo-created': { key: 'projectDetail.events.memo-created', params: { title: data?.memo?.title || '' }, type: 'info' },
+    		'memo-created': { key: 'projectDetail.events.memo-created', params: { title: data?.title || data?.memo?.title || '' }, type: 'info' },
       };
 
       const msg = eventKeys[event];

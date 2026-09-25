@@ -108,7 +108,13 @@ export const createMemo = async (req: Request, res: Response) => {
     const memo = await db('memos').where({ id }).first();
 
     if (projectId) {
-      emitGlobal('memo-created', { projectId, memo });
+  emitGlobal('memo-created', {
+    projectId,
+    memo,
+    actorId: userId,
+    actorName: user?.name || user?.email || 'Utilisateur',
+    timestamp: new Date().toISOString(),
+  });
 
       await logActivity({
         projectId,
