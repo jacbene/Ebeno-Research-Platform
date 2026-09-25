@@ -1,5 +1,6 @@
 // backend/src/services/translationService.ts
 // ✅ Service de traduction à la demande (DeepSeek → OpenAI cascade)
+
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
 import {
@@ -96,6 +97,7 @@ const translateWithDeepSeek = async (
   });
 
   if (response.status === 401) throw new Error('DeepSeek 401 : clé API invalide');
+  if (response.status === 402) throw new Error('DeepSeek 402 : solde insuffisant');
   if (response.status === 429) throw new Error('Quota DeepSeek dépassé');
   if (!response.ok) {
     const errText = await response.text();
@@ -191,11 +193,12 @@ const translateText = async (
 // Récupération du texte source selon le type de document
 // ────────────────────────────────────────────────────────────
 
+const fetchSourceText = async (
   documentId: string,
   documentType: DocumentType,
   userId: string
 ): Promise<{ text: string; sourceLang: string | null; title: string }> => {
-  // ✅ Audio ET textes importés — même table "transcriptions"
+  // ✅ Audio (transcription) ET textes importés — même table "transcriptions"
   if (documentType === 'transcription' || documentType === 'text') {
     const doc = await db('transcriptions').where({ id: documentId }).first();
     if (!doc) throw new Error('Document non trouvé');
@@ -222,44 +225,49 @@ const translateText = async (
     return {
       text: doc.transcriptText,
       sourceLang: doc.language || null,
-      title: doc.title || (documentType === 'text' ? 'Texte importé' : 'Transcription'),
+      title:
+        doc.title ||
+        (documentType === 'text' ? 'Texte importé' : 'Transcription'),
     };
   }
+
+  // ✅ Memos
   if (documentType === 'memo') {
-  const doc = await db('memos').where({ id: documentId, userId }).first();
-  if (!doc) throw new Error('Memo non trouvé');
-  if (!doc.content || doc.content.trim().length < 10) {
-    throw new Error('Le memo est vide ou trop court');
+    const doc = await db('memos').where({ id: documentId, userId }).first();
+    if (!doc) throw new Error('Memo non trouvé');
+    if (!doc.content || doc.content.trim().length < 10) {
+      throw new Error('Le memo est vide ou trop court');
+    }
+    return {
+      text: doc.content,
+      sourceLang: doc.language || null,
+      title: doc.title || 'Memo',
+    };
   }
-  return {
-    text: doc.content,
-    sourceLang: doc.language || null,
-    title: doc.title || 'Memo',
-  };
-}
 
-// ✅ NOUVEAU : documents collaboratifs
-if (documentType === 'collaboration') {
-  const doc = await db('collaboration_documents').where({ id: documentId }).first();
-  if (!doc) throw new Error('Document collaboratif non trouvé');
+  // ✅ Documents collaboratifs
+  if (documentType === 'collaboration') {
+    const doc = await db('collaboration_documents')
+      .where({ id: documentId })
+      .first();
+    if (!doc) throw new Error('Document collaboratif non trouvé');
 
-  // ✅ Vérifier que l'user est membre du projet
-  const member = await db('project_members')
-    .where({ projectId: doc.projectId, userId })
-    .first();
-  if (!member) throw new Error('Accès non autorisé à ce document');
+    const member = await db('project_members')
+      .where({ projectId: doc.projectId, userId })
+      .first();
+    if (!member) throw new Error('Accès non autorisé à ce document');
 
-  if (!doc.content || doc.content.trim().length < 10) {
-    throw new Error('Le document est vide ou trop court');
+    if (!doc.content || doc.content.trim().length < 10) {
+      throw new Error('Le document est vide ou trop court');
+    }
+    return {
+      text: doc.content,
+      sourceLang: null,
+      title: doc.title || 'Document collaboratif',
+    };
   }
-  return {
-    text: doc.content,
-    sourceLang: null, // non stocké pour les collab docs
-    title: doc.title || 'Document collaboratif',
-  };
-}
 
-throw new Error('Type de document non supporté');
+  throw new Error('Type de document non supporté');
 };
 
 // ────────────────────────────────────────────────────────────
@@ -284,7 +292,9 @@ export const translateDocument = async (
     .first();
 
   if (cached) {
-    logger.info(`✅ [translation] Cache hit pour ${documentType}/${documentId} → ${lang}`);
+    logger.info(
+      `✅ [translation] Cache hit pour ${documentType}/${documentId} → ${lang}`
+    );
     return {
       id: cached.id,
       documentId: cached.documentId,
@@ -389,7 +399,10 @@ export const getAllTranslationsForDocument = async (
     .orderBy('createdAt', 'desc');
 };
 
-export const deleteTranslation = async (id: string, userId: string): Promise<boolean> => {
+export const deleteTranslation = async (
+  id: string,
+  userId: string
+): Promise<boolean> => {
   const deleted = await db('document_translations')
     .where({ id, requestedBy: userId })
     .delete();
