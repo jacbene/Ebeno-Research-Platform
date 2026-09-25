@@ -199,6 +199,9 @@ router.get('/:projectId/members', authenticate, async (req, res) => {
 // ============================================================
 // RETIRER UN MEMBRE
 // ============================================================
+// ============================================================
+// RETIRER UN MEMBRE
+// ============================================================
 router.delete('/:projectId/members/:memberId', authenticate, async (req, res) => {
   try {
     const user = (req as any).user;
@@ -217,18 +220,37 @@ router.delete('/:projectId/members/:memberId', authenticate, async (req, res) =>
       return res.status(403).json({ error: 'Non autorisé' });
     }
 
-    // Empêcher de retirer le OWNER
+    // ✅ FIX : memberId est l'ID de la ligne project_members, pas le userId
     const targetMember = await db('project_members')
-      .where({ projectId, userId: memberId })
+      .where({ id: memberId, projectId })
       .first();
 
-    if (targetMember?.role === 'OWNER') {
+    if (!targetMember) {
+      return res.status(404).json({ error: 'Membre non trouvé dans ce projet' });
+    }
+
+    if (targetMember.role === 'OWNER') {
       return res.status(403).json({ error: 'Impossible de retirer le propriétaire' });
     }
 
-    await db('project_members').where({ projectId, userId: memberId }).delete();
+    // ✅ FIX : suppression par ID de ligne
+    const deleted = await db('project_members')
+      .where({ id: memberId, projectId })
+      .delete();
 
-    emitGlobal('member-removed', { projectId, memberId });
+    if (deleted === 0) {
+      return res.status(500).json({ error: 'Aucune ligne supprimée' });
+    }
+
+    // ✅ Notifier les autres (avec actorId pour filtrer côté frontend)
+    emitGlobal('member-removed', {
+      projectId,
+      memberId,
+      removedUserId: targetMember.userId,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
 
     await logActivity({
       projectId,
@@ -236,7 +258,8 @@ router.delete('/:projectId/members/:memberId', authenticate, async (req, res) =>
       userName,
       action: 'member-removed',
       targetType: 'member',
-      targetId: memberId,
+      targetId: targetMember.userId,   // ✅ userId cible (pas le memberId)
+      targetName: null,
     });
 
     res.json({ success: true, message: 'Membre retiré' });
@@ -245,5 +268,5 @@ router.delete('/:projectId/members/:memberId', authenticate, async (req, res) =>
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
-
+   
 export default router;
