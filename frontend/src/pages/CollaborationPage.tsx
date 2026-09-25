@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import { LanguageBadge } from '../components/LanguageBadge';
+import TranslateModal from '../components/TranslateModal';
 
 interface Document {
   id: string;
@@ -271,6 +272,13 @@ const CollaborationPage: React.FC = () => {
 
   const [openDownloadMenuId, setOpenDownloadMenuId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+
+// ✅ Modal de traduction (document collaboratif)
+const [translateTarget, setTranslateTarget] = useState<{
+  open: boolean;
+  documentId: string;
+  documentTitle: string;
+}>({ open: false, documentId: '', documentTitle: '' });
 
   const currentUser = useMemo(() => {
     try {
@@ -960,28 +968,43 @@ const CollaborationPage: React.FC = () => {
                       <LanguageBadge language={selectedDoc.language} />
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e: any) => handleDownload(selectedDoc, 'pdf', e)}
-                      >
-                        {t('collaboration.editor.pdf')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e: any) => handleDownload(selectedDoc, 'docx', e)}
-                      >
-                        {t('collaboration.editor.word')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e: any) => handleDownload(selectedDoc, 'txt', e)}
-                      >
-                        {t('collaboration.editor.txt')}
-                      </Button>
-                    </div>
+  {/* ✅ Bouton traduire */}
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={() =>
+      setTranslateTarget({
+        open: true,
+        documentId: selectedDoc.id,
+        documentTitle: selectedDoc.title,
+      })
+    }
+  >
+    🌍 {t('translation.translateButton')}
+  </Button>
+
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={(e: any) => handleDownload(selectedDoc, 'pdf', e)}
+  >
+    {t('collaboration.editor.pdf')}
+  </Button>
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={(e: any) => handleDownload(selectedDoc, 'docx', e)}
+  >
+    {t('collaboration.editor.word')}
+  </Button>
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={(e: any) => handleDownload(selectedDoc, 'txt', e)}
+  >
+    {t('collaboration.editor.txt')}
+  </Button>
+</div>
                   </div>
 
                   <CollaborativeEditor
@@ -1004,6 +1027,14 @@ const CollaborationPage: React.FC = () => {
           </div>
         </>
       )}
+      {/* ✅ Modal de traduction (document collaboratif) */}
+      <TranslateModal
+        isOpen={translateTarget.open}
+        onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
+        documentId={translateTarget.documentId}
+        documentType="collaboration"
+        documentTitle={translateTarget.documentTitle}
+      />      
     </div>
   );
 };

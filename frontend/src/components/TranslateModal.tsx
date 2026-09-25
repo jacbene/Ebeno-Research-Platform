@@ -12,7 +12,7 @@ interface TranslateModalProps {
   isOpen: boolean;
   onClose: () => void;
   documentId: string;
-  documentType: 'transcription' | 'memo' | 'text';
+  documentType: 'transcription' | 'memo' | 'text' | 'collaboration';  // ✅ Ajout 'collaboration'
   documentTitle: string;
   /** Langue déjà traduite à afficher par défaut (optionnel) */
   initialLang?: string | null;

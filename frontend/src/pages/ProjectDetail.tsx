@@ -28,6 +28,7 @@ import { breakpoints } from '../styles/breakpoints';
 import TranscriptionUploader from '../components/TranscriptionUploader';
 import { api } from '../services/api';
 import { LanguageBadge } from '../components/LanguageBadge';
+import TranslateModal from '../components/TranslateModal';
 
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
@@ -207,9 +208,16 @@ const ProjectDetail: React.FC = () => {
   });
 
   const [editingProject, setEditingProject] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [savingProject, setSavingProject] = useState(false);
+const [editTitle, setEditTitle] = useState('');
+const [editDescription, setEditDescription] = useState('');
+const [savingProject, setSavingProject] = useState(false);
+
+// ✅ Modal de traduction (memo)
+const [translateTarget, setTranslateTarget] = useState<{
+  open: boolean;
+  documentId: string;
+  documentTitle: string;
+}>({ open: false, documentId: '', documentTitle: '' });
 
   const encodedId = id ? encodeURIComponent(id) : '';
   const isOwner = project?.userId === currentUser?.id;
@@ -861,8 +869,6 @@ const ProjectDetail: React.FC = () => {
     )}
   </Card>
 )}
-       
-
         {activeTab === 'memos' && (
           <Card title={t('projectDetail.memos.title')}>
             <form onSubmit={createMemo} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm, marginBottom: theme.spacing.md }}>
@@ -913,10 +919,37 @@ const ProjectDetail: React.FC = () => {
                       <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
                       <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
-                      <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
-                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+  <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
+  <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
+  {/* ✅ Bouton traduire */}
+  <button
+    onClick={() =>
+      setTranslateTarget({
+        open: true,
+        documentId: m.id,
+        documentTitle: m.title,
+      })
+    }
+    title={t('translation.translateTooltip')}
+    style={{
+      padding: '4px 10px',
+      backgroundColor: colors.gray[100] || '#f5f5f5',
+      color: colors.primary,
+      border: `1px solid ${colors.primary}40`,
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      alignSelf: 'flex-end',
+    }}
+  >
+    🌍 {t('translation.translateButton')}
+  </button>
+</div>
                   </div>
                 </div>
               ))
@@ -1522,6 +1555,94 @@ const ProjectDetail: React.FC = () => {
           </div>
         </div>
       )}
+   {editingProject && isOwner && (
+  <div
+    style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '20px',
+    }}
+    onClick={() => !savingProject && setEditingProject(false)}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        backgroundColor: colors.white,
+        borderRadius: theme.borderRadius.md,
+        padding: theme.spacing.lg,
+        maxWidth: '480px',
+        width: '100%',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+      }}
+    >
+      <h2 style={{ marginTop: 0 }}>{t('projectDetail.editModal.title')}</h2>
+
+      <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
+        {t('projectDetail.editModal.titleLabel')}
+      </label>
+      <input
+        type="text"
+        value={editTitle}
+        onChange={(e) => setEditTitle(e.target.value)}
+        disabled={savingProject}
+        style={{
+          width: '100%',
+          padding: '10px',
+          border: `1px solid ${colors.gray[300]}`,
+          borderRadius: theme.borderRadius.md,
+          fontSize: '14px',
+          marginBottom: theme.spacing.md,
+          outline: 'none',
+        }}
+      />
+
+      <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
+        {t('projectDetail.editModal.descriptionLabel')}
+      </label>
+      <textarea
+        value={editDescription}
+        onChange={(e) => setEditDescription(e.target.value)}
+        disabled={savingProject}
+        rows={4}
+        placeholder={t('projectDetail.editModal.descriptionPlaceholder')}
+        style={{
+          width: '100%',
+          padding: '10px',
+          border: `1px solid ${colors.gray[300]}`,
+          borderRadius: theme.borderRadius.md,
+          fontSize: '14px',
+          resize: 'vertical',
+          marginBottom: theme.spacing.lg,
+          outline: 'none',
+          fontFamily: 'inherit',
+        }}
+      />
+
+      <div style={{ display: 'flex', gap: theme.spacing.sm, justifyContent: 'flex-end' }}>
+        <Button variant="outline" onClick={() => setEditingProject(false)} disabled={savingProject}>
+          {t('projectDetail.editModal.cancel')}
+        </Button>
+        <Button variant="primary" onClick={saveProject} disabled={savingProject}>
+          {savingProject ? t('projectDetail.editModal.saving') : t('projectDetail.editModal.save')}
+        </Button>
+      </div>
+    </div>
+  </div>
+)} 
+
+      {/* ✅ Modal de traduction (memo) */}
+      <TranslateModal
+        isOpen={translateTarget.open}
+        onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
+        documentId={translateTarget.documentId}
+        documentType="memo"
+        documentTitle={translateTarget.documentTitle}
+      />
     </div>
   );
 };
