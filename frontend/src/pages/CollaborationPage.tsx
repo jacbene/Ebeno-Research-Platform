@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import { LanguageBadge } from '../components/LanguageBadge';
 import TranslateModal from '../components/TranslateModal';
+import CommentSection from '../components/CommentSection';
 
 interface Document {
   id: string;
@@ -1007,16 +1008,22 @@ const [translateTarget, setTranslateTarget] = useState<{
 </div>
                   </div>
 
-                  <CollaborativeEditor
-                    documentId={selectedDoc.id}
-                    title=""
-                    content={documentContent || selectedDoc.content || ''}
-                    users={uniqueDocUsers}
-                    typingUsers={documentTyping.filter((t_item) => t_item.context === `doc-${selectedDoc.id}`)}
-                    onChange={handleContentChange}
-                    onCursorMove={handleCursorMove}
-                  />
-                </>
+  <CollaborativeEditor
+    documentId={selectedDoc.id}
+    title=""
+    content={documentContent || selectedDoc.content || ''}
+    users={uniqueDocUsers}
+    typingUsers={documentTyping.filter((t_item) => t_item.context === `doc-${selectedDoc.id}`)}
+    onChange={handleContentChange}
+    onCursorMove={handleCursorMove}
+  />
+
+  {/* ✅ Commentaires sur le document collaboratif */}
+  <CommentSection
+    documentId={selectedDoc.id}
+    documentType="collaboration"
+  />
+</>
               ) : (
                 <div style={{ textAlign: 'center', padding: theme.spacing.xxl, color: colors.gray[500] }}>
                   <p style={{ fontSize: theme.typography.fontSize.lg }}>{t('collaboration.editor.empty')}</p>

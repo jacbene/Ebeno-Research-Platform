@@ -29,6 +29,7 @@ import TranscriptionUploader from '../components/TranscriptionUploader';
 import { api } from '../services/api';
 import { LanguageBadge } from '../components/LanguageBadge';
 import TranslateModal from '../components/TranslateModal';
+import CommentSection from '../components/CommentSection';
 
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
@@ -913,47 +914,53 @@ const [translateTarget, setTranslateTarget] = useState<{
               <p style={{ color: colors.gray[500] }}>{t('projectDetail.memos.empty')}</p>
             ) : (
               memos.map(m => (
-                <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                    <div>
-                      <strong>{m.title}</strong>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
-                      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-  <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
-  <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
-  {/* ✅ Bouton traduire */}
-  <button
-  onClick={() =>
-    setTranslateTarget({
-      open: true,
-      documentId: m.id,
-      documentTitle: m.title,
-      documentType: 'memo',
-    })
-  }
-    title={t('translation.translateTooltip')}
-    style={{
-      padding: '4px 10px',
-      backgroundColor: colors.gray[100] || '#f5f5f5',
-      color: colors.primary,
-      border: `1px solid ${colors.primary}40`,
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: 'bold',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      alignSelf: 'flex-end',
-    }}
-  >
-    🌍 {t('translation.translateButton')}
-  </button>
+              <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+    <div>
+      <strong>{m.title}</strong>
+      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
+      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
+      <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
+      <button
+        onClick={() =>
+          setTranslateTarget({
+            open: true,
+            documentId: m.id,
+            documentTitle: m.title,
+            documentType: 'memo',
+          })
+        }
+        title={t('translation.translateTooltip')}
+        style={{
+          padding: '4px 10px',
+          backgroundColor: colors.gray[100] || '#f5f5f5',
+          color: colors.primary,
+          border: `1px solid ${colors.primary}40`,
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          alignSelf: 'flex-end',
+        }}
+      >
+        🌍 {t('translation.translateButton')}
+      </button>
+    </div>
+  </div>
+
+  {/* ✅ Commentaires sur le memo */}
+  <CommentSection
+    documentId={m.id}
+    documentType="memo"
+    compact
+  />
 </div>
-                  </div>
-                </div>
               ))
             )}
           </Card>
@@ -1160,10 +1167,25 @@ const [translateTarget, setTranslateTarget] = useState<{
                           </span>
                         </div>
 
-                        <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-                          {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
-                        </div>
-                      </div>
+  <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+    {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
+  </div>
+
+  {/* ✅ Commentaires sur le document */}
+  {(doc.type === 'transcription' || doc.type === 'text') && (
+    <CommentSection
+      documentId={
+        doc.type === 'transcription' && doc.raw?._originalId
+          ? doc.raw._originalId
+          : doc.id
+      }
+      documentType={
+        doc.type === 'text' ? 'transcription' : 'transcription'
+      }
+      compact
+    />
+  )}
+</div>
 
                       <div
   style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}

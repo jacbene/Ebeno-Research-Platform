@@ -189,6 +189,14 @@ socket.on('memo-created', (data: any) => {
       );
     });
 
+// 💬 Commentaire ajouté
+socket.on('comment-created', (data: any) => {
+  notify('comment-created', data, (tFn) => {
+    const name = data?.actorName || 'Quelqu\'un';
+    return tFn('notifications.commentCreated', { name });
+  });
+});
+
     return () => {
       socket.off('member-added');
       socket.off('member-removed');
@@ -201,8 +209,9 @@ socket.on('memo-created', (data: any) => {
       socket.off('transcription-restored');
       socket.off('transcription-deleted-permanently');
       socket.off('memo-created');
-      socket.off('trash-emptied');
-      socket.disconnect();
+			socket.off('trash-emptied');
+			socket.off('comment-created');
+			socket.disconnect();
     };
   }, [currentUserId]); // Reconnecte si le user change (login/logout)
 

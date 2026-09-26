@@ -352,6 +352,7 @@
     "notifications": {
       "title": "🔔 Notificações por email",
       "intro": "Escolha as notificações que deseja receber. As alterações são guardadas instantaneamente.",
+			"commentCreated": "💬 {{name}} comentou um documento",
       "sectionOptional": "Notificações opcionais",
       "sectionOptionalHint": "Pode desativá-las a qualquer momento.",
       "sectionTransactional": "Notificações obrigatórias",
@@ -659,6 +660,26 @@
   "transcriptionDeletedForever": "💥 Transcrição eliminada: {{title}}",
   "memoCreated": "📝 Novo memo: {{title}}",
   "trashEmptied": "🧹 Lixo esvaziado ({{count}} elemento(s))"
+},
+"comments": {
+  "title": "Comentários",
+  "empty": "Ainda sem comentários. Seja o primeiro!",
+  "placeholder": "Adicionar um comentário...",
+  "replyPlaceholder": "Responder...",
+  "send": "Enviar",
+  "sending": "A enviar...",
+  "reply": "Responder",
+  "cancelReply": "Cancelar resposta",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "edited": "(editado)",
+  "deleteConfirm": "Eliminar este comentário?",
+  "added": "Comentário adicionado",
+  "updated": "Comentário atualizado",
+  "deleted": "Comentário eliminado",
+  "addError": "Não foi possível adicionar o comentário",
+  "updateError": "Não foi possível atualizar o comentário",
+  "deleteError": "Não foi possível eliminar o comentário"
 },
   "language": {
     "fr": "Français",

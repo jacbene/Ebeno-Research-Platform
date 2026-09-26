@@ -352,6 +352,7 @@
     "notifications": {
       "title": "🔔 Email notifications",
       "intro": "Choose the notifications you want to receive. Changes are saved instantly.",
+ 			"commentCreated": "💬 {{name}} commented on a document",
       "sectionOptional": "Optional notifications",
       "sectionOptionalHint": "You can turn them off anytime.",
       "sectionTransactional": "Required notifications",
@@ -659,6 +660,26 @@
   "transcriptionDeletedForever": "💥 Transcription deleted: {{title}}",
   "memoCreated": "📝 New memo: {{title}}",
   "trashEmptied": "🧹 Trash emptied ({{count}} item(s))"
+},
+"comments": {
+  "title": "Comments",
+  "empty": "No comments yet. Be the first!",
+  "placeholder": "Add a comment...",
+  "replyPlaceholder": "Reply...",
+  "send": "Send",
+  "sending": "Sending...",
+  "reply": "Reply",
+  "cancelReply": "Cancel reply",
+  "edit": "Edit",
+  "delete": "Delete",
+  "edited": "(edited)",
+  "deleteConfirm": "Delete this comment?",
+  "added": "Comment added",
+  "updated": "Comment updated",
+  "deleted": "Comment deleted",
+  "addError": "Could not add comment",
+  "updateError": "Could not update comment",
+  "deleteError": "Could not delete comment"
 },
   "language": {
     "fr": "Français",

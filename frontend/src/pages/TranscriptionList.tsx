@@ -8,6 +8,7 @@ import TranslateModal from '../components/TranslateModal';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
+import CommentSection from '../components/CommentSection';
 
 interface Transcription {
   id: string;
@@ -400,12 +401,27 @@ const TranscriptionList: React.FC = () => {
                         </span>
                       )}
                     </div>
+{/* ✅ Commentaires (toujours visibles quand déployé) */}
+<div onClick={(e) => e.stopPropagation()}>
+  <CommentSection
+    documentId={item.id}
+    documentType="transcription"
+  />
+</div>
 
-                    {isCompleted && hasText && (
-                      <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
-                          {t('transcriptionList.analysis.title')}
-                        </h4>
+{/* ✅ Commentaires (toujours visibles quand déployé) */}
+<div onClick={(e) => e.stopPropagation()}>
+  <CommentSection
+    documentId={item.id}
+    documentType="transcription"
+  />
+</div>
+
+{isCompleted && hasText && (
+  <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
+    <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
+      {t('transcriptionList.analysis.title')}
+    </h4>
 
                         {analysisLoading ? (
                           <p style={{ fontSize: '14px', color: colors.gray[600] }}>

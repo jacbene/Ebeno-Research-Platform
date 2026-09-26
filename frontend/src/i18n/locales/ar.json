@@ -352,6 +352,7 @@
     "notifications": {
       "title": "🔔 إشعارات البريد الإلكتروني",
       "intro": "اختر الإشعارات التي ترغب في تلقيها. يتم حفظ التغييرات فورًا.",
+		  "commentCreated": "💬 علّق {{name}} على مستند",
       "sectionOptional": "إشعارات اختيارية",
       "sectionOptionalHint": "يمكنك تعطيلها في أي وقت.",
       "sectionTransactional": "إشعارات إلزامية",
@@ -659,6 +660,26 @@
   "transcriptionDeletedForever": "💥 تم حذف النسخة: {{title}}",
   "memoCreated": "📝 مذكرة جديدة: {{title}}",
   "trashEmptied": "🧹 تم إفراغ سلة المهملات ({{count}} عنصر)"
+},
+"comments": {
+  "title": "التعليقات",
+  "empty": "لا توجد تعليقات بعد. كن أول من يعلّق!",
+  "placeholder": "أضف تعليقًا...",
+  "replyPlaceholder": "…رد",
+  "send": "إرسال",
+  "sending": "…جارٍ الإرسال",
+  "reply": "رد",
+  "cancelReply": "إلغاء الرد",
+  "edit": "تعديل",
+  "delete": "حذف",
+  "edited": "(معدّل)",
+  "deleteConfirm": "حذف هذا التعليق؟",
+  "added": "تمت إضافة التعليق",
+  "updated": "تم تحديث التعليق",
+  "deleted": "تم حذف التعليق",
+  "addError": "تعذر إضافة التعليق",
+  "updateError": "تعذر تحديث التعليق",
+  "deleteError": "تعذر حذف التعليق"
 },
   "language": {
     "fr": "Français",
