@@ -41,6 +41,7 @@ import languageRoutes from './routes/languageRoutes';
 import adminRoutes from './routes/adminRoutes';
 import twoFactorRoutes from './routes/twoFactorRoutes';
 import translationRoutes from './routes/translationRoutes';
+import pushRoutes from './routes/pushRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -153,7 +154,8 @@ app.use('/api/summaries', aiLimiter);
 app.use('/api/analysis', aiLimiter);
 app.use('/api/entities', aiLimiter);
 app.use('/api/codes', aiLimiter);
-app.use('/api/translations', aiLimiter); // ✅ AJOUT — 30 req/min max
+app.use('/api/translations', aiLimiter);
+app.use('/api/push', pushRoutes);
 
 // ============================================================
 // ROUTES

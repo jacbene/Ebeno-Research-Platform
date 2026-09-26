@@ -1,6 +1,7 @@
 // backend/src/socketManager.ts
 import { Server as SocketIOServer } from 'socket.io';
 import { logger } from './utils/logger';
+import { sendPushToProjectMembers } from './services/pushService';
 
 let io: SocketIOServer | null = null;
 
@@ -22,13 +23,18 @@ export const emitGlobal = (event: string, data: any): void => {
   }
 
   // ✅ Si un projectId est présent → router au room du projet uniquement
-  //    (les utilisateurs membres y sont auto-subscrits à la connexion)
   if (data?.projectId) {
     io.to(`project:${data.projectId}`).emit(event, data);
+
+    // ✅ Envoyer aussi un push navigateur en parallèle (non bloquant)
+    sendPushToProjectMembers(data.projectId, event, data).catch((err) =>
+      logger.warn(`⚠️ [push] Erreur envoi push: ${err.message}`)
+    );
+
     return;
   }
 
-  // Sinon broadcast global (fallback — cas où le projet est inconnu)
+  // Sinon broadcast global (fallback)
   io.emit(event, data);
 };
 
