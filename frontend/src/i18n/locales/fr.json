@@ -370,6 +370,21 @@
         "emailChange": "Changement d'adresse email",
         "security": "Alertes de sécurité du compte"
       },
+   "push": {
+  "sectionTitle": "🔔 Notifications push navigateur",
+  "sectionHint": "Recevez une alerte dans votre navigateur même quand l'application est fermée.",
+  "label": "Activer les notifications push",
+  "active": "Notifications activées",
+  "inactive": "Notifications désactivées",
+  "unsupported": "Non supporté par ce navigateur",
+  "denied": "Bloquées par le navigateur",
+  "deniedHint": "Autorisez les notifications dans les paramètres de votre navigateur.",
+  "enableButton": "Activer",
+  "disableButton": "Désactiver",
+  "enabled": "✅ Notifications push activées",
+  "disabled": "Notifications push désactivées",
+  "enableError": "Impossible d'activer les notifications"
+    },
       "success": "Préférences mises à jour",
       "error": "Impossible d'enregistrer les préférences"
     },

@@ -11,6 +11,7 @@ import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'language' | 'appearance' | 'gdpr';
 
@@ -19,8 +20,16 @@ const SettingsPage: React.FC = () => {
   const { language, supportedLanguages, changeLanguage } = useLanguage();
   const toast = useToast();
   const { t } = useTranslation();
+// ✅ Push notifications
+const {
+  supported: pushSupported,
+  permission: pushPermission,
+  subscribed: pushSubscribed,
+  loading: pushLoading,
+  subscribe: pushSubscribe,
+  unsubscribe: pushUnsubscribe,
+} = usePushNotifications();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
-
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   // ✅ Suppression de compte
@@ -360,6 +369,25 @@ const togglePreference = async (key: keyof typeof emailPrefs) => {
       setGdprExporting(false);
     }
   };
+
+// ✅ Activer / désactiver les push
+const handleTogglePush = async () => {
+  if (pushSubscribed) {
+    const ok = await pushUnsubscribe();
+    if (ok) toast.addToast({ type: 'success', title: t('settings.push.disabled') });
+  } else {
+    const ok = await pushSubscribe();
+    if (ok) {
+      toast.addToast({ type: 'success', title: t('settings.push.enabled') });
+    } else {
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('settings.push.enableError'),
+      });
+    }
+  }
+};
 
   // Helpers
   const getInitials = (name: string) => {
@@ -789,10 +817,102 @@ const togglePreference = async (key: keyof typeof emailPrefs) => {
           );
         })}
 
-        {/* ─── Section 2 : Notifications transactionnelles ─── */}
-        <h4
-          style={{
-            marginTop: '28px',
+{/* ─── ✅ NOUVEAU : Notifications push navigateur ─── */}
+<h4
+  style={{
+    marginTop: '28px',
+    marginBottom: '4px',
+    fontSize: '15px',
+    color: colors.dark,
+  }}
+>
+  {t('settings.push.sectionTitle')}
+</h4>
+<p
+  style={{
+    margin: '0 0 16px 0',
+    fontSize: '13px',
+    color: colors.gray[500],
+  }}
+>
+  {t('settings.push.sectionHint')}
+</p>
+
+<div
+  style={{
+    padding: '14px 16px',
+    marginBottom: '8px',
+    backgroundColor: colors.gray[50] || '#fafafa',
+    border: `1px solid ${colors.gray[200]}`,
+    borderRadius: theme.borderRadius.md,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap',
+    opacity: pushLoading ? 0.6 : 1,
+  }}
+>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+    <span style={{ fontSize: '20px' }}>🔔</span>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontWeight: 600, color: colors.dark, fontSize: '14px' }}>
+        {t('settings.push.label')}
+      </div>
+      <div style={{ color: colors.gray[500], fontSize: '12px', marginTop: '2px' }}>
+        {!pushSupported
+          ? t('settings.push.unsupported')
+          : pushPermission === 'denied'
+          ? t('settings.push.denied')
+          : pushSubscribed
+          ? t('settings.push.active')
+          : t('settings.push.inactive')}
+      </div>
+    </div>
+  </div>
+
+  {pushSupported && pushPermission !== 'denied' && (
+    <button
+      type="button"
+      onClick={handleTogglePush}
+      disabled={pushLoading}
+      style={{
+        padding: '8px 16px',
+        backgroundColor: pushSubscribed ? colors.gray[300] : colors.primary,
+        color: pushSubscribed ? colors.dark : 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: pushLoading ? 'wait' : 'pointer',
+        fontSize: '13px',
+        fontWeight: 'bold',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      {pushLoading
+        ? '…'
+        : pushSubscribed
+        ? t('settings.push.disableButton')
+        : t('settings.push.enableButton')}
+    </button>
+  )}
+
+  {pushPermission === 'denied' && (
+    <div style={{
+      fontSize: '11px',
+      color: colors.danger,
+      textAlign: 'right',
+      maxWidth: '200px',
+    }}>
+      ⚠️ {t('settings.push.deniedHint')}
+    </div>
+  )}
+</div>
+
+{/* ─── Section 2 : Notifications transactionnelles ─── */}
+<h4
+  style={{
+    marginTop: '28px',
             marginBottom: '4px',
             fontSize: '15px',
             color: colors.dark,
