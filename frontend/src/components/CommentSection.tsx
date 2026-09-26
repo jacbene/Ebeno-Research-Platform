@@ -5,6 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { theme } from '../theme';
 import { api } from '../services/api';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { breakpoints } from '../styles/breakpoints';
 
 export type CommentDocumentType = 'transcription' | 'memo' | 'collaboration' | 'file';
 
@@ -45,6 +47,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const { colors } = useTheme();
   const toast = useToast();
   const { t, i18n } = useTranslation();
+	const isMobile = useMediaQuery(`(max-width: ${breakpoints.tablet}px)`);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -181,223 +184,253 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   // ============================================================
   // Rendu d'un commentaire (récursif pour les réponses)
   // ============================================================
-  const renderComment = (c: Comment, depth: number = 0) => {
-    const isAuthor = c.userId === currentUser.id;
-    const isEditing = editingId === c.id;
-    const maxDepth = 3;
-    const indent = Math.min(depth, maxDepth) * 24;
+const renderComment = (c: Comment, depth: number = 0) => {
+  const isAuthor = c.userId === currentUser.id;
+  const isEditing = editingId === c.id;
+  const maxDepth = 3;
+  // ✅ Réduire l'indentation sur mobile (12px au lieu de 24px)
+  const indentStep = isMobile ? 12 : 24;
+  const indent = Math.min(depth, maxDepth) * indentStep;
 
-    return (
-      <div key={c.id} style={{ marginLeft: `${indent}px`, marginBottom: '10px' }}>
-        <div
-          style={{
-            padding: '10px 12px',
-            backgroundColor: depth === 0 ? colors.gray[50] || '#fafafa' : colors.white,
-            border: `1px solid ${colors.gray[200]}`,
-            borderLeft: depth > 0 ? `3px solid ${colors.primary}60` : `1px solid ${colors.gray[200]}`,
-            borderRadius: theme.borderRadius.md,
-          }}
-        >
-          {/* Header : avatar + nom + date */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            {c.userAvatar ? (
-              <img
-                src={c.userAvatar}
-                alt={c.userName}
-                style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  backgroundColor: colors.primary,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  flexShrink: 0,
-                }}
-              >
-                {getInitials(c.userName || c.userEmail)}
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: colors.dark }}>
-                {c.userName || c.userEmail}
-              </div>
-              <div style={{ fontSize: '11px', color: colors.gray[500] }}>
-                {formatDate(c.createdAt)}
-                {c.updatedAt !== c.createdAt && ` · ${t('comments.edited')}`}
-              </div>
-            </div>
-          </div>
-
-          {/* Contenu ou édition */}
-          {isEditing ? (
-            <div style={{ marginTop: '6px' }}>
-              <textarea
-                value={editingText}
-                onChange={(e) => setEditingText(e.target.value)}
-                rows={2}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: `1px solid ${colors.primary}`,
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
-              />
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                <button
-                  onClick={() => handleSaveEdit(c.id)}
-                  style={{
-                    padding: '4px 12px',
-                    backgroundColor: colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                  }}
-                >
-                  {t('common.save')}
-                </button>
-                <button
-                  onClick={() => { setEditingId(null); setEditingText(''); }}
-                  style={{
-                    padding: '4px 12px',
-                    backgroundColor: colors.gray[200],
-                    color: colors.dark,
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                  }}
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p
+  return (
+    <div key={c.id} style={{ marginLeft: `${indent}px`, marginBottom: isMobile ? '8px' : '10px' }}>
+      <div
+        style={{
+          padding: isMobile ? '8px 10px' : '10px 12px',
+          backgroundColor: depth === 0 ? colors.gray[50] || '#fafafa' : colors.white,
+          border: `1px solid ${colors.gray[200]}`,
+          borderLeft: depth > 0 ? `3px solid ${colors.primary}60` : `1px solid ${colors.gray[200]}`,
+          borderRadius: theme.borderRadius.md,
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
+        }}
+      >
+        {/* Header : avatar + nom + date */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+          {c.userAvatar ? (
+            <img
+              src={c.userAvatar}
+              alt={c.userName}
               style={{
-                margin: '4px 0 0 0',
-                fontSize: '13px',
-                lineHeight: 1.6,
-                color: colors.dark,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
+                width: isMobile ? '24px' : '28px',
+                height: isMobile ? '24px' : '28px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: isMobile ? '24px' : '28px',
+                height: isMobile ? '24px' : '28px',
+                borderRadius: '50%',
+                backgroundColor: colors.primary,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '10px' : '11px',
+                fontWeight: 'bold',
+                flexShrink: 0,
               }}
             >
-              {c.content}
-            </p>
-          )}
-
-          {/* Actions */}
-          {!isEditing && (
-            <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-              {depth < maxDepth && (
-                <button
-                  onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: colors.primary,
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontWeight: '600',
-                  }}
-                >
-                  {replyTo === c.id ? t('comments.cancelReply') : t('comments.reply')}
-                </button>
-              )}
-              {isAuthor && (
-                <>
-                  <button
-                    onClick={() => { setEditingId(c.id); setEditingText(c.content); }}
-                    style={{
-                      background: 'none', border: 'none',
-                      color: colors.gray[500], fontSize: '11px',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  >
-                    {t('comments.edit')}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    style={{
-                      background: 'none', border: 'none',
-                      color: colors.danger, fontSize: '11px',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  >
-                    {t('comments.delete')}
-                  </button>
-                </>
-              )}
+              {getInitials(c.userName || c.userEmail)}
             </div>
           )}
-
-          {/* Zone de réponse */}
-          {replyTo === c.id && (
-            <form onSubmit={(e) => handleSubmit(e, c.id)} style={{ marginTop: '8px' }}>
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder={t('comments.replyPlaceholder')}
-                rows={2}
-                autoFocus
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: `1px solid ${colors.gray[300]}`,
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
-              />
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                <button
-                  type="submit"
-                  disabled={submitting || !replyText.trim()}
-                  style={{
-                    padding: '5px 14px',
-                    backgroundColor: submitting || !replyText.trim() ? colors.gray[300] : colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: submitting || !replyText.trim() ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {submitting ? '…' : t('comments.send')}
-                </button>
-              </div>
-            </form>
-          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: isMobile ? '12px' : '13px',
+                fontWeight: '600',
+                color: colors.dark,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {c.userName || c.userEmail}
+            </div>
+            <div
+              style={{
+                fontSize: isMobile ? '10px' : '11px',
+                color: colors.gray[500],
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {formatDate(c.createdAt)}
+              {c.updatedAt !== c.createdAt && ` · ${t('comments.edited')}`}
+            </div>
+          </div>
         </div>
 
-        {/* Réponses imbriquées */}
-        {c.replies && c.replies.length > 0 && (
-          <div style={{ marginTop: '10px' }}>
-            {c.replies.map((reply) => renderComment(reply, depth + 1))}
+        {/* Contenu ou édition */}
+        {isEditing ? (
+          <div style={{ marginTop: '6px' }}>
+            <textarea
+              value={editingText}
+              onChange={(e) => setEditingText(e.target.value)}
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: `1px solid ${colors.primary}`,
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => handleSaveEdit(c.id)}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                {t('common.save')}
+              </button>
+              <button
+                onClick={() => { setEditingId(null); setEditingText(''); }}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: colors.gray[200],
+                  color: colors.dark,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p
+            style={{
+              margin: '4px 0 0 0',
+              fontSize: isMobile ? '12px' : '13px',
+              lineHeight: 1.6,
+              color: colors.dark,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {c.content}
+          </p>
+        )}
+
+        {/* Actions */}
+        {!isEditing && (
+          <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+            {depth < maxDepth && (
+              <button
+                onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: colors.primary,
+                  fontSize: isMobile ? '10px' : '11px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontWeight: '600',
+                }}
+              >
+                {replyTo === c.id ? t('comments.cancelReply') : t('comments.reply')}
+              </button>
+            )}
+            {isAuthor && (
+              <>
+                <button
+                  onClick={() => { setEditingId(c.id); setEditingText(c.content); }}
+                  style={{
+                    background: 'none', border: 'none',
+                    color: colors.gray[500], fontSize: isMobile ? '10px' : '11px',
+                    cursor: 'pointer', padding: 0,
+                  }}
+                >
+                  {t('comments.edit')}
+                </button>
+                <button
+                  onClick={() => handleDelete(c.id)}
+                  style={{
+                    background: 'none', border: 'none',
+                    color: colors.danger, fontSize: isMobile ? '10px' : '11px',
+                    cursor: 'pointer', padding: 0,
+                  }}
+                >
+                  {t('comments.delete')}
+                </button>
+              </>
+            )}
           </div>
         )}
-      </div>
-    );
-  };
 
+        {/* Zone de réponse */}
+        {replyTo === c.id && (
+          <form onSubmit={(e) => handleSubmit(e, c.id)} style={{ marginTop: '8px' }}>
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={t('comments.replyPlaceholder')}
+              rows={2}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: `1px solid ${colors.gray[300]}`,
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+              <button
+                type="submit"
+                disabled={submitting || !replyText.trim()}
+                style={{
+                  padding: '5px 14px',
+                  backgroundColor: submitting || !replyText.trim() ? colors.gray[300] : colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: submitting || !replyText.trim() ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {submitting ? '…' : t('comments.send')}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Réponses imbriquées */}
+      {c.replies && c.replies.length > 0 && (
+        <div style={{ marginTop: isMobile ? '6px' : '10px' }}>
+          {c.replies.map((reply) => renderComment(reply, depth + 1))}
+        </div>
+      )}
+    </div>
+  );
+};
+    
   // ============================================================
   // Rendu principal
   // ============================================================
@@ -432,41 +465,44 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
       )}
 
       {/* Formulaire nouveau commentaire */}
-      <form onSubmit={(e) => handleSubmit(e, null)} style={{ marginTop: '12px' }}>
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder={t('comments.placeholder')}
-          rows={2}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            border: `1px solid ${colors.gray[300]}`,
-            borderRadius: theme.borderRadius.md,
-            fontSize: '13px',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            outline: 'none',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={submitting || !newComment.trim()}
-          style={{
-            marginTop: '6px',
-            padding: '6px 16px',
-            backgroundColor: submitting || !newComment.trim() ? colors.gray[300] : colors.primary,
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: submitting || !newComment.trim() ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }}
-        >
-          {submitting ? t('comments.sending') : t('comments.send')}
-        </button>
-      </form>
+{/* Formulaire nouveau commentaire */}
+<form onSubmit={(e) => handleSubmit(e, null)} style={{ marginTop: isMobile ? '10px' : '12px' }}>
+  <textarea
+    value={newComment}
+    onChange={(e) => setNewComment(e.target.value)}
+    placeholder={t('comments.placeholder')}
+    rows={isMobile ? 3 : 2}
+    style={{
+      width: '100%',
+      padding: '10px 12px',
+      border: `1px solid ${colors.gray[300]}`,
+      borderRadius: theme.borderRadius.md,
+      fontSize: '13px',
+      fontFamily: 'inherit',
+      resize: 'vertical',
+      outline: 'none',
+      boxSizing: 'border-box',
+    }}
+  />
+  <button
+    type="submit"
+    disabled={submitting || !newComment.trim()}
+    style={{
+      marginTop: '6px',
+      padding: isMobile ? '10px 16px' : '6px 16px',
+      width: isMobile ? '100%' : 'auto',
+      backgroundColor: submitting || !newComment.trim() ? colors.gray[300] : colors.primary,
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: submitting || !newComment.trim() ? 'not-allowed' : 'pointer',
+      fontSize: '13px',
+      fontWeight: 'bold',
+    }}
+  >
+    {submitting ? t('comments.sending') : t('comments.send')}
+  </button>
+</form>
     </div>
   );
 };
