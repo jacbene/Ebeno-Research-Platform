@@ -370,21 +370,6 @@
         "emailChange": "Email address change",
         "security": "Account security alerts"
       },
-  "push": {
-  "sectionTitle": "🔔 Browser push notifications",
-  "sectionHint": "Get alerts in your browser even when the app is closed.",
-  "label": "Enable push notifications",
-  "active": "Notifications enabled",
-  "inactive": "Notifications disabled",
-  "unsupported": "Not supported by this browser",
-  "denied": "Blocked by the browser",
-  "deniedHint": "Allow notifications in your browser settings.",
-  "enableButton": "Enable",
-  "disableButton": "Disable",
-  "enabled": "✅ Push notifications enabled",
-  "disabled": "Push notifications disabled",
-  "enableError": "Could not enable notifications"
-},
       "success": "Preferences updated",
       "error": "Could not save preferences"
     },
@@ -446,7 +431,22 @@
       "error": "Error during deletion",
       "successTitle": "Deletion scheduled",
       "successMessage": "An email has been sent to you. Check your spam folder if needed. Logging out in 3 seconds…"
-    }
+    },
+  "push": {
+  "sectionTitle": "🔔 Browser push notifications",
+  "sectionHint": "Get alerts in your browser even when the app is closed.",
+  "label": "Enable push notifications",
+  "active": "Notifications enabled",
+  "inactive": "Notifications disabled",
+  "unsupported": "Not supported by this browser",
+  "denied": "Blocked by the browser",
+  "deniedHint": "Allow notifications in your browser settings.",
+  "enableButton": "Enable",
+  "disableButton": "Disable",
+  "enabled": "✅ Push notifications enabled",
+  "disabled": "Push notifications disabled",
+  "enableError": "Could not enable notifications"
+}
   },
   "textUpload": {
     "title": "📄 Import text",

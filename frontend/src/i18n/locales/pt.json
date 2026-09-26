@@ -370,21 +370,6 @@
         "emailChange": "Alteração de email",
         "security": "Alertas de segurança da conta"
       },
-  "push": {
-  "sectionTitle": "🔔 Notificações push do navegador",
-  "sectionHint": "Receba alertas no seu navegador mesmo com a aplicação fechada.",
-  "label": "Ativar notificações push",
-  "active": "Notificações ativadas",
-  "inactive": "Notificações desativadas",
-  "unsupported": "Não suportado por este navegador",
-  "denied": "Bloqueadas pelo navegador",
-  "deniedHint": "Permita notificações nas configurações do navegador.",
-  "enableButton": "Ativar",
-  "disableButton": "Desativar",
-  "enabled": "✅ Notificações push ativadas",
-  "disabled": "Notificações push desativadas",
-  "enableError": "Não foi possível ativar as notificações"
-},
       "success": "Preferências atualizadas",
       "error": "Não foi possível guardar as preferências"
     },
@@ -446,7 +431,22 @@
       "error": "Erro durante a eliminação",
       "successTitle": "Eliminação agendada",
       "successMessage": "Foi-lhe enviado um email. Verifique a pasta de spam se necessário. A terminar sessão em 3 segundos…"
-    }
+    },
+  "push": {
+  "sectionTitle": "🔔 Notificações push do navegador",
+  "sectionHint": "Receba alertas no seu navegador mesmo com a aplicação fechada.",
+  "label": "Ativar notificações push",
+  "active": "Notificações ativadas",
+  "inactive": "Notificações desativadas",
+  "unsupported": "Não suportado por este navegador",
+  "denied": "Bloqueadas pelo navegador",
+  "deniedHint": "Permita notificações nas configurações do navegador.",
+  "enableButton": "Ativar",
+  "disableButton": "Desativar",
+  "enabled": "✅ Notificações push ativadas",
+  "disabled": "Notificações push desativadas",
+  "enableError": "Não foi possível ativar as notificações"
+}
   },
   "textUpload": {
     "title": "📄 Importar um texto",
