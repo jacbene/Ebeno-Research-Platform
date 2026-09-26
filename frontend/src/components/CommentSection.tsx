@@ -193,7 +193,7 @@ const renderComment = (c: Comment, depth: number = 0) => {
   const indent = Math.min(depth, maxDepth) * indentStep;
 
   return (
-    <div key={c.id} style={{ marginLeft: `${indent}px`, marginBottom: isMobile ? '8px' : '10px' }}>
+    <div key={c.id} style={{ marginLeft: `${indent}px`, marginBottom: isMobile ? '8px' : '10px', minWidth: 0, boxSizing: 'border-box' }}>
       <div
         style={{
           padding: isMobile ? '8px 10px' : '10px 12px',
@@ -435,13 +435,17 @@ const renderComment = (c: Comment, depth: number = 0) => {
   // Rendu principal
   // ============================================================
   return (
-    <div
-      style={{
-        marginTop: compact ? '12px' : '20px',
-        paddingTop: compact ? '12px' : '16px',
-        borderTop: `1px solid ${colors.gray[200]}`,
-      }}
-    >
+<div
+  style={{
+    marginTop: compact ? '12px' : '20px',
+    paddingTop: compact ? '12px' : '16px',
+    borderTop: `1px solid ${colors.gray[200]}`,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+  }}
+>
       {!compact && (
         <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: colors.dark, display: 'flex', alignItems: 'center', gap: '6px' }}>
           💬 {t('comments.title')} ({comments.length})

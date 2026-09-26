@@ -1081,172 +1081,183 @@ const [translateTarget, setTranslateTarget] = useState<{
                   const statusColor = doc.status ? getStatusColor(doc.status) : null;
 
                   return (
-                    <div
-                      key={doc.id}
-                      onClick={() => setSelectedDocument(doc)}
-                      style={{
-                        padding: '12px 14px',
-                        marginBottom: '8px',
-                        border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
-                        borderRadius: theme.borderRadius.md,
-                        backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        opacity: isDeleting ? 0.5 : 1,
-                        boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = colors.gray[50];
-                          e.currentTarget.style.borderColor = colors.gray[300];
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = colors.white;
-                          e.currentTarget.style.borderColor = colors.gray[200];
-                        }
-                      }}
-                    >
-                      <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>{doc.icon}</div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontWeight: '600',
-                          fontSize: '14px',
-                          color: colors.dark,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          marginBottom: '4px',
-                        }}>
-                          {doc.name}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span style={{
-                            padding: '2px 8px',
-                            borderRadius: '10px',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            backgroundColor: typeColor.bg,
-                            color: typeColor.color,
-                            letterSpacing: '0.5px',
-                          }}>
-                            {doc.type === 'transcription' ? t('projectDetail.documents.typeTranscription') : getFileTypeLabel(doc.name)}
-                          </span>
-
-                          <LanguageBadge language={doc.raw?.language} />
-
-                          {statusColor && (
-                            <span style={{
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              fontSize: '10px',
-                              fontWeight: 'bold',
-                              backgroundColor: statusColor + '20',
-                              color: statusColor,
-                            }}>
-                              {getStatusLabel(doc.status || '')}
-                            </span>
-                          )}
-
-                          {doc.size !== null && (
-                            <span style={{ fontSize: '12px', color: colors.gray[600] }}>
-                              💾 {formatFileSize(doc.size)}
-                            </span>
-                          )}
-
-                          <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-                            {doc.type === 'text' ? t('projectDetail.documents.typeText') :
-                             doc.type === 'transcription' ? t('projectDetail.documents.typeTranscriptionShort') :
-                             t('projectDetail.documents.typeFile')}
-                          </span>
-                        </div>
-
-  <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-    {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
-  </div>
-
-  {/* ✅ Commentaires sur le document */}
-  {(doc.type === 'transcription' || doc.type === 'text') && (
-    <CommentSection
-      documentId={
-        doc.type === 'transcription' && doc.raw?._originalId
-          ? doc.raw._originalId
-          : doc.id
-      }
-      documentType={
-        doc.type === 'text' ? 'transcription' : 'transcription'
-      }
-      compact
-    />
-  )}
-</div>
-
-                      <div
-  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
-  onClick={(e) => e.stopPropagation()}
+<div
+  key={doc.id}
+  onClick={() => setSelectedDocument(doc)}
+  style={{
+    padding: '12px 14px',
+    marginBottom: '8px',
+    border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    opacity: isDeleting ? 0.5 : 1,
+    boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
+    boxSizing: 'border-box',
+    width: '100%',
+  }}
+  onMouseEnter={(e) => {
+    if (!isSelected) {
+      e.currentTarget.style.backgroundColor = colors.gray[50];
+      e.currentTarget.style.borderColor = colors.gray[300];
+    }
+  }}
+  onMouseLeave={(e) => {
+    if (!isSelected) {
+      e.currentTarget.style.backgroundColor = colors.white;
+      e.currentTarget.style.borderColor = colors.gray[200];
+    }
+  }}
 >
-  {/* ✅ Bouton Traduire (textes importés + transcriptions complétées) */}
-  {(doc.type === 'text' || doc.type === 'transcription') && (
-    <button
-      onClick={() =>
-        setTranslateTarget({
-          open: true,
-          documentId: doc.type === 'transcription' && doc.raw?._originalId
-            ? doc.raw._originalId
-            : doc.id,
-          documentTitle: doc.name,
-          documentType: doc.type === 'text' ? 'text' : 'transcription',
-        })
-      }
-      title={t('translation.translateTooltip')}
-      style={{
-        padding: '6px 10px',
-        backgroundColor: colors.gray[100] || '#f5f5f5',
-        color: colors.primary,
-        border: `1px solid ${colors.primary}40`,
-        borderRadius: theme.borderRadius.sm,
-        cursor: 'pointer',
-        fontSize: '13px',
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-      }}
-    >
-      🌍
-    </button>
-  )}
-
-  <SummaryButton
-    documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
-    type={doc.type === 'file' ? 'file' : 'transcription'}
-    onSummaryGenerated={() => {}}
-  />
-  <button
-    onClick={() => deleteDocument(doc)}
-    disabled={isDeleting}
-    title={t('projectDetail.documents.deleteTooltip')}
+  {/* ✅ Ligne 1 : icône + contenu + actions */}
+  <div
     style={{
-      padding: '6px 10px',
-      backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
-      color: 'white',
-      border: 'none',
-      borderRadius: theme.borderRadius.sm,
-      cursor: isDeleting ? 'not-allowed' : 'pointer',
-      fontSize: '13px',
-      lineHeight: 1,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      flexWrap: 'wrap',
     }}
   >
-    {isDeleting ? '⏳' : '🗑️'}
-  </button>
+    <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>{doc.icon}</div>
+
+    <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Contenu SANS les commentaires ici */}
+      <div style={{
+        fontWeight: '600',
+        fontSize: '14px',
+        color: colors.dark,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        marginBottom: '4px',
+      }}>
+        {doc.name}
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{
+          padding: '2px 8px',
+          borderRadius: '10px',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          backgroundColor: typeColor.bg,
+          color: typeColor.color,
+          letterSpacing: '0.5px',
+        }}>
+          {doc.type === 'transcription' ? t('projectDetail.documents.typeTranscription') : getFileTypeLabel(doc.name)}
+        </span>
+
+        <LanguageBadge language={doc.raw?.language} />
+
+        {statusColor && (
+          <span style={{
+            padding: '2px 8px',
+            borderRadius: '10px',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            backgroundColor: statusColor + '20',
+            color: statusColor,
+          }}>
+            {getStatusLabel(doc.status || '')}
+          </span>
+        )}
+
+        {doc.size !== null && (
+          <span style={{ fontSize: '12px', color: colors.gray[600] }}>
+            💾 {formatFileSize(doc.size)}
+          </span>
+        )}
+
+        <span style={{ fontSize: '12px', color: colors.gray[500] }}>
+          {doc.type === 'text' ? t('projectDetail.documents.typeText') :
+           doc.type === 'transcription' ? t('projectDetail.documents.typeTranscriptionShort') :
+           t('projectDetail.documents.typeFile')}
+        </span>
+      </div>
+
+      <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+        {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
+      </div>
+    </div>
+
+    <div
+      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* ✅ Bouton Traduire (textes importés + transcriptions) */}
+      {(doc.type === 'text' || doc.type === 'transcription') && (
+        <button
+          onClick={() =>
+            setTranslateTarget({
+              open: true,
+              documentId: doc.type === 'transcription' && doc.raw?._originalId
+                ? doc.raw._originalId
+                : doc.id,
+              documentTitle: doc.name,
+              documentType: doc.type === 'text' ? 'text' : 'transcription',
+            })
+          }
+          title={t('translation.translateTooltip')}
+          style={{
+            padding: '6px 10px',
+            backgroundColor: colors.gray[100] || '#f5f5f5',
+            color: colors.primary,
+            border: `1px solid ${colors.primary}40`,
+            borderRadius: theme.borderRadius.sm,
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 'bold',
+          }}
+        >
+          🌍
+        </button>
+      )}
+
+      <SummaryButton
+        documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
+        type={doc.type === 'file' ? 'file' : 'transcription'}
+        onSummaryGenerated={() => {}}
+      />
+      <button
+        onClick={() => deleteDocument(doc)}
+        disabled={isDeleting}
+        title={t('projectDetail.documents.deleteTooltip')}
+        style={{
+          padding: '6px 10px',
+          backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
+          color: 'white',
+          border: 'none',
+          borderRadius: theme.borderRadius.sm,
+          cursor: isDeleting ? 'not-allowed' : 'pointer',
+          fontSize: '13px',
+          lineHeight: 1,
+        }}
+      >
+        {isDeleting ? '⏳' : '🗑️'}
+      </button>
+    </div>
+  </div>
+
+  {/* ✅ Ligne 2 : Commentaires PLEINE LARGEUR (hors flex-row) */}
+  {(doc.type === 'transcription' || doc.type === 'text') && (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ width: '100%', marginTop: '8px' }}
+    >
+      <CommentSection
+        documentId={
+          doc.type === 'transcription' && doc.raw?._originalId
+            ? doc.raw._originalId
+            : doc.id
+        }
+        documentType="transcription"
+        compact
+      />
+    </div>
+  )}
 </div>
-                    </div>
+            
                   );
                 })
               )}
