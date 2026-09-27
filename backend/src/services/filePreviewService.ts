@@ -74,6 +74,66 @@ const downloadBuffer = async (filePath: string): Promise<Buffer | null> => {
 // ============================================================
 // ✅ FONCTION PRINCIPALE
 // ============================================================
+// ============================================================
+// ✅ Détection du type réel par magic bytes
+// ============================================================
+const detectBufferType = (buffer: Buffer): 'zip' | 'pdf' | 'html' | 'image' | 'text' | 'unknown' => {
+  if (buffer.length < 4) return 'unknown';
+
+  // ZIP (DOCX, XLSX, PPTX) — PK\x03\x04
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04) {
+    return 'zip';
+  }
+
+  // PDF — %PDF
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+    return 'pdf';
+  }
+
+  // JPEG — FF D8 FF
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'image';
+  }
+
+  // PNG — 89 50 4E 47
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return 'image';
+  }
+
+  // GIF — GIF8
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+    return 'image';
+  }
+
+  // HTML — commencer par <!DOCTYPE ou <html
+  const start = buffer.slice(0, 500).toString('utf-8').trim().toLowerCase();
+  if (start.startsWith('<!doctype') || start.startsWith('<html')) {
+    return 'html';
+  }
+
+  // Sinon, on regarde si c'est du texte pur (que des caractères imprimables)
+  const sample = buffer.slice(0, 500).toString('utf-8');
+  const printableRatio = sample.split('').filter((c) => {
+    const code = c.charCodeAt(0);
+    return code >= 32 || c === '\n' || c === '\r' || c === '\t';
+  }).length / Math.max(sample.length, 1);
+
+  if (printableRatio > 0.9) return 'text';
+
+  return 'unknown';
+};
+
+// ============================================================
+// ✅ Extrait le contenu du <body> d'un HTML
+// ============================================================
+const extractBodyContent = (html: string): string => {
+  const match = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return match ? match[1].trim() : html;
+};
+
+// ============================================================
+// ✅ FONCTION PRINCIPALE (mise à jour)
+// ============================================================
 export const getFilePreview = async (
   fileId: string,
   userId: string
@@ -97,26 +157,49 @@ export const getFilePreview = async (
     version: file.version || 1,
   };
 
-  // ─── DOCX / DOC : HTML via mammoth ───────────────────────
-  if (['docx'].includes(ext) || mime.includes('wordprocessingml')) {
+  // ─── DOCX / DOC : détection par magic bytes ───────────────
+  if (['docx', 'doc'].includes(ext) || mime.includes('word') || mime.includes('wordprocessingml')) {
     const buffer = await downloadBuffer(file.filePath);
     if (!buffer) {
       return { type: 'unsupported', editable: false, meta: baseMeta };
     }
 
-    try {
-      const result = await mammoth.convertToHtml({ buffer });
+    const realType = detectBufferType(buffer);
+
+    // ✅ Vrai DOCX (ZIP) → mammoth
+    if (realType === 'zip') {
+      try {
+        const result = await mammoth.convertToHtml({ buffer });
+        return {
+          type: 'html',
+          content: result.value || '<p><em>Document vide</em></p>',
+          editable: true,
+          editFormat: 'html',
+          meta: baseMeta,
+        };
+      } catch (err: any) {
+        logger.error(`❌ [preview] mammoth error: ${err.message}`);
+        return { type: 'unsupported', editable: false, meta: baseMeta };
+      }
+    }
+
+    // ✅ Notre DOCX généré (HTML) → extraire le <body>
+    if (realType === 'html') {
+      const fullHtml = buffer.toString('utf-8');
+      const content = extractBodyContent(fullHtml);
+      logger.info(`✅ [preview] HTML-as-DOC détecté pour ${file.fileName}`);
       return {
         type: 'html',
-        content: result.value || '<p><em>Document vide</em></p>',
+        content,
         editable: true,
         editFormat: 'html',
         meta: baseMeta,
       };
-    } catch (err: any) {
-      logger.error(`❌ [preview] mammoth error: ${err.message}`);
-      return { type: 'unsupported', editable: false, meta: baseMeta };
     }
+
+    // ⚠️ Fichier .docx corrompu ou format inconnu
+    logger.warn(`⚠️ [preview] Fichier .docx non reconnu (${realType})`);
+    return { type: 'unsupported', editable: false, meta: baseMeta };
   }
 
   // ─── TXT / MD / CSV / JSON ───────────────────────────────
@@ -133,19 +216,22 @@ export const getFilePreview = async (
     };
   }
 
-  // ─── PDF / Images / Vidéo / Audio : URL signée ───────────
+  // ─── PDF ─────────────────────────────────────────────────
   if (ext === 'pdf' || mime === 'application/pdf') {
     return { type: 'pdf', signedUrl: getSignedUrl(file.filePath), editable: false, meta: baseMeta };
   }
 
+  // ─── Images ──────────────────────────────────────────────
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext) || mime.startsWith('image/')) {
     return { type: 'image', signedUrl: getSignedUrl(file.filePath), editable: false, meta: baseMeta };
   }
 
+  // ─── Vidéo ───────────────────────────────────────────────
   if (['mp4', 'webm', 'mov', 'avi'].includes(ext) || mime.startsWith('video/')) {
     return { type: 'video', signedUrl: getSignedUrl(file.filePath), editable: false, meta: baseMeta };
   }
 
+  // ─── Audio ───────────────────────────────────────────────
   if (['mp3', 'wav', 'm4a', 'ogg', 'flac'].includes(ext) || mime.startsWith('audio/')) {
     return { type: 'audio', signedUrl: getSignedUrl(file.filePath), editable: false, meta: baseMeta };
   }
