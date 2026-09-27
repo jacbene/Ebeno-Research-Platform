@@ -308,6 +308,26 @@
       "memo-created": "📝 Nuevo memo: {{title}}"
     }
   },
+ "files": {
+  "preview": {
+    "unavailable": "Vista previa no disponible para este archivo",
+    "unsupported": "Vista previa no soportada para este tipo de archivo"
+  },
+  "edit": {
+    "button": "Editar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Cambios guardados",
+    "version": "Nueva versión: v{{version}}",
+    "error": "No se pudieron guardar los cambios",
+    "emptyError": "El contenido no puede estar vacío",
+    "modeHint": "Modo edición — los cambios crean una nueva versión",
+    "closeHint": "Termine la edición antes de cerrar"
+  },
+  "versions": {
+    "title": "Historial de versiones"
+  }
+},
   "settings": {
     "title": "⚙️ Ajustes",
     "loading": "Cargando el perfil...",

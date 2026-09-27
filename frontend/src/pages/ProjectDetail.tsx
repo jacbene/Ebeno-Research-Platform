@@ -1083,7 +1083,17 @@ const [translateTarget, setTranslateTarget] = useState<{
                   return (
 <div
   key={doc.id}
-  onClick={() => setSelectedDocument(doc)}
+  onClick={() => {
+  setSelectedDocument(doc);
+  // ✅ Ouvrir la modal pour les fichiers supportés
+  if (
+    doc.type === 'file' ||
+    doc.type === 'text' ||
+    doc.type === 'transcription'
+  ) {
+    setPreviewFile(doc);
+  }
+}}
   style={{
     padding: '12px 14px',
     marginBottom: '8px',
@@ -1530,18 +1540,20 @@ const [translateTarget, setTranslateTarget] = useState<{
         )}
       </div>
 
-      {previewFile && (
-        <FilePreviewModal
-          file={{
-            id: previewFile.id,
-            fileName: previewFile.name,
-            filePath: previewFile.raw?.filePath || '',
-            mimeType: previewFile.raw?.mimeType || 'application/octet-stream',
-            fileSize: previewFile.size || 0,
-          }}
-          onClose={() => setPreviewFile(null)}
-        />
-      )}
+{previewFile && (
+  <FilePreviewModal
+    file={{
+      id: previewFile.raw?.id || previewFile.id,
+      fileName: previewFile.name,
+      filePath: previewFile.raw?.filePath || '',
+      mimeType: previewFile.raw?.mimeType || 'application/octet-stream',
+      fileSize: previewFile.size || 0,
+    }}
+    projectId={encodedId}
+    onClose={() => setPreviewFile(null)}
+    onSaved={() => fetchProjectData()}
+  />
+)}
 
       {editingProject && isOwner && (
         <div

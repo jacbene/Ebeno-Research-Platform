@@ -308,6 +308,26 @@
       "memo-created": "📝 Novo memo: {{title}}"
     }
   },
+ "files": {
+  "preview": {
+    "unavailable": "Pré-visualização indisponível para este ficheiro",
+    "unsupported": "Pré-visualização não suportada para este tipo de ficheiro"
+  },
+  "edit": {
+    "button": "Editar",
+    "save": "Guardar",
+    "saving": "A guardar…",
+    "saved": "Alterações guardadas",
+    "version": "Nova versão: v{{version}}",
+    "error": "Não foi possível guardar as alterações",
+    "emptyError": "O conteúdo não pode estar vazio",
+    "modeHint": "Modo de edição — as alterações criam uma nova versão",
+    "closeHint": "Termine a edição antes de fechar"
+  },
+  "versions": {
+    "title": "Histórico de versões"
+  }
+},
   "settings": {
     "title": "⚙️ Definições",
     "loading": "A carregar o perfil...",

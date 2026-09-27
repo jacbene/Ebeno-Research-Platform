@@ -308,6 +308,26 @@
       "memo-created": "📝 New memo: {{title}}"
     }
   },
+ "files": {
+  "preview": {
+    "unavailable": "Preview not available for this file",
+    "unsupported": "Preview not supported for this file type"
+  },
+  "edit": {
+    "button": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Changes saved",
+    "version": "New version: v{{version}}",
+    "error": "Could not save changes",
+    "emptyError": "Content cannot be empty",
+    "modeHint": "Edit mode — changes create a new version",
+    "closeHint": "Finish editing before closing"
+  },
+  "versions": {
+    "title": "Version history"
+  }
+},
   "settings": {
     "title": "⚙️ Settings",
     "loading": "Loading profile...",
