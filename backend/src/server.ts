@@ -42,6 +42,7 @@ import adminRoutes from './routes/adminRoutes';
 import twoFactorRoutes from './routes/twoFactorRoutes';
 import translationRoutes from './routes/translationRoutes';
 import pushRoutes from './routes/pushRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -182,6 +183,7 @@ app.use('/api/codes', codeRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/language', languageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/2fa', twoFactorRoutes);
