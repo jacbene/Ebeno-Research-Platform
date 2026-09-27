@@ -7,7 +7,11 @@ import {
   getTrashedFiles,
   restoreFile,
   permanentlyDeleteFile,
-  emptyTrash,   // ✅
+  emptyTrash,
+  previewFile,
+  editFile,
+  listFileVersions,
+  getFileText,
 } from '../controllers/fileController';
 import { authenticate } from '../middleware/auth';
 
@@ -16,6 +20,11 @@ const router = Router({ mergeParams: true });
 router.post('/', authenticate, uploadFile);
 router.get('/', authenticate, getFiles);
 
+// ✅ Preview + Édition
+router.get('/:fileId/preview', authenticate, previewFile);
+router.put('/:fileId/edit', authenticate, editFile);
+router.get('/:fileId/versions', authenticate, listFileVersions);
+router.get('/:fileId/text', authenticate, getFileText);
 // Corbeille
 router.get('/trash', authenticate, getTrashedFiles);
 router.delete('/trash/empty', authenticate, emptyTrash);  // ✅ Vider

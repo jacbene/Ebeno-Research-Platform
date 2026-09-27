@@ -29,6 +29,35 @@ export const uploadToCloudinary = async (
   }
 };
 
+// ============================================================
+// ✅ Upload depuis un Buffer (pour édition)
+// ============================================================
+export const uploadBufferToCloudinary = async (
+  buffer: Buffer,
+  folder: string,
+  mimeType: string
+): Promise<{ publicId: string; secureUrl: string }> => {
+  return new Promise((resolve, reject) => {
+    const resourceType = mimeType.startsWith('image/') ? 'image'
+      : mimeType.startsWith('video/') ? 'video'
+      : 'raw';
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: resourceType,
+        public_id: `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+      },
+      (error, result) => {
+        if (error || !result) return reject(error || new Error('Upload failed'));
+        resolve({ publicId: result.public_id, secureUrl: result.secure_url });
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+};
+
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
   try {
     await cloudinary.uploader.destroy(publicId);

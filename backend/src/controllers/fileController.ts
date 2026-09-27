@@ -8,6 +8,8 @@ import { deleteFromCloudinary } from '../services/cloudinaryService';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { logger } from '../utils/logger';
+import { getFilePreview, getFileTextForTranslation } from '../services/filePreviewService';
+import { saveFileEdit, getFileVersions } from '../services/fileEditService';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -379,5 +381,111 @@ export const emptyTrash = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Erreur emptyTrash:', error);
     res.status(500).json({ error: 'Erreur serveur', details: error.message });
+  }
+};
+
+export const previewFile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, fileId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const preview = await getFilePreview(fileId, userId);
+    if (!preview) return res.status(404).json({ error: 'Fichier non trouvé ou accès refusé' });
+
+    res.json({ success: true, preview });
+  } catch (err: any) {
+    logger.error(`❌ [preview] ${err.message}`);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// ============================================================
+// ✅ ÉDITER
+// ============================================================
+export const editFile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, fileId } = req.params;
+    const { content, format } = req.body;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ error: 'Contenu requis' });
+    }
+    if (!['html', 'text'].includes(format)) {
+      return res.status(400).json({ error: 'Format invalide (html | text)' });
+    }
+
+    const result = await saveFileEdit({
+      fileId,
+      userId,
+      newContent: content,
+      editFormat: format,
+    });
+
+    const userName = (req as any).user?.name || (req as any).user?.email || 'Utilisateur';
+
+    emitGlobal('file-edited', {
+      projectId,
+      fileId,
+      version: result.version,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-edited',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: `v${result.version}`,
+    });
+
+    res.json({ success: true, version: result.version, filePath: result.filePath });
+  } catch (err: any) {
+    logger.error(`❌ [edit] ${err.message}`);
+    const status = err.message.includes('non autorisé') ? 403
+      : err.message.includes('non supportée') ? 400
+      : err.message.includes('non trouvé') ? 404
+      : 500;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+// ============================================================
+// ✅ LISTER LES VERSIONS
+// ============================================================
+export const listFileVersions = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { fileId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const versions = await getFileVersions(fileId, userId);
+    res.json({ success: true, versions });
+  } catch (err: any) {
+    const status = err.message.includes('non autorisé') ? 403 : 500;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+// ============================================================
+// ✅ TEXTE POUR TRADUCTION
+// ============================================================
+export const getFileText = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { fileId } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const text = await getFileTextForTranslation(fileId, userId);
+    res.json({ success: true, text, length: text.length });
+  } catch (err: any) {
+    const status = err.message.includes('autorisé') ? 403 : 400;
+    res.status(status).json({ error: err.message });
   }
 };
