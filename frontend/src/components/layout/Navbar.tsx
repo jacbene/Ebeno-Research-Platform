@@ -314,6 +314,20 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
         // ============================================================
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'nowrap' }}>
           <Link to="/" style={linkStyle(isActive('/'))}>📊 {t('nav.dashboard')}</Link>
+<Link
+  to="/analytics"
+  style={{
+    textDecoration: 'none',
+    color: isActive('/analytics') ? colors.primary : colors.light,
+    padding: '6px 12px',
+    borderRadius: '6px',
+    backgroundColor: isActive('/analytics') ? colors.light + '15' : 'transparent',
+    fontWeight: isActive('/analytics') ? 'bold' : 'normal',
+    fontSize: '14px',
+  }}
+>
+  📊 {t('nav.analytics')}
+</Link>
           <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 {t('nav.chat')}</Link>
           <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
           <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>
