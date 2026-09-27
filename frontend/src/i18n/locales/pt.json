@@ -324,9 +324,16 @@
     "modeHint": "Modo de edição — as alterações criam uma nova versão",
     "closeHint": "Termine a edição antes de fechar"
   },
-  "versions": {
-    "title": "Histórico de versões"
-  }
+ "versions": {
+  "title": "Histórico de versões",
+  "current": "Atual",
+  "restoring": "A restaurar…",
+  "restoreTooltip": "Restaurar esta versão",
+  "restoreConfirm": "Restaurar a versão v{{version}}? Será criada uma nova versão.",
+  "restored": "Versão restaurada",
+  "newVersion": "Nova versão atual: v{{version}}",
+  "restoreError": "Não foi possível restaurar esta versão"
+}
 },
   "settings": {
     "title": "⚙️ Definições",

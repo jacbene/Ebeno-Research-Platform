@@ -324,9 +324,16 @@
     "modeHint": "وضع التعديل — التغييرات تُنشئ نسخة جديدة",
     "closeHint": "أكمل التعديل قبل الإغلاق"
   },
-  "versions": {
-    "title": "سجل النسخ"
-  }
+ "versions": {
+  "title": "سجل النسخ",
+  "current": "الحالية",
+  "restoring": "…جارٍ الاستعادة",
+  "restoreTooltip": "استعادة هذه النسخة",
+  "restoreConfirm": "استعادة النسخة v{{version}}؟ سيتم إنشاء نسخة جديدة.",
+  "restored": "تمت استعادة النسخة",
+  "newVersion": "النسخة الحالية الجديدة: v{{version}}",
+  "restoreError": "تعذر استعادة هذه النسخة"
+}
 },
   "settings": {
     "title": "⚙️ الإعدادات",

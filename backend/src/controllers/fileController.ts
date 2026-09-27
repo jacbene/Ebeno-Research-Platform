@@ -10,6 +10,7 @@ import { logActivity } from '../services/activityService';
 import { logger } from '../utils/logger';
 import { getFilePreview, getFileTextForTranslation } from '../services/filePreviewService';
 import { saveFileEdit, getFileVersions } from '../services/fileEditService';
+import { restoreFileVersion } from '../services/fileEditService';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -486,6 +487,61 @@ export const getFileText = async (req: Request, res: Response) => {
     res.json({ success: true, text, length: text.length });
   } catch (err: any) {
     const status = err.message.includes('autorisé') ? 403 : 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+// ============================================================
+// ✅ RESTAURER UNE VERSION
+// ============================================================
+export const restoreVersion = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, fileId, version } = req.params;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const versionNum = Number(version);
+    if (!versionNum || isNaN(versionNum) || versionNum < 1) {
+      return res.status(400).json({ error: 'Numéro de version invalide' });
+    }
+
+    const result = await restoreFileVersion(fileId, versionNum, userId);
+
+    const userName = (req as any).user?.name || (req as any).user?.email || 'Utilisateur';
+
+    emitGlobal('file-restored-version', {
+      projectId,
+      fileId,
+      newVersion: result.version,
+      restoredFrom: versionNum,
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-version-restored',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: `v${versionNum} → v${result.version}`,
+    });
+
+    res.json({
+      success: true,
+      version: result.version,
+      restoredFrom: versionNum,
+      filePath: result.filePath,
+    });
+  } catch (err: any) {
+    logger.error(`❌ [restore-version] ${err.message}`);
+    const status = err.message.includes('autorisé') ? 403
+      : err.message.includes('introuvable') ? 404
+      : err.message.includes('déjà') ? 400
+      : 500;
     res.status(status).json({ error: err.message });
   }
 };

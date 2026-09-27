@@ -136,14 +136,15 @@ export const saveFileEdit = async (options: SaveEditOptions): Promise<{ version:
   logger.info(`💾 [edit] Fichier ${fileId} édité par ${userId} → v${currentVersion + 1}`);
 
   // 7. Mettre à jour project_files
-  const newVersion = currentVersion + 1;
-  await db('project_files').where({ id: fileId }).update({
-    filePath: uploaded.secureUrl,
-    cloudinaryPublicId: uploaded.publicId,
-    fileSize: newBuffer.length,
-    mimeType: newMimeType,
-    version: newVersion,
-  });
+  // 7. Mettre à jour project_files
+const newVersion = currentVersion + 1;
+await db('project_files').where({ id: fileId }).update({
+  filePath: uploaded.secureUrl,
+  cloudinaryPublicId: uploaded.publicId,
+  fileSize: newBuffer.length,
+  mimeType: newMimeType,
+  version: newVersion,
+});
 
   // 8. Enregistrer la nouvelle version dans file_versions
   const versionId = generateId();
@@ -178,4 +179,73 @@ export const getFileVersions = async (fileId: string, userId: string) => {
   return db('file_versions')
     .where({ fileId })
     .orderBy('version', 'desc');
+};
+
+// ============================================================
+// ✅ RESTAURER UNE VERSION (rollback non-destructif)
+// ============================================================
+export const restoreFileVersion = async (
+  fileId: string,
+  targetVersion: number,
+  userId: string
+): Promise<{ version: number; filePath: string }> => {
+  // 1. Récupérer le fichier
+  const file = await db('project_files').where({ id: fileId }).first();
+  if (!file) throw new Error('Fichier non trouvé');
+
+  // 2. Vérifier membre du projet
+  const member = await db('project_members')
+    .where({ projectId: file.projectId, userId })
+    .first();
+  if (!member) throw new Error('Accès non autorisé');
+
+  // 3. Récupérer la version cible
+  const target = await db('file_versions')
+    .where({ fileId, version: targetVersion })
+    .first();
+
+  if (!target) throw new Error(`Version v${targetVersion} introuvable`);
+
+  const currentVersion = file.version || 1;
+  if (targetVersion === currentVersion) {
+    throw new Error('Vous êtes déjà sur cette version');
+  }
+
+  // 4. La nouvelle version = max existant + 1
+  const maxVersionResult = await db('file_versions')
+    .where({ fileId })
+    .max('version as maxVersion')
+    .first();
+  const maxVersion = Number(maxVersionResult?.maxVersion || currentVersion);
+  const newVersion = Math.max(maxVersion, currentVersion) + 1;
+
+  logger.info(
+    `🔄 [edit] Rollback fichier ${fileId} v${currentVersion} → v${targetVersion} (nouveau v${newVersion})`
+  );
+
+  // 5. Mettre à jour project_files : pointer vers le fichier de la version cible
+  await db('project_files').where({ id: fileId }).update({
+    filePath: target.filePath,
+    cloudinaryPublicId: target.cloudinaryPublicId || null,
+    fileSize: target.fileSize,
+    mimeType: target.mimeType,
+    version: newVersion,
+  });
+
+  // 6. Créer une nouvelle entrée dans file_versions (rollback non-destructif)
+  const newId = generateId();
+  await db('file_versions').insert({
+    id: newId,
+    fileId,
+    version: newVersion,
+    filePath: target.filePath,
+    cloudinaryPublicId: target.cloudinaryPublicId || null,
+    fileName: target.fileName,
+    fileSize: target.fileSize,
+    mimeType: target.mimeType,
+    editedBy: userId,
+    createdAt: new Date().toISOString(),
+  });
+
+  return { version: newVersion, filePath: target.filePath };
 };

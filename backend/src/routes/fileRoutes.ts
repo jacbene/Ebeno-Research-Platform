@@ -12,6 +12,7 @@ import {
   editFile,
   listFileVersions,
   getFileText,
+  restoreVersion,
 } from '../controllers/fileController';
 import { authenticate } from '../middleware/auth';
 
@@ -22,6 +23,7 @@ router.get('/', authenticate, getFiles);
 
 // ✅ Preview + Édition
 router.get('/:fileId/preview', authenticate, previewFile);
+router.post('/:fileId/restore/:version', authenticate, restoreVersion);
 router.put('/:fileId/edit', authenticate, editFile);
 router.get('/:fileId/versions', authenticate, listFileVersions);
 router.get('/:fileId/text', authenticate, getFileText);

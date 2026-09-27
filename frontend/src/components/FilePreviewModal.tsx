@@ -86,6 +86,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 
   const [versions, setVersions] = useState<Version[]>([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [restoringVersion, setRestoringVersion] = useState<number | null>(null);
 
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -212,6 +213,58 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
       setSaving(false);
     }
   };
+
+// ============================================================
+// ✅ Restaurer une version antérieure
+// ============================================================
+const handleRestoreVersion = async (version: number) => {
+  if (!preview) return;
+  if (version === preview.meta.version) return;
+
+  if (!confirm(t('files.versions.restoreConfirm', { version }))) return;
+
+  setRestoringVersion(version);
+  try {
+    const res = await api.post(
+      `/projects/${projectId}/files/${file.id}/restore/${version}`
+    );
+
+    if (res.data.success) {
+      toast.addToast({
+        type: 'success',
+        title: t('files.versions.restored'),
+        message: t('files.versions.newVersion', { version: res.data.version }),
+      });
+
+      // Recharger le preview
+      const previewRes = await api.get(
+        `/projects/${projectId}/files/${file.id}/preview`
+      );
+      if (previewRes.data.success) {
+        setPreview(previewRes.data.preview);
+        setEditedContent(previewRes.data.preview.content || '');
+      }
+
+      // Recharger les versions
+      const versionsRes = await api.get(
+        `/projects/${projectId}/files/${file.id}/versions`
+      );
+      if (versionsRes.data.success) {
+        setVersions(versionsRes.data.versions || []);
+      }
+
+      onSaved?.();
+    }
+  } catch (err: any) {
+    toast.addToast({
+      type: 'error',
+      title: t('common.error'),
+      message: err.response?.data?.error || t('files.versions.restoreError'),
+    });
+  } finally {
+    setRestoringVersion(null);
+  }
+};
 
   // ============================================================
   // Annuler l'édition
@@ -396,26 +449,81 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
             <div style={{ fontSize: '12px', fontWeight: 600, color: colors.dark, marginBottom: '8px' }}>
               🕐 {t('files.versions.title')}
             </div>
-            {versions.map((v) => (
-              <div
-                key={v.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  marginBottom: '4px',
-                  backgroundColor: 'white',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: colors.dark,
-                }}
-              >
-                <span style={{ fontWeight: 'bold' }}>v{v.version}</span>
-                <span style={{ color: colors.gray[500], fontSize: '11px' }}>
-                  {formatDate(v.createdAt, i18n.language)} · {formatSize(v.fileSize)}
-                </span>
-              </div>
-            ))}
+            {versions.map((v) => {
+  const isCurrent = v.version === preview?.meta.version;
+  const isRestoring = restoringVersion === v.version;
+
+  return (
+    <div
+      key={v.id}
+      onClick={() => !isCurrent && !isRestoring && handleRestoreVersion(v.version)}
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 10px',
+        marginBottom: '4px',
+        backgroundColor: isCurrent ? colors.primary + '15' : 'white',
+        border: isCurrent ? `1px solid ${colors.primary}60` : '1px solid transparent',
+        borderRadius: '4px',
+        fontSize: '12px',
+        color: colors.dark,
+        cursor: isCurrent || isRestoring ? 'default' : 'pointer',
+        opacity: isRestoring ? 0.5 : 1,
+        transition: 'all 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        if (!isCurrent && !isRestoring) {
+          e.currentTarget.style.backgroundColor = colors.gray[100];
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isCurrent) {
+          e.currentTarget.style.backgroundColor = 'white';
+        }
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontWeight: 'bold' }}>v{v.version}</span>
+        {isCurrent && (
+          <span
+            style={{
+              fontSize: '10px',
+              backgroundColor: colors.primary,
+              color: 'white',
+              padding: '1px 6px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+            }}
+          >
+            {t('files.versions.current')}
+          </span>
+        )}
+        {isRestoring && (
+          <span style={{ fontSize: '10px', color: colors.gray[500] }}>
+            {t('files.versions.restoring')}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ color: colors.gray[500], fontSize: '11px' }}>
+          {formatDate(v.createdAt, i18n.language)} · {formatSize(v.fileSize)}
+        </span>
+        {!isCurrent && !isRestoring && (
+          <span
+            style={{
+              fontSize: '14px',
+              color: colors.primary,
+            }}
+            title={t('files.versions.restoreTooltip')}
+          >
+            ↩️
+          </span>
+        )}
+      </div>
+    </div>
+  );
+})}
           </div>
         )}
 
