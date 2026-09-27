@@ -68,7 +68,8 @@
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "user": "المستخدم",
-    "menu": "القائمة"
+    "menu": "القائمة",
+    "analytics": "التحليلات"
   },
   "theme": {
     "light": "☀️ فاتح",
@@ -308,33 +309,33 @@
       "memo-created": "📝 مذكرة جديدة: {{title}}"
     }
   },
- "files": {
-  "preview": {
-    "unavailable": "المعاينة غير متوفرة لهذا الملف",
-    "unsupported": "المعاينة غير مدعومة لهذا النوع من الملفات"
+  "files": {
+    "preview": {
+      "unavailable": "المعاينة غير متوفرة لهذا الملف",
+      "unsupported": "المعاينة غير مدعومة لهذا النوع من الملفات"
+    },
+    "edit": {
+      "button": "تعديل",
+      "save": "حفظ",
+      "saving": "…جارٍ الحفظ",
+      "saved": "تم حفظ التغييرات",
+      "version": "نسخة جديدة: v{{version}}",
+      "error": "تعذر حفظ التغييرات",
+      "emptyError": "لا يمكن أن يكون المحتوى فارغًا",
+      "modeHint": "وضع التعديل — التغييرات تُنشئ نسخة جديدة",
+      "closeHint": "أكمل التعديل قبل الإغلاق"
+    },
+    "versions": {
+      "title": "سجل النسخ",
+      "current": "الحالية",
+      "restoring": "…جارٍ الاستعادة",
+      "restoreTooltip": "استعادة هذه النسخة",
+      "restoreConfirm": "استعادة النسخة v{{version}}؟ سيتم إنشاء نسخة جديدة.",
+      "restored": "تمت استعادة النسخة",
+      "newVersion": "النسخة الحالية الجديدة: v{{version}}",
+      "restoreError": "تعذر استعادة هذه النسخة"
+    }
   },
-  "edit": {
-    "button": "تعديل",
-    "save": "حفظ",
-    "saving": "…جارٍ الحفظ",
-    "saved": "تم حفظ التغييرات",
-    "version": "نسخة جديدة: v{{version}}",
-    "error": "تعذر حفظ التغييرات",
-    "emptyError": "لا يمكن أن يكون المحتوى فارغًا",
-    "modeHint": "وضع التعديل — التغييرات تُنشئ نسخة جديدة",
-    "closeHint": "أكمل التعديل قبل الإغلاق"
-  },
- "versions": {
-  "title": "سجل النسخ",
-  "current": "الحالية",
-  "restoring": "…جارٍ الاستعادة",
-  "restoreTooltip": "استعادة هذه النسخة",
-  "restoreConfirm": "استعادة النسخة v{{version}}؟ سيتم إنشاء نسخة جديدة.",
-  "restored": "تمت استعادة النسخة",
-  "newVersion": "النسخة الحالية الجديدة: v{{version}}",
-  "restoreError": "تعذر استعادة هذه النسخة"
-}
-},
   "settings": {
     "title": "⚙️ الإعدادات",
     "loading": "جاري تحميل الملف الشخصي...",
@@ -379,7 +380,7 @@
     "notifications": {
       "title": "🔔 إشعارات البريد الإلكتروني",
       "intro": "اختر الإشعارات التي ترغب في تلقيها. يتم حفظ التغييرات فورًا.",
-		  "commentCreated": "💬 علّق {{name}} على مستند",
+      "commentCreated": "💬 علّق {{name}} على مستند",
       "sectionOptional": "إشعارات اختيارية",
       "sectionOptionalHint": "يمكنك تعطيلها في أي وقت.",
       "sectionTransactional": "إشعارات إلزامية",
@@ -459,21 +460,21 @@
       "successTitle": "تم جدولة الحذف",
       "successMessage": "تم إرسال بريد إليك. تحقق من مجلد البريد العشوائي إذا لزم الأمر. تسجيل الخروج خلال 3 ثوانٍ…"
     },
-  "push": {
-  "sectionTitle": "🔔 إشعارات المتصفح",
-  "sectionHint": "احصل على تنبيهات في متصفحك حتى عندما يكون التطبيق مغلقًا.",
-  "label": "تفعيل الإشعارات",
-  "active": "الإشعارات مفعّلة",
-  "inactive": "الإشعارات معطّلة",
-  "unsupported": "غير مدعوم في هذا المتصفح",
-  "denied": "محظورة من المتصفح",
-  "deniedHint": "اسمح بالإشعارات من إعدادات المتصفح.",
-  "enableButton": "تفعيل",
-  "disableButton": "تعطيل",
-  "enabled": "✅ تم تفعيل الإشعارات",
-  "disabled": "تم تعطيل الإشعارات",
-  "enableError": "تعذر تفعيل الإشعارات"
-}
+    "push": {
+      "sectionTitle": "🔔 إشعارات المتصفح",
+      "sectionHint": "احصل على تنبيهات في متصفحك حتى عندما يكون التطبيق مغلقًا.",
+      "label": "تفعيل الإشعارات",
+      "active": "الإشعارات مفعّلة",
+      "inactive": "الإشعارات معطّلة",
+      "unsupported": "غير مدعوم في هذا المتصفح",
+      "denied": "محظورة من المتصفح",
+      "deniedHint": "اسمح بالإشعارات من إعدادات المتصفح.",
+      "enableButton": "تفعيل",
+      "disableButton": "تعطيل",
+      "enabled": "✅ تم تفعيل الإشعارات",
+      "disabled": "تم تعطيل الإشعارات",
+      "enableError": "تعذر تفعيل الإشعارات"
+    }
   },
   "textUpload": {
     "title": "📄 استيراد نص",
@@ -646,20 +647,20 @@
     "missingToken": "لم يتم توفير رمز في الرابط.",
     "backToLogin": "← العودة لتسجيل الدخول"
   },
- "translation": {
-  "modalTitle": "ترجمة المستند",
-  "selectLanguage": "اللغة الهدف",
-  "translateButton": "ترجمة",
-  "translateTooltip": "ترجمة هذا المستند إلى لغة أخرى",
-  "translating": "…جارٍ الترجمة",
-  "success": "تمت الترجمة بنجاح",
-  "error": "خطأ في الترجمة",
-  "unavailable": "خدمة الترجمة غير متاحة مؤقتًا. يرجى المحاولة لاحقًا.",
-  "copied": "تم نسخ الترجمة إلى الحافظة",
-  "copy": "نسخ",
-  "cached": "مترجم بالفعل",
-  "alreadyTranslated": ":مترجم بالفعل إلى"
-},
+  "translation": {
+    "modalTitle": "ترجمة المستند",
+    "selectLanguage": "اللغة الهدف",
+    "translateButton": "ترجمة",
+    "translateTooltip": "ترجمة هذا المستند إلى لغة أخرى",
+    "translating": "…جارٍ الترجمة",
+    "success": "تمت الترجمة بنجاح",
+    "error": "خطأ في الترجمة",
+    "unavailable": "خدمة الترجمة غير متاحة مؤقتًا. يرجى المحاولة لاحقًا.",
+    "copied": "تم نسخ الترجمة إلى الحافظة",
+    "copy": "نسخ",
+    "cached": "مترجم بالفعل",
+    "alreadyTranslated": ":مترجم بالفعل إلى"
+  },
   "gdpr": {
     "tab": "📦 بياناتي",
     "title": "📦 بياناتي الشخصية",
@@ -689,40 +690,40 @@
     "error": "خطأ أثناء التصدير",
     "note": "💡 قد يستغرق التصدير بضع ثوانٍ إذا كان لديك العديد من المستندات."
   },
- "notifications": {
-  "memberAdded": "👥 انضم {{name}} إلى المشروع",
-  "memberRemoved": "👥 تمت إزالة عضو من المشروع",
-  "documentCreated": "📝 مستند جديد: {{title}}",
-  "documentRenamed": "✏️ تمت إعادة تسمية المستند إلى «{{title}}»",
-  "documentDeleted": "🗑️ تم حذف مستند",
-  "transcriptionUploaded": "🎙️ نسخة جديدة: {{title}}",
-  "transcriptionRetry": "🔄 تمت إعادة بدء نسخة",
-  "transcriptionTrashed": "🗑️ تم نقل النسخة إلى سلة المهملات: {{title}}",
-  "transcriptionRestored": "♻️ تم استعادة النسخة: {{title}}",
-  "transcriptionDeletedForever": "💥 تم حذف النسخة: {{title}}",
-  "memoCreated": "📝 مذكرة جديدة: {{title}}",
-  "trashEmptied": "🧹 تم إفراغ سلة المهملات ({{count}} عنصر)"
-},
-"comments": {
-  "title": "التعليقات",
-  "empty": "لا توجد تعليقات بعد. كن أول من يعلّق!",
-  "placeholder": "أضف تعليقًا...",
-  "replyPlaceholder": "…رد",
-  "send": "إرسال",
-  "sending": "…جارٍ الإرسال",
-  "reply": "رد",
-  "cancelReply": "إلغاء الرد",
-  "edit": "تعديل",
-  "delete": "حذف",
-  "edited": "(معدّل)",
-  "deleteConfirm": "حذف هذا التعليق؟",
-  "added": "تمت إضافة التعليق",
-  "updated": "تم تحديث التعليق",
-  "deleted": "تم حذف التعليق",
-  "addError": "تعذر إضافة التعليق",
-  "updateError": "تعذر تحديث التعليق",
-  "deleteError": "تعذر حذف التعليق"
-},
+  "notifications": {
+    "memberAdded": "👥 انضم {{name}} إلى المشروع",
+    "memberRemoved": "👥 تمت إزالة عضو من المشروع",
+    "documentCreated": "📝 مستند جديد: {{title}}",
+    "documentRenamed": "✏️ تمت إعادة تسمية المستند إلى «{{title}}»",
+    "documentDeleted": "🗑️ تم حذف مستند",
+    "transcriptionUploaded": "🎙️ نسخة جديدة: {{title}}",
+    "transcriptionRetry": "🔄 تمت إعادة بدء نسخة",
+    "transcriptionTrashed": "🗑️ تم نقل النسخة إلى سلة المهملات: {{title}}",
+    "transcriptionRestored": "♻️ تم استعادة النسخة: {{title}}",
+    "transcriptionDeletedForever": "💥 تم حذف النسخة: {{title}}",
+    "memoCreated": "📝 مذكرة جديدة: {{title}}",
+    "trashEmptied": "🧹 تم إفراغ سلة المهملات ({{count}} عنصر)"
+  },
+  "comments": {
+    "title": "التعليقات",
+    "empty": "لا توجد تعليقات بعد. كن أول من يعلّق!",
+    "placeholder": "أضف تعليقًا...",
+    "replyPlaceholder": "…رد",
+    "send": "إرسال",
+    "sending": "…جارٍ الإرسال",
+    "reply": "رد",
+    "cancelReply": "إلغاء الرد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "edited": "(معدّل)",
+    "deleteConfirm": "حذف هذا التعليق؟",
+    "added": "تمت إضافة التعليق",
+    "updated": "تم تحديث التعليق",
+    "deleted": "تم حذف التعليق",
+    "addError": "تعذر إضافة التعليق",
+    "updateError": "تعذر تحديث التعليق",
+    "deleteError": "تعذر حذف التعليق"
+  },
   "language": {
     "fr": "Français",
     "en": "English",
@@ -738,6 +739,60 @@
       "PENDING": "قيد الانتظار",
       "PROCESSING": "قيد المعالجة",
       "FAILED": "فشل"
+    }
+  },
+  "analytics": {
+    "title": "لوحة التحليلات",
+    "allProjects": "جميع المشاريع",
+    "noData": "لا توجد بيانات متاحة",
+    "period": {
+      "7d": "آخر 7 أيام",
+      "30d": "آخر 30 يومًا",
+      "90d": "آخر 90 يومًا"
+    },
+    "stats": {
+      "files": "الملفات",
+      "transcriptions": "النسخ",
+      "memos": "المذكرات",
+      "comments": "التعليقات",
+      "storage": "إجمالي التخزين"
+    },
+    "activity": {
+      "title": "📈 النشاط خلال آخر {{days}} يومًا",
+      "label": "المستندات المنشأة"
+    },
+    "types": {
+      "title": "📁 توزيع المستندات",
+      "audio": "صوتيات",
+      "text": "نصوص",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "image": "صور",
+      "other": "أخرى"
+    },
+    "topProjects": {
+      "title": "🏆 أفضل المشاريع",
+      "activity": "النشاط",
+      "files": "الملفات",
+      "members": "الأعضاء",
+      "storage": "التخزين",
+      "project": "المشروع",
+      "detailed": "📊 التفاصيل حسب المشروع",
+      "empty": "لا يوجد مشروع بنشاط"
+    },
+    "transcription": {
+      "title": "🎙️ حالة النسخ",
+      "completed": "مكتملة",
+      "failed": "فشلت",
+      "pending": "قيد الانتظار",
+      "processing": "قيد المعالجة"
+    },
+    "ia": {
+      "title": "🤖 استخدام الذكاء الاصطناعي",
+      "label": "الاستخدامات",
+      "summaries": "الملخصات",
+      "translations": "الترجمات",
+      "transcriptions": "النسخ"
     }
   }
 }

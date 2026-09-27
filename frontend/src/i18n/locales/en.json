@@ -68,7 +68,8 @@
     "settings": "Settings",
     "logout": "Logout",
     "user": "User",
-    "menu": "Menu"
+    "menu": "Menu",
+    "analytics": "Analytics"
   },
   "theme": {
     "light": "☀️ Light",
@@ -308,33 +309,33 @@
       "memo-created": "📝 New memo: {{title}}"
     }
   },
- "files": {
-  "preview": {
-    "unavailable": "Preview not available for this file",
-    "unsupported": "Preview not supported for this file type"
+  "files": {
+    "preview": {
+      "unavailable": "Preview not available for this file",
+      "unsupported": "Preview not supported for this file type"
+    },
+    "edit": {
+      "button": "Edit",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Changes saved",
+      "version": "New version: v{{version}}",
+      "error": "Could not save changes",
+      "emptyError": "Content cannot be empty",
+      "modeHint": "Edit mode — changes create a new version",
+      "closeHint": "Finish editing before closing"
+    },
+    "versions": {
+      "title": "Version history",
+      "current": "Current",
+      "restoring": "Restoring…",
+      "restoreTooltip": "Restore this version",
+      "restoreConfirm": "Restore version v{{version}}? A new version will be created.",
+      "restored": "Version restored",
+      "newVersion": "New current version: v{{version}}",
+      "restoreError": "Could not restore this version"
+    }
   },
-  "edit": {
-    "button": "Edit",
-    "save": "Save",
-    "saving": "Saving…",
-    "saved": "Changes saved",
-    "version": "New version: v{{version}}",
-    "error": "Could not save changes",
-    "emptyError": "Content cannot be empty",
-    "modeHint": "Edit mode — changes create a new version",
-    "closeHint": "Finish editing before closing"
-  },
- "versions": {
-  "title": "Version history",
-  "current": "Current",
-  "restoring": "Restoring…",
-  "restoreTooltip": "Restore this version",
-  "restoreConfirm": "Restore version v{{version}}? A new version will be created.",
-  "restored": "Version restored",
-  "newVersion": "New current version: v{{version}}",
-  "restoreError": "Could not restore this version"
-}
-},
   "settings": {
     "title": "⚙️ Settings",
     "loading": "Loading profile...",
@@ -379,7 +380,7 @@
     "notifications": {
       "title": "🔔 Email notifications",
       "intro": "Choose the notifications you want to receive. Changes are saved instantly.",
- 			"commentCreated": "💬 {{name}} commented on a document",
+      "commentCreated": "💬 {{name}} commented on a document",
       "sectionOptional": "Optional notifications",
       "sectionOptionalHint": "You can turn them off anytime.",
       "sectionTransactional": "Required notifications",
@@ -459,21 +460,21 @@
       "successTitle": "Deletion scheduled",
       "successMessage": "An email has been sent to you. Check your spam folder if needed. Logging out in 3 seconds…"
     },
-  "push": {
-  "sectionTitle": "🔔 Browser push notifications",
-  "sectionHint": "Get alerts in your browser even when the app is closed.",
-  "label": "Enable push notifications",
-  "active": "Notifications enabled",
-  "inactive": "Notifications disabled",
-  "unsupported": "Not supported by this browser",
-  "denied": "Blocked by the browser",
-  "deniedHint": "Allow notifications in your browser settings.",
-  "enableButton": "Enable",
-  "disableButton": "Disable",
-  "enabled": "✅ Push notifications enabled",
-  "disabled": "Push notifications disabled",
-  "enableError": "Could not enable notifications"
-}
+    "push": {
+      "sectionTitle": "🔔 Browser push notifications",
+      "sectionHint": "Get alerts in your browser even when the app is closed.",
+      "label": "Enable push notifications",
+      "active": "Notifications enabled",
+      "inactive": "Notifications disabled",
+      "unsupported": "Not supported by this browser",
+      "denied": "Blocked by the browser",
+      "deniedHint": "Allow notifications in your browser settings.",
+      "enableButton": "Enable",
+      "disableButton": "Disable",
+      "enabled": "✅ Push notifications enabled",
+      "disabled": "Push notifications disabled",
+      "enableError": "Could not enable notifications"
+    }
   },
   "textUpload": {
     "title": "📄 Import text",
@@ -646,20 +647,20 @@
     "missingToken": "No token provided in the link.",
     "backToLogin": "← Back to login"
   },
- "translation": {
-  "modalTitle": "Translate document",
-  "selectLanguage": "Target language",
-  "translateButton": "Translate",
-  "translateTooltip": "Translate this document into another language",
-  "translating": "Translating…",
-  "success": "Translation successful",
-  "error": "Translation error",
-  "unavailable": "Translation service is temporarily unavailable. Please try again later.",
-  "copied": "Translation copied to clipboard",
-  "copy": "Copy",
-  "cached": "Already translated",
-  "alreadyTranslated": "Already translated into:"
-},
+  "translation": {
+    "modalTitle": "Translate document",
+    "selectLanguage": "Target language",
+    "translateButton": "Translate",
+    "translateTooltip": "Translate this document into another language",
+    "translating": "Translating…",
+    "success": "Translation successful",
+    "error": "Translation error",
+    "unavailable": "Translation service is temporarily unavailable. Please try again later.",
+    "copied": "Translation copied to clipboard",
+    "copy": "Copy",
+    "cached": "Already translated",
+    "alreadyTranslated": "Already translated into:"
+  },
   "gdpr": {
     "tab": "📦 My data",
     "title": "📦 My personal data",
@@ -689,40 +690,40 @@
     "error": "Export error",
     "note": "💡 The export may take a few seconds if you have many documents."
   },
- "notifications": {
-  "memberAdded": "👥 {{name}} joined the project",
-  "memberRemoved": "👥 A member was removed from the project",
-  "documentCreated": "📝 New document: {{title}}",
-  "documentRenamed": "✏️ Document renamed to \"{{title}}\"",
-  "documentDeleted": "🗑️ A document was deleted",
-  "transcriptionUploaded": "🎙️ New transcription: {{title}}",
-  "transcriptionRetry": "🔄 A transcription was restarted",
-  "transcriptionTrashed": "🗑️ Transcription moved to trash: {{title}}",
-  "transcriptionRestored": "♻️ Transcription restored: {{title}}",
-  "transcriptionDeletedForever": "💥 Transcription deleted: {{title}}",
-  "memoCreated": "📝 New memo: {{title}}",
-  "trashEmptied": "🧹 Trash emptied ({{count}} item(s))"
-},
-"comments": {
-  "title": "Comments",
-  "empty": "No comments yet. Be the first!",
-  "placeholder": "Add a comment...",
-  "replyPlaceholder": "Reply...",
-  "send": "Send",
-  "sending": "Sending...",
-  "reply": "Reply",
-  "cancelReply": "Cancel reply",
-  "edit": "Edit",
-  "delete": "Delete",
-  "edited": "(edited)",
-  "deleteConfirm": "Delete this comment?",
-  "added": "Comment added",
-  "updated": "Comment updated",
-  "deleted": "Comment deleted",
-  "addError": "Could not add comment",
-  "updateError": "Could not update comment",
-  "deleteError": "Could not delete comment"
-},
+  "notifications": {
+    "memberAdded": "👥 {{name}} joined the project",
+    "memberRemoved": "👥 A member was removed from the project",
+    "documentCreated": "📝 New document: {{title}}",
+    "documentRenamed": "✏️ Document renamed to \"{{title}}\"",
+    "documentDeleted": "🗑️ A document was deleted",
+    "transcriptionUploaded": "🎙️ New transcription: {{title}}",
+    "transcriptionRetry": "🔄 A transcription was restarted",
+    "transcriptionTrashed": "🗑️ Transcription moved to trash: {{title}}",
+    "transcriptionRestored": "♻️ Transcription restored: {{title}}",
+    "transcriptionDeletedForever": "💥 Transcription deleted: {{title}}",
+    "memoCreated": "📝 New memo: {{title}}",
+    "trashEmptied": "🧹 Trash emptied ({{count}} item(s))"
+  },
+  "comments": {
+    "title": "Comments",
+    "empty": "No comments yet. Be the first!",
+    "placeholder": "Add a comment...",
+    "replyPlaceholder": "Reply...",
+    "send": "Send",
+    "sending": "Sending...",
+    "reply": "Reply",
+    "cancelReply": "Cancel reply",
+    "edit": "Edit",
+    "delete": "Delete",
+    "edited": "(edited)",
+    "deleteConfirm": "Delete this comment?",
+    "added": "Comment added",
+    "updated": "Comment updated",
+    "deleted": "Comment deleted",
+    "addError": "Could not add comment",
+    "updateError": "Could not update comment",
+    "deleteError": "Could not delete comment"
+  },
   "language": {
     "fr": "Français",
     "en": "English",
@@ -738,6 +739,60 @@
       "PENDING": "Pending",
       "PROCESSING": "Processing",
       "FAILED": "Failed"
+    }
+  },
+  "analytics": {
+    "title": "Analytics Dashboard",
+    "allProjects": "All projects",
+    "noData": "No data available",
+    "period": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days"
+    },
+    "stats": {
+      "files": "Files",
+      "transcriptions": "Transcriptions",
+      "memos": "Memos",
+      "comments": "Comments",
+      "storage": "Total storage"
+    },
+    "activity": {
+      "title": "📈 Activity over the last {{days}} days",
+      "label": "Documents created"
+    },
+    "types": {
+      "title": "📁 Document breakdown",
+      "audio": "Audio",
+      "text": "Text",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "image": "Image",
+      "other": "Other"
+    },
+    "topProjects": {
+      "title": "🏆 Top projects",
+      "activity": "Activity",
+      "files": "Files",
+      "members": "Members",
+      "storage": "Storage",
+      "project": "Project",
+      "detailed": "📊 Per-project details",
+      "empty": "No project with activity"
+    },
+    "transcription": {
+      "title": "🎙️ Transcription status",
+      "completed": "Completed",
+      "failed": "Failed",
+      "pending": "Pending",
+      "processing": "Processing"
+    },
+    "ia": {
+      "title": "🤖 AI usage",
+      "label": "Uses",
+      "summaries": "Summaries",
+      "translations": "Translations",
+      "transcriptions": "Transcriptions"
     }
   }
 }

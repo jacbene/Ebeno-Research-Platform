@@ -68,7 +68,8 @@
     "settings": "Ajustes",
     "logout": "Cerrar sesión",
     "user": "Usuario",
-    "menu": "Menú"
+    "menu": "Menú",
+    "analytics": "Analyticas"
   },
   "theme": {
     "light": "☀️ Claro",
@@ -308,33 +309,33 @@
       "memo-created": "📝 Nuevo memo: {{title}}"
     }
   },
- "files": {
-  "preview": {
-    "unavailable": "Vista previa no disponible para este archivo",
-    "unsupported": "Vista previa no soportada para este tipo de archivo"
+  "files": {
+    "preview": {
+      "unavailable": "Vista previa no disponible para este archivo",
+      "unsupported": "Vista previa no soportada para este tipo de archivo"
+    },
+    "edit": {
+      "button": "Editar",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Cambios guardados",
+      "version": "Nueva versión: v{{version}}",
+      "error": "No se pudieron guardar los cambios",
+      "emptyError": "El contenido no puede estar vacío",
+      "modeHint": "Modo edición — los cambios crean una nueva versión",
+      "closeHint": "Termine la edición antes de cerrar"
+    },
+    "versions": {
+      "title": "Historial de versiones",
+      "current": "Actual",
+      "restoring": "Restaurando…",
+      "restoreTooltip": "Restaurar esta versión",
+      "restoreConfirm": "¿Restaurar la versión v{{version}}? Se creará una nueva versión.",
+      "restored": "Versión restaurada",
+      "newVersion": "Nueva versión actual: v{{version}}",
+      "restoreError": "No se pudo restaurar esta versión"
+    }
   },
-  "edit": {
-    "button": "Editar",
-    "save": "Guardar",
-    "saving": "Guardando…",
-    "saved": "Cambios guardados",
-    "version": "Nueva versión: v{{version}}",
-    "error": "No se pudieron guardar los cambios",
-    "emptyError": "El contenido no puede estar vacío",
-    "modeHint": "Modo edición — los cambios crean una nueva versión",
-    "closeHint": "Termine la edición antes de cerrar"
-  },
- "versions": {
-  "title": "Historial de versiones",
-  "current": "Actual",
-  "restoring": "Restaurando…",
-  "restoreTooltip": "Restaurar esta versión",
-  "restoreConfirm": "¿Restaurar la versión v{{version}}? Se creará una nueva versión.",
-  "restored": "Versión restaurada",
-  "newVersion": "Nueva versión actual: v{{version}}",
-  "restoreError": "No se pudo restaurar esta versión"
-}
-},
   "settings": {
     "title": "⚙️ Ajustes",
     "loading": "Cargando el perfil...",
@@ -379,7 +380,7 @@
     "notifications": {
       "title": "🔔 Notificaciones por email",
       "intro": "Elija las notificaciones que desea recibir. Los cambios se guardan al instante.",
-			"commentCreated": "💬 {{name}} comentó un documento",
+      "commentCreated": "💬 {{name}} comentó un documento",
       "sectionOptional": "Notificaciones opcionales",
       "sectionOptionalHint": "Puede desactivarlas en cualquier momento.",
       "sectionTransactional": "Notificaciones obligatorias",
@@ -459,21 +460,21 @@
       "successTitle": "Eliminación programada",
       "successMessage": "Se le ha enviado un correo. Revise su carpeta de spam si es necesario. Cerrando sesión en 3 segundos…"
     },
-  "push": {
-  "sectionTitle": "🔔 Notificaciones push del navegador",
-  "sectionHint": "Reciba alertas en su navegador incluso cuando la aplicación esté cerrada.",
-  "label": "Activar notificaciones push",
-  "active": "Notificaciones activadas",
-  "inactive": "Notificaciones desactivadas",
-  "unsupported": "No compatible con este navegador",
-  "denied": "Bloqueadas por el navegador",
-  "deniedHint": "Permita las notificaciones en la configuración del navegador.",
-  "enableButton": "Activar",
-  "disableButton": "Desactivar",
-  "enabled": "✅ Notificaciones push activadas",
-  "disabled": "Notificaciones push desactivadas",
-  "enableError": "No se pudieron activar las notificaciones"
-}
+    "push": {
+      "sectionTitle": "🔔 Notificaciones push del navegador",
+      "sectionHint": "Reciba alertas en su navegador incluso cuando la aplicación esté cerrada.",
+      "label": "Activar notificaciones push",
+      "active": "Notificaciones activadas",
+      "inactive": "Notificaciones desactivadas",
+      "unsupported": "No compatible con este navegador",
+      "denied": "Bloqueadas por el navegador",
+      "deniedHint": "Permita las notificaciones en la configuración del navegador.",
+      "enableButton": "Activar",
+      "disableButton": "Desactivar",
+      "enabled": "✅ Notificaciones push activadas",
+      "disabled": "Notificaciones push desactivadas",
+      "enableError": "No se pudieron activar las notificaciones"
+    }
   },
   "textUpload": {
     "title": "📄 Importar un texto",
@@ -646,20 +647,20 @@
     "missingToken": "No se proporcionó token en el enlace.",
     "backToLogin": "← Volver al inicio"
   },
- "translation": {
-  "modalTitle": "Traducir documento",
-  "selectLanguage": "Idioma de destino",
-  "translateButton": "Traducir",
-  "translateTooltip": "Traducir este documento a otro idioma",
-  "translating": "Traduciendo…",
-  "success": "Traducción exitosa",
-  "error": "Error de traducción",
-  "unavailable": "El servicio de traducción no está disponible temporalmente. Inténtelo más tarde.",
-  "copied": "Traducción copiada al portapapeles",
-  "copy": "Copiar",
-  "cached": "Ya traducido",
-  "alreadyTranslated": "Ya traducido a:"
-},
+  "translation": {
+    "modalTitle": "Traducir documento",
+    "selectLanguage": "Idioma de destino",
+    "translateButton": "Traducir",
+    "translateTooltip": "Traducir este documento a otro idioma",
+    "translating": "Traduciendo…",
+    "success": "Traducción exitosa",
+    "error": "Error de traducción",
+    "unavailable": "El servicio de traducción no está disponible temporalmente. Inténtelo más tarde.",
+    "copied": "Traducción copiada al portapapeles",
+    "copy": "Copiar",
+    "cached": "Ya traducido",
+    "alreadyTranslated": "Ya traducido a:"
+  },
   "gdpr": {
     "tab": "📦 Mis datos",
     "title": "📦 Mis datos personales",
@@ -689,40 +690,40 @@
     "error": "Error durante la exportación",
     "note": "💡 La exportación puede tardar unos segundos si tiene muchos documentos."
   },
- "notifications": {
-  "memberAdded": "👥 {{name}} se unió al proyecto",
-  "memberRemoved": "👥 Un miembro fue retirado del proyecto",
-  "documentCreated": "📝 Nuevo documento: {{title}}",
-  "documentRenamed": "✏️ Documento renombrado a «{{title}}»",
-  "documentDeleted": "🗑️ Un documento fue eliminado",
-  "transcriptionUploaded": "🎙️ Nueva transcripción: {{title}}",
-  "transcriptionRetry": "🔄 Se reinició una transcripción",
-  "transcriptionTrashed": "🗑️ Transcripción movida a la papelera: {{title}}",
-  "transcriptionRestored": "♻️ Transcripción restaurada: {{title}}",
-  "transcriptionDeletedForever": "💥 Transcripción eliminada: {{title}}",
-  "memoCreated": "📝 Nuevo memo: {{title}}",
-  "trashEmptied": "🧹 Papelera vaciada ({{count}} elemento(s))"
-},
-"comments": {
-  "title": "Comentarios",
-  "empty": "Aún no hay comentarios. ¡Sé el primero!",
-  "placeholder": "Añadir un comentario...",
-  "replyPlaceholder": "Responder...",
-  "send": "Enviar",
-  "sending": "Enviando...",
-  "reply": "Responder",
-  "cancelReply": "Cancelar respuesta",
-  "edit": "Editar",
-  "delete": "Eliminar",
-  "edited": "(editado)",
-  "deleteConfirm": "¿Eliminar este comentario?",
-  "added": "Comentario añadido",
-  "updated": "Comentario actualizado",
-  "deleted": "Comentario eliminado",
-  "addError": "No se pudo añadir el comentario",
-  "updateError": "No se pudo actualizar el comentario",
-  "deleteError": "No se pudo eliminar el comentario"
-},
+  "notifications": {
+    "memberAdded": "👥 {{name}} se unió al proyecto",
+    "memberRemoved": "👥 Un miembro fue retirado del proyecto",
+    "documentCreated": "📝 Nuevo documento: {{title}}",
+    "documentRenamed": "✏️ Documento renombrado a «{{title}}»",
+    "documentDeleted": "🗑️ Un documento fue eliminado",
+    "transcriptionUploaded": "🎙️ Nueva transcripción: {{title}}",
+    "transcriptionRetry": "🔄 Se reinició una transcripción",
+    "transcriptionTrashed": "🗑️ Transcripción movida a la papelera: {{title}}",
+    "transcriptionRestored": "♻️ Transcripción restaurada: {{title}}",
+    "transcriptionDeletedForever": "💥 Transcripción eliminada: {{title}}",
+    "memoCreated": "📝 Nuevo memo: {{title}}",
+    "trashEmptied": "🧹 Papelera vaciada ({{count}} elemento(s))"
+  },
+  "comments": {
+    "title": "Comentarios",
+    "empty": "Aún no hay comentarios. ¡Sé el primero!",
+    "placeholder": "Añadir un comentario...",
+    "replyPlaceholder": "Responder...",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "reply": "Responder",
+    "cancelReply": "Cancelar respuesta",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "edited": "(editado)",
+    "deleteConfirm": "¿Eliminar este comentario?",
+    "added": "Comentario añadido",
+    "updated": "Comentario actualizado",
+    "deleted": "Comentario eliminado",
+    "addError": "No se pudo añadir el comentario",
+    "updateError": "No se pudo actualizar el comentario",
+    "deleteError": "No se pudo eliminar el comentario"
+  },
   "language": {
     "fr": "Français",
     "en": "English",
@@ -738,6 +739,60 @@
       "PENDING": "Pendiente",
       "PROCESSING": "Procesando",
       "FAILED": "Fallo"
+    }
+  },
+  "analytics": {
+    "title": "Panel de análisis",
+    "allProjects": "Todos los proyectos",
+    "noData": "Sin datos disponibles",
+    "period": {
+      "7d": "Últimos 7 días",
+      "30d": "Últimos 30 días",
+      "90d": "Últimos 90 días"
+    },
+    "stats": {
+      "files": "Archivos",
+      "transcriptions": "Transcripciones",
+      "memos": "Memos",
+      "comments": "Comentarios",
+      "storage": "Almacenamiento total"
+    },
+    "activity": {
+      "title": "📈 Actividad en los últimos {{days}} días",
+      "label": "Documentos creados"
+    },
+    "types": {
+      "title": "📁 Desglose de documentos",
+      "audio": "Audio",
+      "text": "Texto",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "image": "Imagen",
+      "other": "Otro"
+    },
+    "topProjects": {
+      "title": "🏆 Proyectos destacados",
+      "activity": "Actividad",
+      "files": "Archivos",
+      "members": "Miembros",
+      "storage": "Almacenamiento",
+      "project": "Proyecto",
+      "detailed": "📊 Detalle por proyecto",
+      "empty": "Ningún proyecto con actividad"
+    },
+    "transcription": {
+      "title": "🎙️ Estado de las transcripciones",
+      "completed": "Completadas",
+      "failed": "Fallidas",
+      "pending": "Pendientes",
+      "processing": "En curso"
+    },
+    "ia": {
+      "title": "🤖 Uso de IA",
+      "label": "Usos",
+      "summaries": "Resúmenes",
+      "translations": "Traducciones",
+      "transcriptions": "Transcripciones"
     }
   }
 }

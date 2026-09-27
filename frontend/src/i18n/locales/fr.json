@@ -68,7 +68,8 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "user": "Utilisateur",
-    "menu": "Menu"
+    "menu": "Menu",
+    "analytics": "Analytique"
   },
   "theme": {
     "light": "☀️ Clair",
@@ -308,33 +309,33 @@
       "memo-created": "📝 Nouveau memo : {{title}}"
     }
   },
- "files": {
-  "preview": {
-    "unavailable": "Aperçu non disponible pour ce fichier",
-    "unsupported": "Aperçu non supporté pour ce type de fichier"
+  "files": {
+    "preview": {
+      "unavailable": "Aperçu non disponible pour ce fichier",
+      "unsupported": "Aperçu non supporté pour ce type de fichier"
+    },
+    "edit": {
+      "button": "Éditer",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Modifications enregistrées",
+      "version": "Nouvelle version : v{{version}}",
+      "error": "Impossible d'enregistrer les modifications",
+      "emptyError": "Le contenu ne peut pas être vide",
+      "modeHint": "Mode édition — les changements créent une nouvelle version",
+      "closeHint": "Terminez l'édition avant de fermer"
+    },
+    "versions": {
+      "title": "Historique des versions",
+      "current": "Actuelle",
+      "restoring": "Restauration…",
+      "restoreTooltip": "Restaurer cette version",
+      "restoreConfirm": "Restaurer la version v{{version}} ? Une nouvelle version sera créée.",
+      "restored": "Version restaurée",
+      "newVersion": "Nouvelle version actuelle : v{{version}}",
+      "restoreError": "Impossible de restaurer cette version"
+    }
   },
-  "edit": {
-    "button": "Éditer",
-    "save": "Enregistrer",
-    "saving": "Enregistrement…",
-    "saved": "Modifications enregistrées",
-    "version": "Nouvelle version : v{{version}}",
-    "error": "Impossible d'enregistrer les modifications",
-    "emptyError": "Le contenu ne peut pas être vide",
-    "modeHint": "Mode édition — les changements créent une nouvelle version",
-    "closeHint": "Terminez l'édition avant de fermer"
-  },
- "versions": {
-  "title": "Historique des versions",
-  "current": "Actuelle",
-  "restoring": "Restauration…",
-  "restoreTooltip": "Restaurer cette version",
-  "restoreConfirm": "Restaurer la version v{{version}} ? Une nouvelle version sera créée.",
-  "restored": "Version restaurée",
-  "newVersion": "Nouvelle version actuelle : v{{version}}",
-  "restoreError": "Impossible de restaurer cette version"
-}
-},
   "settings": {
     "title": "⚙️ Paramètres",
     "loading": "Chargement du profil...",
@@ -379,7 +380,7 @@
     "notifications": {
       "title": "🔔 Notifications par email",
       "intro": "Choisissez les notifications que vous souhaitez recevoir. Les modifications sont enregistrées instantanément.",
-    	"commentCreated": "💬 {{name}} a commenté un document",
+      "commentCreated": "💬 {{name}} a commenté un document",
       "sectionOptional": "Notifications optionnelles",
       "sectionOptionalHint": "Vous pouvez les désactiver à tout moment.",
       "sectionTransactional": "Notifications obligatoires",
@@ -459,21 +460,21 @@
       "successTitle": "Suppression programmée",
       "successMessage": "Un email vous a été envoyé. Vérifiez vos spams si besoin. Déconnexion dans 3 secondes…"
     },
-  "push": {
-  "sectionTitle": "🔔 Notifications push navigateur",
-  "sectionHint": "Recevez une alerte dans votre navigateur même quand l'application est fermée.",
-  "label": "Activer les notifications push",
-  "active": "Notifications activées",
-  "inactive": "Notifications désactivées",
-  "unsupported": "Non supporté par ce navigateur",
-  "denied": "Bloquées par le navigateur",
-  "deniedHint": "Autorisez les notifications dans les paramètres de votre navigateur.",
-  "enableButton": "Activer",
-  "disableButton": "Désactiver",
-  "enabled": "✅ Notifications push activées",
-  "disabled": "Notifications push désactivées",
-  "enableError": "Impossible d'activer les notifications"
-}
+    "push": {
+      "sectionTitle": "🔔 Notifications push navigateur",
+      "sectionHint": "Recevez une alerte dans votre navigateur même quand l'application est fermée.",
+      "label": "Activer les notifications push",
+      "active": "Notifications activées",
+      "inactive": "Notifications désactivées",
+      "unsupported": "Non supporté par ce navigateur",
+      "denied": "Bloquées par le navigateur",
+      "deniedHint": "Autorisez les notifications dans les paramètres de votre navigateur.",
+      "enableButton": "Activer",
+      "disableButton": "Désactiver",
+      "enabled": "✅ Notifications push activées",
+      "disabled": "Notifications push désactivées",
+      "enableError": "Impossible d'activer les notifications"
+    }
   },
   "textUpload": {
     "title": "📄 Importer un texte",
@@ -646,20 +647,20 @@
     "missingToken": "Aucun token fourni dans le lien.",
     "backToLogin": "← Retour à la connexion"
   },
- "translation": {
-  "modalTitle": "Traduire le document",
-  "selectLanguage": "Langue cible",
-  "translateButton": "Traduire",
-  "translateTooltip": "Traduire ce document dans une autre langue",
-  "translating": "Traduction en cours…",
-  "success": "Traduction réussie",
-  "error": "Erreur lors de la traduction",
-  "unavailable": "Service de traduction indisponible pour le moment. Réessayez plus tard.",
-  "copied": "Traduit copié dans le presse-papiers",
-  "copy": "Copier",
-  "cached": "Déjà traduit",
-  "alreadyTranslated": "Déjà traduit en :"
-},
+  "translation": {
+    "modalTitle": "Traduire le document",
+    "selectLanguage": "Langue cible",
+    "translateButton": "Traduire",
+    "translateTooltip": "Traduire ce document dans une autre langue",
+    "translating": "Traduction en cours…",
+    "success": "Traduction réussie",
+    "error": "Erreur lors de la traduction",
+    "unavailable": "Service de traduction indisponible pour le moment. Réessayez plus tard.",
+    "copied": "Traduit copié dans le presse-papiers",
+    "copy": "Copier",
+    "cached": "Déjà traduit",
+    "alreadyTranslated": "Déjà traduit en :"
+  },
   "gdpr": {
     "tab": "📦 Mes données",
     "title": "📦 Mes données personnelles",
@@ -689,40 +690,40 @@
     "error": "Erreur lors de l'export",
     "note": "💡 L'export peut prendre quelques secondes si vous avez beaucoup de documents."
   },
-"notifications": {
-  "memberAdded": "👥 {{name}} a rejoint le projet",
-  "memberRemoved": "👥 Un membre a été retiré du projet",
-  "documentCreated": "📝 Nouveau document : {{title}}",
-  "documentRenamed": "✏️ Document renommé en « {{title}} »",
-  "documentDeleted": "🗑️ Un document a été supprimé",
-  "transcriptionUploaded": "🎙️ Nouvelle transcription : {{title}}",
-  "transcriptionRetry": "🔄 Une transcription a été relancée",
-  "transcriptionTrashed": "🗑️ Transcription mise à la corbeille : {{title}}",
-  "transcriptionRestored": "♻️ Transcription restaurée : {{title}}",
-  "transcriptionDeletedForever": "💥 Transcription supprimée : {{title}}",
-  "memoCreated": "📝 Nouveau memo : {{title}}",
-  "trashEmptied": "🧹 Corbeille vidée ({{count}} élément(s))"
-},
-"comments": {
-  "title": "Commentaires",
-  "empty": "Aucun commentaire pour l'instant. Soyez le premier !",
-  "placeholder": "Ajouter un commentaire...",
-  "replyPlaceholder": "Répondre...",
-  "send": "Envoyer",
-  "sending": "Envoi...",
-  "reply": "Répondre",
-  "cancelReply": "Annuler la réponse",
-  "edit": "Modifier",
-  "delete": "Supprimer",
-  "edited": "(modifié)",
-  "deleteConfirm": "Supprimer ce commentaire ?",
-  "added": "Commentaire ajouté",
-  "updated": "Commentaire modifié",
-  "deleted": "Commentaire supprimé",
-  "addError": "Impossible d'ajouter le commentaire",
-  "updateError": "Impossible de modifier le commentaire",
-  "deleteError": "Impossible de supprimer le commentaire"
-},
+  "notifications": {
+    "memberAdded": "👥 {{name}} a rejoint le projet",
+    "memberRemoved": "👥 Un membre a été retiré du projet",
+    "documentCreated": "📝 Nouveau document : {{title}}",
+    "documentRenamed": "✏️ Document renommé en « {{title}} »",
+    "documentDeleted": "🗑️ Un document a été supprimé",
+    "transcriptionUploaded": "🎙️ Nouvelle transcription : {{title}}",
+    "transcriptionRetry": "🔄 Une transcription a été relancée",
+    "transcriptionTrashed": "🗑️ Transcription mise à la corbeille : {{title}}",
+    "transcriptionRestored": "♻️ Transcription restaurée : {{title}}",
+    "transcriptionDeletedForever": "💥 Transcription supprimée : {{title}}",
+    "memoCreated": "📝 Nouveau memo : {{title}}",
+    "trashEmptied": "🧹 Corbeille vidée ({{count}} élément(s))"
+  },
+  "comments": {
+    "title": "Commentaires",
+    "empty": "Aucun commentaire pour l'instant. Soyez le premier !",
+    "placeholder": "Ajouter un commentaire...",
+    "replyPlaceholder": "Répondre...",
+    "send": "Envoyer",
+    "sending": "Envoi...",
+    "reply": "Répondre",
+    "cancelReply": "Annuler la réponse",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "edited": "(modifié)",
+    "deleteConfirm": "Supprimer ce commentaire ?",
+    "added": "Commentaire ajouté",
+    "updated": "Commentaire modifié",
+    "deleted": "Commentaire supprimé",
+    "addError": "Impossible d'ajouter le commentaire",
+    "updateError": "Impossible de modifier le commentaire",
+    "deleteError": "Impossible de supprimer le commentaire"
+  },
   "language": {
     "fr": "Français",
     "en": "English",
@@ -738,6 +739,60 @@
       "PENDING": "En attente",
       "PROCESSING": "Traitement",
       "FAILED": "Échec"
+    }
+  },
+  "analytics": {
+    "title": "Tableau de bord analytique",
+    "allProjects": "Tous les projets",
+    "noData": "Aucune donnée disponible",
+    "period": {
+      "7d": "7 derniers jours",
+      "30d": "30 derniers jours",
+      "90d": "90 derniers jours"
+    },
+    "stats": {
+      "files": "Fichiers",
+      "transcriptions": "Transcriptions",
+      "memos": "Memos",
+      "comments": "Commentaires",
+      "storage": "Stockage total"
+    },
+    "activity": {
+      "title": "📈 Activité sur les {{days}} derniers jours",
+      "label": "Documents créés"
+    },
+    "types": {
+      "title": "📁 Répartition des documents",
+      "audio": "Audio",
+      "text": "Texte",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "image": "Image",
+      "other": "Autre"
+    },
+    "topProjects": {
+      "title": "🏆 Top projets",
+      "activity": "Activité",
+      "files": "Fichiers",
+      "members": "Membres",
+      "storage": "Stockage",
+      "project": "Projet",
+      "detailed": "📊 Détail par projet",
+      "empty": "Aucun projet avec activité"
+    },
+    "transcription": {
+      "title": "🎙️ Statut des transcriptions",
+      "completed": "Complétées",
+      "failed": "Échouées",
+      "pending": "En attente",
+      "processing": "En cours"
+    },
+    "ia": {
+      "title": "🤖 Utilisation IA",
+      "label": "Utilisations",
+      "summaries": "Résumés",
+      "translations": "Traductions",
+      "transcriptions": "Transcriptions"
     }
   }
 }
