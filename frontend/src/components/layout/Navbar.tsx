@@ -301,6 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               </div>
 
               <Link to="/" style={linkStyle(isActive('/'))}>📊 {t('nav.dashboard')}</Link>
+              <Link to="/analytics" style={linkStyle(isActive('/analytics'))}>📊 {t('nav.analytics')}</Link>
               <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 {t('nav.chat')}</Link>
               <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
               <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>

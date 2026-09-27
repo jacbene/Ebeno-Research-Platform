@@ -33,6 +33,7 @@ const Register = lazy(() => import('./pages/Register'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
 
 // ============================================================
@@ -417,6 +418,7 @@ const AppRoutes: React.FC<{
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/collaboration" element={<CollaborationPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

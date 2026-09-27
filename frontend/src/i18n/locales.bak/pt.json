@@ -69,7 +69,7 @@
     "logout": "Terminar sessão",
     "user": "Utilizador",
     "menu": "Menu",
-    "analytics": "Análises"
+    "analytics": "Analises"
   },
   "theme": {
     "light": "☀️ Claro",
@@ -172,7 +172,61 @@
       "Email": "Emails",
       "Phone": "Telefones",
       "Url": "URLs"
-    }
+    },
+   "analytics": {
+  "title": "Painel analítico",
+  "allProjects": "Todos os projetos",
+  "noData": "Sem dados disponíveis",
+  "period": {
+    "7d": "Últimos 7 dias",
+    "30d": "Últimos 30 dias",
+    "90d": "Últimos 90 dias"
+  },
+  "stats": {
+    "files": "Ficheiros",
+    "transcriptions": "Transcrições",
+    "memos": "Memos",
+    "comments": "Comentários",
+    "storage": "Armazenamento total"
+  },
+  "activity": {
+    "title": "📈 Atividade nos últimos {{days}} dias",
+    "label": "Documentos criados"
+  },
+  "types": {
+    "title": "📁 Distribuição de documentos",
+    "audio": "Áudio",
+    "text": "Texto",
+    "pdf": "PDF",
+    "docx": "DOCX",
+    "image": "Imagem",
+    "other": "Outro"
+  },
+  "topProjects": {
+    "title": "🏆 Projetos em destaque",
+    "activity": "Atividade",
+    "files": "Ficheiros",
+    "members": "Membros",
+    "storage": "Armazenamento",
+    "project": "Projeto",
+    "detailed": "📊 Detalhe por projeto",
+    "empty": "Nenhum projeto com atividade"
+  },
+  "transcription": {
+    "title": "🎙️ Estado das transcrições",
+    "completed": "Concluídas",
+    "failed": "Falhadas",
+    "pending": "Pendentes",
+    "processing": "Em curso"
+  },
+  "ia": {
+    "title": "🤖 Utilização de IA",
+    "label": "Utilizações",
+    "summaries": "Resumos",
+    "translations": "Traduções",
+    "transcriptions": "Transcrições"
+  }
+}
   },
   "projectDetail": {
     "loading": "A carregar...",
@@ -309,33 +363,33 @@
       "memo-created": "📝 Novo memo: {{title}}"
     }
   },
-  "files": {
-    "preview": {
-      "unavailable": "Pré-visualização indisponível para este ficheiro",
-      "unsupported": "Pré-visualização não suportada para este tipo de ficheiro"
-    },
-    "edit": {
-      "button": "Editar",
-      "save": "Guardar",
-      "saving": "A guardar…",
-      "saved": "Alterações guardadas",
-      "version": "Nova versão: v{{version}}",
-      "error": "Não foi possível guardar as alterações",
-      "emptyError": "O conteúdo não pode estar vazio",
-      "modeHint": "Modo de edição — as alterações criam uma nova versão",
-      "closeHint": "Termine a edição antes de fechar"
-    },
-    "versions": {
-      "title": "Histórico de versões",
-      "current": "Atual",
-      "restoring": "A restaurar…",
-      "restoreTooltip": "Restaurar esta versão",
-      "restoreConfirm": "Restaurar a versão v{{version}}? Será criada uma nova versão.",
-      "restored": "Versão restaurada",
-      "newVersion": "Nova versão atual: v{{version}}",
-      "restoreError": "Não foi possível restaurar esta versão"
-    }
+ "files": {
+  "preview": {
+    "unavailable": "Pré-visualização indisponível para este ficheiro",
+    "unsupported": "Pré-visualização não suportada para este tipo de ficheiro"
   },
+  "edit": {
+    "button": "Editar",
+    "save": "Guardar",
+    "saving": "A guardar…",
+    "saved": "Alterações guardadas",
+    "version": "Nova versão: v{{version}}",
+    "error": "Não foi possível guardar as alterações",
+    "emptyError": "O conteúdo não pode estar vazio",
+    "modeHint": "Modo de edição — as alterações criam uma nova versão",
+    "closeHint": "Termine a edição antes de fechar"
+  },
+ "versions": {
+  "title": "Histórico de versões",
+  "current": "Atual",
+  "restoring": "A restaurar…",
+  "restoreTooltip": "Restaurar esta versão",
+  "restoreConfirm": "Restaurar a versão v{{version}}? Será criada uma nova versão.",
+  "restored": "Versão restaurada",
+  "newVersion": "Nova versão atual: v{{version}}",
+  "restoreError": "Não foi possível restaurar esta versão"
+}
+},
   "settings": {
     "title": "⚙️ Definições",
     "loading": "A carregar o perfil...",
@@ -380,7 +434,7 @@
     "notifications": {
       "title": "🔔 Notificações por email",
       "intro": "Escolha as notificações que deseja receber. As alterações são guardadas instantaneamente.",
-      "commentCreated": "💬 {{name}} comentou um documento",
+			"commentCreated": "💬 {{name}} comentou um documento",
       "sectionOptional": "Notificações opcionais",
       "sectionOptionalHint": "Pode desativá-las a qualquer momento.",
       "sectionTransactional": "Notificações obrigatórias",
@@ -460,21 +514,21 @@
       "successTitle": "Eliminação agendada",
       "successMessage": "Foi-lhe enviado um email. Verifique a pasta de spam se necessário. A terminar sessão em 3 segundos…"
     },
-    "push": {
-      "sectionTitle": "🔔 Notificações push do navegador",
-      "sectionHint": "Receba alertas no seu navegador mesmo com a aplicação fechada.",
-      "label": "Ativar notificações push",
-      "active": "Notificações ativadas",
-      "inactive": "Notificações desativadas",
-      "unsupported": "Não suportado por este navegador",
-      "denied": "Bloqueadas pelo navegador",
-      "deniedHint": "Permita notificações nas configurações do navegador.",
-      "enableButton": "Ativar",
-      "disableButton": "Desativar",
-      "enabled": "✅ Notificações push ativadas",
-      "disabled": "Notificações push desativadas",
-      "enableError": "Não foi possível ativar as notificações"
-    }
+  "push": {
+  "sectionTitle": "🔔 Notificações push do navegador",
+  "sectionHint": "Receba alertas no seu navegador mesmo com a aplicação fechada.",
+  "label": "Ativar notificações push",
+  "active": "Notificações ativadas",
+  "inactive": "Notificações desativadas",
+  "unsupported": "Não suportado por este navegador",
+  "denied": "Bloqueadas pelo navegador",
+  "deniedHint": "Permita notificações nas configurações do navegador.",
+  "enableButton": "Ativar",
+  "disableButton": "Desativar",
+  "enabled": "✅ Notificações push ativadas",
+  "disabled": "Notificações push desativadas",
+  "enableError": "Não foi possível ativar as notificações"
+}
   },
   "textUpload": {
     "title": "📄 Importar um texto",
@@ -647,20 +701,20 @@
     "missingToken": "Nenhum token fornecido no link.",
     "backToLogin": "← Voltar ao login"
   },
-  "translation": {
-    "modalTitle": "Traduzir documento",
-    "selectLanguage": "Idioma de destino",
-    "translateButton": "Traduzir",
-    "translateTooltip": "Traduzir este documento para outro idioma",
-    "translating": "A traduzir…",
-    "success": "Tradução bem-sucedida",
-    "error": "Erro de tradução",
-    "unavailable": "O serviço de tradução está temporariamente indisponível. Tente novamente mais tarde.",
-    "copied": "Tradução copiada para a área de transferência",
-    "copy": "Copiar",
-    "cached": "Já traduzido",
-    "alreadyTranslated": "Já traduzido para:"
-  },
+ "translation": {
+  "modalTitle": "Traduzir documento",
+  "selectLanguage": "Idioma de destino",
+  "translateButton": "Traduzir",
+  "translateTooltip": "Traduzir este documento para outro idioma",
+  "translating": "A traduzir…",
+  "success": "Tradução bem-sucedida",
+  "error": "Erro de tradução",
+  "unavailable": "O serviço de tradução está temporariamente indisponível. Tente novamente mais tarde.",
+  "copied": "Tradução copiada para a área de transferência",
+  "copy": "Copiar",
+  "cached": "Já traduzido",
+  "alreadyTranslated": "Já traduzido para:"
+},
   "gdpr": {
     "tab": "📦 Os meus dados",
     "title": "📦 Os meus dados pessoais",
@@ -690,40 +744,40 @@
     "error": "Erro durante a exportação",
     "note": "💡 A exportação pode demorar alguns segundos se tiver muitos documentos."
   },
-  "notifications": {
-    "memberAdded": "👥 {{name}} juntou-se ao projeto",
-    "memberRemoved": "👥 Um membro foi removido do projeto",
-    "documentCreated": "📝 Novo documento: {{title}}",
-    "documentRenamed": "✏️ Documento renomeado para «{{title}}»",
-    "documentDeleted": "🗑️ Um documento foi eliminado",
-    "transcriptionUploaded": "🎙️ Nova transcrição: {{title}}",
-    "transcriptionRetry": "🔄 Uma transcrição foi reiniciada",
-    "transcriptionTrashed": "🗑️ Transcrição movida para o lixo: {{title}}",
-    "transcriptionRestored": "♻️ Transcrição restaurada: {{title}}",
-    "transcriptionDeletedForever": "💥 Transcrição eliminada: {{title}}",
-    "memoCreated": "📝 Novo memo: {{title}}",
-    "trashEmptied": "🧹 Lixo esvaziado ({{count}} elemento(s))"
-  },
-  "comments": {
-    "title": "Comentários",
-    "empty": "Ainda sem comentários. Seja o primeiro!",
-    "placeholder": "Adicionar um comentário...",
-    "replyPlaceholder": "Responder...",
-    "send": "Enviar",
-    "sending": "A enviar...",
-    "reply": "Responder",
-    "cancelReply": "Cancelar resposta",
-    "edit": "Editar",
-    "delete": "Eliminar",
-    "edited": "(editado)",
-    "deleteConfirm": "Eliminar este comentário?",
-    "added": "Comentário adicionado",
-    "updated": "Comentário atualizado",
-    "deleted": "Comentário eliminado",
-    "addError": "Não foi possível adicionar o comentário",
-    "updateError": "Não foi possível atualizar o comentário",
-    "deleteError": "Não foi possível eliminar o comentário"
-  },
+ "notifications": {
+  "memberAdded": "👥 {{name}} juntou-se ao projeto",
+  "memberRemoved": "👥 Um membro foi removido do projeto",
+  "documentCreated": "📝 Novo documento: {{title}}",
+  "documentRenamed": "✏️ Documento renomeado para «{{title}}»",
+  "documentDeleted": "🗑️ Um documento foi eliminado",
+  "transcriptionUploaded": "🎙️ Nova transcrição: {{title}}",
+  "transcriptionRetry": "🔄 Uma transcrição foi reiniciada",
+  "transcriptionTrashed": "🗑️ Transcrição movida para o lixo: {{title}}",
+  "transcriptionRestored": "♻️ Transcrição restaurada: {{title}}",
+  "transcriptionDeletedForever": "💥 Transcrição eliminada: {{title}}",
+  "memoCreated": "📝 Novo memo: {{title}}",
+  "trashEmptied": "🧹 Lixo esvaziado ({{count}} elemento(s))"
+},
+"comments": {
+  "title": "Comentários",
+  "empty": "Ainda sem comentários. Seja o primeiro!",
+  "placeholder": "Adicionar um comentário...",
+  "replyPlaceholder": "Responder...",
+  "send": "Enviar",
+  "sending": "A enviar...",
+  "reply": "Responder",
+  "cancelReply": "Cancelar resposta",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "edited": "(editado)",
+  "deleteConfirm": "Eliminar este comentário?",
+  "added": "Comentário adicionado",
+  "updated": "Comentário atualizado",
+  "deleted": "Comentário eliminado",
+  "addError": "Não foi possível adicionar o comentário",
+  "updateError": "Não foi possível atualizar o comentário",
+  "deleteError": "Não foi possível eliminar o comentário"
+},
   "language": {
     "fr": "Français",
     "en": "English",
@@ -739,60 +793,6 @@
       "PENDING": "Pendente",
       "PROCESSING": "A processar",
       "FAILED": "Falha"
-    }
-  },
-  "analytics": {
-    "title": "Painel analítico",
-    "allProjects": "Todos os projetos",
-    "noData": "Sem dados disponíveis",
-    "period": {
-      "7d": "Últimos 7 dias",
-      "30d": "Últimos 30 dias",
-      "90d": "Últimos 90 dias"
-    },
-    "stats": {
-      "files": "Ficheiros",
-      "transcriptions": "Transcrições",
-      "memos": "Memos",
-      "comments": "Comentários",
-      "storage": "Armazenamento total"
-    },
-    "activity": {
-      "title": "📈 Atividade nos últimos {{days}} dias",
-      "label": "Documentos criados"
-    },
-    "types": {
-      "title": "📁 Distribuição de documentos",
-      "audio": "Áudio",
-      "text": "Texto",
-      "pdf": "PDF",
-      "docx": "DOCX",
-      "image": "Imagem",
-      "other": "Outro"
-    },
-    "topProjects": {
-      "title": "🏆 Projetos em destaque",
-      "activity": "Atividade",
-      "files": "Ficheiros",
-      "members": "Membros",
-      "storage": "Armazenamento",
-      "project": "Projeto",
-      "detailed": "📊 Detalhe por projeto",
-      "empty": "Nenhum projeto com atividade"
-    },
-    "transcription": {
-      "title": "🎙️ Estado das transcrições",
-      "completed": "Concluídas",
-      "failed": "Falhadas",
-      "pending": "Pendentes",
-      "processing": "Em curso"
-    },
-    "ia": {
-      "title": "🤖 Utilização de IA",
-      "label": "Utilizações",
-      "summaries": "Resumos",
-      "translations": "Traduções",
-      "transcriptions": "Transcrições"
     }
   }
 }
