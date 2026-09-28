@@ -35,6 +35,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
+const MentionsLegales = lazy(() => import('./pages/legal/MentionsLegales'));
 
 // ============================================================
 // LOADER
@@ -99,7 +100,7 @@ const SentryFallback: React.FC<{ error: Error; resetError: () => void }> = ({ er
           borderRadius: '6px', fontSize: '11px', textAlign: 'left',
           overflow: 'auto', maxHeight: '200px', color: '#c0392b',
         }}>
-          {error.message}
+          {error instanceof Error ? error.message : String(error)}
         </pre>
       )}
     </div>
@@ -374,6 +375,8 @@ const AppRoutes: React.FC<{
           path="/reset-password"
           element={<ResetPasswordPage />}
         />
+ 			 {/* ✅ Mentions légales (accessible connecté ou non) */}
+				<Route path="/legal" element={<MentionsLegales />} />
 
         {/* ✅ ROUTES PUBLIQUES */}
         <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
