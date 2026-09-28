@@ -17,6 +17,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
 import TwoFactorLogin from './components/TwoFactorLogin';
+import CookieConsentBanner from './components/CookieConsentBanner';
 
 // ============================================================
 // LAZY-LOADED PAGES
@@ -37,6 +38,7 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
 const MentionsLegales = lazy(() => import('./pages/legal/MentionsLegales'));
 const PolitiqueCookies = lazy(() => import('./pages/legal/PolitiqueCookies'));
+
 
 // ============================================================
 // LOADER
@@ -498,7 +500,7 @@ const App: React.FC = () => {
       <LanguageProvider>
         <ToastProvider>
           <Router future={{ v7_relativeSplatPath: true }}>
-            {/* ✅ DOUBLE PROTECTION : Sentry + ErrorBoundary custom */}
+            {/* ✅ DOUBLE PROTECT7ION : Sentry + ErrorBoundary custom */}
             <Sentry.ErrorBoundary fallback={SentryFallback} showDialog={false}>
               <ErrorBoundary>
                 <AppRoutes
@@ -510,7 +512,8 @@ const App: React.FC = () => {
               </ErrorBoundary>
             </Sentry.ErrorBoundary>
           </Router>
-          <ToastContainer />
+         <ToastContainer />
+				 <CookieConsentBanner />
         </ToastProvider>
       </LanguageProvider>
     </ThemeProvider>
