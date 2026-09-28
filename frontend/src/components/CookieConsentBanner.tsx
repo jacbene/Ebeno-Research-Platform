@@ -208,6 +208,26 @@ const CookieConsentBanner: React.FC = () => {
             </div>
           </>
         )}
+
+        {/* Liens légaux — CNIL : accessibles depuis le bandeau */}
+        <div
+          style={{
+            marginTop: '12px',
+            paddingTop: '10px',
+            borderTop: '1px solid #f0f0f0',
+            fontSize: '12px',
+            color: '#666',
+            textAlign: 'center',
+          }}
+        >
+          <a href="/legal" style={linkStyle}>Mentions légales</a>
+          {' · '}
+          <a href="/cookies" style={linkStyle}>Politique cookies</a>
+          {' · '}
+          <a href="/privacy" style={linkStyle}>Confidentialité</a>
+          {' · '}
+          <a href="/terms" style={linkStyle}>CGU</a>
+        </div>
       </div>
     </div>
   );
