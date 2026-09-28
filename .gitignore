@@ -41,3 +41,9 @@ backup_*.sql
 # Backup files (tests locaux)
 cloudinary_backup*.json
 backup_*.sql*
+
+# Fichiers de backup locaux
+*.before-*
+*.backup
+*.bak
+*.old

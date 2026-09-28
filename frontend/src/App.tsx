@@ -36,6 +36,7 @@ const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
 const MentionsLegales = lazy(() => import('./pages/legal/MentionsLegales'));
+const PolitiqueCookies = lazy(() => import('./pages/legal/PolitiqueCookies'));
 
 // ============================================================
 // LOADER
@@ -377,6 +378,7 @@ const AppRoutes: React.FC<{
         />
  			 {/* ✅ Mentions légales (accessible connecté ou non) */}
 				<Route path="/legal" element={<MentionsLegales />} />
+                            <Route path="/cookies" element={<PolitiqueCookies />} />
 
         {/* ✅ ROUTES PUBLIQUES */}
         <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
