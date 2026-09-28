@@ -12,8 +12,9 @@ import { useToast } from '../context/ToastContext';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { WebhooksSettings } from '../components/WebhooksSettings';
 
-type Tab = 'profile' | 'security' | 'notifications' | 'language' | 'appearance' | 'gdpr';
+type Tab = 'profile' | 'security' | 'notifications' | 'webhooks' | 'language' | 'appearance' | 'gdpr';
 
 const SettingsPage: React.FC = () => {
   const { mode, toggleMode, colors, setCustomPalette } = useTheme();
@@ -406,6 +407,7 @@ const handleTogglePush = async () => {
   { key: 'profile', label: t('settings.tabs.profile') },
   { key: 'security', label: t('settings.tabs.security') },
   { key: 'notifications', label: t('settings.tabs.notifications') },
+  { key: 'webhooks', label: t('settings.tabs.webhooks') },
   { key: 'language', label: t('settings.tabs.language') },
   { key: 'appearance', label: t('settings.tabs.appearance') },
   { key: 'gdpr', label: t('gdpr.tab') },
@@ -963,6 +965,14 @@ const handleTogglePush = async () => {
     )}
   </Card>
 )}
+
+{/* ============================================================ */}
+{/* ONGLET WEBHOOKS */}
+{/* ============================================================ */}
+{activeTab === 'webhooks' && (
+  <WebhooksSettings />
+)}
+
 
       {/* ============================================================ */}
       {/* ONGLET LANGUE */}

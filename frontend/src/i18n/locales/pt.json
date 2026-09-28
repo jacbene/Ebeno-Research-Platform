@@ -344,7 +344,8 @@
       "security": "🔒 Segurança",
       "notifications": "🔔 Notificações",
       "language": "🌍 Idioma",
-      "appearance": "🎨 Aparência"
+      "appearance": "🎨 Aparência",
+      "webhooks": "🔗 Webhooks"
     },
     "profile": {
       "title": "👤 O meu perfil",
@@ -724,6 +725,66 @@
     "updateError": "Não foi possível atualizar o comentário",
     "deleteError": "Não foi possível eliminar o comentário"
   },
+ "webhooks": {
+  "title": "Webhooks",
+  "intro": "Receba uma notificação HTTP POST em cada evento da plataforma. Ideal para Slack, Discord, Zapier, Make, Google Sheets, etc.",
+  "newButton": "Criar webhook",
+  "newTitle": "Novo webhook",
+  "empty": "Nenhum webhook configurado",
+  "emptyHint": "Crie um para receber notificações externas",
+  "created": "Webhook criado ✅",
+  "deleted": "Webhook eliminado",
+  "deleteConfirm": "Eliminar este webhook?",
+  "active": "Ativo",
+  "inactive": "Inativo",
+  "enable": "Ativar",
+  "disable": "Desativar",
+  "allProjects": "Todos os projetos",
+  "secretCopied": "Segredo copiado",
+  "lastTriggered": "Último envio",
+  "form": {
+    "nameLabel": "Nome do webhook *",
+    "namePlaceholder": "Ex: Notificação Slack",
+    "urlLabel": "URL de destino *",
+    "urlPlaceholder": "https://hooks.slack.com/services/...",
+    "projectLabel": "Âmbito",
+    "allProjects": "Todos os meus projetos (global)",
+    "eventsLabel": "Eventos a receber *",
+    "submit": "Criar"
+  },
+  "events": {
+    "projectCreated": "Projeto criado",
+    "projectUpdated": "Projeto atualizado",
+    "projectDeleted": "Projeto eliminado",
+    "fileUploaded": "Ficheiro carregado",
+    "fileTrashed": "Ficheiro no lixo",
+    "fileEdited": "Ficheiro editado",
+    "transcriptionUploaded": "Transcrição carregada",
+    "transcriptionCompleted": "Transcrição concluída",
+    "memoCreated": "Memo criado",
+    "commentCreated": "Comentário adicionado",
+    "memberAdded": "Membro adicionado"
+  },
+  "test": {
+    "button": "Testar",
+    "success": "✅ Teste bem-sucedido ({{code}})",
+    "failed": "❌ Teste falhado",
+    "error": "Erro no teste"
+  },
+  "deliveries": {
+    "title": "Histórico de envios",
+    "empty": "Nenhum envio ainda"
+  },
+  "errors": {
+    "required": "Nome e URL obrigatórios",
+    "noEvents": "Selecione pelo menos um evento",
+    "createFailed": "Não foi possível criar o webhook"
+  },
+  "doc": {
+    "title": "Integração",
+    "intro": "O seu endpoint deve aceitar pedidos POST com assinatura HMAC-SHA256."
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",

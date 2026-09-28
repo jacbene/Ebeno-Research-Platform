@@ -344,7 +344,8 @@
       "security": "🔒 Security",
       "notifications": "🔔 Notifications",
       "language": "🌍 Language",
-      "appearance": "🎨 Appearance"
+      "appearance": "🎨 Appearance",
+      "webhooks": "🔗 Webhooks"
     },
     "profile": {
       "title": "👤 My profile",
@@ -724,6 +725,66 @@
     "updateError": "Could not update comment",
     "deleteError": "Could not delete comment"
   },
+ "webhooks": {
+  "title": "Webhooks",
+  "intro": "Receive an HTTP POST notification on every platform event. Perfect for Slack, Discord, Zapier, Make, Google Sheets, etc.",
+  "newButton": "Create webhook",
+  "newTitle": "New webhook",
+  "empty": "No webhook configured",
+  "emptyHint": "Create one to receive external notifications",
+  "created": "Webhook created ✅",
+  "deleted": "Webhook deleted",
+  "deleteConfirm": "Delete this webhook?",
+  "active": "Active",
+  "inactive": "Inactive",
+  "enable": "Enable",
+  "disable": "Disable",
+  "allProjects": "All projects",
+  "secretCopied": "Secret copied to clipboard",
+  "lastTriggered": "Last triggered",
+  "form": {
+    "nameLabel": "Webhook name *",
+    "namePlaceholder": "e.g. Slack notification",
+    "urlLabel": "Destination URL *",
+    "urlPlaceholder": "https://hooks.slack.com/services/...",
+    "projectLabel": "Scope",
+    "allProjects": "All my projects (global)",
+    "eventsLabel": "Events to receive *",
+    "submit": "Create"
+  },
+  "events": {
+    "projectCreated": "Project created",
+    "projectUpdated": "Project updated",
+    "projectDeleted": "Project deleted",
+    "fileUploaded": "File uploaded",
+    "fileTrashed": "File trashed",
+    "fileEdited": "File edited",
+    "transcriptionUploaded": "Transcription uploaded",
+    "transcriptionCompleted": "Transcription completed",
+    "memoCreated": "Memo created",
+    "commentCreated": "Comment added",
+    "memberAdded": "Member added"
+  },
+  "test": {
+    "button": "Test",
+    "success": "✅ Test successful ({{code}})",
+    "failed": "❌ Test failed",
+    "error": "Test error"
+  },
+  "deliveries": {
+    "title": "Delivery history",
+    "empty": "No delivery yet"
+  },
+  "errors": {
+    "required": "Name and URL required",
+    "noEvents": "Select at least one event",
+    "createFailed": "Could not create webhook"
+  },
+  "doc": {
+    "title": "Integration",
+    "intro": "Your endpoint must accept POST requests with an HMAC-SHA256 signature."
+  }
+},
   "language": {
     "fr": "Français",
     "en": "English",
