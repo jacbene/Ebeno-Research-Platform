@@ -43,6 +43,7 @@ import twoFactorRoutes from './routes/twoFactorRoutes';
 import translationRoutes from './routes/translationRoutes';
 import pushRoutes from './routes/pushRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import webhookRoutes from './routes/webhookRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -188,6 +189,7 @@ app.use('/api/language', languageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/2fa', twoFactorRoutes);
 app.use('/api/translations', translationRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES

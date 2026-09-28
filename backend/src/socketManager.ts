@@ -2,6 +2,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { logger } from './utils/logger';
 import { sendPushToProjectMembers } from './services/pushService';
+import { triggerWebhookEvent, WebhookEvent } from './services/webhookService';
 
 let io: SocketIOServer | null = null;
 
@@ -16,6 +17,23 @@ export const getIO = (): SocketIOServer | null => io;
 // ✅ Émission générique — route automatiquement vers le project room
 //    si projectId est présent dans les données
 // ============================================================
+	// ✅ Mapping interne : event Socket.IO → event Webhook
+const SOCKET_TO_WEBHOOK: Record<string, WebhookEvent> = {
+  'member-added': 'member.added',
+  'document-created': 'file.uploaded',
+  'document-updated-title': 'file.edited',
+  'memo-created': 'memo.created',
+  'comment-created': 'comment.created',
+  'file-uploaded': 'file.uploaded',
+  'file-trashed': 'file.trashed',
+  'file-edited': 'file.edited',
+  'transcription-uploaded': 'transcription.uploaded',
+  'transcription-completed': 'transcription.completed',
+  'project-created': 'project.created',
+  'project-updated': 'project.updated',
+  'project-deleted': 'project.deleted',
+};
+
 export const emitGlobal = (event: string, data: any): void => {
   if (!io) {
     logger.warn('⚠️ [socketManager] IO non initialisé, emitGlobal ignoré');
@@ -26,16 +44,32 @@ export const emitGlobal = (event: string, data: any): void => {
   if (data?.projectId) {
     io.to(`project:${data.projectId}`).emit(event, data);
 
-    // ✅ Envoyer aussi un push navigateur en parallèle (non bloquant)
+    // ✅ Push navigateur en parallèle
     sendPushToProjectMembers(data.projectId, event, data).catch((err) =>
       logger.warn(`⚠️ [push] Erreur envoi push: ${err.message}`)
     );
+
+    // ✅ Webhook externe en parallèle
+    const webhookEvent = SOCKET_TO_WEBHOOK[event];
+    if (webhookEvent) {
+      triggerWebhookEvent(webhookEvent, data, data.projectId).catch((err) =>
+        logger.warn(`⚠️ [webhook] Erreur trigger: ${err.message}`)
+      );
+    }
 
     return;
   }
 
   // Sinon broadcast global (fallback)
   io.emit(event, data);
+
+  // ✅ Webhooks globaux (sans projet)
+  const webhookEvent = SOCKET_TO_WEBHOOK[event];
+  if (webhookEvent) {
+    triggerWebhookEvent(webhookEvent, data, null).catch((err) =>
+      logger.warn(`⚠️ [webhook] Erreur trigger: ${err.message}`)
+    );
+  }
 };
 
 // ============================================================
