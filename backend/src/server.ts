@@ -11,6 +11,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import requestIp from 'request-ip';
@@ -19,6 +20,9 @@ import { auditLogger } from './middleware/auditLogger';
 import { startCleanupCron } from './services/cleanupService';
 import { verifyEmailConnection } from './services/emailService';
 import { startAuditPurgeCron } from './services/auditPurgeService';
+
+// ✅ Chantier D — CSP stricte
+import { cspOptions, cspOptionsDev } from './config/csp';
 
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
@@ -72,6 +76,11 @@ import { invalidateStatsOnWrite } from './middleware/invalidateStatsCache';
 dotenv.config();
 
 // ============================================================
+// ✅ ENVIRONNEMENT
+// ============================================================
+const isProd = process.env.NODE_ENV === 'production';
+
+// ============================================================
 // ✅ CORS STRICT (whitelist)
 // ============================================================
 const ALLOWED_ORIGINS = [
@@ -117,6 +126,13 @@ process.on('unhandledRejection', async (reason, promise) => {
 const app = express();
 const port = Number(process.env.PORT) || 5001;
 
+// ============================================================
+// ✅ HELMET / CSP — TOUT PREMIER MIDDLEWARE
+// ============================================================
+// Doit être placé avant CORS, rate-limiting, routes, body-parsers.
+// En dev : CSP désactivée (cspOptionsDev), les autres protections restent actives.
+app.use(helmet(isProd ? cspOptions : cspOptionsDev));
+
 // ✅ Trust proxy : uniquement les plages connues (Cloudflare + Render)
 app.set('trust proxy', (ip: string) => {
   if (ip === '127.0.0.1' || ip === '::1') return true;
@@ -159,7 +175,7 @@ setIO(io);
 // MIDDLEWARES
 // ============================================================
 
-// ✅ CORS STRICT (AVANT tous les autres middlewares)
+// ✅ CORS STRICT (APRÈS Helmet)
 app.use(cors({
   origin: (origin, callback) => {
     if (isOriginAllowed(origin)) return callback(null, true);
@@ -292,9 +308,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     userId: (req as any).user?.id,
   });
 
-  const message = process.env.NODE_ENV === 'production'
-    ? 'Erreur interne du serveur'
-    : err.message;
+  const message = isProd ? 'Erreur interne du serveur' : err.message;
 
   res.status(err.status || 500).json({ error: message });
 });
@@ -330,6 +344,7 @@ const startServer = async () => {
     httpServer.listen(port, '0.0.0.0', () => {
       logger.info(`🚀 Serveur démarré sur le port ${port}`);
       logger.info(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🛡️  CSP: ${isProd ? 'STRICTE (Helmet)' : 'désactivée (dev)'}`);
     });
 
     httpServer.on('listening', () => {
