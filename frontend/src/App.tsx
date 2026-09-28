@@ -38,6 +38,8 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const CancelDeletionPage = lazy(() => import('./pages/CancelDeletionPage'));
 const MentionsLegales = lazy(() => import('./pages/legal/MentionsLegales'));
 const PolitiqueCookies = lazy(() => import('./pages/legal/PolitiqueCookies'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 
 
 // ============================================================
@@ -381,6 +383,8 @@ const AppRoutes: React.FC<{
  			 {/* ✅ Mentions légales (accessible connecté ou non) */}
 				<Route path="/legal" element={<MentionsLegales />} />
                             <Route path="/cookies" element={<PolitiqueCookies />} />
+                            <Route path="/privacy" element={<PrivacyPage />} />
+                            <Route path="/terms" element={<TermsPage />} />
 
         {/* ✅ ROUTES PUBLIQUES */}
         <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
