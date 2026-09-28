@@ -2,6 +2,11 @@
 // ✅ IMPORT SENTRY EN PREMIER (avant tout le reste)
 import './instrument';
 import * as Sentry from '@sentry/node';
+
+// ✅ Validation des secrets AVANT tout
+import { validateAllSecrets } from './config/secrets';
+validateAllSecrets();
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -14,7 +19,7 @@ import { auditLogger } from './middleware/auditLogger';
 import { startCleanupCron } from './services/cleanupService';
 import { verifyEmailConnection } from './services/emailService';
 import { startAuditPurgeCron } from './services/auditPurgeService';
-import { startAccountDeletionPurgeCron } from './services/accountDeletionService';
+
 // Routes
 import uploadRoutes from './routes/uploadRoutes';
 import authRoutes from './routes/authRoutes';
@@ -67,20 +72,35 @@ import { invalidateStatsOnWrite } from './middleware/invalidateStatsCache';
 dotenv.config();
 
 // ============================================================
+// ✅ CORS STRICT (whitelist)
+// ============================================================
+const ALLOWED_ORIGINS = [
+  'https://ebeno-frontend.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
+const isOriginAllowed = (origin: string | undefined): boolean => {
+  if (!origin) return true; // curl, Postman, apps mobiles
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Preview deploys Render : ebeno-frontend-xyz123.onrender.com
+  if (/^https:\/\/ebeno-frontend-[a-z0-9]+\.onrender\.com$/.test(origin)) return true;
+  return false;
+};
+
+// ============================================================
 // GESTION DES ERREURS NON CAPTURÉES
 // ============================================================
 
 process.on('uncaughtException', async (err) => {
   logError('❌ Uncaught Exception', err);
-  // ✅ Capturer dans Sentry AVANT de mourir
   Sentry.captureException(err);
-  await Sentry.close(2000); // 2s pour flush
+  await Sentry.close(2000);
   process.exit(1);
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
   logError('❌ Unhandled Rejection', reason, { promise: String(promise) });
-  // ✅ Capturer dans Sentry AVANT de mourir
   if (reason instanceof Error) {
     Sentry.captureException(reason);
   } else {
@@ -97,11 +117,22 @@ process.on('unhandledRejection', async (reason, promise) => {
 const app = express();
 const port = Number(process.env.PORT) || 5001;
 
-// ✅ Faire confiance au proxy (Render + Cloudflare)
+// ✅ Trust proxy : uniquement les plages connues (Cloudflare + Render)
 app.set('trust proxy', (ip: string) => {
   if (ip === '127.0.0.1' || ip === '::1') return true;
   if (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return true;
-  return true;
+  // Cloudflare
+  if (
+    ip.startsWith('173.245.') || ip.startsWith('103.21.') || ip.startsWith('103.22.') ||
+    ip.startsWith('103.31.') || ip.startsWith('141.101.') || ip.startsWith('108.162.') ||
+    ip.startsWith('190.93.') || ip.startsWith('188.114.') || ip.startsWith('197.234.') ||
+    ip.startsWith('198.41.') || ip.startsWith('162.158.') || ip.startsWith('104.16.') ||
+    ip.startsWith('104.17.') || ip.startsWith('104.18.') || ip.startsWith('104.19.') ||
+    ip.startsWith('104.20.') || ip.startsWith('104.21.') || ip.startsWith('104.22.') ||
+    ip.startsWith('104.23.') || ip.startsWith('104.24.') || ip.startsWith('104.25.') ||
+    ip.startsWith('104.26.') || ip.startsWith('104.27.')
+  ) return true;
+  return false;
 });
 
 const httpServer = createServer(app);
@@ -112,7 +143,10 @@ const httpServer = createServer(app);
 
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) return callback(null, true);
+      callback(new Error(`Socket CORS bloqué: ${origin}`));
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -125,7 +159,20 @@ setIO(io);
 // MIDDLEWARES
 // ============================================================
 
-app.use(cors());
+// ✅ CORS STRICT (AVANT tous les autres middlewares)
+app.use(cors({
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) return callback(null, true);
+    logger.warn(`🚫 [CORS] Origin bloquée: ${origin}`);
+    callback(new Error(`CORS bloqué pour origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'],
+  exposedHeaders: ['Content-Disposition'],
+  maxAge: 86400,
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -150,6 +197,8 @@ app.use('/api', globalLimiter);
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/resend-verification', authLimiter);
 app.use('/api/upload', uploadLimiter);
 
 app.use('/api/summaries', aiLimiter);
@@ -157,7 +206,8 @@ app.use('/api/analysis', aiLimiter);
 app.use('/api/entities', aiLimiter);
 app.use('/api/codes', aiLimiter);
 app.use('/api/translations', aiLimiter);
-app.use('/api/push', pushRoutes);
+app.use('/api/analytics', aiLimiter);
+app.use('/api/webhooks', aiLimiter);
 
 // ============================================================
 // ROUTES
@@ -184,11 +234,12 @@ app.use('/api/codes', codeRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/analytics', analyticsRoutes);
 app.use('/api/language', languageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/2fa', twoFactorRoutes);
 app.use('/api/translations', translationRoutes);
+app.use('/api/push', pushRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
 // ============================================================
@@ -209,6 +260,8 @@ app.get('/', (req, res) => {
       activity: '/api/activity',
       health: '/api/health',
       breakers: '/api/health/breakers',
+      analytics: '/api/analytics',
+      webhooks: '/api/webhooks',
     },
   });
 });
@@ -216,6 +269,7 @@ app.get('/', (req, res) => {
 // ============================================================
 // GESTION 404
 // ============================================================
+
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route non trouvée', path: req.originalUrl });
 });
@@ -224,11 +278,14 @@ app.use('*', (req, res) => {
 // GESTION D'ERREURS
 // ============================================================
 
-// ✅ Sentry : capture toutes les erreurs non gérées
-//    (à placer AVANT votre error handler custom)
 Sentry.setupExpressErrorHandler(app);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // ✅ CORS : erreur spécifique → réponse 403 propre
+  if (err.message && err.message.startsWith('CORS bloqué')) {
+    return res.status(403).json({ error: 'Origine non autorisée' });
+  }
+
   logError('❌ Erreur serveur', err, {
     method: req.method,
     url: req.originalUrl,
@@ -251,7 +308,6 @@ const startServer = async () => {
     await db.raw('SELECT 1');
     logger.info('✅ Base de données connectée');
 
-    // ✅ Corriger les noms .ts → .js dans knex_migrations (one-shot)
     try {
       const result = await db.raw(`
         UPDATE knex_migrations 
@@ -287,11 +343,9 @@ const startServer = async () => {
       logError('❌ Erreur du serveur HTTP', err);
     });
 
-startCleanupCron();
-startAuditPurgeCron();
-startAccountDeletionPurgeCron(); // ✅ purge RGPD 03:30
+    startCleanupCron();
+    startAuditPurgeCron();
 
-    // ✅ Vérifier SMTP (asynchrone, non bloquant)
     verifyEmailConnection()
       .then(() => logger.info('✅ [email] SMTP opérationnel'))
       .catch((err: Error) =>
@@ -302,14 +356,12 @@ startAccountDeletionPurgeCron(); // ✅ purge RGPD 03:30
 
   } catch (err) {
     logError('❌ Erreur lors du démarrage', err);
-    // ✅ Capturer l'erreur fatale de démarrage dans Sentry
     Sentry.captureException(err);
     await Sentry.close(2000);
     process.exit(1);
   }
 };
 
-// ✅ Ne pas démarrer le serveur en mode test
 if (process.env.NODE_ENV !== 'test') {
   startServer();
 }

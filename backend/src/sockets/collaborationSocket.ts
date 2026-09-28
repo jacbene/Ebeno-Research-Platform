@@ -10,8 +10,9 @@ import {
   startPresenceCleanup,
 } from '../services/presenceService';
 import { db } from '../db/knex';
+import { requireSecret } from '../config/secrets';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const JWT_SECRET = requireSecret('JWT_SECRET');
 
 interface JoinPayload {
   projectId: string;

@@ -29,8 +29,9 @@ import {
   cancelAccountDeletion,
 } from '../services/accountDeletionService';
 import { sendDeletionScheduledEmail } from '../services/emailService';
+import { requireSecret } from '../config/secrets';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const JWT_SECRET = requireSecret('JWT_SECRET');
 const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
 
 const isValidEmail = (email: string): boolean => {

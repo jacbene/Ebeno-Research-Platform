@@ -1,6 +1,5 @@
 // backend/src/services/webhookService.ts
 // ✅ Service Webhooks — notifications HTTP sortantes signées HMAC-SHA256
-
 import crypto from 'crypto';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
@@ -24,10 +23,61 @@ export const WEBHOOK_EVENTS = [
 
 export type WebhookEvent = typeof WEBHOOK_EVENTS[number];
 
-const RETRY_DELAYS = [5000, 30000, 300000]; // 5s, 30s, 5min
-const DELIVERY_TIMEOUT = 15000; // 15s max par tentative
-const MAX_PAYLOAD_STORED = 5000; // Tronquer le payload stocké à 5KB
-const MAX_DELIVERIES_KEPT = 20; // Garder les 20 dernières par webhook
+const RETRY_DELAYS = [5000, 30000, 300000];
+const DELIVERY_TIMEOUT = 15000;
+const MAX_PAYLOAD_STORED = 5000;
+const MAX_DELIVERIES_KEPT = 20;
+
+// ============================================================
+// ✅ PROTECTION SSRF : bloque localhost + IPs privées + metadata cloud
+// ============================================================
+const isPrivateHostname = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+
+  if (['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(lower)) return true;
+  if (lower.endsWith('.local') || lower.endsWith('.internal')) return true;
+  if (lower.endsWith('.localhost')) return true;
+
+  const match = lower.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (match) {
+    const a = Number(match[1]);
+    const b = Number(match[2]);
+    if (a === 10) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true; // AWS metadata
+    if (a === 127) return true;
+    if (a === 0) return true;
+  }
+
+  return false;
+};
+
+export const validateWebhookUrl = (url: string): { valid: boolean; reason?: string } => {
+  try {
+    const parsed = new URL(url);
+
+    if (process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:') {
+      return { valid: false, reason: 'HTTPS requis en production' };
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { valid: false, reason: 'Protocole non supporté' };
+    }
+
+    if (isPrivateHostname(parsed.hostname)) {
+      return { valid: false, reason: 'URL interne non autorisée (SSRF)' };
+    }
+
+    if (url.length > 1024) {
+      return { valid: false, reason: 'URL trop longue (max 1024)' };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, reason: 'URL invalide' };
+  }
+};
 
 // ============================================================
 // Générer un secret
@@ -111,6 +161,11 @@ const deliverWebhook = async (
   const startTime = Date.now();
 
   try {
+  const check = validateWebhookUrl(hook.url);
+if (!check.valid) {
+  logger.warn(`🚫 [webhook] URL bloquée: ${hook.url} (${check.reason})`);
+  return; // ou return { success: false, ... } pour testWebhook
+}
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT);
 
@@ -306,6 +361,11 @@ export const testWebhook = async (hook: any): Promise<{
   const startTime = Date.now();
 
   try {
+  const check = validateWebhookUrl(hook.url);
+if (!check.valid) {
+  logger.warn(`🚫 [webhook] URL bloquée: ${hook.url} (${check.reason})`);
+  return; // ou return { success: false, ... } pour testWebhook
+}
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT);
 
@@ -340,12 +400,12 @@ export const testWebhook = async (hook: any): Promise<{
     };
   }
 };
-
 export default {
   WEBHOOK_EVENTS,
   generateSecret,
   signPayload,
   verifySignature,
+  validateWebhookUrl,   // ✅ AJOUT
   triggerWebhookEvent,
   testWebhook,
 };

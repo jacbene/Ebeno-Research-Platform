@@ -1,8 +1,9 @@
 // backend/src/middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { requireSecret } from '../config/secrets';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
+const JWT_SECRET = requireSecret('JWT_SECRET');
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   try {

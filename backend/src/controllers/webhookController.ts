@@ -8,6 +8,7 @@ import {
   WEBHOOK_EVENTS,
 } from '../services/webhookService';
 import { logAuditFromReq } from '../services/auditLogService';
+import { validateWebhookUrl } from '../services/webhookService';
 
 const generateId = (): string =>
   `wh-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
@@ -15,14 +16,6 @@ const generateId = (): string =>
 // ============================================================
 // ✅ Valider une URL
 // ============================================================
-const isValidUrl = (url: string): boolean => {
-  try {
-    const u = new URL(url);
-    return u.protocol === 'https:' || u.protocol === 'http:';
-  } catch {
-    return false;
-  }
-};
 
 // ============================================================
 // ✅ LISTER les webhooks de l'utilisateur
@@ -58,12 +51,19 @@ export const createWebhook = async (req: Request, res: Response) => {
 
     const { name, url, events, projectId } = req.body;
 
+    // ✅ Valider l'URL APRÈS avoir récupéré url
+    if (!url) {
+      return res.status(400).json({ error: 'URL requise' });
+    }
+    const check = validateWebhookUrl(url);
+    if (!check.valid) {
+      return res.status(400).json({ error: `URL invalide: ${check.reason}` });
+    }
+
     if (!name || name.trim().length < 2) {
       return res.status(400).json({ error: 'Nom requis (2 caractères min)' });
     }
-    if (!url || !isValidUrl(url)) {
-      return res.status(400).json({ error: 'URL invalide' });
-    }
+  
     if (!Array.isArray(events) || events.length === 0) {
       return res.status(400).json({ error: 'Au moins un événement requis' });
     }
@@ -147,9 +147,12 @@ export const updateWebhook = async (req: Request, res: Response) => {
       updates.name = name.trim();
     }
     if (url !== undefined) {
-      if (!isValidUrl(url)) return res.status(400).json({ error: 'URL invalide' });
-      updates.url = url.trim();
-    }
+  const urlCheck = validateWebhookUrl(url);
+  if (!urlCheck.valid) {
+    return res.status(400).json({ error: `URL invalide: ${urlCheck.reason}` });
+  }
+  updates.url = url.trim();
+}
     if (events !== undefined) {
       if (!Array.isArray(events) || events.length === 0) {
         return res.status(400).json({ error: 'Au moins un événement requis' });
