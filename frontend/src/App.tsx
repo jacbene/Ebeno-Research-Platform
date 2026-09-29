@@ -518,6 +518,7 @@ const App: React.FC = () => {
             </Sentry.ErrorBoundary>
           </Router>
          <ToastContainer />
+				 <InstallBanner />
 				 <CookieConsentBanner />
         </ToastProvider>
       </LanguageProvider>
