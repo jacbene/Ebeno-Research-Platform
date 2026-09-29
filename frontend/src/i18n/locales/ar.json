@@ -725,66 +725,66 @@
     "updateError": "تعذر تحديث التعليق",
     "deleteError": "تعذر حذف التعليق"
   },
- "webhooks": {
-  "title": "Webhooks",
-  "intro": "استقبل إشعار HTTP POST على كل حدث في المنصة. مثالي لـ Slack و Discord و Zapier و Make و Google Sheets وغيرها.",
-  "newButton": "إنشاء webhook",
-  "newTitle": "Webhook جديد",
-  "empty": "لا يوجد webhook مُعد",
-  "emptyHint": "أنشئ واحدًا لاستقبال الإشعارات الخارجية",
-  "created": "تم إنشاء الـ webhook ✅",
-  "deleted": "تم حذف الـ webhook",
-  "deleteConfirm": "حذف هذا الـ webhook؟",
-  "active": "نشط",
-  "inactive": "غير نشط",
-  "enable": "تفعيل",
-  "disable": "تعطيل",
-  "allProjects": "جميع المشاريع",
-  "secretCopied": "تم نسخ السر",
-  "lastTriggered": "آخر إرسال",
-  "form": {
-    "nameLabel": "اسم الـ webhook *",
-    "namePlaceholder": "مثال: إشعار Slack",
-    "urlLabel": "رابط الوجهة *",
-    "urlPlaceholder": "https://hooks.slack.com/services/...",
-    "projectLabel": "النطاق",
-    "allProjects": "جميع مشاريعي (عام)",
-    "eventsLabel": "الأحداث المطلوب استقبالها *",
-    "submit": "إنشاء"
+  "webhooks": {
+    "title": "Webhooks",
+    "intro": "استقبل إشعار HTTP POST على كل حدث في المنصة. مثالي لـ Slack و Discord و Zapier و Make و Google Sheets وغيرها.",
+    "newButton": "إنشاء webhook",
+    "newTitle": "Webhook جديد",
+    "empty": "لا يوجد webhook مُعد",
+    "emptyHint": "أنشئ واحدًا لاستقبال الإشعارات الخارجية",
+    "created": "تم إنشاء الـ webhook ✅",
+    "deleted": "تم حذف الـ webhook",
+    "deleteConfirm": "حذف هذا الـ webhook؟",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "enable": "تفعيل",
+    "disable": "تعطيل",
+    "allProjects": "جميع المشاريع",
+    "secretCopied": "تم نسخ السر",
+    "lastTriggered": "آخر إرسال",
+    "form": {
+      "nameLabel": "اسم الـ webhook *",
+      "namePlaceholder": "مثال: إشعار Slack",
+      "urlLabel": "رابط الوجهة *",
+      "urlPlaceholder": "https://hooks.slack.com/services/...",
+      "projectLabel": "النطاق",
+      "allProjects": "جميع مشاريعي (عام)",
+      "eventsLabel": "الأحداث المطلوب استقبالها *",
+      "submit": "إنشاء"
+    },
+    "events": {
+      "projectCreated": "تم إنشاء مشروع",
+      "projectUpdated": "تم تحديث مشروع",
+      "projectDeleted": "تم حذف مشروع",
+      "fileUploaded": "تم رفع ملف",
+      "fileTrashed": "ملف في سلة المهملات",
+      "fileEdited": "تم تعديل ملف",
+      "transcriptionUploaded": "تم رفع نسخة",
+      "transcriptionCompleted": "اكتمل النسخ",
+      "memoCreated": "تم إنشاء مذكرة",
+      "commentCreated": "تمت إضافة تعليق",
+      "memberAdded": "تمت إضافة عضو"
+    },
+    "test": {
+      "button": "اختبار",
+      "success": "✅ نجح الاختبار ({{code}})",
+      "failed": "❌ فشل الاختبار",
+      "error": "خطأ في الاختبار"
+    },
+    "deliveries": {
+      "title": "سجل الإرسال",
+      "empty": "لا يوجد إرسال بعد"
+    },
+    "errors": {
+      "required": "الاسم والرابط مطلوبان",
+      "noEvents": "اختر حدثًا واحدًا على الأقل",
+      "createFailed": "تعذر إنشاء الـ webhook"
+    },
+    "doc": {
+      "title": "التكامل",
+      "intro": "يجب أن يقبل الـ endpoint الخاص بك طلبات POST بتوقيع HMAC-SHA256."
+    }
   },
-  "events": {
-    "projectCreated": "تم إنشاء مشروع",
-    "projectUpdated": "تم تحديث مشروع",
-    "projectDeleted": "تم حذف مشروع",
-    "fileUploaded": "تم رفع ملف",
-    "fileTrashed": "ملف في سلة المهملات",
-    "fileEdited": "تم تعديل ملف",
-    "transcriptionUploaded": "تم رفع نسخة",
-    "transcriptionCompleted": "اكتمل النسخ",
-    "memoCreated": "تم إنشاء مذكرة",
-    "commentCreated": "تمت إضافة تعليق",
-    "memberAdded": "تمت إضافة عضو"
-  },
-  "test": {
-    "button": "اختبار",
-    "success": "✅ نجح الاختبار ({{code}})",
-    "failed": "❌ فشل الاختبار",
-    "error": "خطأ في الاختبار"
-  },
-  "deliveries": {
-    "title": "سجل الإرسال",
-    "empty": "لا يوجد إرسال بعد"
-  },
-  "errors": {
-    "required": "الاسم والرابط مطلوبان",
-    "noEvents": "اختر حدثًا واحدًا على الأقل",
-    "createFailed": "تعذر إنشاء الـ webhook"
-  },
-  "doc": {
-    "title": "التكامل",
-    "intro": "يجب أن يقبل الـ endpoint الخاص بك طلبات POST بتوقيع HMAC-SHA256."
-  }
-},
   "language": {
     "fr": "Français",
     "en": "English",
@@ -854,6 +854,33 @@
       "summaries": "الملخصات",
       "translations": "الترجمات",
       "transcriptions": "النسخ"
+    }
+  },
+  "legal": {
+    "links": {
+      "mentions": "الإشعار القانوني",
+      "cookies": "سياسة ملفات تعريف الارتباط",
+      "privacy": "سياسة الخصوصية",
+      "terms": "شروط الاستخدام"
+    },
+    "cookieBanner": {
+      "ariaLabel": "شريط الموافقة على ملفات تعريف الارتباط",
+      "message": "🍪 نستخدم ملفات تعريف الارتباط لضمان عمل المنصة (المصادقة، اللغة) وبموافقتك، لتحليل الاستخدام وتحسين الخدمة.",
+      "learnMore": "اعرف المزيد",
+      "acceptAll": "قبول الكل",
+      "refuseAll": "رفض الكل",
+      "customize": "تخصيص",
+      "detailsTitle": "تخصيص ملفات تعريف الارتباط",
+      "necessary": "ضرورية للغاية",
+      "necessaryDesc": "نشطة دائمًا (المصادقة، اللغة، الأمان).",
+      "analytics": "تحليلية",
+      "analyticsDesc": "Sentry، إحصائيات مجهولة المصدر.",
+      "thirdParty": "أطراف ثالثة",
+      "thirdPartyDesc": "Cloudinary (معاينة)، Socket.IO (الوقت الفعلي).",
+      "saveChoices": "حفظ اختياراتي"
+    },
+    "pages": {
+      "frenchOnlyNotice": "هذه الصفحة متوفرة بالفرنسية فقط. النسخة الفرنسية هي النسخة الملزمة قانونيًا."
     }
   }
 }

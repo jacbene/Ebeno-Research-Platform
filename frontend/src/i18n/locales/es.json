@@ -725,66 +725,66 @@
     "updateError": "No se pudo actualizar el comentario",
     "deleteError": "No se pudo eliminar el comentario"
   },
- "webhooks": {
-  "title": "Webhooks",
-  "intro": "Reciba una notificación HTTP POST en cada evento de la plataforma. Ideal para Slack, Discord, Zapier, Make, Google Sheets, etc.",
-  "newButton": "Crear webhook",
-  "newTitle": "Nuevo webhook",
-  "empty": "Sin webhooks configurados",
-  "emptyHint": "Cree uno para recibir notificaciones externas",
-  "created": "Webhook creado ✅",
-  "deleted": "Webhook eliminado",
-  "deleteConfirm": "¿Eliminar este webhook?",
-  "active": "Activo",
-  "inactive": "Inactivo",
-  "enable": "Activar",
-  "disable": "Desactivar",
-  "allProjects": "Todos los proyectos",
-  "secretCopied": "Secreto copiado al portapapeles",
-  "lastTriggered": "Último envío",
-  "form": {
-    "nameLabel": "Nombre del webhook *",
-    "namePlaceholder": "Ej: Notificación Slack",
-    "urlLabel": "URL de destino *",
-    "urlPlaceholder": "https://hooks.slack.com/services/...",
-    "projectLabel": "Alcance",
-    "allProjects": "Todos mis proyectos (global)",
-    "eventsLabel": "Eventos a recibir *",
-    "submit": "Crear"
+  "webhooks": {
+    "title": "Webhooks",
+    "intro": "Reciba una notificación HTTP POST en cada evento de la plataforma. Ideal para Slack, Discord, Zapier, Make, Google Sheets, etc.",
+    "newButton": "Crear webhook",
+    "newTitle": "Nuevo webhook",
+    "empty": "Sin webhooks configurados",
+    "emptyHint": "Cree uno para recibir notificaciones externas",
+    "created": "Webhook creado ✅",
+    "deleted": "Webhook eliminado",
+    "deleteConfirm": "¿Eliminar este webhook?",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "allProjects": "Todos los proyectos",
+    "secretCopied": "Secreto copiado al portapapeles",
+    "lastTriggered": "Último envío",
+    "form": {
+      "nameLabel": "Nombre del webhook *",
+      "namePlaceholder": "Ej: Notificación Slack",
+      "urlLabel": "URL de destino *",
+      "urlPlaceholder": "https://hooks.slack.com/services/...",
+      "projectLabel": "Alcance",
+      "allProjects": "Todos mis proyectos (global)",
+      "eventsLabel": "Eventos a recibir *",
+      "submit": "Crear"
+    },
+    "events": {
+      "projectCreated": "Proyecto creado",
+      "projectUpdated": "Proyecto actualizado",
+      "projectDeleted": "Proyecto eliminado",
+      "fileUploaded": "Archivo subido",
+      "fileTrashed": "Archivo a la papelera",
+      "fileEdited": "Archivo editado",
+      "transcriptionUploaded": "Transcripción subida",
+      "transcriptionCompleted": "Transcripción completada",
+      "memoCreated": "Memo creado",
+      "commentCreated": "Comentario añadido",
+      "memberAdded": "Miembro añadido"
+    },
+    "test": {
+      "button": "Probar",
+      "success": "✅ Prueba exitosa ({{code}})",
+      "failed": "❌ Prueba fallida",
+      "error": "Error en la prueba"
+    },
+    "deliveries": {
+      "title": "Historial de envíos",
+      "empty": "Sin envíos aún"
+    },
+    "errors": {
+      "required": "Nombre y URL requeridos",
+      "noEvents": "Seleccione al menos un evento",
+      "createFailed": "No se pudo crear el webhook"
+    },
+    "doc": {
+      "title": "Integración",
+      "intro": "Su endpoint debe aceptar solicitudes POST con firma HMAC-SHA256."
+    }
   },
-  "events": {
-    "projectCreated": "Proyecto creado",
-    "projectUpdated": "Proyecto actualizado",
-    "projectDeleted": "Proyecto eliminado",
-    "fileUploaded": "Archivo subido",
-    "fileTrashed": "Archivo a la papelera",
-    "fileEdited": "Archivo editado",
-    "transcriptionUploaded": "Transcripción subida",
-    "transcriptionCompleted": "Transcripción completada",
-    "memoCreated": "Memo creado",
-    "commentCreated": "Comentario añadido",
-    "memberAdded": "Miembro añadido"
-  },
-  "test": {
-    "button": "Probar",
-    "success": "✅ Prueba exitosa ({{code}})",
-    "failed": "❌ Prueba fallida",
-    "error": "Error en la prueba"
-  },
-  "deliveries": {
-    "title": "Historial de envíos",
-    "empty": "Sin envíos aún"
-  },
-  "errors": {
-    "required": "Nombre y URL requeridos",
-    "noEvents": "Seleccione al menos un evento",
-    "createFailed": "No se pudo crear el webhook"
-  },
-  "doc": {
-    "title": "Integración",
-    "intro": "Su endpoint debe aceptar solicitudes POST con firma HMAC-SHA256."
-  }
-},
   "language": {
     "fr": "Français",
     "en": "English",
@@ -854,6 +854,33 @@
       "summaries": "Resúmenes",
       "translations": "Traducciones",
       "transcriptions": "Transcripciones"
+    }
+  },
+  "legal": {
+    "links": {
+      "mentions": "Aviso legal",
+      "cookies": "Política de cookies",
+      "privacy": "Privacidad",
+      "terms": "Términos de uso"
+    },
+    "cookieBanner": {
+      "ariaLabel": "Banner de consentimiento de cookies",
+      "message": "🍪 Utilizamos cookies para garantizar el funcionamiento de la plataforma (autenticación, idioma) y, con tu consentimiento, para analizar el uso y mejorar el servicio.",
+      "learnMore": "Saber más",
+      "acceptAll": "Aceptar todo",
+      "refuseAll": "Rechazar todo",
+      "customize": "Personalizar",
+      "detailsTitle": "Personalizar tus cookies",
+      "necessary": "Estrictamente necesarias",
+      "necessaryDesc": "Siempre activas (autenticación, idioma, seguridad).",
+      "analytics": "Analíticas",
+      "analyticsDesc": "Sentry, estadísticas anonimizadas.",
+      "thirdParty": "Terceros",
+      "thirdPartyDesc": "Cloudinary (vista previa), Socket.IO (tiempo real).",
+      "saveChoices": "Guardar mis opciones"
+    },
+    "pages": {
+      "frenchOnlyNotice": "Esta página solo está disponible en francés. La versión francesa es la única jurídicamente vinculante."
     }
   }
 }

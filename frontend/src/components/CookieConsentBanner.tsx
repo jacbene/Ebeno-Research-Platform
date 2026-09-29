@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const STORAGE_KEY = 'cookie_consent';
 const CONSENT_VERSION = '1.0';
@@ -13,6 +14,7 @@ interface ConsentState {
 }
 
 const CookieConsentBanner: React.FC = () => {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -138,39 +140,36 @@ const CookieConsentBanner: React.FC = () => {
   };
 
   return (
-    <div style={bannerStyle} role="dialog" aria-label="Bandeau de consentement cookies">
+    <div style={bannerStyle} role="dialog" aria-label={t('legal.cookieBanner.ariaLabel')}>
       <div style={contentStyle}>
         {!showDetails ? (
           <>
             <p style={{ margin: 0 }}>
-              🍪 Nous utilisons des cookies pour assurer le fonctionnement de la
-              plateforme (authentification, langue) et, avec votre consentement,
-              pour analyser l'usage et améliorer le service.{' '}
+              {t('legal.cookieBanner.message')}{' '}
               <a href="/cookies" style={linkStyle}>
-                En savoir plus
+                {t('legal.cookieBanner.learnMore')}
               </a>
             </p>
             <div style={rowStyle}>
               <button onClick={acceptAll} style={btnPrimary}>
-                Tout accepter
+                {t('legal.cookieBanner.acceptAll')}
               </button>
               <button onClick={refuseAll} style={btnSecondary}>
-                Tout refuser
+                {t('legal.cookieBanner.refuseAll')}
               </button>
               <button onClick={() => setShowDetails(true)} style={btnGhost}>
-                Personnaliser
+                {t('legal.cookieBanner.customize')}
               </button>
             </div>
           </>
         ) : (
           <>
-            <h3 style={titleStyle}>Personnaliser vos cookies</h3>
+            <h3 style={titleStyle}>{t('legal.cookieBanner.detailsTitle')}</h3>
 
             <label style={{ ...labelStyle, opacity: 0.6, cursor: 'not-allowed' }}>
               <input type="checkbox" checked disabled style={{ marginTop: '3px' }} />
               <span>
-                <strong>Strictement nécessaires</strong> — Toujours actifs
-                (authentification, langue, sécurité).
+                <strong>{t('legal.cookieBanner.necessary')}</strong> — {t('legal.cookieBanner.necessaryDesc')}
               </span>
             </label>
 
@@ -182,7 +181,7 @@ const CookieConsentBanner: React.FC = () => {
                 style={{ marginTop: '3px' }}
               />
               <span>
-                <strong>Analytiques</strong> — Sentry, statistiques anonymisées.
+                <strong>{t('legal.cookieBanner.analytics')}</strong> — {t('legal.cookieBanner.analyticsDesc')}
               </span>
             </label>
 
@@ -194,13 +193,13 @@ const CookieConsentBanner: React.FC = () => {
                 style={{ marginTop: '3px' }}
               />
               <span>
-                <strong>Tiers</strong> — Cloudinary (preview), Socket.IO (temps réel).
+                <strong>{t('legal.cookieBanner.thirdParty')}</strong> — {t('legal.cookieBanner.thirdPartyDesc')}
               </span>
             </label>
 
             <div style={rowStyle}>
               <button onClick={saveCustom} style={btnPrimary}>
-                Enregistrer mes choix
+                {t('legal.cookieBanner.saveChoices')}
               </button>
               <button onClick={refuseAll} style={btnSecondary}>
                 Tout refuser
@@ -220,13 +219,13 @@ const CookieConsentBanner: React.FC = () => {
             textAlign: 'center',
           }}
         >
-          <a href="/legal" style={linkStyle}>Mentions légales</a>
+          <a href="/legal" style={linkStyle}>{t('legal.links.mentions')}</a>
           {' · '}
-          <a href="/cookies" style={linkStyle}>Politique cookies</a>
+          <a href="/cookies" style={linkStyle}>{t('legal.links.cookies')}</a>
           {' · '}
-          <a href="/privacy" style={linkStyle}>Confidentialité</a>
+          <a href="/privacy" style={linkStyle}>{t('legal.links.privacy')}</a>
           {' · '}
-          <a href="/terms" style={linkStyle}>CGU</a>
+          <a href="/terms" style={linkStyle}>{t('legal.links.terms')}</a>
         </div>
       </div>
     </div>
