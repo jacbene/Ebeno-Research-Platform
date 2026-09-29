@@ -20,30 +20,9 @@ const parsePDF = async (buffer: Buffer) => {
  * Génère une URL signée Cloudinary
  */
 const getDownloadUrl = (url: string): string => {
-  if (!url.includes('res.cloudinary.com')) return url;
-
-  const match = url.match(/res\.cloudinary\.com\/[^/]+\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
-  if (!match) return url;
-
-  const resourceType = match[1];
-  const publicId = match[2];
-
-  try {
-    const signedUrl = cloudinary.utils.private_download_url(
-      publicId,
-      resourceType,
-      {
-        resource_type: resourceType,
-        type: 'upload',
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-      }
-    );
-    console.log(`🔐 URL signée générée pour [${resourceType}] ${publicId}`);
-    return signedUrl;
-  } catch (error) {
-    console.error('❌ Erreur génération URL signée:', error);
-    return url;
-  }
+  // ✅ Fichiers uploadés en type "upload" → PUBLICS → pas de signature nécessaire.
+  // L'ancienne implémentation signait et Cloudinary renvoyait 400.
+  return url;
 };
 
 // Extraction depuis un fichier local
