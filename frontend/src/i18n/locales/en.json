@@ -882,5 +882,12 @@
     "pages": {
       "frenchOnlyNotice": "This page is only available in French. The French version is the sole legally binding version."
     }
+  },
+  "install": {
+    "title": "Install Ebeno on your device",
+    "subtitle": "Faster access, full screen mode, notifications.",
+    "install": "Install",
+    "howTo": "How to?",
+    "iosInstructions": "Tap the Share button at the bottom of Safari, then 'Add to Home Screen'."
   }
 }

@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
 import TwoFactorLogin from './components/TwoFactorLogin';
 import CookieConsentBanner from './components/CookieConsentBanner';
+import InstallBanner from './components/InstallBanner';
 
 // ============================================================
 // LAZY-LOADED PAGES

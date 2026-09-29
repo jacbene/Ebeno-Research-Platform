@@ -882,5 +882,12 @@
     "pages": {
       "frenchOnlyNotice": ""
     }
+  },
+  "install": {
+    "title": "Installer Ebeno sur votre appareil",
+    "subtitle": "Accès plus rapide, mode plein écran, notifications.",
+    "install": "Installer",
+    "howTo": "Comment faire ?",
+    "iosInstructions": "Appuyez sur le bouton Partager en bas de Safari, puis 'Sur l'écran d'accueil'."
   }
 }

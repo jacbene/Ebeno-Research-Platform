@@ -882,5 +882,12 @@
     "pages": {
       "frenchOnlyNotice": "Esta página solo está disponible en francés. La versión francesa es la única jurídicamente vinculante."
     }
+  },
+  "install": {
+    "title": "Instala Ebeno en tu dispositivo",
+    "subtitle": "Acceso más rápido, modo pantalla completa, notificaciones.",
+    "install": "Instalar",
+    "howTo": "¿Cómo hacerlo?",
+    "iosInstructions": "Toca el botón Compartir en la parte inferior de Safari y luego 'Añadir a pantalla de inicio'."
   }
 }

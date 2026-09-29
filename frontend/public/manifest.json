@@ -1,0 +1,27 @@
+{
+  "short_name": "Ebeno",
+  "name": "Ebeno Research Platform",
+  "description": "Plateforme de recherche collaborative multilingue avec IA",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#4A6CF7",
+  "background_color": "#ffffff",
+  "lang": "fr",
+  "categories": ["productivity", "education", "research"]
+}
