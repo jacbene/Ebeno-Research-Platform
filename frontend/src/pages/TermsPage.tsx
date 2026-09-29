@@ -1,5 +1,5 @@
 import React from 'react';
-import LegalLanguageNotice from '../../components/LegalLanguageNotice';
+import LegalLanguageNotice from '../components/LegalLanguageNotice';
 
 const TermsPage: React.FC = () => {
   const year = new Date().getFullYear();
