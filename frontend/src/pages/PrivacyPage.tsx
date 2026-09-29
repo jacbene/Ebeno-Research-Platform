@@ -1,9 +1,12 @@
 import React from 'react';
+import LegalLanguageNotice from '../../components/LegalLanguageNotice';
 
 const PrivacyPage: React.FC = () => {
   const year = new Date().getFullYear();
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem', lineHeight: 1.6 }}>
+      <LegalLanguageNotice />
+
       <h1>Politique de Confidentialité</h1>
       <p style={{ fontSize: '0.9rem', color: '#666' }}>
         Conformément aux articles 12, 13 et 14 du RGPD (UE 2016/679).

@@ -1,9 +1,12 @@
 import React from 'react';
+import LegalLanguageNotice from '../../components/LegalLanguageNotice';
 
 const MentionsLegales: React.FC = () => {
   const year = new Date().getFullYear();
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem', lineHeight: 1.6 }}>
+      <LegalLanguageNotice />
+
       <h1>Mentions Légales</h1>
 
       <h2>1. Éditeur</h2>

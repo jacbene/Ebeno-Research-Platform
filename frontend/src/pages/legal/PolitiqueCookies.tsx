@@ -1,9 +1,12 @@
 import React from 'react';
+import LegalLanguageNotice from '../../components/LegalLanguageNotice';
 
 const PolitiqueCookies: React.FC = () => {
   const year = new Date().getFullYear();
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem', lineHeight: 1.6 }}>
+      <LegalLanguageNotice />
+
       <h1>Politique de Cookies</h1>
 
       <h2>1. Qu'est-ce qu'un cookie ?</h2>
