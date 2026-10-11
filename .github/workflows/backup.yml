@@ -25,37 +25,67 @@ jobs:
 
       - name: Create encrypted database backup
         env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: require
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -e
           set -o pipefail
 
+          # ─── Validations ───
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ DATABASE_URL non défini"
+            exit 1
+          fi
           if [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "❌ ERREUR : BACKUP_PASSPHRASE non défini dans les secrets GitHub"
+            echo "❌ BACKUP_PASSPHRASE non défini"
             exit 1
           fi
 
           TIMESTAMP=$(date +%Y%m%d_%H%M)
           FILENAME="backup_${TIMESTAMP}.sql.gz.gpg"
 
+          # ═══════════════════════════════════════════════════
+          # 1. Réveiller Neon (scale-to-zero) + test connexion
+          # ═══════════════════════════════════════════════════
           echo "═══════════════════════════════════════════"
-          echo "1. Test de connexion à $PGHOST"
+          echo "1. Réveil de Neon + test connexion"
           echo "═══════════════════════════════════════════"
-          psql -c "SELECT current_database(), current_user;"
-          psql -c "SHOW server_version;"
 
+          MAX_ATTEMPTS=5
+          ATTEMPT=0
+          CONNECTED=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Tentative $ATTEMPT / $MAX_ATTEMPTS..."
+            if psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+              CONNECTED=1
+              echo "✅ Connexion établie"
+              break
+            fi
+            echo "⚠️  Échec, retry dans 5s..."
+            sleep 5
+          done
+
+          if [ "$CONNECTED" -ne 1 ]; then
+            echo "❌ Impossible de se connecter après $MAX_ATTEMPTS tentatives"
+            psql "$DATABASE_URL" -c "SELECT 1;" || true
+            exit 1
+          fi
+
+          echo ""
+          echo "Version du serveur :"
+          psql "$DATABASE_URL" -c "SHOW server_version;"
+
+          # ═══════════════════════════════════════════════════
+          # 2. Créer le dump chiffré
+          # ═══════════════════════════════════════════════════
           echo ""
           echo "═══════════════════════════════════════════"
           echo "2. Création du dump chiffré"
           echo "═══════════════════════════════════════════"
 
-          pg_dump --no-owner --no-privileges \
+          pg_dump --no-owner --no-privileges "$DATABASE_URL" \
             | gzip -9 \
             | gpg --symmetric \
                   --cipher-algo AES256 \
@@ -66,22 +96,21 @@ jobs:
           SIZE=$(du -h "$FILENAME" | cut -f1)
           SIZE_BYTES=$(stat -c%s "$FILENAME")
 
-          echo "✅ Backup chiffré créé : $FILENAME ($SIZE / $SIZE_BYTES bytes)"
+          echo "✅ Backup chiffré : $FILENAME ($SIZE / $SIZE_BYTES bytes)"
 
           if [ "$SIZE_BYTES" -lt 10000 ]; then
             echo "❌ ERREUR : backup trop petit ($SIZE)"
             exit 1
           fi
 
-          echo ""
-          echo "═══════════════════════════════════════════"
-          echo "3. Vérification du chiffrement"
-          echo "═══════════════════════════════════════════"
+          # ═══════════════════════════════════════════════════
+          # 3. Vérif chiffrement (magic bytes GPG = 8c0d)
+          # ═══════════════════════════════════════════════════
           FILE_HEADER=$(head -c 2 "$FILENAME" | xxd -p)
           if [ "$FILE_HEADER" != "8c0d" ]; then
-            echo "⚠️  Attention : header $FILE_HEADER (attendu 8c0d)"
+            echo "⚠️  Header $FILE_HEADER (attendu 8c0d)"
           else
-            echo "✅ Fichier bien chiffré (magic bytes GPG détectés)"
+            echo "✅ Chiffrement GPG confirmé"
           fi
 
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
@@ -108,5 +137,5 @@ jobs:
           echo "### 🔓 Restauration" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
           echo "gpg --decrypt --batch --passphrase \"\$BACKUP_PASSPHRASE\" ${{ env.FILENAME }} \\" >> $GITHUB_STEP_SUMMARY
-          echo "  | gunzip | psql \"\$DIRECT_URL\"" >> $GITHUB_STEP_SUMMARY
+          echo "  | gunzip | psql \"\$DATABASE_URL\"" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
