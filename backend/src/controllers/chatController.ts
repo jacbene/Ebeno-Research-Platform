@@ -239,7 +239,13 @@ export const postMessage = async (req: Request, res: Response) => {
       updatedAt: new Date(),
     };
 
-    if (conv.messageCount === 0 && (!conv.title || conv.title === 'Nouvelle conversation')) {
+    // Titre auto uniquement si l'IA a répondu (pas fallback)
+    const aiWorked = aiRes.model !== 'fallback';
+    if (
+      aiWorked &&
+      conv.messageCount === 0 &&
+      (!conv.title || conv.title === 'Nouvelle conversation')
+    ) {
       update.title = await generateTitle(content.trim());
     }
 
