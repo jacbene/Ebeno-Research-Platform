@@ -14,16 +14,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL 18 client + GPG
+      - name: Install GPG
         run: |
-          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-18 gnupg
-          echo '=== Versions disponibles ==='
-          which pg_dump pg_dump-18 || true
-          /usr/lib/postgresql/18/bin/pg_dump --version || pg_dump-18 --version
+          sudo apt-get install -y -qq gnupg
           gpg --version | head -1
+
+      - name: Pull postgres:18 image
+        run: |
+          docker pull postgres:18
+          docker run --rm postgres:18 pg_dump --version
 
       - name: Create encrypted database backup
         env:
@@ -33,7 +33,6 @@ jobs:
           set -e
           set -o pipefail
 
-          # ─── Validations ───
           if [ -z "$DATABASE_URL" ]; then
             echo "❌ DATABASE_URL non défini"
             exit 1
@@ -47,7 +46,7 @@ jobs:
           FILENAME="backup_${TIMESTAMP}.sql.gz.gpg"
 
           # ═══════════════════════════════════════════════════
-          # 1. Réveiller Neon (scale-to-zero) + test connexion
+          # 1. Réveil de Neon (scale-to-zero)
           # ═══════════════════════════════════════════════════
           echo "═══════════════════════════════════════════"
           echo "1. Réveil de Neon + test connexion"
@@ -60,7 +59,10 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
             echo "Tentative $ATTEMPT / $MAX_ATTEMPTS..."
-            if psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+            if docker run --rm \
+                 -e DATABASE_URL="$DATABASE_URL" \
+                 postgres:18 \
+                 psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
               CONNECTED=1
               echo "✅ Connexion établie"
               break
@@ -71,23 +73,29 @@ jobs:
 
           if [ "$CONNECTED" -ne 1 ]; then
             echo "❌ Impossible de se connecter après $MAX_ATTEMPTS tentatives"
-            psql "$DATABASE_URL" -c "SELECT 1;" || true
+            docker run --rm -e DATABASE_URL="$DATABASE_URL" postgres:18 \
+              psql "$DATABASE_URL" -c "SELECT 1;" || true
             exit 1
           fi
 
           echo ""
-          echo "Version du serveur :"
-          psql "$DATABASE_URL" -c "SHOW server_version;"
+          echo "Version serveur :"
+          docker run --rm -e DATABASE_URL="$DATABASE_URL" postgres:18 \
+            psql "$DATABASE_URL" -c "SHOW server_version;"
 
           # ═══════════════════════════════════════════════════
-          # 2. Créer le dump chiffré
+          # 2. Dump chiffré (pg_dump 18 dans Docker)
           # ═══════════════════════════════════════════════════
           echo ""
           echo "═══════════════════════════════════════════"
-          echo "2. Création du dump chiffré"
+          echo "2. Création du dump chiffré (pg_dump 18)"
           echo "═══════════════════════════════════════════"
 
-          pg_dump --no-owner --no-privileges "$DATABASE_URL" \
+          # Pipe : Docker pg_dump → gzip → gpg → fichier local
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            postgres:18 \
+            pg_dump --no-owner --no-privileges "$DATABASE_URL" \
             | gzip -9 \
             | gpg --symmetric \
                   --cipher-algo AES256 \
@@ -106,7 +114,7 @@ jobs:
           fi
 
           # ═══════════════════════════════════════════════════
-          # 3. Vérif chiffrement (magic bytes GPG = 8c0d)
+          # 3. Vérif chiffrement (magic bytes GPG)
           # ═══════════════════════════════════════════════════
           FILE_HEADER=$(head -c 2 "$FILENAME" | xxd -p)
           if [ "$FILE_HEADER" != "8c0d" ]; then
@@ -134,6 +142,7 @@ jobs:
           echo "- **Fichier** : \`${{ env.FILENAME }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Taille** : ${{ env.SIZE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Chiffrement** : AES256 (GPG)" >> $GITHUB_STEP_SUMMARY
+          echo "- **pg_dump** : 18 (via Docker)" >> $GITHUB_STEP_SUMMARY
           echo "- **Rétention** : 30 jours" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔓 Restauration" >> $GITHUB_STEP_SUMMARY
@@ -141,3 +150,10 @@ jobs:
           echo "gpg --decrypt --batch --passphrase \"\$BACKUP_PASSPHRASE\" ${{ env.FILENAME }} \\" >> $GITHUB_STEP_SUMMARY
           echo "  | gunzip | psql \"\$DATABASE_URL\"" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary (échec)
+        if: failure()
+        run: |
+          echo "## ❌ Backup échoué" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Vérifiez les logs ci-dessus." >> $GITHUB_STEP_SUMMARY
