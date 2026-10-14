@@ -493,17 +493,23 @@
     }
   },
   "chat": {
-    "title": "🤖 Assistente IA",
-    "welcome": "Olá! Sou o assistente IA da plataforma Ebeno Research Platform. Como posso ajudá-lo?",
-    "loading": "⏳ O assistente está a pensar...",
-    "placeholder": "Faça a sua pergunta...",
-    "fallbackResponse": "Resposta recebida com sucesso.",
+    "title": "Chat IA",
+    "welcome": "Faça uma pergunta sobre o seu projeto",
+    "loading": "Carregando…",
+    "placeholder": "Escreva a sua pergunta…",
+    "fallbackResponse": "Os serviços de IA estão temporariamente indisponíveis.",
     "errors": {
-      "communication": "Erro de comunicação com o assistente",
-      "assistantError": "Lamentamos, ocorreu um erro. Por favor, tente novamente.",
-      "server": "Erro de ligação ao servidor",
-      "serverUnreachable": "Lamentamos, o servidor está inacessível. Por favor, tente novamente mais tarde."
-    }
+      "send": "Erro ao enviar",
+      "load": "Erro de carregamento",
+      "delete": "Erro ao apagar",
+      "project": "Selecione um projeto primeiro"
+    },
+    "project": "Projeto",
+    "newConversation": "Nova conversa",
+    "deleteConversation": "Apagar esta conversa?",
+    "noConversations": "Sem conversas. Clique em «+ Nova».",
+    "selectProject": "Selecione um projeto",
+    "sources": "fontes"
   },
   "transcriptionList": {
     "title": "📜 As minhas transcrições",
