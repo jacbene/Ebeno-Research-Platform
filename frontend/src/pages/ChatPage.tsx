@@ -77,7 +77,13 @@ const ChatPage: React.FC = () => {
     const loadProjects = async () => {
       try {
         const res = await api.get('/projects');
-        const list = res.data.projects || res.data || [];
+        const raw = res.data;
+        // API renvoie : { success: true, data: [...], pagination: {...} }
+        let list: Project[] = [];
+        if (Array.isArray(raw)) list = raw;
+        else if (Array.isArray(raw?.data)) list = raw.data;
+        else if (Array.isArray(raw?.projects)) list = raw.projects;
+        console.log('[ChatPage] projects loaded:', list.length);
         setProjects(list);
 
         // Priorité : URL param > 1er projet
@@ -104,7 +110,12 @@ const ChatPage: React.FC = () => {
     setLoadingConversations(true);
     try {
       const res = await api.get(`/chat/conversations?projectId=${projectId}`);
-      const list = res.data.conversations || [];
+      const raw = res.data;
+      let list: Conversation[] = [];
+      if (Array.isArray(raw)) list = raw;
+      else if (Array.isArray(raw?.conversations)) list = raw.conversations;
+      else if (Array.isArray(raw?.data)) list = raw.data;
+      console.log('[ChatPage] conversations loaded:', list.length);
       setConversations(list);
 
       // Sélectionner la 1ère conversation ou aucune
@@ -140,7 +151,13 @@ const ChatPage: React.FC = () => {
       }
       try {
         const res = await api.get(`/chat/conversations/${selectedConversationId}`);
-        setMessages(res.data.messages || []);
+        const raw = res.data;
+        let list: Message[] = [];
+        if (Array.isArray(raw?.messages)) list = raw.messages;
+        else if (Array.isArray(raw)) list = raw;
+        else if (Array.isArray(raw?.data?.messages)) list = raw.data.messages;
+        console.log('[ChatPage] messages loaded:', list.length);
+        setMessages(list);
       } catch (err: any) {
         setError(err.message || 'Erreur chargement messages');
       }
@@ -403,7 +420,7 @@ const ChatPage: React.FC = () => {
                   </div>
                 )}
 
-                {m.sources && m.sources.length > 0 && (
+                {Array.isArray(m.sources) && m.sources.length > 0 && (
                   <details className="message-sources">
                     <summary>
                       📚 {m.sources.length} source{m.sources.length > 1 ? 's' : ''}
