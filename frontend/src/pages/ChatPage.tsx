@@ -1,231 +1,479 @@
 // frontend/src/pages/ChatPage.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../context/ThemeContext';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import './ChatPage.css';
 
-interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+// ═══════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════
+
+interface Project {
+  id: string;
+  title: string;
 }
 
-const ChatPage: React.FC = () => {
-  const { colors } = useTheme();
-  const { t, i18n } = useTranslation();
+interface Conversation {
+  id: string;
+  projectId: string;
+  title: string;
+  language: string;
+  messageCount: number;
+  totalTokens: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
+interface Source {
+  type: 'document' | 'transcription' | 'summary' | 'analysis';
+  id: string;
+  name: string;
+}
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  model?: string;
+  tokens?: number;
+  sources?: Source[];
+  createdAt: string;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Composant principal
+// ═══════════════════════════════════════════════════════════
+
+const ChatPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Projets
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  // Conversations
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string>('');
+
+  // Messages
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+
+  // État
   const [loading, setLoading] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Message d'accueil : recréé quand la langue change
-  useEffect(() => {
-    setMessages((prev) => {
-      // Si l'historique est vide ou contient uniquement le message d'accueil, on le régénère
-      const hasOnlyWelcome = prev.length === 0 || (prev.length === 1 && prev[0].role === 'system');
-      if (hasOnlyWelcome) {
-        return [{ role: 'system', content: t('chat.welcome') }];
-      }
-      return prev;
-    });
-  }, [i18n.language, t]);
+  // ═══════════════════════════════════════════════════════════
+  // 1. Charger les projets au démarrage
+  // ═══════════════════════════════════════════════════════════
 
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const res = await api.get('/projects');
+        const list = res.data.projects || res.data || [];
+        setProjects(list);
+
+        // Priorité : URL param > 1er projet
+        const urlProjectId = searchParams.get('projectId');
+        if (urlProjectId && list.some((p: Project) => p.id === urlProjectId)) {
+          setSelectedProjectId(urlProjectId);
+        } else if (list.length > 0) {
+          setSelectedProjectId(list[0].id);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Erreur chargement projets');
+      }
+    };
+    loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════
+  // 2. Charger les conversations du projet sélectionné
+  // ═══════════════════════════════════════════════════════════
+
+  const loadConversations = useCallback(async (projectId: string) => {
+    if (!projectId) return;
+    setLoadingConversations(true);
+    try {
+      const res = await api.get(`/chat/conversations?projectId=${projectId}`);
+      const list = res.data.conversations || [];
+      setConversations(list);
+
+      // Sélectionner la 1ère conversation ou aucune
+      if (list.length > 0) {
+        setSelectedConversationId(list[0].id);
+      } else {
+        setSelectedConversationId('');
+        setMessages([]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erreur chargement conversations');
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadConversations(selectedProjectId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
+  // ═══════════════════════════════════════════════════════════
+  // 3. Charger les messages de la conversation sélectionnée
+  // ═══════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!selectedConversationId) {
+        setMessages([]);
+        return;
+      }
+      try {
+        const res = await api.get(`/chat/conversations/${selectedConversationId}`);
+        setMessages(res.data.messages || []);
+      } catch (err: any) {
+        setError(err.message || 'Erreur chargement messages');
+      }
+    };
+    loadMessages();
+  }, [selectedConversationId]);
+
+  // Scroll auto
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async () => {
-    const trimmedInput = input.trim();
-    if (!trimmedInput || loading) return;
+  // ═══════════════════════════════════════════════════════════
+  // 4. Créer une nouvelle conversation
+  // ═══════════════════════════════════════════════════════════
 
-    setMessages((prev) => [...prev, { role: 'user', content: trimmedInput }]);
+  const createNewConversation = async () => {
+    if (!selectedProjectId) {
+      setError('Sélectionnez un projet d\'abord');
+      return;
+    }
+    try {
+      const res = await api.post('/chat/conversations', {
+        projectId: selectedProjectId,
+        language: i18n.language || 'fr',
+      });
+      const conv = res.data.conversation;
+      setConversations((prev) => [conv, ...prev]);
+      setSelectedConversationId(conv.id);
+      setMessages([]);
+      setSidebarOpen(false);
+    } catch (err: any) {
+      setError(err.message || 'Erreur création conversation');
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // 5. Envoyer un message
+  // ═══════════════════════════════════════════════════════════
+
+  const sendMessage = async () => {
+    const content = input.trim();
+    if (!content || loading) return;
+
+    if (!selectedConversationId) {
+      // Créer une conversation à la volée
+      await createNewConversation();
+      return;
+    }
+
     setInput('');
-    setLoading(true);
     setError(null);
+    setLoading(true);
+
+    // Ajout optimiste du message user
+    const tempUserMsg: Message = {
+      id: `temp-${Date.now()}`,
+      role: 'user',
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const response = await api.post('/deepseek/chat', {
-        messages: [...messages, { role: 'user', content: trimmedInput }],
+      const res = await api.post(
+        `/chat/conversations/${selectedConversationId}/messages`,
+        { content },
+      );
+
+      const { userMessage, assistantMessage } = res.data;
+
+      // Remplacer le message temporaire par le vrai + ajouter la réponse
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => m.id !== tempUserMsg.id);
+        return [...withoutTemp, userMessage, assistantMessage];
       });
 
-      if (response.data.success) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: response.data.data?.content || t('chat.fallbackResponse'),
-          },
-        ]);
-      } else {
-        setError(response.data.message || t('chat.errors.communication'));
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: t('chat.errors.assistantError') },
-        ]);
+      // Rafraîchir la liste des conversations (titre + updatedAt)
+      if (selectedProjectId) {
+        const convsRes = await api.get(
+          `/chat/conversations?projectId=${selectedProjectId}`,
+        );
+        setConversations(convsRes.data.conversations || []);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || t('chat.errors.server'));
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: t('chat.errors.serverUnreachable') },
-      ]);
+      setError(err.response?.data?.error || err.message || 'Erreur envoi message');
+      // Retirer le message temporaire si erreur
+      setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter = envoyer, Shift+Enter = nouvelle ligne
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // 6. Supprimer une conversation
+  // ═══════════════════════════════════════════════════════════
+
+  const deleteConversation = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Supprimer cette conversation ?')) return;
+
+    try {
+      await api.delete(`/chat/conversations/${id}`);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (selectedConversationId === id) {
+        setSelectedConversationId('');
+        setMessages([]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erreur suppression');
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // 7. Changer de projet
+  // ═══════════════════════════════════════════════════════════
+
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setSelectedConversationId('');
+    setMessages([]);
+    setSearchParams({ projectId });
+    setSidebarOpen(false);
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // Rendu
+  // ═══════════════════════════════════════════════════════════
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 120px)',
-        maxWidth: '900px',
-        margin: '0 auto',
-        padding: '20px',
-        backgroundColor: colors.body,
-        borderRadius: '12px',
-        transition: 'background-color 0.3s ease',
-      }}
-    >
-      <h1 style={{ margin: '0 0 15px 0', fontSize: '24px', color: colors.dark }}>
-        {t('chat.title')}
-      </h1>
+    <div className="chat-container">
+      {/* ═══════ Sidebar ═══════ */}
+      <aside className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <h2>{t('chat.title', { defaultValue: 'Chat IA' })}</h2>
+          <button
+            className="btn-new-conv"
+            onClick={createNewConversation}
+            disabled={!selectedProjectId}
+            title="Nouvelle conversation"
+          >
+            + Nouvelle
+          </button>
+        </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          backgroundColor: colors.white,
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '15px',
-          border: `1px solid ${colors.gray[200]}`,
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-        }}
-      >
-        {messages.map((msg, index) => {
-          const isUser = msg.role === 'user';
-          const isSystem = msg.role === 'system';
+        {/* Sélecteur de projet */}
+        <div className="project-selector">
+          <label>{t('chat.project', { defaultValue: 'Projet' })}</label>
+          <select
+            value={selectedProjectId}
+            onChange={(e) => handleProjectChange(e.target.value)}
+            disabled={projects.length === 0}
+          >
+            {projects.length === 0 && <option>Aucun projet</option>}
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          return (
+        {/* Liste des conversations */}
+        <div className="conversations-list">
+          {loadingConversations && (
+            <div className="loading-small">Chargement…</div>
+          )}
+
+          {!loadingConversations && conversations.length === 0 && (
+            <div className="empty-convs">
+              Aucune conversation. Cliquez sur « + Nouvelle ».
+            </div>
+          )}
+
+          {conversations.map((c) => (
             <div
-              key={index}
-              style={{
-                display: 'flex',
-                justifyContent: isUser ? 'flex-end' : 'flex-start',
-                marginBottom: '12px',
+              key={c.id}
+              className={`conv-item ${selectedConversationId === c.id ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedConversationId(c.id);
+                setSidebarOpen(false);
               }}
             >
-              <div
-                style={{
-                  maxWidth: '78%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  backgroundColor: isUser
-                    ? colors.primary
-                    : isSystem
-                    ? colors.primary + '15'
-                    : colors.gray[100],
-                  color: isUser ? colors.white : colors.dark,
-                  border: isSystem ? `1px solid ${colors.primary}30` : 'none',
-                  fontStyle: isSystem ? 'italic' : 'normal',
-                  lineHeight: 1.5,
-                  wordBreak: 'break-word',
-                }}
+              <div className="conv-info">
+                <div className="conv-title">{c.title}</div>
+                <div className="conv-meta">
+                  {c.messageCount} message{c.messageCount > 1 ? 's' : ''}
+                </div>
+              </div>
+              <button
+                className="conv-delete"
+                onClick={(e) => deleteConversation(c.id, e)}
+                title="Supprimer"
               >
-                {isUser && '👤 '}
-                {!isUser && '🤖 '}
-                {msg.content}
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      {/* ═══════ Zone principale ═══════ */}
+      <main className="chat-main">
+        {/* Header */}
+        <header className="chat-header">
+          <button
+            className="btn-menu"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Menu"
+          >
+            ☰
+          </button>
+          <h1>
+            {selectedConversationId
+              ? conversations.find((c) => c.id === selectedConversationId)?.title || 'Chat'
+              : 'Chat IA'}
+          </h1>
+        </header>
+
+        {/* Messages */}
+        <div className="chat-messages">
+          {messages.length === 0 && !loading && (
+            <div className="empty-state">
+              <div className="empty-icon">💬</div>
+              <h3>
+                {t('chat.welcome', {
+                  defaultValue: 'Posez une question sur votre projet',
+                })}
+              </h3>
+              <p>
+                L'IA a accès aux documents, transcriptions et résumés du projet
+                sélectionné.
+              </p>
+            </div>
+          )}
+
+          {messages.map((m) => (
+            <div key={m.id} className={`message message-${m.role}`}>
+              <div className="message-bubble">
+                <div className="message-content">
+                  {m.content.split('\n').map((line, i) => (
+                    <p key={i}>{line || '\u00A0'}</p>
+                  ))}
+                </div>
+
+                {m.model && (
+                  <div className="message-meta">
+                    <span className={`model-badge model-${m.model}`}>
+                      {m.model === 'fallback' ? '⚠️ indisponible' : m.model}
+                    </span>
+                    {m.tokens && <span className="tokens">{m.tokens} tokens</span>}
+                  </div>
+                )}
+
+                {m.sources && m.sources.length > 0 && (
+                  <details className="message-sources">
+                    <summary>
+                      📚 {m.sources.length} source{m.sources.length > 1 ? 's' : ''}
+                    </summary>
+                    <ul>
+                      {m.sources.map((s, i) => (
+                        <li key={`${s.id}-${i}`}>
+                          <span className={`source-type source-${s.type}`}>
+                            {s.type}
+                          </span>
+                          {s.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             </div>
-          );
-        })}
+          ))}
 
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
-                backgroundColor: colors.gray[100],
-                color: colors.gray[600],
-              }}
-            >
-              {t('chat.loading')}
+          {loading && (
+            <div className="message message-assistant">
+              <div className="message-bubble typing">
+                <span></span><span></span><span></span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Error */}
         {error && (
-          <div
-            style={{
-              padding: '10px 14px',
-              backgroundColor: colors.danger + '22',
-              color: colors.danger,
-              borderRadius: '8px',
-              marginTop: '10px',
-            }}
-          >
-            ❌ {error}
+          <div className="chat-error">
+            ⚠️ {error}
+            <button onClick={() => setError(null)}>×</button>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t('chat.placeholder')}
-          disabled={loading}
-          rows={2}
-          style={{
-            flex: 1,
-            padding: '12px 14px',
-            border: `1px solid ${colors.gray[300]}`,
-            borderRadius: '12px',
-            fontSize: '15px',
-            resize: 'none',
-            fontFamily: 'inherit',
-            outline: 'none',
-            minHeight: '54px',
-            backgroundColor: colors.white,
-            color: colors.dark,
-            transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          }}
+        {/* Input */}
+        <footer className="chat-input">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              selectedConversationId
+                ? t('chat.placeholder', { defaultValue: 'Posez votre question…' })
+                : 'Cliquez sur « + Nouvelle » pour commencer'
+            }
+            disabled={loading}
+            rows={1}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={loading || !input.trim()}
+            className="btn-send"
+          >
+            {loading ? '…' : '→'}
+          </button>
+        </footer>
+      </main>
+
+      {/* Overlay mobile */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
         />
-        <button
-          onClick={sendMessage}
-          disabled={!input.trim() || loading}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: colors.primary,
-            color: colors.white,
-            border: 'none',
-            borderRadius: '12px',
-            cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            opacity: !input.trim() || loading ? 0.6 : 1,
-            height: '54px',
-            minWidth: '70px',
-            transition: 'opacity 0.2s ease',
-          }}
-        >
-          {loading ? '⏳' : '📤'}
-        </button>
-      </div>
+      )}
     </div>
   );
 };
