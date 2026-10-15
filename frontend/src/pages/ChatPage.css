@@ -531,3 +531,17 @@
   .chat-input { background: #1f2937; border-top-color: #374151; }
   .chat-input textarea { background: #111827; color: #f9fafb; border-color: #374151; }
 }
+
+/* Curseur clignotant pendant le streaming */
+.cursor {
+  display: inline-block;
+  animation: blink 1s step-end infinite;
+  color: #4A6CF7;
+  font-weight: 300;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}

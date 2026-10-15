@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
+import { useChatStream, type StreamDone } from '../hooks/useChatStream';
 import './ChatPage.css';
 
 // ═══════════════════════════════════════════════════════════
@@ -63,11 +64,65 @@ const ChatPage: React.FC = () => {
 
   // État
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [streamingModel, setStreamingModel] = useState<string>('');
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ═══════════════════════════════════════════════════════════
+  // Socket.IO streaming hook
+  // ═══════════════════════════════════════════════════════════
+  const { connected: socketConnected, sendMessage: streamMessage } = useChatStream({
+    onUserSaved: (data) => {
+      // Le message user a été sauvegardé côté serveur
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => m.id !== 'temp-user');
+        return [...withoutTemp, {
+          id: data.id,
+          role: 'user',
+          content: data.content,
+          createdAt: new Date().toISOString(),
+        }];
+      });
+    },
+    onChunk: (chunk) => {
+      setStreamingModel(chunk.model);
+      setStreamingText((prev) => prev + chunk.content);
+    },
+    onDone: async (data: StreamDone) => {
+      // Créer le message assistant final
+      const assistantMsg: Message = {
+        id: data.messageId,
+        role: 'assistant',
+        content: data.fullContent,
+        model: data.model,
+        tokens: data.tokens,
+        sources: data.sources || [],
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      setStreamingText('');
+      setStreamingModel('');
+
+      // Rafraîchir les conversations (titre + updatedAt)
+      if (selectedProjectId) {
+        const convsRes = await api.get(
+          `/chat/conversations?projectId=${selectedProjectId}`,
+        );
+        const list = convsRes.data.conversations || [];
+        setConversations(list);
+      }
+    },
+    onError: (err) => {
+      setError(err);
+      setStreamingText('');
+      setStreamingModel('');
+      setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
+    },
+  });
 
   // ═══════════════════════════════════════════════════════════
   // 1. Charger les projets au démarrage
@@ -441,7 +496,29 @@ const ChatPage: React.FC = () => {
             </div>
           ))}
 
-          {loading && (
+          {/* Streaming en cours : afficher les chunks au fur et à mesure */}
+          {streamingText && (
+            <div className="message message-assistant">
+              <div className="message-bubble">
+                <div className="message-content">
+                  {streamingText.split('\n').map((line, i) => (
+                    <p key={i}>{line || '\u00A0'}</p>
+                  ))}
+                  <span className="cursor">▊</span>
+                </div>
+                {streamingModel && (
+                  <div className="message-meta">
+                    <span className={`model-badge model-${streamingModel}`}>
+                      {streamingModel}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Typing indicator : uniquement quand on attend le 1er chunk */}
+          {loading && !streamingText && (
             <div className="message message-assistant">
               <div className="message-bubble typing">
                 <span></span><span></span><span></span>
