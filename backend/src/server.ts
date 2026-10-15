@@ -57,6 +57,7 @@ import chatRoutes from './routes/chatRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
+import { setupChatSocket } from './sockets/chatSocket';
 import { setIO } from './socketManager';
 import { db } from './db/knex';
 
@@ -171,6 +172,7 @@ const io = new SocketIOServer(httpServer, {
 
 new CollaborationSocketHandler(io);
 setIO(io);
+setupChatSocket(io);
 
 // ============================================================
 // MIDDLEWARES
