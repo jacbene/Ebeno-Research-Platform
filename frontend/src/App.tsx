@@ -100,7 +100,7 @@ const SentryFallback: React.FC<{ error: Error; resetError: () => void }> = ({ er
       >
         🔄 Recharger la page
       </button>
-      {process.env.NODE_ENV !== 'production' && (
+      {import.meta.env.MODE !== 'production' && (
         <pre style={{
           marginTop: '20px', padding: '12px', backgroundColor: '#f5f5f5',
           borderRadius: '6px', fontSize: '11px', textAlign: 'left',

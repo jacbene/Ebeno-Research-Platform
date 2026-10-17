@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const API_URL =
-  process.env.REACT_APP_API_URL || 'https://ebeno-backend.onrender.com';
+  import.meta.env.VITE_API_URL || 'https://ebeno-backend.onrender.com';
 
 export interface StreamChunk {
   content: string;

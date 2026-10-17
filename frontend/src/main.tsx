@@ -2,17 +2,17 @@
 // ✅ SENTRY — doit être initialisé EN PREMIER (avant React, avant i18n)
 import * as Sentry from '@sentry/react';
 
-const SENTRY_DSN = process.env.REACT_APP_SENTRY_DSN || '';
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || '';
 
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
-    environment: process.env.NODE_ENV || 'development',
-    release: process.env.REACT_APP_SENTRY_RELEASE || 'ebeno-frontend@1.0.0',
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    environment: import.meta.env.MODE || 'development',
+    release: import.meta.env.VITE_SENTRY_RELEASE || 'ebeno-frontend@1.0.0',
+    tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
 
     // ✅ Ne pas envoyer les erreurs en dev
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: import.meta.env.MODE === 'production',
 
     // ✅ Filtrer les données sensibles avant envoi à Sentry
     beforeSend(event) {
@@ -46,7 +46,7 @@ if (SENTRY_DSN) {
     ],
   });
 
-  console.log(`✅ [Sentry] Frontend initialisé (${process.env.NODE_ENV})`);
+  console.log(`✅ [Sentry] Frontend initialisé (${import.meta.env.MODE})`);
 } else {
   console.log('ℹ️  [Sentry] DSN non configuré — monitoring désactivé');
 }
