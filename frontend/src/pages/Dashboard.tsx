@@ -12,6 +12,7 @@ import { api } from '../services/api';
 import './Dashboard.css';
 import { LanguageBadge } from '../components/LanguageBadge';
 import { useTranslation } from 'react-i18next';
+import { PaddleCheckoutButton } from '../components/PaddleCheckoutButton';
 
 interface Project {
   id: string;
@@ -359,6 +360,13 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
           <h1>
             👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}
           </h1>
+          //Bouton de paiement Paddle:
+<div className="my-8 p-6 bg-white rounded-lg shadow">
+  <h2 className="text-xl font-bold mb-4">Abonnement</h2>
+  <p className="mb-4">Passez à la version Pro pour débloquer l'IA illimitée.</p>
+  <PaddleCheckoutButton />
+</div>
+
           <p>
             {isFiltered && selectedProject
               ? t('dashboard.viewProject', { title: selectedProject.title })

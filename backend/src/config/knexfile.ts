@@ -7,29 +7,25 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const isProd = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
+const usePg = process.env.USE_NEON === 'true' || isProd;
 
 const migrations = {
   directory: path.join(__dirname, '../db/migrations'),
-  extension: isProd ? 'js' : 'ts',
-  loadExtensions: isProd ? ['.js'] : ['.ts'],
+  extension: 'ts',
+  loadExtensions: ['.js', '.ts'], // <-- On autorise les deux !
 };
 
 const config: Knex.Config = {
-  client: isProd ? 'pg' : 'sqlite3',
-  connection: isProd
+  client: usePg ? 'pg' : 'sqlite3',
+  connection: usePg
     ? {
         connectionString: process.env.DATABASE_URL,
-        // ✅ Render Postgres : SSL requis si connexion externe
-        //    (inutile si Internal URL, mais on garde pour compat)
-        ssl:
-          process.env.DATABASE_SSL === 'true'
-            ? { rejectUnauthorized: false }
-            : undefined,
+        ssl: { rejectUnauthorized: false } // On force le SSL pour Neon
       }
     : isTest
     ? { filename: ':memory:' } // ✅ Base éphémère en mémoire pour les tests
     : { filename: './dev.db' },
-  useNullAsDefault: !isProd, // ✅ Uniquement pour SQLite
+  useNullAsDefault: !usePg, // ✅ Uniquement pour SQLite
   migrations,
   pool: isProd ? { min: 2, max: 10 } : undefined,
 };

@@ -431,6 +431,9 @@
       "applied": "Palette appliquée ✅",
       "resetDone": "Palette réinitialisée"
     },
+    "Pricing": {
+  		"upgradePro": "Passer au plan Pro (12€/mois)"
+		},
     "errors": {
       "invalidFile": "Fichier invalide",
       "onlyImages": "Seules les images sont autorisées",

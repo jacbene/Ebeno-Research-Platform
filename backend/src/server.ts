@@ -7,6 +7,9 @@ import * as Sentry from '@sentry/node';
 import { validateAllSecrets } from './config/secrets';
 validateAllSecrets();
 
+//Validation des abonnements
+import { handlePaddleWebhook } from './controllers/paddleController';
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -192,6 +195,9 @@ app.use(cors({
   maxAge: 86400,
 }));
 
+// ⚠️ Route Webhook Paddle DOIT être déclarée AVANT express.json() pour conserver le corps brut (raw)
+app.post('/api/webhooks/paddle', express.raw({ type: 'application/json' }), handlePaddleWebhook);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -226,7 +232,7 @@ app.use('/api/entities', aiLimiter);
 app.use('/api/codes', aiLimiter);
 app.use('/api/translations', aiLimiter);
 app.use('/api/analytics', aiLimiter);
-app.use('/api/webhooks', aiLimiter);
+// app.use('/api/webhooks', aiLimiter);
 app.use('/api/chat', aiLimiter);
 
 // ============================================================
