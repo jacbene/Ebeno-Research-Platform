@@ -360,7 +360,6 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
           <h1>
             👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}
           </h1>
-          //Bouton de paiement Paddle:
 <div className="my-8 p-6 bg-white rounded-lg shadow">
   <h2 className="text-xl font-bold mb-4">Abonnement</h2>
   <p className="mb-4">Passez à la version Pro pour débloquer l'IA illimitée.</p>
