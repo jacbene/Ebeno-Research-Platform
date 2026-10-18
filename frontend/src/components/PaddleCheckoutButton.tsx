@@ -12,14 +12,27 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   const { user } = useAuthStore();
   const [paddle, setPaddle] = useState<Paddle | null>(null);
 
-  useEffect(() => {
-    initializePaddle({
-      environment: (import.meta.env.VITE_PADDLE_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-      token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
-    }).then((paddleInstance) => {
-      if (paddleInstance) setPaddle(paddleInstance);
-    });
-  }, []);
+ useEffect(() => {
+  const token = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
+  const priceId = import.meta.env.VITE_PADDLE_PRICE_ID;
+
+  // 🕵️‍♂️ LOGS DE DEBUG (à retirer plus tard)
+  console.log("🔍 DEBUG PADDLE - Token:", token);
+  console.log("🔍 DEBUG PADDLE - Price ID:", priceId);
+  console.log("🔍 DEBUG PADDLE - Env:", import.meta.env.VITE_PADDLE_ENVIRONMENT);
+
+  if (!token) {
+    console.error("❌ ERREUR : Le token Paddle est introuvable. Vérifie les variables sur Render.");
+    return;
+  }
+
+  initializePaddle({
+    environment: (import.meta.env.VITE_PADDLE_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
+    token: token,
+  }).then((paddleInstance) => {
+    if (paddleInstance) setPaddle(paddleInstance);
+  });
+}, []);
 
   const openCheckout = () => {
     if (!paddle || !user) return;
