@@ -196,8 +196,12 @@ app.use(cors({
 }));
 
 // ⚠️ Route Webhook Paddle DOIT être déclarée AVANT express.json() pour conserver le corps brut (raw)
-app.post('/api/webhooks/paddle', express.raw({ type: 'application/json' }), handlePaddleWebhook);
-
+// Route webhook avec capture brute de tout type de contenu
+app.post(
+  '/api/webhooks/paddle',
+  express.raw({ type: '*/*', limit: '10mb' }),
+  handlePaddleWebhook
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

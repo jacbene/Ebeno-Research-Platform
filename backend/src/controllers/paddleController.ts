@@ -11,6 +11,10 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
   const signature = req.headers['paddle-signature'] as string;
 const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf-8') : '';
 
+// Log pour vérifier le contenu reçu
+console.log('🔍 [Paddle Webhook] Content-Type:', req.headers['content-type']);
+console.log('🔍 [Paddle Webhook] Body length:', rawBody.length);
+console.log('🔍 [Paddle Webhook] Signature:', signature?.substring(0, 50));
   if (!signature || !rawBody) {
     res.status(400).send('Signature ou body manquant');
     return;
