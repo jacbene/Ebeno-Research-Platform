@@ -9,17 +9,21 @@ const paddle = new Paddle(process.env.PADDLE_API_KEY!, {
 
 export const handlePaddleWebhook = async (req: Request, res: Response): Promise<void> => {
   const signature = req.headers['paddle-signature'] as string;
-const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf-8') : '';
+  const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf-8') : '';
 
-// Log pour vérifier le contenu reçu
-console.log('🔍 [Paddle Webhook] Content-Type:', req.headers['content-type']);
-console.log('🔍 [Paddle Webhook] Body length:', rawBody.length);
-console.log('🔍 [Paddle Webhook] Signature:', signature?.substring(0, 50));
+  // 🕵️‍♂️ LOGS DE DEBUG
+  console.log('--- NOUVEAU WEBHOOK PADDLE ---');
+  console.log('🔍 Content-Type:', req.headers['content-type']);
+  console.log('🔍 Body length:', rawBody.length);
+  console.log('🔍 Signature présente ?', !!signature);
+  console.log('🔍 Signature (début):', signature?.substring(0, 30));
+  console.log('------------------------------');
+
   if (!signature || !rawBody) {
     res.status(400).send('Signature ou body manquant');
     return;
   }
-
+  // ... suite du code (try/catch)
   try {
     // 1. Vérification de la signature (sécurité)
     const event = await paddle.webhooks.unmarshal(
