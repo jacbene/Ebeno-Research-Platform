@@ -9,7 +9,7 @@ const paddle = new Paddle(process.env.PADDLE_API_KEY!, {
 
 export const handlePaddleWebhook = async (req: Request, res: Response): Promise<void> => {
   const signature = req.headers['paddle-signature'] as string;
-  const rawBody = req.body.toString(); // Le corps brut de la requête
+const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf-8') : '';
 
   if (!signature || !rawBody) {
     res.status(400).send('Signature ou body manquant');
