@@ -16,6 +16,9 @@ import { ToastContainer } from './components/ToastContainer';
 import { LanguageProvider } from './context/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
+import { AdminGuard } from './pages/admin/AdminGuard';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import AdminDashboard from './pages/admin/index';
 import TwoFactorLogin from './components/TwoFactorLogin';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import InstallBanner from './components/InstallBanner';
@@ -432,6 +435,14 @@ const AppRoutes: React.FC<{
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
+           {/* Routes Admin (Lazy load recommandé pour la prod) */}
+<Route path="/admin" element={
+  <AdminGuard>
+    <AdminLayout />
+  </AdminGuard>
+}>
+  <Route index element={<AdminDashboard />} />
+</Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>
