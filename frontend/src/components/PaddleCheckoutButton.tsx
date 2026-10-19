@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-import { useAuthStore } from '../stores/authStore';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -26,18 +25,23 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   }, []);
 
   const openCheckout = () => {
-    // On récupère l'utilisateur À L'INSTANT du clic
-    const currentUser = useAuthStore.getState().user;
+    // 🎯 Récupération de l'utilisateur exactement comme dans ton Dashboard
+    let currentUser = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (e) {
+      console.error("Erreur lecture localStorage:", e);
+    }
     
     console.log("🖱️ Clic sur le bouton de paiement");
     console.log("Statut Paddle :", paddle ? "Prêt" : "Non prêt");
-    console.log("Objet User via getState :", currentUser);
+    console.log("Objet User via localStorage :", currentUser);
 
     if (!paddle) {
       alert("Paddle n'est pas encore prêt. Attends 2 secondes et réessaie.");
       return;
     }
-    if (!currentUser) {
+    if (!currentUser || !currentUser.id) {
       alert("Tu dois être connecté pour t'abonner.");
       return;
     }
@@ -47,7 +51,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
       paddle.Checkout.open({
         items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
         customData: {
-          userId: String(currentUser.id || (currentUser as any)._id || 'inconnu')
+          userId: String(currentUser.id) // On utilise l'ID récupéré du localStorage
         },
         settings: {
           displayMode: 'overlay',
