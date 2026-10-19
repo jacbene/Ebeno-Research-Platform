@@ -49,16 +49,17 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
     try {
       console.log("🚀 Ouverture de la fenêtre Paddle...");
       paddle.Checkout.open({
-        items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
-        customData: {
-          userId: String(currentUser.id) // On utilise l'ID récupéré du localStorage
-        },
-        settings: {
-          displayMode: 'overlay',
-          theme: 'light',
-          locale: 'fr',
-        },
-      });
+  items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
+  customData: {
+    userId: String(currentUser.id)
+  },
+  settings: {
+    displayMode: 'overlay',
+    theme: 'light',
+    locale: 'fr',
+    successUrl: 'https://ebeno-frontend.onrender.com/', // <-- Ajoute cette ligne
+  },
+});
     } catch (error) {
       console.error("❌ Erreur lors de l'ouverture du checkout Paddle:", error);
     }
