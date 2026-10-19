@@ -426,7 +426,7 @@ const AppRoutes: React.FC<{
 {/* ✅ ROUTES PRIVÉES */}
 <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
   
-  {/* ✅ ROUTE ADMIN (isolée, avec son propre layout) */}
+  {/* ✅ ROUTE ADMIN (isolée) */}
   <Route path="/admin" element={
     <AdminGuard>
       <AdminLayout />
@@ -435,7 +435,7 @@ const AppRoutes: React.FC<{
     <Route index element={<AdminDashboard />} />
   </Route>
 
-  {/* ✅ ROUTES AVEC LAYOUT STANDARD (Navbar + Sidebar) */}
+  {/* ✅ ROUTES STANDARD (avec Navbar + Sidebar) */}
   <Route element={<Layout user={user} onLogout={onLogout} />}>
     <Route path="/" element={<Dashboard />} />
     <Route path="/transcription" element={<TranscriptionPage />} />
@@ -447,7 +447,7 @@ const AppRoutes: React.FC<{
     <Route path="/analytics" element={<AnalyticsPage />} />
     <Route path="/project/:id" element={<ProjectDetail />} />
     
-    {/* Catch-all pour les routes standards */}
+    {/* Catch-all */}
     <Route path="*" element={<Navigate to="/" replace />} />
   </Route>
 </Route>
@@ -461,6 +461,8 @@ const AppRoutes: React.FC<{
 // ============================================================
 const App: React.FC = () => {
   useRTL();
+
+  console.log("🚀 VERSION APP : TEST ADMIN 2.0");
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
