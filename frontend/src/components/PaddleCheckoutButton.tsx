@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-import { useAuthStore } from '../stores/authStore';
+import { useAuth } from '../hooks/useAuth'; // <-- Utilisation du hook
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 
 export const PaddleCheckoutButton = ({ className }: Props) => {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const { user } = useAuth(); // <-- Récupération via le hook
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -18,7 +18,6 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
       environment: (import.meta.env.VITE_PADDLE_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
       token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
     }).then((paddleInstance) => {
-      console.log("✅ SDK Paddle prêt :", !!paddleInstance);
       if (paddleInstance) setPaddle(paddleInstance);
       setIsInitializing(false);
     }).catch(err => {
@@ -30,7 +29,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   const openCheckout = () => {
     console.log("🖱️ Clic sur le bouton de paiement");
     console.log("Statut Paddle :", paddle ? "Prêt" : "Non prêt");
-    console.log("Objet User :", user);
+    console.log("Objet User via useAuth :", user);
 
     if (!paddle) {
       alert("Paddle n'est pas encore prêt. Attends 2 secondes et réessaie.");
@@ -46,7 +45,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
       paddle.Checkout.open({
         items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
         customData: {
-          userId: String(user.id || (user as any)._id || 'inconnu') // On force en string
+          userId: String(user.id) // On récupère bien l'ID de l'utilisateur
         },
         settings: {
           displayMode: 'overlay',
