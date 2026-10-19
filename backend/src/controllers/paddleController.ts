@@ -23,8 +23,7 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
     return;
   }
 
-  const signedPayload = `${ts}:${rawBody}`;
-  const expectedHmac = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+  const expectedHmac = crypto.createHmac('sha256', secret).update(`${ts}:${rawBody}`).digest('hex');
 
   if (expectedHmac !== h1) {
     console.error('❌ Webhook Paddle : Signature invalide');
@@ -42,24 +41,20 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
   }
 
   const { event_id, event_type, data } = event;
-  console.log(`✅ Webhook Paddle reçu et validé : ${event_type} (${event_id})`);
 
   try {
-    // 3. Idempotence (on ne traite pas 2 fois le même événement)
+    // 3. Idempotence
     const existingEvent = await db('webhook_events').where({ paddle_event_id: event_id }).first();
     if (existingEvent) {
-      console.log(`⏩ Événement ${event_id} déjà traité.`);
       res.status(200).send('Événement déjà traité');
       return;
     }
 
-    // 4. Traitement des événements d'abonnement
+    // 4. Traitement
     if (event_type === 'subscription.created' || event_type === 'subscription.updated') {
       const userId = data.custom_data?.userId;
-      
       if (userId) {
         const existingSub = await db('subscriptions').where({ user_id: userId }).first();
-        
         const subData = {
           user_id: userId,
           paddle_subscription_id: data.id,
@@ -72,30 +67,23 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
 
         if (existingSub) {
           await db('subscriptions').where({ id: existingSub.id }).update(subData);
-          console.log(`🔄 Abonnement mis à jour pour l'utilisateur ${userId}`);
         } else {
           await db('subscriptions').insert({ ...subData, created_at: new Date() });
-          console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
         }
+        console.log(`✅ [Paddle] Abonnement synchronisé pour l'utilisateur ${userId}`);
       }
     } 
     else if (event_type === 'subscription.canceled') {
-      await db('subscriptions')
-        .where({ paddle_subscription_id: data.id })
-        .update({ status: 'canceled', updated_at: new Date() });
-      console.log(`🚫 Abonnement annulé : ${data.id}`);
+      await db('subscriptions').where({ paddle_subscription_id: data.id }).update({ status: 'canceled', updated_at: new Date() });
+      console.log(`🚫 [Paddle] Abonnement annulé : ${data.id}`);
     }
 
-    // 5. Enregistrement de l'événement pour l'idempotence
-    await db('webhook_events').insert({
-      paddle_event_id: event_id,
-      event_type: event_type
-    });
-
+    // 5. Enregistrement de l'événement
+    await db('webhook_events').insert({ paddle_event_id: event_id, event_type: event_type });
     res.status(200).send('Webhook traité avec succès');
 
   } catch (error: any) {
-    console.error('❌ Erreur lors du traitement du webhook en base :', error);
+    console.error('❌ Erreur DB Webhook Paddle :', error);
     res.status(500).send('Erreur interne');
   }
 };
