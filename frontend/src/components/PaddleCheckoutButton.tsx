@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-import { useAuthStore } from '../stores/authStore'; // <-- Import direct du store
+import { useAuthStore } from '../stores/authStore';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -9,9 +9,6 @@ interface Props {
 
 export const PaddleCheckoutButton = ({ className }: Props) => {
   const { t } = useTranslation();
-  // On récupère l'utilisateur avec un sélecteur (plus fiable)
-  const user = useAuthStore((state) => state.user); 
-  
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -29,15 +26,18 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   }, []);
 
   const openCheckout = () => {
+    // On récupère l'utilisateur À L'INSTANT du clic
+    const currentUser = useAuthStore.getState().user;
+    
     console.log("🖱️ Clic sur le bouton de paiement");
     console.log("Statut Paddle :", paddle ? "Prêt" : "Non prêt");
-    console.log("Objet User via store :", user);
+    console.log("Objet User via getState :", currentUser);
 
     if (!paddle) {
       alert("Paddle n'est pas encore prêt. Attends 2 secondes et réessaie.");
       return;
     }
-    if (!user) {
+    if (!currentUser) {
       alert("Tu dois être connecté pour t'abonner.");
       return;
     }
@@ -47,7 +47,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
       paddle.Checkout.open({
         items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
         customData: {
-          userId: String(user.id || (user as any)._id || 'inconnu')
+          userId: String(currentUser.id || (currentUser as any)._id || 'inconnu')
         },
         settings: {
           displayMode: 'overlay',
