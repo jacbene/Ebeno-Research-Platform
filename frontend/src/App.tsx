@@ -423,29 +423,34 @@ const AppRoutes: React.FC<{
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Route>
 
-        {/* ✅ ROUTES PRIVÉES */}
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route element={<Layout user={user} onLogout={onLogout} />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/transcription" element={<TranscriptionPage />} />
-            <Route path="/text-upload" element={<TextUploadPage />} />
-            <Route path="/transcriptions" element={<TranscriptionList />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/collaboration" element={<CollaborationPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/project/:id" element={<ProjectDetail />} />
-           {/* Routes Admin (Lazy load recommandé pour la prod) */}
-<Route path="/admin" element={
-  <AdminGuard>
-    <AdminLayout />
-  </AdminGuard>
-}>
-  <Route index element={<AdminDashboard />} />
+{/* ✅ ROUTES PRIVÉES */}
+<Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+  
+  {/* ✅ ROUTE ADMIN (isolée, avec son propre layout) */}
+  <Route path="/admin" element={
+    <AdminGuard>
+      <AdminLayout />
+    </AdminGuard>
+  }>
+    <Route index element={<AdminDashboard />} />
+  </Route>
+
+  {/* ✅ ROUTES AVEC LAYOUT STANDARD (Navbar + Sidebar) */}
+  <Route element={<Layout user={user} onLogout={onLogout} />}>
+    <Route path="/" element={<Dashboard />} />
+    <Route path="/transcription" element={<TranscriptionPage />} />
+    <Route path="/text-upload" element={<TextUploadPage />} />
+    <Route path="/transcriptions" element={<TranscriptionList />} />
+    <Route path="/chat" element={<ChatPage />} />
+    <Route path="/collaboration" element={<CollaborationPage />} />
+    <Route path="/settings" element={<SettingsPage />} />
+    <Route path="/analytics" element={<AnalyticsPage />} />
+    <Route path="/project/:id" element={<ProjectDetail />} />
+    
+    {/* Catch-all pour les routes standards */}
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Route>
 </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Route>
       </Routes>
     </Suspense>
   );
