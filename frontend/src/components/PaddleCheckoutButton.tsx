@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-import { useAuth } from '../hooks/useAuth'; // <-- Utilisation du hook
+import { useAuthStore } from '../stores/authStore'; // <-- Import direct du store
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -9,7 +9,9 @@ interface Props {
 
 export const PaddleCheckoutButton = ({ className }: Props) => {
   const { t } = useTranslation();
-  const { user } = useAuth(); // <-- Récupération via le hook
+  // On récupère l'utilisateur avec un sélecteur (plus fiable)
+  const user = useAuthStore((state) => state.user); 
+  
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -29,7 +31,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   const openCheckout = () => {
     console.log("🖱️ Clic sur le bouton de paiement");
     console.log("Statut Paddle :", paddle ? "Prêt" : "Non prêt");
-    console.log("Objet User via useAuth :", user);
+    console.log("Objet User via store :", user);
 
     if (!paddle) {
       alert("Paddle n'est pas encore prêt. Attends 2 secondes et réessaie.");
@@ -45,7 +47,7 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
       paddle.Checkout.open({
         items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
         customData: {
-          userId: String(user.id) // On récupère bien l'ID de l'utilisateur
+          userId: String(user.id || (user as any)._id || 'inconnu')
         },
         settings: {
           displayMode: 'overlay',
