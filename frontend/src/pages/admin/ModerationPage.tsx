@@ -5,7 +5,7 @@ interface AuditLog {
   id: number;
   action: string;
   status: string;
-  ipAddress: string;
+  ip: string; // <-- 'ip' au lieu de 'ipAddress'
   createdAt: string;
   user_email: string | null;
   user_name: string | null;
@@ -67,9 +67,9 @@ export default function ModerationPage() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-mono text-gray-500">
-                      {log.ipAddress || 'N/A'}
-                    </td>
+                   <td className="px-6 py-4 text-xs font-mono text-gray-500">
+  {log.ip || 'N/A'} {/* <-- 'log.ip' au lieu de 'log.ipAddress' */}
+</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         log.status === 'success' 

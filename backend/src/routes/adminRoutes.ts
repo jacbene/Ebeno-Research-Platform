@@ -117,21 +117,21 @@ router.get('/audit-log', getAuditLogs);
 router.post('/audit-log/purge', purgeAuditLogs);
 
 // ✅ Récupérer les logs d'audit avec pagination basique
+// ✅ Récupérer les logs d'audit avec pagination basique
 router.get('/moderation', authenticate, requireAdmin, async (req, res) => {
   try {
-    // On récupère les 100 derniers logs
-    const logs = await db('audit_logs')
-      .leftJoin('users', 'audit_logs.userId', 'users.id')
+    const logs = await db('audit_log')
+      .leftJoin('users', 'audit_log.userId', 'users.id')
       .select(
-        'audit_logs.id',
-        'audit_logs.action',
-        'audit_logs.status',
-        'audit_logs.ipAddress',
-        'audit_logs.createdAt',
-        'users.email as user_email',
+        'audit_log.id',
+        'audit_log.action',
+        'audit_log.status',
+        'audit_log.ip',
+        'audit_log.createdAt',
+        'audit_log.userEmail as user_email',
         'users.name as user_name'
       )
-      .orderBy('audit_logs.createdAt', 'desc')
+      .orderBy('audit_log.createdAt', 'desc')
       .limit(100);
 
     res.json({ logs });
