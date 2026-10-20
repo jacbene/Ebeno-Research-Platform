@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getUsers, getUserById, updateUser, deleteUser } from '../controllers/userController';
 import { authenticate } from '../middleware/auth';
 import { exportMyData, getExportInfo } from '../controllers/gdprController';
-mport { db } from '../db/knex';
+import { db } from '../db/knex'; // ✅ "import" corrigé
 
 const router = Router();
 
@@ -37,6 +37,7 @@ router.get('/', getUsers);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
 router.delete('/:id', deleteUser);
+
 // ✅ Routes RGPD (authentifiées)
 router.get('/me/export-info', authenticate, getExportInfo);
 router.get('/me/export-data', authenticate, exportMyData);
