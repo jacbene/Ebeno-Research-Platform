@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
 import { AdminGuard } from './pages/admin/AdminGuard';
 import { AdminLayout } from './pages/admin/AdminLayout';
+import SubscriptionsPage from './pages/admin/SubscriptionsPage';
 import UsersPage from './pages/admin/UsersPage';
 import AdminDashboard from './pages/admin/index';
 import TwoFactorLogin from './components/TwoFactorLogin';
@@ -420,6 +421,8 @@ return (
 }>
   <Route index element={<AdminDashboard />} />
   <Route path="users" element={<UsersPage />} /> {/* <-- AJOUTER CECI */}
+  <Route path="subscriptions" element={<SubscriptionsPage />} /> {/* <-- AJOUTER CECI */}
+
 </Route>
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}

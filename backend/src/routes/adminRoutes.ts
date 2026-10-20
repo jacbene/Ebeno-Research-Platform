@@ -54,6 +54,31 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// ✅ Liste des abonnements
+router.get('/subscriptions', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const subscriptions = await db('subscriptions')
+      .join('users', 'subscriptions.user_id', 'users.id')
+      .select(
+        'subscriptions.id',
+        'subscriptions.paddle_subscription_id',
+        'subscriptions.paddle_customer_id',
+        'subscriptions.plan',
+        'subscriptions.status',
+        'subscriptions.current_period_end',
+        'subscriptions.created_at',
+        'users.email as user_email',
+        'users.name as user_name'
+      )
+      .orderBy('subscriptions.created_at', 'desc');
+
+    res.json({ subscriptions });
+  } catch (error) {
+    console.error("Erreur liste abonnements:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // Garde tes anciennes routes si tu en as besoin
 router.get('/backup/cloudinary', backupCloudinary);
 router.get('/backup/db-info', dbInfo);
