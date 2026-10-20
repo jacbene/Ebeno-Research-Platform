@@ -438,6 +438,74 @@ export const sendDeletionScheduledEmail = async ({
 };
 
 // ────────────────────────────────────────────────────────────
+// 8. E-mail de Bienvenue
+// ────────────────────────────────────────────────────────────
+
+export interface SendWelcomeParams {
+  to: string;
+  name: string;
+  lang?: string;
+}
+
+export const sendWelcomeEmail = async ({ to, name, lang }: SendWelcomeParams): Promise<boolean> => {
+  if (!BREVO_API_KEY) return false;
+  const L = normalizeLang(lang);
+  const S = EMAIL_STRINGS[L];
+  const url = `${APP_URL}/`;
+
+  const content = `
+    <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${interpolate(S.welcomeGreeting, { name })}</h2>
+    <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">${S.welcomeIntro}</p>
+    <div style="text-align:center;"><a href="${url}" style="${buttonStyle}">${S.welcomeButton}</a></div>
+    <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.welcomeNote}</p>
+  `;
+
+  const result = await sendViaBrevo({
+    to: [{ email: to, name }],
+    subject: S.welcomeSubject,
+    htmlContent: htmlWrapper(content, L),
+  });
+
+  if (result.success) logger.info(`✅ [email] Welcome envoyé à ${to}`);
+  return result.success;
+};
+
+// ────────────────────────────────────────────────────────────
+// 9. E-mail de Confirmation d'Abonnement
+// ────────────────────────────────────────────────────────────
+
+export interface SendSubConfirmParams {
+  to: string;
+  name: string;
+  plan: string;
+  nextDate: string;
+  lang?: string;
+}
+
+export const sendSubscriptionConfirmationEmail = async ({ to, name, plan, nextDate, lang }: SendSubConfirmParams): Promise<boolean> => {
+  if (!BREVO_API_KEY) return false;
+  const L = normalizeLang(lang);
+  const S = EMAIL_STRINGS[L];
+  const url = `${APP_URL}/settings`;
+
+  const content = `
+    <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${interpolate(S.subConfirmGreeting, { name })}</h2>
+    <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">${interpolate(S.subConfirmIntro, { plan: plan.toUpperCase() })}</p>
+    <div style="text-align:center;"><a href="${url}" style="${buttonStyle}">${S.subConfirmButton}</a></div>
+    <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${interpolate(S.subConfirmNote, { date: new Date(nextDate).toLocaleDateString('fr-FR') })}</p>
+  `;
+
+  const result = await sendViaBrevo({
+    to: [{ email: to, name }],
+    subject: S.subConfirmSubject,
+    htmlContent: htmlWrapper(content, L),
+  });
+
+  if (result.success) logger.info(`✅ [email] Confirmation abonnement envoyée à ${to}`);
+  return result.success;
+};
+
+// ────────────────────────────────────────────────────────────
 // 6. Vérification config (démarrage)
 // ────────────────────────────────────────────────────────────
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { db } from '../db/knex';
+import { sendSubscriptionConfirmationEmail } from '../services/emailService';
 
 export const handlePaddleWebhook = async (req: Request, res: Response): Promise<void> => {
   const signatureHeader = req.headers['paddle-signature'] as string;
@@ -65,14 +66,29 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
           updated_at: new Date()
         };
 
-        if (existingSub) {
-          await db('subscriptions').where({ id: existingSub.id }).update(subData);
-        } else {
-          await db('subscriptions').insert({ ...subData, created_at: new Date() });
-        }
-        console.log(`✅ [Paddle] Abonnement synchronisé pour l'utilisateur ${userId}`);
-      }
-    } 
+  if (existingSub) {
+  await db('subscriptions').where({ id: existingSub.id }).update(subData);
+  console.log(`🔄 Abonnement mis à jour pour l'utilisateur ${userId}`);
+} else {
+  await db('subscriptions').insert({ ...subData, created_at: new Date() });
+  console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
+
+  // ✅ ENVOI DE L'EMAIL DE CONFIRMATION ICI (uniquement à la création)
+  try {
+    const user = await db('users').where({ id: userId }).first();
+    if (user) {
+      await sendSubscriptionConfirmationEmail({
+        to: user.email,
+        name: user.name || 'chercheur',
+        plan: 'pro',
+        nextDate: data.current_billing_period?.ends_at,
+        lang: user.language || 'fr',
+      });
+    }
+  } catch (emailErr) {
+    console.error('❌ Erreur envoi email abonnement:', emailErr);
+  }
+}
     else if (event_type === 'subscription.canceled') {
       await db('subscriptions').where({ paddle_subscription_id: data.id }).update({ status: 'canceled', updated_at: new Date() });
       console.log(`🚫 [Paddle] Abonnement annulé : ${data.id}`);

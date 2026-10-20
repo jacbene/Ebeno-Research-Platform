@@ -132,6 +132,19 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionConfirmText: 'Si vous n\'êtes pas à l\'origine de cette demande, connectez-vous immédiatement à votre compte pour le sécuriser.',
     emailSpamWarning: '📬 Important : si vous ne voyez pas cet email dans votre boîte de réception, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong> — vous y trouverez le lien pour annuler la suppression.',
     emailSpamWarningLogin: '📬 Un email de confirmation vous a été envoyé. Si vous ne le voyez pas, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong>.',
+
+    // Ajoute ceci dans l'objet EMAIL_STRINGS.fr
+welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
+welcomeGreeting: "Bonjour {name},",
+welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
+welcomeButton: "Accéder à mon espace",
+welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
+
+subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
+subConfirmGreeting: "Bonjour {name},",
+subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.",
+subConfirmButton: "Voir mon tableau de bord",
+subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.",
   },
 
   en: {

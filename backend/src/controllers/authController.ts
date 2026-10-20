@@ -30,6 +30,7 @@ import {
 } from '../services/accountDeletionService';
 import { sendDeletionScheduledEmail } from '../services/emailService';
 import { requireSecret } from '../config/secrets';
+import { sendVerificationEmail, sendWelcomeEmail } from '../services/emailService';
 
 const JWT_SECRET = requireSecret('JWT_SECRET');
 const TWOFA_TEMP_SECRET = JWT_SECRET + '-2fa-pending';
@@ -161,8 +162,19 @@ export const register = async (req: Request, res: Response) => {
       }
     } catch (err: any) {
       logger.error(`❌ [register] Erreur envoi email vérification: ${err.message}`);
-      // On continue : le compte est créé, l'utilisateur pourra demander un renvoi
+     // On continue : le compte est créé, l'utilisateur pourra demander un renvoi
     }
+
+    // ✅ Envoi de l'e-mail de bienvenue (en parallèle, on ne bloque pas si ça échoue)
+try {
+  await sendWelcomeEmail({
+    to: emailLower,
+    name: name.trim(),
+    lang: 'fr',
+  });
+} catch (err: any) {
+  logger.warn(`⚠️ [register] Email de bienvenue non envoyé: ${err.message}`);
+}
 
     await logAuditFromReq(req, {
       userId: id,
