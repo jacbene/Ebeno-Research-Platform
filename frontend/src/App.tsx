@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useRTL } from './i18n/useRTL';
 import { AdminGuard } from './pages/admin/AdminGuard';
 import { AdminLayout } from './pages/admin/AdminLayout';
+import UsersPage from './pages/admin/UsersPage';
 import AdminDashboard from './pages/admin/index';
 import TwoFactorLogin from './components/TwoFactorLogin';
 import CookieConsentBanner from './components/CookieConsentBanner';
@@ -412,14 +413,14 @@ return (
       <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
         
         {/* 🔥 ROUTE ADMIN (TOTALEMENT ISOLÉE) */}
-        <Route path="/admin" element={
-          <AdminGuard>
-            <AdminLayout />
-          </AdminGuard>
-        }>
-          <Route index element={<AdminDashboard />} />
-          {/* Tu pourras ajouter /admin/users, etc. ici plus tard */}
-        </Route>
+ <Route path="/admin" element={
+  <AdminGuard>
+    <AdminLayout />
+  </AdminGuard>
+}>
+  <Route index element={<AdminDashboard />} />
+  <Route path="users" element={<UsersPage />} /> {/* <-- AJOUTER CECI */}
+</Route>
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
         <Route element={<Layout user={user} onLogout={onLogout} />}>

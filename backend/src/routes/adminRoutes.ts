@@ -31,6 +31,29 @@ router.get('/stats', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// ✅ Liste des utilisateurs avec leur statut d'abonnement
+router.get('/users', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const users = await db('users')
+      .select(
+        'users.id',
+        'users.email',
+        'users.name',
+        'users.role',
+        'users.createdAt',
+        'subscriptions.plan as subscription_plan',
+        'subscriptions.status as subscription_status'
+      )
+      .leftJoin('subscriptions', 'users.id', 'subscriptions.user_id')
+      .orderBy('users.createdAt', 'desc');
+
+    res.json({ users });
+  } catch (error) {
+    console.error("Erreur liste users:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // Garde tes anciennes routes si tu en as besoin
 router.get('/backup/cloudinary', backupCloudinary);
 router.get('/backup/db-info', dbInfo);
