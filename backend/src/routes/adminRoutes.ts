@@ -116,4 +116,29 @@ router.get('/backup/db-info', dbInfo);
 router.get('/audit-log', getAuditLogs);
 router.post('/audit-log/purge', purgeAuditLogs);
 
+// ✅ Récupérer les logs d'audit avec pagination basique
+router.get('/moderation', authenticate, requireAdmin, async (req, res) => {
+  try {
+    // On récupère les 100 derniers logs
+    const logs = await db('audit_logs')
+      .leftJoin('users', 'audit_logs.userId', 'users.id')
+      .select(
+        'audit_logs.id',
+        'audit_logs.action',
+        'audit_logs.status',
+        'audit_logs.ipAddress',
+        'audit_logs.createdAt',
+        'users.email as user_email',
+        'users.name as user_name'
+      )
+      .orderBy('audit_logs.createdAt', 'desc')
+      .limit(100);
+
+    res.json({ logs });
+  } catch (error) {
+    console.error("Erreur chargement audit logs:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 export default router;

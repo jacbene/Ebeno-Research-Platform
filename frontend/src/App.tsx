@@ -25,6 +25,7 @@ import TwoFactorLogin from './components/TwoFactorLogin';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import InstallBanner from './components/InstallBanner';
 import AiUsagePage from './pages/admin/AiUsagePage';
+import ModerationPage from './pages/admin/ModerationPage';
 
 // ============================================================
 // LAZY-LOADED PAGES
@@ -424,6 +425,8 @@ return (
   <Route path="users" element={<UsersPage />} />
   <Route path="subscriptions" element={<SubscriptionsPage />} />
   <Route path="usage" element={<AiUsagePage />} />
+  <Route path="moderation" element={<ModerationPage />} /> {/* <-- AJOUTER CECI */}
+
 </Route>
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
