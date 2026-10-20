@@ -79,6 +79,37 @@ router.get('/subscriptions', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// ✅ Liste de l'usage IA pour le mois en cours
+router.get('/usage', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    const usage = await db('users')
+      .select(
+        'users.id',
+        'users.email',
+        'users.name',
+        'users.role',
+        'ai_usage.messages_used',
+        'subscriptions.plan as subscription_plan'
+      )
+      .leftJoin('ai_usage', function() {
+        this.on('users.id', '=', 'ai_usage.user_id')
+            .andOn('ai_usage.month', '=', db.raw('?', [currentMonth]));
+      })
+      .leftJoin('subscriptions', function() {
+        this.on('users.id', '=', 'subscriptions.user_id')
+            .andOn('subscriptions.status', '=', db.raw('?', ['active']));
+      })
+      .orderBy('ai_usage.messages_used', 'desc');
+
+    res.json({ usage, month: currentMonth });
+  } catch (error) {
+    console.error("Erreur usage IA:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // Garde tes anciennes routes si tu en as besoin
 router.get('/backup/cloudinary', backupCloudinary);
 router.get('/backup/db-info', dbInfo);

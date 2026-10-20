@@ -24,6 +24,7 @@ import AdminDashboard from './pages/admin/index';
 import TwoFactorLogin from './components/TwoFactorLogin';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import InstallBanner from './components/InstallBanner';
+import AiUsagePage from './pages/admin/AiUsagePage';
 
 // ============================================================
 // LAZY-LOADED PAGES
@@ -415,6 +416,7 @@ return (
         
         {/* 🔥 ROUTE ADMIN (TOTALEMENT ISOLÉE) */}
  <Route path="/admin" element={
+<Route path="usage" element={<AiUsagePage />} /> {/* <-- AJOUTER CECI */}
   <AdminGuard>
     <AdminLayout />
   </AdminGuard>
@@ -422,6 +424,7 @@ return (
   <Route index element={<AdminDashboard />} />
   <Route path="users" element={<UsersPage />} /> {/* <-- AJOUTER CECI */}
   <Route path="subscriptions" element={<SubscriptionsPage />} /> {/* <-- AJOUTER CECI */}
+  <Route path="usage" element={<AiUsagePage />} /> {/* <-- AJOUTER CECI */}
 
 </Route>
 
