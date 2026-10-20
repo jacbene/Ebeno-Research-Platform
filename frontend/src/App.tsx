@@ -420,20 +420,20 @@ const AppRoutes: React.FC<{
               )
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+       {/*   <Route path="*" element={<Navigate to="/login" replace />} /> */}
         </Route>
 
 {/* ✅ ROUTES PRIVÉES */}
 <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-  
-  {/* ✅ ROUTE ADMIN (isolée) */}
+
   <Route path="/admin" element={
-    <AdminGuard>
-      <AdminLayout />
-    </AdminGuard>
-  }>
-    <Route index element={<AdminDashboard />} />
-  </Route>
+  console.log("🚦 ROUTE /admin ATTEINTE !"), // <-- Ajoute ceci
+  <AdminGuard>
+    <AdminLayout />
+  </AdminGuard>
+}>
+  <Route index element={<AdminDashboard />} />
+</Route>
 
   {/* ✅ ROUTES STANDARD (avec Navbar + Sidebar) */}
   <Route element={<Layout user={user} onLogout={onLogout} />}>
