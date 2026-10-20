@@ -44,18 +44,20 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
   const { event_id, event_type, data } = event;
 
   try {
-    // 3. Idempotence
+    // 3. Idempotence (on ne traite pas 2 fois le même événement)
     const existingEvent = await db('webhook_events').where({ paddle_event_id: event_id }).first();
     if (existingEvent) {
       res.status(200).send('Événement déjà traité');
       return;
     }
 
-    // 4. Traitement
+    // 4. Traitement des événements d'abonnement
     if (event_type === 'subscription.created' || event_type === 'subscription.updated') {
       const userId = data.custom_data?.userId;
+      
       if (userId) {
         const existingSub = await db('subscriptions').where({ user_id: userId }).first();
+        
         const subData = {
           user_id: userId,
           paddle_subscription_id: data.id,
@@ -66,40 +68,48 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
           updated_at: new Date()
         };
 
-  if (existingSub) {
-  await db('subscriptions').where({ id: existingSub.id }).update(subData);
-  console.log(`🔄 Abonnement mis à jour pour l'utilisateur ${userId}`);
-} else {
-  await db('subscriptions').insert({ ...subData, created_at: new Date() });
-  console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
+        if (existingSub) {
+          await db('subscriptions').where({ id: existingSub.id }).update(subData);
+          console.log(`🔄 Abonnement mis à jour pour l'utilisateur ${userId}`);
+        } else {
+          await db('subscriptions').insert({ ...subData, created_at: new Date() });
+          console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
 
-  // ✅ ENVOI DE L'EMAIL DE CONFIRMATION ICI (uniquement à la création)
-  try {
-    const user = await db('users').where({ id: userId }).first();
-    if (user) {
-      await sendSubscriptionConfirmationEmail({
-        to: user.email,
-        name: user.name || 'chercheur',
-        plan: 'pro',
-        nextDate: data.current_billing_period?.ends_at,
-        lang: user.language || 'fr',
-      });
-    }
-  } catch (emailErr) {
-    console.error('❌ Erreur envoi email abonnement:', emailErr);
-  }
-}
+          // ✅ ENVOI DE L'EMAIL DE CONFIRMATION (uniquement à la création)
+          try {
+            const user = await db('users').where({ id: userId }).first();
+            if (user) {
+              await sendSubscriptionConfirmationEmail({
+                to: user.email,
+                name: user.name || 'chercheur',
+                plan: 'pro',
+                nextDate: data.current_billing_period?.ends_at,
+                lang: user.language || 'fr',
+              });
+            }
+          } catch (emailErr: any) {
+            console.error('❌ Erreur envoi email abonnement:', emailErr.message);
+          }
+        }
+      }
+    } 
     else if (event_type === 'subscription.canceled') {
-      await db('subscriptions').where({ paddle_subscription_id: data.id }).update({ status: 'canceled', updated_at: new Date() });
-      console.log(`🚫 [Paddle] Abonnement annulé : ${data.id}`);
+      await db('subscriptions')
+        .where({ paddle_subscription_id: data.id })
+        .update({ status: 'canceled', updated_at: new Date() });
+      console.log(`🚫 Abonnement annulé : ${data.id}`);
     }
 
-    // 5. Enregistrement de l'événement
-    await db('webhook_events').insert({ paddle_event_id: event_id, event_type: event_type });
+    // 5. Enregistrement de l'événement pour l'idempotence
+    await db('webhook_events').insert({
+      paddle_event_id: event_id,
+      event_type: event_type
+    });
+
     res.status(200).send('Webhook traité avec succès');
 
   } catch (error: any) {
-    console.error('❌ Erreur DB Webhook Paddle :', error);
+    console.error('❌ Erreur lors du traitement du webhook en base :', error);
     res.status(500).send('Erreur interne');
   }
 };
