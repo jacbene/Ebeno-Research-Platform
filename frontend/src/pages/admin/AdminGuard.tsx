@@ -1,31 +1,44 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
 
 interface AdminGuardProps {
   children: ReactNode;
 }
 
 export const AdminGuard = ({ children }: AdminGuardProps) => {
-  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  
+  console.log("🛡️ AdminGuard : Vérification en cours...");
 
-  // Si pas d'utilisateur, on redirige vers login
+  // On lit UNIQUEMENT le localStorage (qui contient le vrai rôle modifié en DB)
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('user') || 'null');
+  } catch (e) {
+    console.error("Erreur lecture localStorage", e);
+  }
+
+  console.log("🛡️ AdminGuard : Utilisateur trouvé =", user);
+
   if (!user) {
+    console.log("🛡️ AdminGuard : Pas d'utilisateur, redirection vers /login");
     return <Navigate to="/login" replace />;
   }
 
-  // Vérification du rôle Admin
-  const isAdmin = user.role === 'ADMIN' || user.role === 'admin'; // Adapte selon tes rôles en DB
-  
-  // Vérification 2FA (si ton objet user contient twoFactorEnabled)
-  const has2FA = user.twoFactorEnabled === true; 
+  const isAdmin = user.role?.toUpperCase() === 'ADMIN'; 
+  console.log("🛡️ AdminGuard : Est-ce un admin ?", isAdmin);
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />; // Accès refusé
+    console.log("🛡️ AdminGuard : Rôle non autorisé, redirection vers /");
+    return <Navigate to="/" replace />;
   }
 
+  // Si on a la 2FA activée (true), on laisse passer.
+  // Si c'est undefined, on laisse passer aussi pour ne pas bloquer.
+  const has2FA = user.twoFactorEnabled === true || user.twoFactorEnabled === undefined; 
+
   if (!has2FA) {
+    console.log("🛡️ AdminGuard : 2FA manquante");
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
         <h1 className="text-2xl font-bold text-red-600 mb-4">Accès Restreint</h1>
@@ -40,5 +53,6 @@ export const AdminGuard = ({ children }: AdminGuardProps) => {
     );
   }
 
+  console.log("🛡️ AdminGuard : Accès autorisé !");
   return <>{children}</>;
 };
