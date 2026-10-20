@@ -7,7 +7,7 @@ import { uploadToCloudinary } from '../services/cloudinaryService';
 import { logAuditFromReq } from '../services/auditLogService';
 import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
 import { verifyTotpCode, verifyBackupCode } from '../services/totpService';
-import { sendVerificationEmail } from '../services/emailService';
+//import { sendVerificationEmail } from '../services/emailService';
 import {
   createVerificationToken,
   verifyEmailToken,
