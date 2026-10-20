@@ -365,95 +365,81 @@ const AppRoutes: React.FC<{
     startTransition(() => setAuthMode('login'));
   };
 
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* ✅ ROUTE PUBLIQUE — accessible connecté ou non */}
+return (
+  <Suspense fallback={<PageLoader />}>
+    <Routes>
+      {/* ✅ ROUTE PUBLIQUE */}
+      <Route path="/verify-email" element={<VerifyEmailPage onVerified={onLogin} />} />
+      <Route path="/cancel-deletion" element={<CancelDeletionPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/legal" element={<MentionsLegales />} />
+      <Route path="/cookies" element={<PolitiqueCookies />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+
+      {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
+      <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route
-          path="/verify-email"
-          element={<VerifyEmailPage onVerified={onLogin} />}
+          path="/login"
+          element={
+            twoFactorToken ? (
+              <TwoFactorLogin
+                tempToken={twoFactorToken}
+                onSuccess={() => {
+                  startTransition(() => setTwoFactorToken(null));
+                  onLogin();
+                }}
+                onCancel={() => startTransition(() => setTwoFactorToken(null))}
+              />
+            ) : authMode === 'login' ? (
+              <Login
+                onLogin={onLogin}
+                onSwitchToRegister={switchToRegister}
+                onRequires2FA={(t) => startTransition(() => setTwoFactorToken(t))}
+              />
+            ) : (
+              <RegisterWrapper
+                onRegister={onLogin}
+                onSwitchToLogin={switchToLogin}
+              />
+            )
+          }
         />
+      </Route>
 
-				<Route
- 					 path="/cancel-deletion"
- 					 element={<CancelDeletionPage />}
-				/>
-
-        {/* ✅ Reset password (token dans l'URL) */}
-        <Route
-          path="/reset-password"
-          element={<ResetPasswordPage />}
-        />
- 			 {/* ✅ Mentions légales (accessible connecté ou non) */}
-				<Route path="/legal" element={<MentionsLegales />} />
-                            <Route path="/cookies" element={<PolitiqueCookies />} />
-                            <Route path="/privacy" element={<PrivacyPage />} />
-                            <Route path="/terms" element={<TermsPage />} />
-
-        {/* ✅ ROUTES PUBLIQUES */}
-        <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
-          {/* ✅ Mot de passe oublié (public, hors utilisateurs connectés) */}
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route
-            path="/login"
-            element={
-              twoFactorToken ? (
-                <TwoFactorLogin
-                  tempToken={twoFactorToken}
-                  onSuccess={() => {
-                    startTransition(() => setTwoFactorToken(null));
-                    onLogin();
-                  }}
-                  onCancel={() => startTransition(() => setTwoFactorToken(null))}
-                />
-              ) : authMode === 'login' ? (
-                <Login
-                  onLogin={onLogin}
-                  onSwitchToRegister={switchToRegister}
-                  onRequires2FA={(t) => startTransition(() => setTwoFactorToken(t))}
-                />
-              ) : (
-                <RegisterWrapper
-                  onRegister={onLogin}
-                  onSwitchToLogin={switchToLogin}
-                />
-              )
-            }
-          />
-       {/*   <Route path="*" element={<Navigate to="/login" replace />} /> */}
+      {/* ✅ ROUTES PRIVÉES */}
+      <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+        
+        {/* 🔥 ROUTE ADMIN (TOTALEMENT ISOLÉE) */}
+        <Route path="/admin" element={
+          <AdminGuard>
+            <AdminLayout />
+          </AdminGuard>
+        }>
+          <Route index element={<AdminDashboard />} />
+          {/* Tu pourras ajouter /admin/users, etc. ici plus tard */}
         </Route>
 
-{/* ✅ ROUTES PRIVÉES */}
-<Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-
-  <Route path="/admin" element={
-  console.log("🚦 ROUTE /admin ATTEINTE !"), // <-- Ajoute ceci
-  <AdminGuard>
-    <AdminLayout />
-  </AdminGuard>
-}>
-  <Route index element={<AdminDashboard />} />
-</Route>
-
-  {/* ✅ ROUTES STANDARD (avec Navbar + Sidebar) */}
-  <Route element={<Layout user={user} onLogout={onLogout} />}>
-    <Route path="/" element={<Dashboard />} />
-    <Route path="/transcription" element={<TranscriptionPage />} />
-    <Route path="/text-upload" element={<TextUploadPage />} />
-    <Route path="/transcriptions" element={<TranscriptionList />} />
-    <Route path="/chat" element={<ChatPage />} />
-    <Route path="/collaboration" element={<CollaborationPage />} />
-    <Route path="/settings" element={<SettingsPage />} />
-    <Route path="/analytics" element={<AnalyticsPage />} />
-    <Route path="/project/:id" element={<ProjectDetail />} />
-    
-    {/* Catch-all */}
-    <Route path="*" element={<Navigate to="/" replace />} />
-  </Route>
-</Route>
-      </Routes>
-    </Suspense>
-  );
+        {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
+        <Route element={<Layout user={user} onLogout={onLogout} />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transcription" element={<TranscriptionPage />} />
+          <Route path="/text-upload" element={<TextUploadPage />} />
+          <Route path="/transcriptions" element={<TranscriptionList />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/collaboration" element={<CollaborationPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/project/:id" element={<ProjectDetail />} />
+          
+          {/* Catch-all UNIQUEMENT pour les routes standard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Route>
+    </Routes>
+  </Suspense>
+);
 };
 
 // ============================================================
