@@ -5,12 +5,13 @@ export const AdminLayout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const links = [
-    { path: '/admin', label: '📊 Dashboard', exact: true },
-    { path: '/admin/users', label: '👥 Utilisateurs' },
-    { path: '/admin/subscriptions', label: '💳 Abonnements' },
-    { path: '/admin/usage', label: '🤖 Usage IA' },
-  ];
+const links = [
+  { path: '/admin', label: '📊 Dashboard', exact: true },
+  { path: '/admin/users', label: '👥 Utilisateurs' },
+  { path: '/admin/subscriptions', label: '💳 Abonnements' },
+  { path: '/admin/usage', label: '🤖 Usage IA' },
+  { path: '/admin/moderation', label: '🛡️ Modération' }, // <-- AJOUTER CETTE LIGNE
+];
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col md:flex-row">
