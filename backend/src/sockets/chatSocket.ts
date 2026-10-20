@@ -21,6 +21,7 @@ import {
   type ChatMessage,
 } from '../services/chatService';
 import { streamAI } from '../services/streamService';
+import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
 
 const JWT_SECRET = requireSecret('JWT_SECRET');
 
@@ -61,42 +62,54 @@ export function setupChatSocket(io: SocketIOServer): void {
     // ═══════════════════════════════════════════════════════
     socket.on(
       'chat:stream',
-      async (payload: { conversationId: string; content: string }) => {
-        const { conversationId, content } = payload || {};
+   async (payload: { conversationId: string; content: string }) => {
+  const { conversationId, content } = payload || {};
 
-        if (!conversationId || !content?.trim()) {
-          socket.emit('chat:error', { error: 'conversationId et content requis' });
-          return;
-        }
+  if (!conversationId || !content?.trim()) {
+    socket.emit('chat:error', { error: 'conversationId et content requis' });
+    return;
+  }
 
-        try {
-          // 1. Vérifier la conversation
-          const conv = await db('chat_conversations')
-            .where({ id: conversationId, userId: user.id })
-            .whereNull('deletedAt')
-            .first();
+  try {
+    // 1. Vérifier la conversation
+    const conv = await db('chat_conversations')
+      .where({ id: conversationId, userId: user.id })
+      .whereNull('deletedAt')
+      .first();
 
-          if (!conv) {
-            socket.emit('chat:error', { error: 'Conversation introuvable' });
-            return;
-          }
+    if (!conv) {
+      socket.emit('chat:error', { error: 'Conversation introuvable' });
+      return;
+    }
 
-          // 2. Enregistrer le message user
-          const userMsgId = genId();
-          await db('chat_messages').insert({
-            id: userMsgId,
-            conversationId,
-            role: 'user',
-            content: content.trim(),
-            createdAt: new Date(),
-          });
+    // ✅ 2. VÉRIFICATION DU QUOTA IA ICI
+    const quotaCheck = await checkAndIncrementAiQuota(user.id);
+    if (!quotaCheck.allowed) {
+      socket.emit('chat:error', { 
+        error: quotaCheck.message,
+        code: 'QUOTA_EXCEEDED',
+        limit: quotaCheck.limit,
+        used: quotaCheck.used
+      });
+      return; // On arrête tout ici. Pas d'enregistrement de message, pas d'appel IA.
+    }
 
-          socket.emit('chat:user_saved', { id: userMsgId, content: content.trim() });
+    // 3. Enregistrer le message user
+    const userMsgId = genId();
+    await db('chat_messages').insert({
+      id: userMsgId,
+      conversationId,
+      role: 'user',
+      content: content.trim(),
+      createdAt: new Date(),
+    });
 
-          // 3. Contexte projet
-          const { contextText, sources } = await buildProjectContext(conv.projectId);
+    socket.emit('chat:user_saved', { id: userMsgId, content: content.trim() });
 
-          // 4. Historique
+    // 4. Contexte projet
+    const { contextText, sources } = await buildProjectContext(conv.projectId);
+
+          // 5. Historique
           const history = await db('chat_messages')
             .where({ conversationId })
             .orderBy('createdAt', 'asc')
@@ -113,7 +126,7 @@ export function setupChatSocket(io: SocketIOServer): void {
             })),
           ];
 
-          // 5. Streaming IA
+          // 6. Streaming IA
           let fullContent = '';
           let model = 'unknown';
           let tokens: number | undefined;
@@ -132,7 +145,7 @@ export function setupChatSocket(io: SocketIOServer): void {
             }
           }
 
-          // 6. Enregistrer la réponse assistant
+          // 7. Enregistrer la réponse assistant
           const assistantMsgId = genId();
           await db('chat_messages').insert({
             id: assistantMsgId,
@@ -145,7 +158,7 @@ export function setupChatSocket(io: SocketIOServer): void {
             createdAt: new Date(),
           });
 
-          // 7. Mettre à jour la conversation
+          // 8. Mettre à jour la conversation
           const newCount = (conv.messageCount || 0) + 2;
           const update: any = { messageCount: newCount, updatedAt: new Date() };
           if (tokens) update.totalTokens = (conv.totalTokens || 0) + tokens;
@@ -161,7 +174,7 @@ export function setupChatSocket(io: SocketIOServer): void {
 
           await db('chat_conversations').where({ id: conversationId }).update(update);
 
-          // 8. Signaler la fin
+          // 9. Signaler la fin
           socket.emit('chat:done', {
             messageId: assistantMsgId,
             userMessageId: userMsgId,

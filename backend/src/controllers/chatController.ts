@@ -13,6 +13,7 @@ import {
   generateTitle,
   type ChatMessage,
 } from '../services/chatService';
+import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -167,8 +168,25 @@ export const deleteConversation = async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 // 5. POST /api/chat/conversations/:id/messages
 // ═══════════════════════════════════════════════════════════
-
 export const postMessage = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    // ✅ VÉRIFICATION DU QUOTA ICI
+    const quotaCheck = await checkAndIncrementAiQuota(userId);
+    if (!quotaCheck.allowed) {
+      return res.status(403).json({ 
+        error: "Quota dépassé", 
+        message: quotaCheck.message,
+        limit: quotaCheck.limit,
+        used: quotaCheck.used
+      });
+    }
+
+    const { id } = req.params;
+    const { content } = req.body || {};
+    // ... la suite de ton code ...
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });

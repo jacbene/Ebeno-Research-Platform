@@ -15,6 +15,7 @@ import { logger } from '../utils/logger';
 import { decrypt } from './encryptionService';
 import { canSendEmail } from './emailPreferencesService';
 import { sendSummaryReadyEmail } from './emailService';
+import { checkAndIncrementAiQuota } from './aiQuotaService'; // Vérifie le bon chemin relatif
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 
@@ -265,13 +266,19 @@ export const generateDocumentSummary = async (
     throw new Error('Type de document inconnu');
   }
 
-  if (!text || text.trim().length < 50) {
-    return 'Texte trop court pour générer un résumé.';
-  }
+ if (!text || text.trim().length < 50) {
+  return 'Texte trop court pour générer un résumé.';
+}
 
-  logger.info(`📝 [summary] Texte extrait : ${text.length} caractères`);
+logger.info(`📝 [summary] Texte extrait : ${text.length} caractères`);
 
-  const summary = await generateSummary(text);
+// ✅ VÉRIFICATION DU QUOTA ICI
+const quotaCheck = await checkAndIncrementAiQuota(userId);
+if (!quotaCheck.allowed) {
+  throw new Error(quotaCheck.message);
+}
+
+const summary = await generateSummary(text);
 
   const existing = await db('document_summaries')
     .where({ documentId, type })

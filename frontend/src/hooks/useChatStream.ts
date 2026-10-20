@@ -1,9 +1,6 @@
 // frontend/src/hooks/useChatStream.ts
 /**
  * Hook Socket.IO pour le streaming du chat IA
- *
- * Usage :
- *   const { connected, sendMessage, onChunk, onDone } = useChatStream();
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -32,11 +29,20 @@ export interface StreamUserSaved {
   content: string;
 }
 
+export interface StreamError {
+  error: string;
+  code?: string;
+  limit?: number;
+  used?: number;
+}
+
 interface UseChatStreamOptions {
   onChunk?: (chunk: StreamChunk) => void;
   onDone?: (data: StreamDone) => void;
   onUserSaved?: (data: StreamUserSaved) => void;
   onError?: (error: string) => void;
+  // ✅ NOUVEAU : Callback dédié pour le dépassement de quota
+  onQuotaExceeded?: (data: { message: string; limit: number; used: number }) => void;
 }
 
 export function useChatStream(options: UseChatStreamOptions = {}) {
@@ -44,7 +50,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   const [connected, setConnected] = useState(false);
   const [streaming, setStreaming] = useState(false);
 
-  // Refs des callbacks (pour éviter les re-connexions)
+  // Refs des callbacks
   const callbacksRef = useRef(options);
   callbacksRef.current = options;
 
@@ -93,9 +99,21 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       callbacksRef.current.onDone?.(data);
     });
 
-    socket.on('chat:error', (err: { error: string }) => {
+    // ✅ MODIFICATION : Interception des erreurs
+    socket.on('chat:error', (err: StreamError) => {
       setStreaming(false);
-      callbacksRef.current.onError?.(err.error);
+      
+      // Si l'erreur est due à un dépassement de quota
+      if (err.code === 'QUOTA_EXCEEDED' && callbacksRef.current.onQuotaExceeded) {
+        callbacksRef.current.onQuotaExceeded({
+          message: err.error,
+          limit: err.limit || 0,
+          used: err.used || 0
+        });
+      } else {
+        // Pour les autres erreurs (réseau, conversation introuvable, etc.)
+        callbacksRef.current.onError?.(err.error || 'Erreur inconnue');
+      }
     });
 
     return () => {

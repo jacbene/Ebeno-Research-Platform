@@ -122,6 +122,15 @@ const ChatPage: React.FC = () => {
       setStreamingModel('');
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
     },
+     // ✅ GESTION DU QUOTA ICI
+  onQuotaExceeded: (data) => {
+    // Option 1 : Une alerte simple
+    //alert(data.message);
+    // Option 2 : Rediriger vers la page des tarifs après validation
+    if (window.confirm(`${data.message}\n\nVoulez-vous voir les plans ?`)) {
+       window.location.href = '/pricing';
+     }
+  },
   });
 
   // ═══════════════════════════════════════════════════════════

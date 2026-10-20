@@ -8,6 +8,7 @@ import {
   recordFailure,
   recordSuccess,
 } from './circuitBreaker';
+import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -287,11 +288,11 @@ export const translateDocument = async (
   }
 
   // 1. Vérifier le cache DB
-  const cached = await db('document_translations')
-    .where({ documentId, documentType, targetLang: lang })
-    .first();
+const cached = await db('document_translations')
+  .where({ documentId, documentType, targetLang: lang })
+  .first();
 
-  if (cached) {
+if (cached) {
     logger.info(
       `✅ [translation] Cache hit pour ${documentType}/${documentId} → ${lang}`
     );
@@ -307,8 +308,14 @@ export const translateDocument = async (
     };
   }
 
-  // 2. Récupérer le texte source
-  const { text, sourceLang, title } = await fetchSourceText(
+// ✅ VÉRIFICATION DU QUOTA ICI (avant de lancer la traduction)
+const quotaCheck = await checkAndIncrementAiQuota(userId);
+if (!quotaCheck.allowed) {
+  throw new Error(quotaCheck.message);
+}
+
+// 2. Récupérer le texte source
+const { text, sourceLang, title } = await fetchSourceText(
     documentId,
     documentType,
     userId
