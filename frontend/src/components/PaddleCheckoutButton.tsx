@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-import { useTranslation } from 'react-i18next';
 
 interface Props {
+  priceId: string;
+  label: string;
   className?: string;
+  onSuccess?: () => void;
 }
 
-export const PaddleCheckoutButton = ({ className }: Props) => {
-  const { t } = useTranslation();
+export const PaddleCheckoutButton = ({ priceId, label, className, onSuccess }: Props) => {
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -25,43 +26,32 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
   }, []);
 
   const openCheckout = () => {
-    // 🎯 Récupération de l'utilisateur exactement comme dans ton Dashboard
-    let currentUser = null;
-    try {
-      currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-    } catch (e) {
-      console.error("Erreur lecture localStorage:", e);
-    }
-    
-    console.log("🖱️ Clic sur le bouton de paiement");
-    console.log("Statut Paddle :", paddle ? "Prêt" : "Non prêt");
-    console.log("Objet User via localStorage :", currentUser);
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
 
     if (!paddle) {
       alert("Paddle n'est pas encore prêt. Attends 2 secondes et réessaie.");
       return;
     }
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser) {
       alert("Tu dois être connecté pour t'abonner.");
       return;
     }
 
     try {
-      console.log("🚀 Ouverture de la fenêtre Paddle...");
       paddle.Checkout.open({
-  items: [{ priceId: import.meta.env.VITE_PADDLE_PRICE_ID, quantity: 1 }],
-  customData: {
-    userId: String(currentUser.id)
-  },
-  settings: {
-    displayMode: 'overlay',
-    theme: 'light',
-    locale: 'fr',
-    successUrl: 'https://ebeno-frontend.onrender.com/', // <-- Ajoute cette ligne
-  },
-});
+        items: [{ priceId, quantity: 1 }],
+        customData: { userId: String(currentUser.id) },
+        settings: {
+          displayMode: 'overlay',
+          theme: 'light',
+          locale: 'fr',
+          successUrl: `${window.location.origin}/settings`, // Redirige vers les paramètres après paiement
+        },
+      });
+      
+      if (onSuccess) onSuccess();
     } catch (error) {
-      console.error("❌ Erreur lors de l'ouverture du checkout Paddle:", error);
+      console.error("❌ Erreur Paddle:", error);
     }
   };
 
@@ -69,9 +59,9 @@ export const PaddleCheckoutButton = ({ className }: Props) => {
     <button
       onClick={openCheckout}
       disabled={isInitializing}
-      className={className || "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"}
+      className={className || "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 w-full"}
     >
-      {isInitializing ? "Préparation du paiement..." : t('Pricing.upgradePro', 'Passer au plan Pro (12€/mois)')}
+      {isInitializing ? "Préparation..." : label}
     </button>
   );
 };

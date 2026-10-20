@@ -26,6 +26,7 @@ import CookieConsentBanner from './components/CookieConsentBanner';
 import InstallBanner from './components/InstallBanner';
 import AiUsagePage from './pages/admin/AiUsagePage';
 import ModerationPage from './pages/admin/ModerationPage';
+import PricingPage from './pages/PricingPage';
 
 // ============================================================
 // LAZY-LOADED PAGES
@@ -380,6 +381,7 @@ return (
       <Route path="/cookies" element={<PolitiqueCookies />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
+			<Route path="/pricing" element={<PricingPage />} />
 
       {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
       <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
