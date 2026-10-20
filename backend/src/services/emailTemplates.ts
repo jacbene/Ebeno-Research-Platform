@@ -226,20 +226,7 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
     deletionConfirmText: 'If you did not request this, log in to your account immediately to secure it.',
     emailSpamWarning: '📬 Important: if you don\'t see this email in your inbox, check your <strong>Spam / Junk folder</strong> — you\'ll find the cancellation link there.',
     emailSpamWarningLogin: '📬 A confirmation email has been sent to you. If you don\'t see it, check your <strong>Spam / Junk folder</strong>.',
-
-  // ✅ NOUVEAUX TEXTES
-  welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
-  welcomeGreeting: "Bonjour {name},",
-  welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
-  welcomeButton: "Accéder à mon espace",
-  welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
-
-  subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
-  subConfirmGreeting: "Bonjour {name},",
-  subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.",
-  subConfirmButton: "Voir mon tableau de bord",
-  subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.",
-  },
+ },
 
   es: {
 
@@ -306,19 +293,6 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
     deletionConfirmText: 'Si no solicitó esto, inicie sesión inmediatamente en su cuenta para protegerla.',
     emailSpamWarning: '📬 Importante: si no ve este correo en su bandeja de entrada, revise su carpeta de <strong>Spam / Correo no deseado</strong> — allí encontrará el enlace para cancelar la eliminación.',
     emailSpamWarningLogin: '📬 Se le ha enviado un correo de confirmación. Si no lo ve, revise su carpeta de <strong>Spam / Correo no deseado</strong>.',
-  // ✅ NOUVEAUX TEXTES
-  welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
-  welcomeGreeting: "Bonjour {name},",
-  welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
-  welcomeButton: "Accéder à mon espace",
-  welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
-
-  subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
-  subConfirmGreeting: "Bonjour {name},",
-  subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.",
-  subConfirmButton: "Voir mon tableau de bord",
-  subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.",
-
   },
 
   pt: {
@@ -453,18 +427,5 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
     deletionConfirmText: 'إذا لم تطلب ذلك، سجّل الدخول إلى حسابك فورًا لتأمينه.',
     emailSpamWarning: '📬 مهم: إذا لم ترَ هذا البريد في صندوق الوارد، تحقق من مجلد <strong>البريد العشوائي</strong> — ستجد هناك رابط إلغاء الحذف.',
     emailSpamWarningLogin: '📬 تم إرسال بريد تأكيد إليك. إذا لم تره، تحقق من مجلد <strong>البريد العشوائي</strong>.',
-  // ✅ NOUVEAUX TEXTES
-  welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
-  welcomeGreeting: "Bonjour {name},",
-  welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
-  welcomeButton: "Accéder à mon espace",
-  welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
-
-  subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
-  subConfirmGreeting: "Bonjour {name},",
-  subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.",
-  subConfirmButton: "Voir mon tableau de bord",
-  subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.",
-
   },
 };
