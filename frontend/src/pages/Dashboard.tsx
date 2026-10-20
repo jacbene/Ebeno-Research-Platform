@@ -362,15 +362,15 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
             👋 {t('dashboard.greeting', { name: currentUser?.name?.split(' ')[0] || 'chercheur' })}
           </h1>
           <SubscriptionCard />
-          {currentUser?.role?.toUpperCase() === 'ADMIN' && (
-  <div className="my-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between shadow-sm">
+        {currentUser?.role?.toUpperCase() === 'ADMIN' && (
+  <div className="my-4 p-4 bg-red-50 border border-red-200 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
     <div>
       <h3 className="font-bold text-red-800">Espace Administrateur</h3>
-      <p className="text-sm text-red-600">Gérez les utilisateurs, les abonnements et modérez la plateforme.</p>
+      <p className="text-sm text-red-600 mt-1">Gérez les utilisateurs, les abonnements et modérez la plateforme.</p>
     </div>
     <Link 
       to="/admin" 
-      className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+      className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors text-center whitespace-nowrap w-full md:w-auto"
     >
       Accéder au Panel
     </Link>
