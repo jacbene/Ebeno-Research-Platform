@@ -414,18 +414,16 @@ return (
       {/* ✅ ROUTES PRIVÉES */}
       <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
         
-        {/* 🔥 ROUTE ADMIN (TOTALEMENT ISOLÉE) */}
- <Route path="/admin" element={
-<Route path="usage" element={<AiUsagePage />} /> {/* <-- AJOUTER CECI */}
+ {/* 🔥 ROUTE ADMIN (TOTALEMENT ISOLÉE) */}
+<Route path="/admin" element={
   <AdminGuard>
     <AdminLayout />
   </AdminGuard>
 }>
   <Route index element={<AdminDashboard />} />
-  <Route path="users" element={<UsersPage />} /> {/* <-- AJOUTER CECI */}
-  <Route path="subscriptions" element={<SubscriptionsPage />} /> {/* <-- AJOUTER CECI */}
-  <Route path="usage" element={<AiUsagePage />} /> {/* <-- AJOUTER CECI */}
-
+  <Route path="users" element={<UsersPage />} />
+  <Route path="subscriptions" element={<SubscriptionsPage />} />
+  <Route path="usage" element={<AiUsagePage />} />
 </Route>
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
