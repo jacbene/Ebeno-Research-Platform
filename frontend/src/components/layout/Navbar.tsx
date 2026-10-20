@@ -264,12 +264,22 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                       {user?.email}
                     </div>
                   </div>
-                  <Link
-                    to="/settings"
-                    style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
-                  >
-                    ⚙️ {t('nav.settings')}
-                  </Link>
+                  {/* ✅ AJOUTER CE BLOC */}
+{user?.role?.toUpperCase() === 'ADMIN' && (
+  <Link
+    to="/admin"
+    style={{ ...dropdownItemStyle(false), textDecoration: 'none', color: '#ef4444', fontWeight: 'bold' }}
+  >
+    🛡️ Panel Admin
+  </Link>
+)}
+
+<Link
+  to="/settings"
+  style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
+>
+  ⚙️ {t('nav.settings')}
+</Link>
                   <button
                     onClick={onLogout}
                     style={{
@@ -396,14 +406,26 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     {user?.email}
                   </div>
                 </div>
-                <Link
-                  to="/settings"
-                  style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  ⚙️ {t('nav.settings')}
-                </Link>
+              {/* ✅ AJOUTER CE BLOC */}
+{user?.role?.toUpperCase() === 'ADMIN' && (
+  <Link
+    to="/admin"
+    style={{ ...dropdownItemStyle(false), textDecoration: 'none', color: '#ef4444', fontWeight: 'bold' }}
+    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
+    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+  >
+    🛡️ Panel Admin
+  </Link>
+)}
+
+<Link
+  to="/settings"
+  style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
+  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.gray[100])}
+  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+>
+  ⚙️ {t('nav.settings')}
+</Link>
                 <button
                   onClick={onLogout}
                   style={{
