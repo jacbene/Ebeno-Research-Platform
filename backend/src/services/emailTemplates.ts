@@ -162,6 +162,19 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
   },
 
   en: {
+
+    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
+    welcomeGreeting: 'Bonjour {name},',
+    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
+    welcomeButton: 'Accéder à mon espace',
+    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
+
+    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
+    subConfirmGreeting: 'Bonjour {name},',
+    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
+    subConfirmButton: 'Voir mon tableau de bord',
+    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
+
     tagline: 'Collaborative research platform',
     footerNote: 'This email was sent automatically by Ebeno Research Platform.',
     managePreferences: 'Manage my email preferences',
@@ -229,6 +242,19 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
   },
 
   es: {
+
+    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
+    welcomeGreeting: 'Bonjour {name},',
+    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
+    welcomeButton: 'Accéder à mon espace',
+    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
+
+    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
+    subConfirmGreeting: 'Bonjour {name},',
+    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
+    subConfirmButton: 'Voir mon tableau de bord',
+    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
+
     tagline: 'Plataforma de investigación colaborativa',
     footerNote: 'Este correo fue enviado automáticamente por Ebeno Research Platform.',
     managePreferences: 'Gestionar mis preferencias de correo',
@@ -296,6 +322,19 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
   },
 
   pt: {
+
+    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
+    welcomeGreeting: 'Bonjour {name},',
+    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
+    welcomeButton: 'Accéder à mon espace',
+    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
+
+    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
+    subConfirmGreeting: 'Bonjour {name},',
+    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
+    subConfirmButton: 'Voir mon tableau de bord',
+    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
+
     tagline: 'Plataforma de investigação colaborativa',
     footerNote: 'Este email foi enviado automaticamente por Ebeno Research Platform.',
     managePreferences: 'Gerir as minhas preferências de email',
@@ -350,6 +389,19 @@ subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez g�
   },
 
   ar: {
+
+    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
+    welcomeGreeting: 'Bonjour {name},',
+    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
+    welcomeButton: 'Accéder à mon espace',
+    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
+
+    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
+    subConfirmGreeting: 'Bonjour {name},',
+    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
+    subConfirmButton: 'Voir mon tableau de bord',
+    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
+
     tagline: 'منصة البحث التعاوني',
     footerNote: 'تم إرسال هذا البريد تلقائيًا من Ebeno Research Platform.',
     managePreferences: 'إدارة تفضيلات البريد الإلكتروني',
