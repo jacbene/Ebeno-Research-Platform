@@ -168,12 +168,13 @@ export const deleteConversation = async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 // 5. POST /api/chat/conversations/:id/messages
 // ═══════════════════════════════════════════════════════════
+
 export const postMessage = async (req: Request, res: Response) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
-    // ✅ VÉRIFICATION DU QUOTA ICI
+    // ✅ VÉRIFICATION DU QUOTA IA
     const quotaCheck = await checkAndIncrementAiQuota(userId);
     if (!quotaCheck.allowed) {
       return res.status(403).json({ 
@@ -183,13 +184,6 @@ export const postMessage = async (req: Request, res: Response) => {
         used: quotaCheck.used
       });
     }
-
-    const { id } = req.params;
-    const { content } = req.body || {};
-    // ... la suite de ton code ...
-  try {
-    const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
     const { id } = req.params;
     const { content } = req.body || {};
