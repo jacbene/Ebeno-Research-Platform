@@ -1,62 +1,34 @@
 // backend/src/services/emailTemplates.ts
-// ✅ Toutes les chaînes traduites pour les emails Ebeno Research Platform
-
 export type Lang = 'fr' | 'en' | 'es' | 'pt' | 'ar';
 
-export const SUPPORTED_LANGS: Lang[] = ['fr', 'en', 'es', 'pt', 'ar'];
-
-/** Normalise "fr-FR" → "fr", "xx" → "fr" */
-export const normalizeLang = (l?: string): Lang => {
-  const code = (l || 'fr').split('-')[0].toLowerCase();
-  return (SUPPORTED_LANGS.includes(code as Lang) ? code : 'fr') as Lang;
-};
-
-/** Remplace {var} dans un template */
-export const interpolate = (
-  template: string,
-  vars: Record<string, string | number>
-): string =>
-  template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
-
 export interface EmailStrings {
-  // Commun
   tagline: string;
   footerNote: string;
   managePreferences: string;
-
-  // Vérification email
   verificationSubject: string;
   verificationHeading: string;
   verificationGreeting: string;
   verificationIntro: string;
   verificationButton: string;
   verificationValidFor: string;
-
-  // Reset password
   resetSubject: string;
   resetHeading: string;
   resetGreeting: string;
   resetIntro: string;
   resetButton: string;
   resetWarning: string;
-
-  // Membre ajouté à un projet
   memberAddedSubject: string;
   memberAddedHeading: string;
   memberAddedGreeting: string;
   memberAddedIntro: string;
   memberAddedButton: string;
   memberAddedNote: string;
-
-  // Transcription terminée
   transcriptionSubject: string;
   transcriptionHeading: string;
   transcriptionGreeting: string;
   transcriptionIntro: string;
   transcriptionButton: string;
   transcriptionNote: string;
-
-  // Résumé IA prêt
   summarySubject: string;
   summaryHeading: string;
   summaryGreeting: string;
@@ -64,8 +36,6 @@ export interface EmailStrings {
   summaryExcerptTitle: string;
   summaryButton: string;
   summaryNote: string;
-
-  // ✅ NOUVEAU : Suppression de compte
   deletionSubject: string;
   deletionHeading: string;
   deletionGreeting: string;
@@ -74,358 +44,318 @@ export interface EmailStrings {
   deletionWarning: string;
   deletionCancelButton: string;
   deletionConfirmText: string;
- 
-   // ✅ NOUVELLES CLÉS
+  emailSpamWarning: string;
+  emailSpamWarningLogin: string;
+  
+  // ✅ Nouvelles clés
   welcomeSubject: string;
   welcomeGreeting: string;
   welcomeIntro: string;
   welcomeButton: string;
   welcomeNote: string;
-
   subConfirmSubject: string;
   subConfirmGreeting: string;
   subConfirmIntro: string;
   subConfirmButton: string;
   subConfirmNote: string;
- 
-  // Anti-spam
-  emailSpamWarning: string;
-  emailSpamWarningLogin: string;
 }
 
 export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
   fr: {
     tagline: 'Plateforme de recherche collaborative',
-    footerNote: 'Cet email a été envoyé automatiquement par Ebeno Research Platform.',
-    managePreferences: 'Gérer mes préférences d\'emails',
-
-    verificationSubject: '✉️ Vérifiez votre email — Ebeno Research Platform',
-    verificationHeading: 'Vérification email',
-    verificationGreeting: 'Bienvenue {name} ! 👋',
-    verificationIntro: 'Merci de vous être inscrit sur Ebeno Research Platform. Pour activer votre compte, confirmez votre adresse email :',
-    verificationButton: '✉️ Vérifier mon email',
-    verificationValidFor: '⏱️ Ce lien est valable 24 heures.',
-
-    resetSubject: '🔑 Réinitialisation de mot de passe — Ebeno Research Platform',
-    resetHeading: 'Réinitialisation de mot de passe',
+    footerNote: 'Cet e-mail a été envoyé automatiquement, merci de ne pas y répondre.',
+    managePreferences: 'Gérer mes préférences',
+    verificationSubject: 'Activez votre compte Ebeno Research Platform',
+    verificationHeading: 'Bienvenue sur Ebeno !',
+    verificationGreeting: 'Bonjour {name},',
+    verificationIntro: 'Merci de vous être inscrit sur Ebeno Research Platform. Pour activer votre compte et commencer vos recherches, veuillez cliquer sur le bouton ci-dessous.',
+    verificationButton: 'Activer mon compte',
+    verificationValidFor: 'Ce lien est valide pendant 24 heures.',
+    resetSubject: 'Réinitialisation de votre mot de passe',
+    resetHeading: 'Réinitialisation du mot de passe',
     resetGreeting: 'Bonjour {name},',
-    resetIntro: 'Cliquez ci-dessous pour réinitialiser votre mot de passe :',
-    resetButton: '🔑 Réinitialiser mon mot de passe',
-    resetWarning: '⚠️ Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.',
-
-    memberAddedSubject: '👥 Nouveau projet : {project}',
+    resetIntro: 'Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.',
+    resetButton: 'Réinitialiser mon mot de passe',
+    resetWarning: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+    memberAddedSubject: 'Vous avez été ajouté au projet "{project}"',
     memberAddedHeading: 'Nouveau projet',
     memberAddedGreeting: 'Bonjour {name},',
-    memberAddedIntro: '{owner} vous a ajouté au projet « {project} » sur Ebeno Research Platform.',
-    memberAddedButton: '📂 Ouvrir le projet',
-    memberAddedNote: 'Vous pouvez maintenant collaborer sur les documents, memos et transcriptions de ce projet.',
-
-    transcriptionSubject: '🎙️ Transcription terminée : {title}',
+    memberAddedIntro: '{owner} vous a ajouté au projet "{project}" sur Ebeno Research Platform.',
+    memberAddedButton: 'Accéder au projet',
+    memberAddedNote: "Vous recevez cet e-mail car vous êtes membre de ce projet.",
+    transcriptionSubject: 'Votre transcription "{title}" est prête',
     transcriptionHeading: 'Transcription terminée',
     transcriptionGreeting: 'Bonjour {name},',
-    transcriptionIntro: 'Votre transcription « {title} » est prête.',
-    transcriptionButton: '📄 Voir la transcription',
-    transcriptionNote: 'Consultez le texte intégral et lancez une analyse IA si besoin.',
-
-    summarySubject: '📝 Résumé IA prêt : {title}',
-    summaryHeading: 'Résumé IA prêt',
+    transcriptionIntro: 'La transcription de votre fichier "{title}" est maintenant prête à être consultée.',
+    transcriptionButton: 'Voir la transcription',
+    transcriptionNote: 'Vous pouvez désactiver ces notifications depuis vos paramètres.',
+    summarySubject: 'Votre résumé "{title}" est prêt',
+    summaryHeading: 'Résumé disponible',
     summaryGreeting: 'Bonjour {name},',
-    summaryIntro: 'Le résumé IA de « {title} » est prêt.',
-    summaryExcerptTitle: 'Extrait :',
-    summaryButton: '📝 Lire le résumé complet',
-    summaryNote: 'Le résumé complet est disponible dans votre projet.',
-
-    // Suppression de compte
-    deletionSubject: '⚠️ Suppression de votre compte — Ebeno Research Platform',
-    deletionHeading: 'Suppression de compte planifiée',
+    summaryIntro: 'Le résumé IA de votre document "{title}" a été généré avec succès.',
+    summaryExcerptTitle: 'Aperçu du résumé :',
+    summaryButton: 'Lire le résumé complet',
+    summaryNote: 'Vous pouvez désactiver ces notifications depuis vos paramètres.',
+    deletionSubject: 'Suppression de votre compte Ebeno',
+    deletionHeading: 'Suppression programmée',
     deletionGreeting: 'Bonjour {name},',
-    deletionIntro: 'Votre demande de suppression de compte a bien été enregistrée sur Ebeno Research Platform.',
-    deletionDateLine: '🗓️ Votre compte sera définitivement supprimé le <strong>{date}</strong> (délai de grâce de 30 jours).',
-    deletionWarning: '⚠️ Après cette date, toutes vos données (projets, documents, transcriptions, memos) seront supprimées définitivement et ne pourront pas être récupérées.',
-    deletionCancelButton: '↩️ Annuler la suppression',
-    deletionConfirmText: 'Si vous n\'êtes pas à l\'origine de cette demande, connectez-vous immédiatement à votre compte pour le sécuriser.',
-    emailSpamWarning: '📬 Important : si vous ne voyez pas cet email dans votre boîte de réception, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong> — vous y trouverez le lien pour annuler la suppression.',
-    emailSpamWarningLogin: '📬 Un email de confirmation vous a été envoyé. Si vous ne le voyez pas, vérifiez votre dossier <strong>Spam / Courrier indésirable</strong>.',
-
-    // Ajoute ceci dans l'objet EMAIL_STRINGS.fr
-welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
-welcomeGreeting: "Bonjour {name},",
-welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
-welcomeButton: "Accéder à mon espace",
-welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
-
-subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
-subConfirmGreeting: "Bonjour {name},",
-subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.",
-subConfirmButton: "Voir mon tableau de bord",
-subConfirmNote: "Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.",
+    deletionIntro: 'Votre demande de suppression de compte a bien été prise en compte.',
+    deletionDateLine: 'Votre compte sera définitivement supprimé le {date}.',
+    deletionWarning: 'Si vous changez d\'avis, vous pouvez annuler cette suppression jusqu\'à cette date.',
+    deletionCancelButton: 'Annuler la suppression',
+    deletionConfirmText: 'Si vous ne souhaitez pas supprimer votre compte, cliquez sur le bouton ci-dessus.',
+    emailSpamWarning: 'Pensez à vérifier vos spams si vous ne trouvez pas cet e-mail.',
+    emailSpamWarningLogin: 'Pensez à vérifier vos spams.',
+    
+    // ✅ Nouvelles clés
+    welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
+    welcomeGreeting: "Bonjour {name},",
+    welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
+    welcomeButton: "Accéder à mon espace",
+    welcomeNote: "Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.",
+    subConfirmSubject: "Votre abonnement Ebeno Pro est actif ! 🚀",
+    subConfirmGreeting: "Bonjour {name},",
+    subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif.",
+    subConfirmButton: "Voir mon tableau de bord",
+    subConfirmNote: "Votre prochaine facturation aura lieu le {date}.",
   },
-
   en: {
-
-    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
-    welcomeGreeting: 'Bonjour {name},',
-    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
-    welcomeButton: 'Accéder à mon espace',
-    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
-
-    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
-    subConfirmGreeting: 'Bonjour {name},',
-    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
-    subConfirmButton: 'Voir mon tableau de bord',
-    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
-
     tagline: 'Collaborative research platform',
-    footerNote: 'This email was sent automatically by Ebeno Research Platform.',
-    managePreferences: 'Manage my email preferences',
-
-    verificationSubject: '✉️ Verify your email — Ebeno Research Platform',
-    verificationHeading: 'Email verification',
-    verificationGreeting: 'Welcome {name}! 👋',
-    verificationIntro: 'Thanks for signing up to Ebeno Research Platform. To activate your account, confirm your email address:',
-    verificationButton: '✉️ Verify my email',
-    verificationValidFor: '⏱️ This link is valid for 24 hours.',
-
-    resetSubject: '🔑 Password reset — Ebeno Research Platform',
-    resetHeading: 'Password reset',
+    footerNote: 'This email was sent automatically, please do not reply.',
+    managePreferences: 'Manage preferences',
+    verificationSubject: 'Activate your Ebeno Research Platform account',
+    verificationHeading: 'Welcome to Ebeno!',
+    verificationGreeting: 'Hello {name},',
+    verificationIntro: 'Thank you for signing up for Ebeno Research Platform. To activate your account, please click the button below.',
+    verificationButton: 'Activate my account',
+    verificationValidFor: 'This link is valid for 24 hours.',
+    resetSubject: 'Password reset',
+    resetHeading: 'Reset your password',
     resetGreeting: 'Hello {name},',
-    resetIntro: 'Click below to reset your password:',
-    resetButton: '🔑 Reset my password',
-    resetWarning: '⚠️ If you did not request this, please ignore this message.',
-
-    memberAddedSubject: '👥 New project: {project}',
+    resetIntro: 'You requested a password reset. Click the button below to choose a new password.',
+    resetButton: 'Reset my password',
+    resetWarning: 'If you did not request this, please ignore this email.',
+    memberAddedSubject: 'You were added to project "{project}"',
     memberAddedHeading: 'New project',
     memberAddedGreeting: 'Hello {name},',
     memberAddedIntro: '{owner} added you to the project "{project}" on Ebeno Research Platform.',
-    memberAddedButton: '📂 Open project',
-    memberAddedNote: 'You can now collaborate on documents, memos, and transcriptions in this project.',
-
-    transcriptionSubject: '🎙️ Transcription complete: {title}',
+    memberAddedButton: 'Access project',
+    memberAddedNote: 'You receive this email because you are a member of this project.',
+    transcriptionSubject: 'Your transcription "{title}" is ready',
     transcriptionHeading: 'Transcription complete',
     transcriptionGreeting: 'Hello {name},',
-    transcriptionIntro: 'Your transcription "{title}" is ready.',
-    transcriptionButton: '📄 View transcription',
-    transcriptionNote: 'Read the full text and launch an AI analysis if needed.',
-
-    summarySubject: '📝 AI summary ready: {title}',
-    summaryHeading: 'AI summary ready',
+    transcriptionIntro: 'The transcription of your file "{title}" is ready to view.',
+    transcriptionButton: 'View transcription',
+    transcriptionNote: 'You can disable these notifications in your settings.',
+    summarySubject: 'Your summary "{title}" is ready',
+    summaryHeading: 'Summary available',
     summaryGreeting: 'Hello {name},',
-    summaryIntro: 'The AI summary for "{title}" is ready.',
-    summaryExcerptTitle: 'Excerpt:',
-    summaryButton: '📝 Read full summary',
-    summaryNote: 'The full summary is available in your project.',
-
-    // Account deletion
-    deletionSubject: '⚠️ Account deletion — Ebeno Research Platform',
-    deletionHeading: 'Account deletion scheduled',
+    summaryIntro: 'The AI summary of your document "{title}" was successfully generated.',
+    summaryExcerptTitle: 'Summary excerpt:',
+    summaryButton: 'Read full summary',
+    summaryNote: 'You can disable these notifications in your settings.',
+    deletionSubject: 'Ebeno account deletion',
+    deletionHeading: 'Deletion scheduled',
     deletionGreeting: 'Hello {name},',
-    deletionIntro: 'Your account deletion request on Ebeno Research Platform has been recorded.',
-    deletionDateLine: '🗓️ Your account will be permanently deleted on <strong>{date}</strong> (30-day grace period).',
-    deletionWarning: '⚠️ After this date, all your data (projects, documents, transcriptions, memos) will be permanently deleted and cannot be recovered.',
-    deletionCancelButton: '↩️ Cancel deletion',
-    deletionConfirmText: 'If you did not request this, log in to your account immediately to secure it.',
-    emailSpamWarning: '📬 Important: if you don\'t see this email in your inbox, check your <strong>Spam / Junk folder</strong> — you\'ll find the cancellation link there.',
-    emailSpamWarningLogin: '📬 A confirmation email has been sent to you. If you don\'t see it, check your <strong>Spam / Junk folder</strong>.',
- },
-
+    deletionIntro: 'Your account deletion request has been received.',
+    deletionDateLine: 'Your account will be permanently deleted on {date}.',
+    deletionWarning: 'If you change your mind, you can cancel this deletion until then.',
+    deletionCancelButton: 'Cancel deletion',
+    deletionConfirmText: 'If you do not want to delete your account, click the button above.',
+    emailSpamWarning: 'Please check your spam folder if you cannot find this email.',
+    emailSpamWarningLogin: 'Please check your spam folder.',
+    welcomeSubject: "Welcome to Ebeno Research Platform 🎓",
+    welcomeGreeting: "Hello {name},",
+    welcomeIntro: "We are delighted to welcome you to Ebeno Research Platform, your new AI-augmented collaborative research space.",
+    welcomeButton: "Access my space",
+    welcomeNote: "If you have any questions, feel free to reply to this email.",
+    subConfirmSubject: "Your Ebeno Pro subscription is active! 🚀",
+    subConfirmGreeting: "Hello {name},",
+    subConfirmIntro: "Thank you for your trust. Your subscription to the {plan} plan is now active.",
+    subConfirmButton: "View my dashboard",
+    subConfirmNote: "Your next billing will occur on {date}.",
+  },
   es: {
-
-    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
-    welcomeGreeting: 'Bonjour {name},',
-    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
-    welcomeButton: 'Accéder à mon espace',
-    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
-
-    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
-    subConfirmGreeting: 'Bonjour {name},',
-    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
-    subConfirmButton: 'Voir mon tableau de bord',
-    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
-
     tagline: 'Plataforma de investigación colaborativa',
-    footerNote: 'Este correo fue enviado automáticamente por Ebeno Research Platform.',
-    managePreferences: 'Gestionar mis preferencias de correo',
-
-    verificationSubject: '✉️ Verifique su email — Ebeno Research Platform',
-    verificationHeading: 'Verificación de email',
-    verificationGreeting: '¡Bienvenido {name}! 👋',
-    verificationIntro: 'Gracias por registrarse en Ebeno Research Platform. Para activar su cuenta, confirme su dirección de email:',
-    verificationButton: '✉️ Verificar mi email',
-    verificationValidFor: '⏱️ Este enlace es válido durante 24 horas.',
-
-    resetSubject: '🔑 Restablecimiento de contraseña — Ebeno Research Platform',
-    resetHeading: 'Restablecimiento de contraseña',
+    footerNote: 'Este correo fue enviado automáticamente, por favor no responda.',
+    managePreferences: 'Gestionar preferencias',
+    verificationSubject: 'Active su cuenta de Ebeno Research Platform',
+    verificationHeading: '¡Bienvenido a Ebeno!',
+    verificationGreeting: 'Hola {name},',
+    verificationIntro: 'Gracias por registrarse en Ebeno Research Platform. Para activar su cuenta, haga clic en el botón de abajo.',
+    verificationButton: 'Activar mi cuenta',
+    verificationValidFor: 'Este enlace es válido por 24 horas.',
+    resetSubject: 'Restablecimiento de contraseña',
+    resetHeading: 'Restablecer su contraseña',
     resetGreeting: 'Hola {name},',
-    resetIntro: 'Haga clic a continuación para restablecer su contraseña:',
-    resetButton: '🔑 Restablecer mi contraseña',
-    resetWarning: '⚠️ Si no solicitó esto, ignore este mensaje.',
-
-    memberAddedSubject: '👥 Nuevo proyecto: {project}',
+    resetIntro: 'Ha solicitado restablecer su contraseña. Haga clic en el botón de abajo para elegir una nueva.',
+    resetButton: 'Restablecer contraseña',
+    resetWarning: 'Si no solicitó esto, ignore este correo.',
+    memberAddedSubject: 'Ha sido añadido al proyecto "{project}"',
     memberAddedHeading: 'Nuevo proyecto',
     memberAddedGreeting: 'Hola {name},',
-    memberAddedIntro: '{owner} le ha añadido al proyecto «{project}» en Ebeno Research Platform.',
-    memberAddedButton: '📂 Abrir el proyecto',
-    memberAddedNote: 'Ahora puede colaborar en los documentos, memos y transcripciones de este proyecto.',
-
-    transcriptionSubject: '🎙️ Transcripción completada: {title}',
-    transcriptionHeading: 'Transcripción completada',
+    memberAddedIntro: '{owner} le añadió al proyecto "{project}" en Ebeno Research Platform.',
+    memberAddedButton: 'Acceder al proyecto',
+    memberAddedNote: 'Recibe este correo porque es miembro de este proyecto.',
+    transcriptionSubject: 'Su transcripción "{title}" está lista',
+    transcriptionHeading: 'Transcripción completa',
     transcriptionGreeting: 'Hola {name},',
-    transcriptionIntro: 'Su transcripción «{title}» está lista.',
-    transcriptionButton: '📄 Ver la transcripción',
-    transcriptionNote: 'Consulte el texto completo y lance un análisis de IA si es necesario.',
-
-    summarySubject: '📝 Resumen IA listo: {title}',
-    summaryHeading: 'Resumen IA listo',
+    transcriptionIntro: 'La transcripción de su archivo "{title}" está lista para ver.',
+    transcriptionButton: 'Ver transcripción',
+    transcriptionNote: 'Puede desactivar estas notificaciones en su configuración.',
+    summarySubject: 'Su resumen "{title}" está listo',
+    summaryHeading: 'Resumen disponible',
     summaryGreeting: 'Hola {name},',
-    summaryIntro: 'El resumen IA de «{title}» está listo.',
-    summaryExcerptTitle: 'Extracto:',
-    summaryButton: '📝 Leer el resumen completo',
-    summaryNote: 'El resumen completo está disponible en su proyecto.',
-
-    // Eliminación de cuenta
-    deletionSubject: '⚠️ Eliminación de cuenta — Ebeno Research Platform',
-    deletionHeading: 'Eliminación de cuenta programada',
+    summaryIntro: 'El resumen de IA de su documento "{title}" fue generado con éxito.',
+    summaryExcerptTitle: 'Extracto del resumen:',
+    summaryButton: 'Leer resumen completo',
+    summaryNote: 'Puede desactivar estas notificaciones en su configuración.',
+    deletionSubject: 'Eliminación de cuenta Ebeno',
+    deletionHeading: 'Eliminación programada',
     deletionGreeting: 'Hola {name},',
-    deletionIntro: 'Su solicitud de eliminación de cuenta en Ebeno Research Platform ha sido registrada.',
-    deletionDateLine: '🗓️ Su cuenta será eliminada permanentemente el <strong>{date}</strong> (período de gracia de 30 días).',
-    deletionWarning: '⚠️ Después de esta fecha, todos sus datos (proyectos, documentos, transcripciones, memos) serán eliminados permanentemente y no podrán recuperarse.',
-    deletionCancelButton: '↩️ Cancelar eliminación',
-    deletionConfirmText: 'Si no solicitó esto, inicie sesión inmediatamente en su cuenta para protegerla.',
-    emailSpamWarning: '📬 Importante: si no ve este correo en su bandeja de entrada, revise su carpeta de <strong>Spam / Correo no deseado</strong> — allí encontrará el enlace para cancelar la eliminación.',
-    emailSpamWarningLogin: '📬 Se le ha enviado un correo de confirmación. Si no lo ve, revise su carpeta de <strong>Spam / Correo no deseado</strong>.',
+    deletionIntro: 'Su solicitud de eliminación de cuenta ha sido recibida.',
+    deletionDateLine: 'Su cuenta será eliminada permanentemente el {date}.',
+    deletionWarning: 'Si cambia de opinión, puede cancelar esto hasta entonces.',
+    deletionCancelButton: 'Cancelar eliminación',
+    deletionConfirmText: 'Si no desea eliminar su cuenta, haga clic en el botón de arriba.',
+    emailSpamWarning: 'Revise su carpeta de spam si no encuentra este correo.',
+    emailSpamWarningLogin: 'Revise su carpeta de spam.',
+    welcomeSubject: "¡Bienvenido a Ebeno Research Platform! 🎓",
+    welcomeGreeting: "Hola {name},",
+    welcomeIntro: "Estamos encantados de darte la bienvenida a Ebeno Research Platform, tu nuevo espacio de investigación colaborativa aumentado por IA.",
+    welcomeButton: "Acceder a mi espacio",
+    welcomeNote: "Si tienes alguna pregunta, no dudes en responder a este correo.",
+    subConfirmSubject: "¡Tu suscripción a Ebeno Pro está activa! 🚀",
+    subConfirmGreeting: "Hola {name},",
+    subConfirmIntro: "Gracias por tu confianza. Tu suscripción al plan {plan} ahora está activa.",
+    subConfirmButton: "Ver mi panel",
+    subConfirmNote: "Tu próxima facturación será el {date}.",
   },
-
   pt: {
-
-    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
-    welcomeGreeting: 'Bonjour {name},',
-    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
-    welcomeButton: 'Accéder à mon espace',
-    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
-
-    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
-    subConfirmGreeting: 'Bonjour {name},',
-    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
-    subConfirmButton: 'Voir mon tableau de bord',
-    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
-
-    tagline: 'Plataforma de investigação colaborativa',
-    footerNote: 'Este email foi enviado automaticamente por Ebeno Research Platform.',
-    managePreferences: 'Gerir as minhas preferências de email',
-
-    verificationSubject: '✉️ Verifique o seu email — Ebeno Research Platform',
-    verificationHeading: 'Verificação de email',
-    verificationGreeting: 'Bem-vindo {name}! 👋',
-    verificationIntro: 'Obrigado por se registar na Ebeno Research Platform. Para ativar a sua conta, confirme o seu endereço de email:',
-    verificationButton: '✉️ Verificar o meu email',
-    verificationValidFor: '⏱️ Este link é válido durante 24 horas.',
-
-    resetSubject: '🔑 Redefinição de palavra-passe — Ebeno Research Platform',
-    resetHeading: 'Redefinição de palavra-passe',
+    tagline: 'Plataforma de pesquisa colaborativa',
+    footerNote: 'Este e-mail foi enviado automaticamente, por favor não responda.',
+    managePreferences: 'Gerenciar preferências',
+    verificationSubject: 'Ative sua conta Ebeno Research Platform',
+    verificationHeading: 'Bem-vindo ao Ebeno!',
+    verificationGreeting: 'Olá {name},',
+    verificationIntro: 'Obrigado por se inscrever no Ebeno Research Platform. Para ativar sua conta, clique no botão abaixo.',
+    verificationButton: 'Ativar minha conta',
+    verificationValidFor: 'Este link é válido por 24 horas.',
+    resetSubject: 'Redefinição de senha',
+    resetHeading: 'Redefinir sua senha',
     resetGreeting: 'Olá {name},',
-    resetIntro: 'Clique abaixo para redefinir a sua palavra-passe:',
-    resetButton: '🔑 Redefinir a minha palavra-passe',
-    resetWarning: '⚠️ Se não solicitou isto, ignore esta mensagem.',
-
-    memberAddedSubject: '👥 Novo projeto: {project}',
+    resetIntro: 'Você solicitou uma redefinição de senha. Clique no botão abaixo para escolher uma nova.',
+    resetButton: 'Redefinir senha',
+    resetWarning: 'Se você não solicitou isso, ignore este e-mail.',
+    memberAddedSubject: 'Você foi adicionado ao projeto "{project}"',
     memberAddedHeading: 'Novo projeto',
     memberAddedGreeting: 'Olá {name},',
-    memberAddedIntro: '{owner} adicionou-o ao projeto «{project}» na Ebeno Research Platform.',
-    memberAddedButton: '📂 Abrir o projeto',
-    memberAddedNote: 'Agora pode colaborar nos documentos, memos e transcrições deste projeto.',
-
-    transcriptionSubject: '🎙️ Transcrição concluída: {title}',
+    memberAddedIntro: '{owner} adicionou você ao projeto "{project}" no Ebeno Research Platform.',
+    memberAddedButton: 'Acessar projeto',
+    memberAddedNote: 'Você recebe este e-mail porque é membro deste projeto.',
+    transcriptionSubject: 'Sua transcrição "{title}" está pronta',
     transcriptionHeading: 'Transcrição concluída',
     transcriptionGreeting: 'Olá {name},',
-    transcriptionIntro: 'A sua transcrição «{title}» está pronta.',
-    transcriptionButton: '📄 Ver a transcrição',
-    transcriptionNote: 'Consulte o texto completo e lance uma análise de IA se necessário.',
-
-    summarySubject: '📝 Resumo IA pronto: {title}',
-    summaryHeading: 'Resumo IA pronto',
+    transcriptionIntro: 'A transcrição do seu arquivo "{title}" está pronta para visualização.',
+    transcriptionButton: 'Ver transcrição',
+    transcriptionNote: 'Você pode desativar essas notificações nas suas configurações.',
+    summarySubject: 'Seu resumo "{title}" está pronto',
+    summaryHeading: 'Resumo disponível',
     summaryGreeting: 'Olá {name},',
-    summaryIntro: 'O resumo IA de «{title}» está pronto.',
-    summaryExcerptTitle: 'Excerto:',
-    summaryButton: '📝 Ler o resumo completo',
-    summaryNote: 'O resumo completo está disponível no seu projeto.',
-
-    // Eliminação de conta
-    deletionSubject: '⚠️ Eliminação de conta — Ebeno Research Platform',
-    deletionHeading: 'Eliminação de conta agendada',
+    summaryIntro: 'O resumo de IA do seu documento "{title}" foi gerado com sucesso.',
+    summaryExcerptTitle: 'Trecho do resumo:',
+    summaryButton: 'Ler resumo completo',
+    summaryNote: 'Você pode desativar essas notificações nas suas configurações.',
+    deletionSubject: 'Exclusão de conta Ebeno',
+    deletionHeading: 'Exclusão agendada',
     deletionGreeting: 'Olá {name},',
-    deletionIntro: 'O seu pedido de eliminação de conta na Ebeno Research Platform foi registado.',
-    deletionDateLine: '🗓️ A sua conta será eliminada permanentemente em <strong>{date}</strong> (período de graça de 30 dias).',
-    deletionWarning: '⚠️ Após esta data, todos os seus dados (projetos, documentos, transcrições, memos) serão eliminados permanentemente e não poderão ser recuperados.',
-    deletionCancelButton: '↩️ Cancelar eliminação',
-    deletionConfirmText: 'Se não solicitou isto, inicie sessão imediatamente na sua conta para a proteger.',
-    emailSpamWarning: '📬 Importante: se não vir este email na sua caixa de entrada, verifique a pasta de <strong>Spam / Lixo eletrónico</strong> — encontrará lá o link para cancelar a eliminação.',
-    emailSpamWarningLogin: '📬 Foi-lhe enviado um email de confirmação. Se não o vir, verifique a pasta de <strong>Spam / Lixo eletrónico</strong>.',
+    deletionIntro: 'Sua solicitação de exclusão de conta foi recebida.',
+    deletionDateLine: 'Sua conta será permanentemente excluída em {date}.',
+    deletionWarning: 'Se você mudar de ideia, pode cancelar isso até lá.',
+    deletionCancelButton: 'Cancelar exclusão',
+    deletionConfirmText: 'Se você não deseja excluir sua conta, clique no botão acima.',
+    emailSpamWarning: 'Verifique sua pasta de spam se não encontrar este e-mail.',
+    emailSpamWarningLogin: 'Verifique sua pasta de spam.',
+    welcomeSubject: "Bem-vindo ao Ebeno Research Platform 🎓",
+    welcomeGreeting: "Olá {name},",
+    welcomeIntro: "Temos o prazer de recebê-lo no Ebeno Research Platform, seu novo espaço de pesquisa colaborativa aumentado por IA.",
+    welcomeButton: "Acessar meu espaço",
+    welcomeNote: "Se você tiver alguma dúvida, sinta-se à vontade para responder a este e-mail.",
+    subConfirmSubject: "Sua assinatura Ebeno Pro está ativa! 🚀",
+    subConfirmGreeting: "Olá {name},",
+    subConfirmIntro: "Obrigado pela sua confiança. Sua assinatura do plano {plan} agora está ativa.",
+    subConfirmButton: "Ver meu painel",
+    subConfirmNote: "Sua próxima cobrança será em {date}.",
   },
-
   ar: {
-
-    welcomeSubject: 'Bienvenue sur Ebeno Research Platform 🎓',
-    welcomeGreeting: 'Bonjour {name},',
-    welcomeIntro: 'Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.',
-    welcomeButton: 'Accéder à mon espace',
-    welcomeNote: 'Si vous avez des questions, n'hésitez pas à répondre à cet e-mail.',
-
-    subConfirmSubject: 'Votre abonnement Ebeno Pro est actif ! 🚀',
-    subConfirmGreeting: 'Bonjour {name},',
-    subConfirmIntro: 'Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif. Vous pouvez désormais profiter de nos fonctionnalités avancées.',
-    subConfirmButton: 'Voir mon tableau de bord',
-    subConfirmNote: 'Votre prochaine facturation aura lieu le {date}. Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres.',
-
     tagline: 'منصة البحث التعاوني',
-    footerNote: 'تم إرسال هذا البريد تلقائيًا من Ebeno Research Platform.',
-    managePreferences: 'إدارة تفضيلات البريد الإلكتروني',
-
-    verificationSubject: '✉️ تحقق من بريدك الإلكتروني — Ebeno Research Platform',
-    verificationHeading: 'التحقق من البريد الإلكتروني',
-    verificationGreeting: '!مرحبًا {name} 👋',
-    verificationIntro: 'شكرًا لتسجيلك في Ebeno Research Platform. لتفعيل حسابك، يرجى تأكيد بريدك الإلكتروني:',
-    verificationButton: '✉️ تأكيد بريدي الإلكتروني',
-    verificationValidFor: '⏱️ هذا الرابط صالح لمدة 24 ساعة.',
-
-    resetSubject: '🔑 إعادة تعيين كلمة المرور — Ebeno Research Platform',
+    footerNote: 'تم إرسال هذا البريد الإلكتروني تلقائيًا، يرجى عدم الرد عليه.',
+    managePreferences: 'إدارة التفضيلات',
+    verificationSubject: 'تنشيط حسابك في Ebeno Research Platform',
+    verificationHeading: 'مرحبًا بك في Ebeno!',
+    verificationGreeting: 'مرحبًا {name}،',
+    verificationIntro: 'شكرًا لتسجيلك في Ebeno Research Platform. لتنشيط حسابك، يرجى النقر على الزر أدناه.',
+    verificationButton: 'تنشيط حسابي',
+    verificationValidFor: 'هذا الرابط صالح لمدة 24 ساعة.',
+    resetSubject: 'إعادة تعيين كلمة المرور',
     resetHeading: 'إعادة تعيين كلمة المرور',
-    resetGreeting: '،{name} مرحبًا',
-    resetIntro: 'انقر أدناه لإعادة تعيين كلمة المرور:',
-    resetButton: '🔑 إعادة تعيين كلمة المرور',
-    resetWarning: '⚠️ إذا لم تطلب هذا، يرجى تجاهل هذه الرسالة.',
-
-    memberAddedSubject: '👥 مشروع جديد: {project}',
+    resetGreeting: 'مرحبًا {name}،',
+    resetIntro: 'لقد طلبت إعادة تعيين كلمة المرور. انقر على الزر أدناه لاختيار كلمة مرور جديدة.',
+    resetButton: 'إعادة تعيين كلمة المرور',
+    resetWarning: 'إذا لم تطلب ذلك، يرجى تجاهل هذا البريد الإلكتروني.',
+    memberAddedSubject: 'تمت إضافتك إلى مشروع "{project}"',
     memberAddedHeading: 'مشروع جديد',
-    memberAddedGreeting: '،{name} مرحبًا',
-    memberAddedIntro: 'أضافك {owner} إلى المشروع «{project}» على Ebeno Research Platform.',
-    memberAddedButton: '📂 فتح المشروع',
-    memberAddedNote: 'يمكنك الآن التعاون في المستندات والمذكرات والنسخ في هذا المشروع.',
-
-    transcriptionSubject: '🎙️ اكتمل النسخ: {title}',
+    memberAddedGreeting: 'مرحبًا {name}،',
+    memberAddedIntro: 'أضافك {owner} إلى مشروع "{project}" على Ebeno Research Platform.',
+    memberAddedButton: 'الوصول إلى المشروع',
+    memberAddedNote: 'تتلقى هذا البريد الإلكتروني لأنك عضو في هذا المشروع.',
+    transcriptionSubject: 'نسخك الصوتي "{title}" جاهز',
     transcriptionHeading: 'اكتمل النسخ',
-    transcriptionGreeting: '،{name} مرحبًا',
-    transcriptionIntro: 'نسختك «{title}» جاهزة.',
-    transcriptionButton: '📄 عرض النسخة',
-    transcriptionNote: 'اطلع على النص الكامل وابدأ تحليل الذكاء الاصطناعي إذا لزم الأمر.',
-
-    summarySubject: '📝 ملخص الذكاء الاصطناعي جاهز: {title}',
-    summaryHeading: 'ملخص الذكاء الاصطناعي جاهز',
-    summaryGreeting: '،{name} مرحبًا',
-    summaryIntro: 'ملخص الذكاء الاصطناعي لـ «{title}» جاهز.',
-    summaryExcerptTitle: ':مقتطف',
-    summaryButton: '📝 قراءة الملخص الكامل',
-    summaryNote: 'الملخص الكامل متاح في مشروعك.',
-
-    // حذف الحساب
-    deletionSubject: '⚠️ حذف الحساب — Ebeno Research Platform',
-    deletionHeading: 'تم جدولة حذف الحساب',
-    deletionGreeting: '،{name} مرحبًا',
-    deletionIntro: 'تم تسجيل طلب حذف حسابك على Ebeno Research Platform.',
-    deletionDateLine: '🗓️ سيتم حذف حسابك نهائيًا في <strong>{date}</strong> (فترة سماح 30 يومًا).',
-    deletionWarning: '⚠️ بعد هذا التاريخ، سيتم حذف جميع بياناتك (المشاريع، المستندات، النسخ، المذكرات) نهائيًا ولا يمكن استعادتها.',
-    deletionCancelButton: '↩️ إلغاء الحذف',
-    deletionConfirmText: 'إذا لم تطلب ذلك، سجّل الدخول إلى حسابك فورًا لتأمينه.',
-    emailSpamWarning: '📬 مهم: إذا لم ترَ هذا البريد في صندوق الوارد، تحقق من مجلد <strong>البريد العشوائي</strong> — ستجد هناك رابط إلغاء الحذف.',
-    emailSpamWarningLogin: '📬 تم إرسال بريد تأكيد إليك. إذا لم تره، تحقق من مجلد <strong>البريد العشوائي</strong>.',
+    transcriptionGreeting: 'مرحبًا {name}،',
+    transcriptionIntro: 'النسخ الصوتي لملفك "{title}" جاهز للعرض.',
+    transcriptionButton: 'عرض النسخ',
+    transcriptionNote: 'يمكنك تعطيل هذه الإشعارات من إعداداتك.',
+    summarySubject: 'ملخصك "{title}" جاهز',
+    summaryHeading: 'الملخص متاح',
+    summaryGreeting: 'مرحبًا {name}،',
+    summaryIntro: 'تم إنشاء ملخص الذكاء الاصطناعي لمستندك "{title}" بنجاح.',
+    summaryExcerptTitle: 'مقتطف من الملخص:',
+    summaryButton: 'قراءة الملخص الكامل',
+    summaryNote: 'يمكنك تعطيل هذه الإشعارات من إعداداتك.',
+    deletionSubject: 'حذف حساب Ebeno',
+    deletionHeading: 'تم جدولة الحذف',
+    deletionGreeting: 'مرحبًا {name}،',
+    deletionIntro: 'تم استلام طلب حذف حسابك.',
+    deletionDateLine: 'سيتم حذف حسابك نهائيًا في {date}.',
+    deletionWarning: 'إذا غيرت رأيك، يمكنك إلغاء هذا حتى ذلك الحين.',
+    deletionCancelButton: 'إلغاء الحذف',
+    deletionConfirmText: 'إذا كنت لا ترغب في حذف حسابك، انقر على الزر أعلاه.',
+    emailSpamWarning: 'يرجى التحقق من مجلد البريد العشوائي إذا لم تجد هذا البريد الإلكتروني.',
+    emailSpamWarningLogin: 'يرجى التحقق من مجلد البريد العشوائي.',
+    welcomeSubject: "مرحبًا بك في Ebeno Research Platform 🎓",
+    welcomeGreeting: "مرحبًا {name}،",
+    welcomeIntro: "يسعدنا الترحيب بك في Ebeno Research Platform، مساحة البحث التعاوني الجديدة المعززة بالذكاء الاصطناعي.",
+    welcomeButton: "الوصول إلى مساحتي",
+    welcomeNote: "إذا كانت لديك أي أسئلة، فلا تتردد في الرد على هذا البريد الإلكتروني.",
+    subConfirmSubject: "اشتراكك في Ebeno Pro نشط الآن! 🚀",
+    subConfirmGreeting: "مرحبًا {name}،",
+    subConfirmIntro: "شكرًا لثقتك. اشتراكك في خطة {plan} نشط الآن.",
+    subConfirmButton: "عرض لوحة التحكم",
+    subConfirmNote: "ستتم فاتورتك التالية في {date}.",
   },
 };
+
+export function normalizeLang(lang?: string): Lang {
+  if (!lang) return 'fr';
+  const l = lang.toLowerCase().slice(0, 2);
+  if (l === 'en' || l === 'es' || l === 'pt' || l === 'ar' || l === 'fr') {
+    return l as Lang;
+  }
+  return 'fr';
+}
+
+export function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    return vars[key] !== undefined ? vars[key] : match;
+  });
+}
