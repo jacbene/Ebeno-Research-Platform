@@ -16,7 +16,8 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        {/* GRILLE DES ABONNEMENTS */}
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 mb-12">
           {/* PLAN FREE */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col">
             <h3 className="text-2xl font-bold text-gray-900">Free</h3>
@@ -89,6 +90,29 @@ export default function PricingPage() {
             </div>
           </div>
         </div>
+
+        {/* ✅ BANNIÈRE PAYG (Paiement unique) */}
+        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl shadow-md border border-orange-200 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">⚡</span>
+              <h3 className="text-xl font-bold text-orange-900">Besoin d'un coup de pouce ?</h3>
+            </div>
+            <p className="text-orange-800 text-sm md:text-base">
+              Vous avez atteint votre quota d'IA ou vous n'avez pas besoin d'un abonnement mensuel ? 
+              Rechargez <strong>1 000 messages IA</strong> à l'unité, valables à vie.
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-3 w-full md:w-auto">
+            <span className="text-3xl font-extrabold text-orange-900">5€</span>
+            <PaddleCheckoutButton
+              priceId={import.meta.env.VITE_PADDLE_PRICE_PAYG}
+              label="Recharger 1000 messages"
+              className="w-full md:w-auto bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-sm whitespace-nowrap"
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   );
