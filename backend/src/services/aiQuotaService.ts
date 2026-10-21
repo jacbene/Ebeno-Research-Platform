@@ -9,22 +9,24 @@ export const checkAndIncrementAiQuota = async (userId: string): Promise<{ allowe
     .first();
 
   const isPro = subscription?.plan === 'pro' || subscription?.plan === 'institution';
-  const limit = subscription?.plan === 'institution' ? 10000 : (isPro ? 2000 : 50);
+  const baseLimit = subscription?.plan === 'institution' ? 10000 : (isPro ? 2000 : 50);
 
-  // 2. Récupérer l'usage actuel
+  // 2. Récupérer l'usage actuel (messages utilisés + crédits bonus)
   const usage = await db('ai_usage')
     .where({ user_id: userId, month: currentMonth })
     .first();
 
   const messagesUsed = usage?.messages_used || 0;
+  const bonusCredits = usage?.bonus_credits || 0;
+  const totalLimit = baseLimit + bonusCredits;
 
   // 3. Vérifier si la limite est dépassée
-  if (messagesUsed >= limit) {
+  if (messagesUsed >= totalLimit) {
     return {
       allowed: false,
-      limit,
+      limit: totalLimit,
       used: messagesUsed,
-      message: `Vous avez atteint votre limite de ${limit} messages IA pour ce mois-ci. Passez au plan Pro ou rechargez vos crédits.`
+      message: `Vous avez atteint votre limite de ${totalLimit} messages IA pour ce mois-ci. Passez au plan Pro ou rechargez vos crédits.`
     };
   }
 
@@ -37,9 +39,10 @@ export const checkAndIncrementAiQuota = async (userId: string): Promise<{ allowe
     await db('ai_usage').insert({
       user_id: userId,
       month: currentMonth,
-      messages_used: 1
+      messages_used: 1,
+      bonus_credits: 0
     });
   }
 
-  return { allowed: true, limit, used: messagesUsed + 1 };
+  return { allowed: true, limit: totalLimit, used: messagesUsed + 1 };
 };
