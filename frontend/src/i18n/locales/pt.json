@@ -532,6 +532,11 @@
     "expireCta": "Renovar agora"
   }
 },
+"Admin": {
+  "accessTitle": "Espaço Administrador",
+  "accessDesc": "Gerir utilizadores, assinaturas e moderar a plataforma.",
+  "accessCta": "Aceder ao Painel"
+},
   "textUpload": {
     "title": "📄 Importar um texto",
     "targetProject": "📁 Projeto de destino:",

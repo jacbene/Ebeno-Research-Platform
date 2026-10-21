@@ -492,6 +492,11 @@
       "serverError": "❌ Erreur: {{message}}"
     }
   },
+  "Admin": {
+  "accessTitle": "Espace Administrateur",
+  "accessDesc": "Gérez les utilisateurs, les abonnements et modérez la plateforme.",
+  "accessCta": "Accéder au Panel"
+},
   "chat": {
     "title": "Chat IA",
     "welcome": "Posez une question sur votre projet",
