@@ -18,15 +18,25 @@ router.get('/stats', authenticate, requireAdmin, async (req, res) => {
   try {
     const usersCount = await db('users').count('id as count').first();
     const proCount = await db('subscriptions').where({ plan: 'pro', status: 'active' }).count('id as count').first();
+    
     const currentMonth = new Date().toISOString().slice(0, 7);
     const aiUsage = await db('ai_usage').where({ month: currentMonth }).sum('messages_used as total').first();
+
+    // ✅ NOUVEAU : Compter les achats PAYG (paiements uniques)
+    // On compte les événements 'transaction.completed' qui ne sont pas des abonnements
+    const paygCount = await db('webhook_events')
+      .where({ event_type: 'transaction.completed' })
+      .count('id as count')
+      .first();
 
     res.json({
       users: Number(usersCount?.count || 0),
       proUsers: Number(proCount?.count || 0),
       aiRequests: Number(aiUsage?.total || 0),
+      paygPurchases: Number(paygCount?.count || 0), // ✅ Nouvelle statistique
     });
   } catch (error) {
+    console.error("Erreur stats admin:", error);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });

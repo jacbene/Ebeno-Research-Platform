@@ -99,6 +99,34 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
         .update({ status: 'canceled', updated_at: new Date() });
       console.log(`🚫 Abonnement annulé : ${data.id}`);
     }
+    else if (event_type === 'transaction.completed') {
+  const userId = data.custom_data?.userId;
+  
+  // On vérifie si c'est bien un achat PAYG (pas un abonnement)
+  const isPayg = data.items?.some((item: any) => item.price?.id === process.env.VITE_PADDLE_PRICE_PAYG);
+
+  if (isPayg && userId) {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    // On ajoute 1000 messages de crédit en réduisant le compteur (ou on modifie la logique de limite)
+    // La façon la plus simple : on retire 1000 messages de la consommation actuelle
+    const usage = await db('ai_usage').where({ user_id: userId, month: currentMonth }).first();
+    
+    if (usage) {
+      await db('ai_usage')
+        .where({ id: usage.id })
+        .update({ messages_used: Math.max(0, usage.messages_used - 1000) }); // Retire 1000 du compteur
+    } else {
+      // S'il n'a pas encore de ligne d'usage, on lui en crée une avec un solde négatif pour simuler le crédit
+      await db('ai_usage').insert({
+        user_id: userId,
+        month: currentMonth,
+        messages_used: -1000 
+      });
+    }
+    console.log(`⚡ [Paddle] 1000 crédits PAYG ajoutés pour l'utilisateur ${userId}`);
+  }
+}
 
     // 5. Enregistrement de l'événement pour l'idempotence
     await db('webhook_events').insert({
