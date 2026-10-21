@@ -950,5 +950,5 @@
     "expireDesc": "Votre plan {{plan}} se termine le {{date}}.",
     "expireCta": "Renouveler maintenant"
   }
- },
+ }
 }
