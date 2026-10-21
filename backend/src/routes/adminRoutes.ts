@@ -101,6 +101,7 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
         'users.name',
         'users.role',
         'ai_usage.messages_used',
+        'ai_usage.bonus_credits', // ✅ AJOUTER CETTE LIGNE
         'subscriptions.plan as subscription_plan'
       )
       .leftJoin('ai_usage', function() {

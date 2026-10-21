@@ -7,9 +7,9 @@ interface UsageData {
   name: string;
   role: string;
   messages_used: number | null;
+  bonus_credits: number | null; // ✅ AJOUTER ICI
   subscription_plan: string | null;
 }
-
 export default function AiUsagePage() {
   const [usage, setUsage] = useState<UsageData[]>([]);
   const [currentMonth, setCurrentMonth] = useState('');
@@ -54,11 +54,13 @@ export default function AiUsagePage() {
               </thead>
               <tbody>
                 {usage.map((u) => {
-                  const isPro = u.subscription_plan === 'pro';
-                  const limit = isPro ? 2000 : 50;
-                  const used = u.messages_used || 0;
-                  const percent = Math.min((used / limit) * 100, 100);
-
+  const isPro = u.subscription_plan === 'pro';
+  const baseLimit = isPro ? 2000 : 50;
+  const bonus = u.bonus_credits || 0;
+  const limit = baseLimit + bonus; // ✅ Nouvelle limite avec bonus
+  
+  const used = u.messages_used || 0;
+  const percent = Math.min((used / limit) * 100, 100);
                   return (
                     <tr key={u.id} className="border-b border-gray-700 hover:bg-gray-750">
                       <td className="px-6 py-4">
