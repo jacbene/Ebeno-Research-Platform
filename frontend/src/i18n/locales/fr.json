@@ -431,9 +431,6 @@
       "applied": "Palette appliquée ✅",
       "resetDone": "Palette réinitialisée"
     },
-    "Pricing": {
-  		"upgradePro": "Passer au plan Pro (12€/mois)"
-		},
     "errors": {
       "invalidFile": "Fichier invalide",
       "onlyImages": "Seules les images sont autorisées",
@@ -898,5 +895,60 @@
     "install": "Installer",
     "howTo": "Comment faire ?",
     "iosInstructions": "Appuyez sur le bouton Partager en bas de Safari, puis 'Sur l'écran d'accueil'."
+  },
+  "Pricing": {
+  "title": "Des tarifs adaptés à votre recherche",
+  "subtitle": "Choisissez le plan qui correspond à vos besoins. Passez à tout moment.",
+  "free": {
+    "name": "Free",
+    "desc": "Pour découvrir la plateforme",
+    "price": "0€",
+    "period": "/mois",
+    "feature1": "1 projet",
+    "feature2": "50 messages IA / mois",
+    "feature3": "Fonctions de base",
+    "cta": "Plan actuel"
+  },
+  "pro": {
+    "name": "Pro",
+    "desc": "Pour les chercheurs individuels",
+    "price": "12€",
+    "period": "/mois",
+    "recommended": "RECOMMANDÉ",
+    "feature1": "Projets illimités",
+    "feature2": "2000 messages IA / mois",
+    "feature3": "Toutes les fonctions",
+    "ctaMonthly": "S'abonner au mensuel (12€)",
+    "ctaYearly": "Payer annuellement (120€)"
+  },
+  "institution": {
+    "name": "Institution",
+    "desc": "Pour les laboratoires et universités",
+    "price": "49€",
+    "period": "/mois",
+    "feature1": "5 sièges inclus",
+    "feature2": "10 000 messages IA / mois",
+    "feature3": "Support prioritaire",
+    "cta": "S'abonner (49€)"
+  },
+  "payg": {
+    "title": "Besoin d'un coup de pouce ?",
+    "desc": "Vous avez atteint votre quota d'IA ou vous n'avez pas besoin d'un abonnement mensuel ? Rechargez 1 000 messages IA à l'unité, valables à vie.",
+    "price": "5€",
+    "cta": "Recharger 1000 messages"
+  },
+  "subscription": {
+    "activeTitle": "Abonnement PRO Actif",
+    "activeDesc": "Votre abonnement est actif. Vous avez utilisé {{used}} / {{limit}} messages IA ce mois-ci. Prochaine facturation le {{date}}.",
+    "upgradeTitle": "Passez à la version Pro 🚀",
+    "upgradeDesc": "Débloquez les projets illimités et 2000 messages IA par mois.",
+    "upgradeCta": "S'abonner pour 12€/mois",
+    "quotaTitle": "Attention, quota IA bientôt atteint ⚠️",
+    "quotaDesc": "Vous avez utilisé {{used}} / {{limit}} messages ce mois-ci.",
+    "quotaCta": "Recharger 1000 messages (5€)",
+    "expireTitle": "Votre abonnement arrive à échéance ⏳",
+    "expireDesc": "Votre plan {{plan}} se termine le {{date}}.",
+    "expireCta": "Renouveler maintenant"
   }
+ },
 }

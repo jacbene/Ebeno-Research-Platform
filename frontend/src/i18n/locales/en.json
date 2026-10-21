@@ -477,6 +477,61 @@
       "enableError": "Could not enable notifications"
     }
   },
+"Pricing": {
+  "title": "Pricing adapted to your research",
+  "subtitle": "Choose the plan that fits your needs. Change anytime.",
+  "free": {
+    "name": "Free",
+    "desc": "To discover the platform",
+    "price": "€0",
+    "period": "/month",
+    "feature1": "1 project",
+    "feature2": "50 AI messages / month",
+    "feature3": "Basic features",
+    "cta": "Current plan"
+  },
+  "pro": {
+    "name": "Pro",
+    "desc": "For individual researchers",
+    "price": "€12",
+    "period": "/month",
+    "recommended": "RECOMMENDED",
+    "feature1": "Unlimited projects",
+    "feature2": "2000 AI messages / month",
+    "feature3": "All features",
+    "ctaMonthly": "Subscribe monthly (€12)",
+    "ctaYearly": "Pay annually (€120)"
+  },
+  "institution": {
+    "name": "Institution",
+    "desc": "For labs and universities",
+    "price": "€49",
+    "period": "/month",
+    "feature1": "5 seats included",
+    "feature2": "10,000 AI messages / month",
+    "feature3": "Priority support",
+    "cta": "Subscribe (€49)"
+  },
+  "payg": {
+    "title": "Need a boost?",
+    "desc": "Reached your AI quota or don't need a monthly subscription? Recharge 1,000 AI messages at once, valid forever.",
+    "price": "€5",
+    "cta": "Recharge 1000 messages"
+  },
+  "subscription": {
+    "activeTitle": "PRO Subscription Active",
+    "activeDesc": "Your subscription is active. You have used {{used}} / {{limit}} AI messages this month. Next billing on {{date}}.",
+    "upgradeTitle": "Upgrade to Pro 🚀",
+    "upgradeDesc": "Unlock unlimited projects and 2000 AI messages per month.",
+    "upgradeCta": "Subscribe for €12/month",
+    "quotaTitle": "Warning, AI quota almost reached ⚠️",
+    "quotaDesc": "You have used {{used}} / {{limit}} messages this month.",
+    "quotaCta": "Recharge 1000 messages (€5)",
+    "expireTitle": "Your subscription is expiring ⏳",
+    "expireDesc": "Your {{plan}} plan ends on {{date}}.",
+    "expireCta": "Renew now"
+  }
+},
   "textUpload": {
     "title": "📄 Import text",
     "targetProject": "📁 Target project:",

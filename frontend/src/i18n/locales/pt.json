@@ -477,6 +477,61 @@
       "enableError": "Não foi possível ativar as notificações"
     }
   },
+  "Pricing": {
+  "title": "Preços adaptados à sua pesquisa",
+  "subtitle": "Escolha o plano que melhor se adapta às suas necessidades. Mude a qualquer momento.",
+  "free": {
+    "name": "Free",
+    "desc": "Para descobrir a plataforma",
+    "price": "0€",
+    "period": "/mês",
+    "feature1": "1 projeto",
+    "feature2": "50 mensagens IA / mês",
+    "feature3": "Funções básicas",
+    "cta": "Plano atual"
+  },
+  "pro": {
+    "name": "Pro",
+    "desc": "Para pesquisadores individuais",
+    "price": "12€",
+    "period": "/mês",
+    "recommended": "RECOMENDADO",
+    "feature1": "Projetos ilimitados",
+    "feature2": "2000 mensagens IA / mês",
+    "feature3": "Todas as funções",
+    "ctaMonthly": "Assinar mensal (12€)",
+    "ctaYearly": "Pagar anualmente (120€)"
+  },
+  "institution": {
+    "name": "Instituição",
+    "desc": "Para laboratórios e universidades",
+    "price": "49€",
+    "period": "/mês",
+    "feature1": "5 licenças incluídas",
+    "feature2": "10.000 mensagens IA / mês",
+    "feature3": "Suporte prioritário",
+    "cta": "Assinar (49€)"
+  },
+  "payg": {
+    "title": "Precisa de um impulso?",
+    "desc": "Atingiu sua cota de IA ou não precisa de uma assinatura mensal? Recarregue 1.000 mensagens IA de uma vez, válidas para sempre.",
+    "price": "5€",
+    "cta": "Recarregar 1000 mensagens"
+  },
+  "subscription": {
+    "activeTitle": "Assinatura PRO Ativa",
+    "activeDesc": "Sua assinatura está ativa. Você usou {{used}} / {{limit}} mensagens IA este mês. Próxima cobrança em {{date}}.",
+    "upgradeTitle": "Passe para Pro 🚀",
+    "upgradeDesc": "Desbloqueie projetos ilimitados e 2000 mensagens IA por mês.",
+    "upgradeCta": "Assinar por 12€/mês",
+    "quotaTitle": "Atenção, cota IA quase atingida ⚠️",
+    "quotaDesc": "Você usou {{used}} / {{limit}} mensagens este mês.",
+    "quotaCta": "Recarregar 1000 mensagens (5€)",
+    "expireTitle": "Sua assinatura está expirando ⏳",
+    "expireDesc": "Seu plano {{plan}} termina em {{date}}.",
+    "expireCta": "Renovar agora"
+  }
+},
   "textUpload": {
     "title": "📄 Importar um texto",
     "targetProject": "📁 Projeto de destino:",
