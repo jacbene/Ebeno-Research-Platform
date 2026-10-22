@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 interface UsageData {
   id: string;
@@ -7,10 +8,12 @@ interface UsageData {
   name: string;
   role: string;
   messages_used: number | null;
-  bonus_credits: number | null; // ✅ AJOUTER ICI
+  bonus_credits: number | null;
   subscription_plan: string | null;
 }
+
 export default function AiUsagePage() {
+  const { t } = useTranslation();
   const [usage, setUsage] = useState<UsageData[]>([]);
   const [currentMonth, setCurrentMonth] = useState('');
   const [loading, setLoading] = useState(true);
@@ -35,36 +38,36 @@ export default function AiUsagePage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-white">Usage IA - {currentMonth}</h1>
+        <h1 className="text-3xl font-bold text-white">{t('AdminPanel.usagePage')} - {currentMonth}</h1>
       </div>
       
       {loading ? (
-        <p className="text-gray-400">Chargement des données d'usage...</p>
+        <p className="text-gray-400">{t('common.loading')}</p>
       ) : (
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-gray-300 min-w-[700px]">
               <thead className="text-xs uppercase bg-gray-700 text-gray-400">
                 <tr>
-                  <th className="px-6 py-4">Utilisateur</th>
-                  <th className="px-6 py-4">Plan</th>
-                  <th className="px-6 py-4">Messages IA ce mois</th>
-                  <th className="px-6 py-4">Limite</th>
+                  <th className="px-6 py-4">{t('AdminPanel.user')}</th>
+                  <th className="px-6 py-4">{t('AdminPanel.plan')}</th>
+                  <th className="px-6 py-4">{t('AdminPanel.messagesUsed')}</th>
+                  <th className="px-6 py-4">{t('AdminPanel.limit')}</th>
                 </tr>
               </thead>
               <tbody>
                 {usage.map((u) => {
-  const isPro = u.subscription_plan === 'pro';
-  const baseLimit = isPro ? 2000 : 50;
-  const bonus = u.bonus_credits || 0;
-  const limit = baseLimit + bonus; // ✅ Nouvelle limite avec bonus
-  
-  const used = u.messages_used || 0;
-  const percent = Math.min((used / limit) * 100, 100);
+                  const isPro = u.subscription_plan === 'pro';
+                  const baseLimit = isPro ? 2000 : 50;
+                  const bonus = u.bonus_credits || 0;
+                  const limit = baseLimit + bonus;
+                  
+                  const used = u.messages_used || 0;
+                  const percent = Math.min((used / limit) * 100, 100);
                   return (
                     <tr key={u.id} className="border-b border-gray-700 hover:bg-gray-750">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-white">{u.name || 'Sans nom'}</div>
+                        <div className="font-medium text-white">{u.name || t('AdminPanel.anonymous')}</div>
                         <div className="text-xs text-gray-400">{u.email}</div>
                       </td>
                       <td className="px-6 py-4">
