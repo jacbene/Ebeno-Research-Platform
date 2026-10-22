@@ -47,7 +47,6 @@ export interface EmailStrings {
   emailSpamWarning: string;
   emailSpamWarningLogin: string;
   
-  // ✅ Nouvelles clés
   welcomeSubject: string;
   welcomeGreeting: string;
   welcomeIntro: string;
@@ -106,8 +105,6 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     deletionConfirmText: 'Si vous ne souhaitez pas supprimer votre compte, cliquez sur le bouton ci-dessus.',
     emailSpamWarning: 'Pensez à vérifier vos spams si vous ne trouvez pas cet e-mail.',
     emailSpamWarningLogin: 'Pensez à vérifier vos spams.',
-    
-    // ✅ Nouvelles clés
     welcomeSubject: "Bienvenue sur Ebeno Research Platform 🎓",
     welcomeGreeting: "Bonjour {name},",
     welcomeIntro: "Nous sommes ravis de vous accueillir sur Ebeno Research Platform, votre nouvel espace de recherche collaborative augmenté par l'IA.",
