@@ -152,4 +152,56 @@ router.get('/moderation', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// ✅ Suspendre ou réactiver un utilisateur
+router.patch('/users/:id/suspend', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { suspended } = req.body; // boolean
+
+    // Empêcher l'admin de se suspendre lui-même
+    if ((req as any).user.id === id) {
+      return res.status(400).json({ error: "Vous ne pouvez pas suspendre votre propre compte." });
+    }
+
+    await db('users').where({ id }).update({ 
+      isSuspended: suspended,
+      updatedAt: new Date()
+    });
+    
+    res.json({ success: true, isSuspended: suspended });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ✅ Ajouter des crédits IA manuellement
+router.post('/users/:id/credits', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body; // ex: 1000
+
+    if (!amount || isNaN(amount)) {
+      return res.status(400).json({ error: "Montant invalide." });
+    }
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const usage = await db('ai_usage').where({ user_id: id, month: currentMonth }).first();
+
+    if (usage) {
+      await db('ai_usage').where({ id: usage.id }).increment('bonus_credits', amount);
+    } else {
+      await db('ai_usage').insert({
+        user_id: id,
+        month: currentMonth,
+        messages_used: 0,
+        bonus_credits: amount
+      });
+    }
+
+    res.json({ success: true, message: `${amount} crédits ajoutés.` });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 export default router;
