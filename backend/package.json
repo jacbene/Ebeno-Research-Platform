@@ -11,7 +11,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --runInBand",
     "test:unit": "jest tests/unit --runInBand",
-    "test:integration": "jest tests/integration --runInBand"
+    "test:integration": "jest tests/integration --runInBand",
+    "db:migrate": "knex migrate:latest --knexfile src/config/knexfile.ts"
   },
   "keywords": [],
   "author": "",

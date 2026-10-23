@@ -333,20 +333,6 @@ const startServer = async () => {
     await db.raw('SELECT 1');
     logger.info('✅ Base de données connectée');
 
-    try {
-      const result = await db.raw(`
-        UPDATE knex_migrations 
-        SET name = REPLACE(name, '.ts', '.js') 
-        WHERE name LIKE '%.ts'
-      `);
-      const count = (result as any).rowCount || 0;
-      if (count > 0) {
-        logger.info(`🔧 Migration names fixed: ${count} entries updated (.ts → .js)`);
-      }
-    } catch (err: any) {
-      logger.warn(`⚠️ Could not fix migration names: ${err.message}`);
-    }
-
     logger.info('⏳ Exécution des migrations...');
     await db.migrate.latest();
     logger.info('✅ Migrations appliquées avec succès');
@@ -357,7 +343,9 @@ const startServer = async () => {
       logger.info(`📁 Environnement: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🛡️  CSP: ${isProd ? 'STRICTE (Helmet)' : 'désactivée (dev)'}`);
     });
-
+// ⚠️ Supprimé : on ne force plus le renommage .ts → .js
+// Raison : cela cassait les migrations locales en dev (Termux)
+// Les migrations sont compilées automatiquement en .js par tsc au build
     httpServer.on('listening', () => {
       const addr = httpServer.address();
       if (addr && typeof addr !== 'string') {
