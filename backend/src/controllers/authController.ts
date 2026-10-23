@@ -255,6 +255,20 @@ export const login = async (req: Request, res: Response) => {
       });
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
+    // ✅ Bloquer la connexion si le compte est suspendu
+if (user.isSuspended) {
+  await logAuditFromReq(req, {
+    userId: user.id,
+    userEmail: getUserEmail(user),
+    action: 'login_blocked_suspended',
+    targetType: 'user',
+    targetId: user.id,
+    status: 'failure',
+  });
+  return res.status(403).json({ 
+    message: "Votre compte a été suspendu. Contactez le support pour plus d'informations." 
+  });
+}
 
   // ✅ Bloquer la connexion si suppression programmée (RGPD art. 17)
   if (user.deletionScheduledFor) {
