@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 const STORAGE_KEY = 'cookie_consent';
 const CONSENT_VERSION = '1.0';
-const EXPIRY_DAYS = 182; // 6 mois (CNIL)
+const EXPIRY_DAYS = 182; // 6 mois (conformité RGPD)
 
 interface ConsentState {
   necessary: true;
@@ -208,7 +208,7 @@ const CookieConsentBanner: React.FC = () => {
           </>
         )}
 
-        {/* Liens légaux — CNIL : accessibles depuis le bandeau */}
+       {/* Liens légaux — accessibles depuis le bandeau */}
         <div
           style={{
             marginTop: '12px',

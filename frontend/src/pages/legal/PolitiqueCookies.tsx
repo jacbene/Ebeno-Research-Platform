@@ -52,7 +52,7 @@ const PolitiqueCookies: React.FC = () => {
         les cookies (Chrome, Firefox, Safari, Edge).
       </p>
 
-      <h2>7. Consentement multi-terminaux (CNIL 2026)</h2>
+      <h2>7. Consentement multi-terminaux</h2>
       <p>
         Lorsque vous êtes authentifié, votre consentement peut s'appliquer à tous
         vos appareils connectés à ce compte. Modifiable par appareil dans vos

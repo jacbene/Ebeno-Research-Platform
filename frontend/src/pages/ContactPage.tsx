@@ -25,7 +25,7 @@ export default function ContactPage() {
 
         <div className="mt-8 text-sm text-gray-500 space-y-1">
           <p><strong>Business name :</strong> Ebeno Research Platform</p>
-          <p><strong>Owner :</strong> Jacques Bene</p>
+          <p><strong>Owner :</strong> Jacques Bene Mbama</p>
           <p><strong>Location :</strong> Cameroon</p>
         </div>
       </div>
