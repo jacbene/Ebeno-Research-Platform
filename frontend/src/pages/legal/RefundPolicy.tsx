@@ -51,7 +51,7 @@ export default function RefundPolicy() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-2">4. Contact</h2>
             <p>
-              For any billing inquiries or disputes, please contact us at <a href="mailto:support@ebeno.com" className="text-blue-600 hover:underline">support@ebeno.com</a>.
+              For any billing inquiries or disputes, please contact us at <a href="mailto:jacquesbene301@gmail.com" className="text-blue-600 hover:underline">jacquesbene301@gmail.com</a>.
             </p>
           </section>
         </div>

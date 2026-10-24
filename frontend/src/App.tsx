@@ -50,6 +50,7 @@ const PolitiqueCookies = lazy(() => import('./pages/legal/PolitiqueCookies'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 // ============================================================
 // LOADER
@@ -383,6 +384,7 @@ return (
       <Route path="/terms" element={<TermsPage />} />
 			<Route path="/pricing" element={<PricingPage />} />
       <Route path="/refunds" element={<RefundPolicy />} />
+<Route path="/contact" element={<ContactPage />} />
 
       {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
       <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>

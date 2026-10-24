@@ -2,6 +2,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
+import { Footer } from './Footer'; // ✅ NOUVEAU
 import { useTheme } from '../../context/ThemeContext';
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications';
 
@@ -13,7 +14,6 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
   const { colors } = useTheme();
 
-  // ✅ Notifications temps réel (une seule connexion pour toute l'app)
   useRealtimeNotifications({ currentUserId: user?.id || null });
 
   return (
@@ -21,11 +21,14 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
       minHeight: '100vh',
       backgroundColor: colors.body,
       transition: 'background-color 0.3s ease',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
       <Navbar user={user} onLogout={onLogout} />
-      <main style={{ padding: '20px' }}>
+      <main style={{ padding: '20px', flex: 1 }}>
         <Outlet />
       </main>
+      <Footer /> {/* ✅ NOUVEAU */}
     </div>
   );
 };
