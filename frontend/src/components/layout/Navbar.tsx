@@ -275,6 +275,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 )}
 
 <Link
+  to="/pricing"
+  style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
+>
+  💎 {t('nav.pricing', 'Tarifs')}
+</Link>
+
+<Link
   to="/settings"
   style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
 >
@@ -316,6 +323,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
               <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>
               <Link to="/settings" style={linkStyle(isActive('/settings'))}>⚙️ {t('nav.settings')}</Link>
+              <Link to="/pricing" style={linkStyle(isActive('/pricing'))}>💎 {t('nav.pricing', 'Tarifs')}</Link>
             </nav>
           )}
         </>
@@ -342,6 +350,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           <Link to="/chat" style={linkStyle(isActive('/chat'))}>🤖 {t('nav.chat')}</Link>
           <Link to="/collaboration" style={linkStyle(isActive('/collaboration'))}>🤝 {t('nav.collaboration')}</Link>
           <Link to="/transcriptions" style={linkStyle(isActive('/transcriptions'))}>🎙️ {t('nav.transcriptions')}</Link>
+          <Link to="/pricing" style={linkStyle(isActive('/pricing'))}>💎 {t('nav.pricing', 'Tarifs')}</Link>
 
           {/* Sélecteur de thème */}
           <div ref={themeMenuRef} style={{ position: 'relative', marginLeft: '8px' }}>
@@ -417,6 +426,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     🛡️ Panel Admin
   </Link>
 )}
+
+<Link
+  to="/pricing"
+  style={{ ...dropdownItemStyle(false), textDecoration: 'none' }}
+>
+  💎 {t('nav.pricing', 'Tarifs')}
+</Link>
 
 <Link
   to="/settings"

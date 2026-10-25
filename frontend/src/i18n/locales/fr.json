@@ -69,7 +69,8 @@
     "logout": "Déconnexion",
     "user": "Utilisateur",
     "menu": "Menu",
-    "analytics": "Analytique"
+    "analytics": "Analytique",
+    "pricing": "Tarifs"
   },
   "theme": {
     "light": "☀️ Clair",

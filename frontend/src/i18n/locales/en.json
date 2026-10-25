@@ -69,7 +69,8 @@
     "logout": "Logout",
     "user": "User",
     "menu": "Menu",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "pricing": "Pricing"
   },
   "theme": {
     "light": "☀️ Light",
