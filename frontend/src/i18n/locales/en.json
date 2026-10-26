@@ -511,7 +511,8 @@
     "feature1": "5 seats included",
     "feature2": "10,000 AI messages / month",
     "feature3": "Priority support",
-    "cta": "Subscribe (€49)"
+    "cta": "Subscribe (€49)",
+    "ctaYearly": "Pay annually (€490)"
   },
   "payg": {
     "title": "Need a boost?",

@@ -511,7 +511,8 @@
     "feature1": "5 licenças incluídas",
     "feature2": "10.000 mensagens IA / mês",
     "feature3": "Suporte prioritário",
-    "cta": "Assinar (49€)"
+    "cta": "Assinar (49€)",
+    "ctaYearly": "Pagar anualmente (490€)"
   },
   "payg": {
     "title": "Precisa de um impulso?",
