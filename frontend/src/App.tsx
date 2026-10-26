@@ -51,6 +51,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 // ============================================================
 // LOADER
@@ -384,8 +385,12 @@ return (
       <Route path="/terms" element={<TermsPage />} />
 			<Route path="/pricing" element={<PricingPage />} />
       <Route path="/refunds" element={<RefundPolicy />} />
-<Route path="/contact" element={<ContactPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
+{/* ✅ LANDING PUBLIQUE (visible uniquement si non connecté) */}
+<Route path="/" element={
+  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
+} />
       {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
       <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -436,7 +441,7 @@ return (
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
         <Route element={<Layout user={user} onLogout={onLogout} />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/transcription" element={<TranscriptionPage />} />
           <Route path="/text-upload" element={<TextUploadPage />} />
           <Route path="/transcriptions" element={<TranscriptionList />} />
