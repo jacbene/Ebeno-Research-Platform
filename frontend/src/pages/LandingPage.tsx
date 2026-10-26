@@ -32,10 +32,15 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section className="py-16 sm:py-24 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-6">
-            ✨ {t('landing.badge', 'Nouveau : Analyse augmentée par IA')}
-          </div>
+  <div className="max-w-4xl mx-auto text-center">
+    {/* ✅ NOUVEAU TITRE FIXE */}
+    <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
+      Ebeno Research Platform
+    </h1>
+    
+    <div className="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-6">
+      ✨ {t('landing.badge', 'Nouveau : Analyse augmentée par IA')}
+    </div>
           <h1 className="text-4xl sm:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
             {t('landing.heroTitle', "L'analyse qualitative augmentée par l'IA pour les chercheurs")}
           </h1>
