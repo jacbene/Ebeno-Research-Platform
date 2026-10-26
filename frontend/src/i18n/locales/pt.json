@@ -126,6 +126,20 @@
       "error": "Erro ao criar",
       "errorServer": "Erro de ligação ao servidor"
     },
+    "quick": {
+  "newProject": "Novo projeto",
+  "transcribe": "Transcrever",
+  "chat": "Chat IA",
+  "import": "Importar texto"
+},
+"chatCard": {
+  "title": "Faça uma pergunta aos seus documentos",
+  "desc": "A IA analisa o contexto dos seus projetos e responde citando fontes."
+},
+"onboarding": {
+  "title": "Bem-vindo ao seu espaço de pesquisa",
+  "desc": "Crie o seu primeiro projeto para começar a usar o Chat IA."
+},
     "stats": {
       "projects": "Projetos",
       "files": "Os meus ficheiros",

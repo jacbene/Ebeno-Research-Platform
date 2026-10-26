@@ -126,6 +126,20 @@
       "error": "Error during creation",
       "errorServer": "Server connection error"
     },
+    "quick": {
+  "newProject": "New project",
+  "transcribe": "Transcribe",
+  "chat": "AI Chat",
+  "import": "Import text"
+},
+"chatCard": {
+  "title": "Ask a question to your documents",
+  "desc": "AI analyzes your projects' context and answers with source citations."
+},
+"onboarding": {
+  "title": "Welcome to your research space",
+  "desc": "Create your first project to start using the AI Chat."
+},
     "stats": {
       "projects": "Projects",
       "files": "My files",

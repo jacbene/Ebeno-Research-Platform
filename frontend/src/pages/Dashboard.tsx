@@ -395,6 +395,72 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
         </div>
       </div>
 
+{/* ✅ NOUVEAU : Actions rapides */}
+<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <button
+    onClick={() => setShowCreateForm(true)}
+    className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:shadow-md hover:border-blue-300 transition-all"
+  >
+    <div className="text-3xl mb-2">📁</div>
+    <div className="font-bold text-gray-900 text-sm">{t('dashboard.quick.newProject', 'Nouveau projet')}</div>
+  </button>
+
+  <Link
+    to="/transcription"
+    className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:shadow-md hover:border-green-300 transition-all"
+  >
+    <div className="text-3xl mb-2">🎙️</div>
+    <div className="font-bold text-gray-900 text-sm">{t('dashboard.quick.transcribe', 'Transcrire')}</div>
+  </Link>
+
+  <Link
+    to="/chat"
+    className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:shadow-md hover:border-purple-300 transition-all"
+  >
+    <div className="text-3xl mb-2">🤖</div>
+    <div className="font-bold text-gray-900 text-sm">{t('dashboard.quick.chat', 'Chat IA')}</div>
+  </Link>
+
+  <Link
+    to="/text-upload"
+    className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:shadow-md hover:border-orange-300 transition-all"
+  >
+    <div className="text-3xl mb-2">📄</div>
+    <div className="font-bold text-gray-900 text-sm">{t('dashboard.quick.import', 'Importer un texte')}</div>
+  </Link>
+</div>
+
+{/* ✅ NOUVEAU : Carte Chat IA mise en avant */}
+{projects.length > 0 ? (
+  <Link
+    to="/chat"
+    className="block mb-6 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-6 hover:shadow-lg hover:border-indigo-400 transition-all"
+  >
+    <div className="flex items-start gap-4">
+      <div className="text-5xl">🤖</div>
+      <div className="flex-1">
+        <h3 className="text-xl font-bold text-indigo-900 mb-1">
+          {t('dashboard.chatCard.title', 'Posez une question à vos documents')}
+        </h3>
+        <p className="text-indigo-700 text-sm">
+          {t('dashboard.chatCard.desc', "L'IA analyse le contexte de vos projets et répond en citant ses sources.")}
+        </p>
+      </div>
+      <div className="text-indigo-600 text-2xl self-center">→</div>
+    </div>
+  </Link>
+) : (
+  <div className="mb-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+    <div className="text-4xl mb-2">🚀</div>
+    <h3 className="text-lg font-bold text-gray-800 mb-1">
+      {t('dashboard.onboarding.title', 'Bienvenue dans votre espace de recherche')}
+    </h3>
+    <p className="text-gray-600 text-sm">
+      {t('dashboard.onboarding.desc', 'Créez votre premier projet pour commencer à utiliser le Chat IA.')}
+    </p>
+  </div>
+)}
+
       {/* Sélecteur de projet */}
       {projects.length > 0 && (
         <Card style={{ marginBottom: theme.spacing.lg }}>
