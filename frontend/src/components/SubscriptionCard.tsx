@@ -1,118 +1,98 @@
-import { PaddleCheckoutButton } from '../components/PaddleCheckoutButton';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
-export default function PricingPage() {
+export const SubscriptionCard = () => {
   const { t } = useTranslation();
+  const [data, setData] = useState<{ subscription: any; usage: any } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
-            {t('Pricing.title')}
-          </h2>
-          <p className="mt-4 text-xl text-gray-500">{t('Pricing.subtitle')}</p>
-        </div>
+  useEffect(() => {
+    api.get('/users/me/status')
+      .then(res => setData(res.data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 mb-12">
-          {/* FREE */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col">
-            <h3 className="text-2xl font-bold text-gray-900">{t('Pricing.free.name')}</h3>
-            <p className="mt-2 text-gray-500">{t('Pricing.free.desc')}</p>
-            <div className="mt-6 flex items-baseline">
-              <span className="text-4xl font-extrabold text-gray-900">{t('Pricing.free.price')}</span>
-              <span className="ml-1 text-xl text-gray-500">{t('Pricing.free.period')}</span>
-            </div>
-            <ul className="mt-8 space-y-4 flex-1 text-gray-600">
-              <li className="flex items-center">✅ {t('Pricing.free.feature1')}</li>
-              <li className="flex items-center">✅ {t('Pricing.free.feature2')}</li>
-              <li className="flex items-center">✅ {t('Pricing.free.feature3')}</li>
-            </ul>
-            <div className="mt-8">
-              <button disabled className="w-full bg-gray-100 text-gray-500 font-bold py-3 px-6 rounded-lg cursor-not-allowed">
-                {t('Pricing.free.cta')}
-              </button>
-            </div>
-          </div>
+  if (loading) return <div className="p-4 text-gray-500">...</div>;
+  if (!data) return null;
 
-          {/* PRO */}
-          <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-600 p-8 flex flex-col relative transform scale-105">
-            <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 text-xs font-bold rounded-bl-lg rounded-tr-lg">
-              {t('Pricing.pro.recommended')}
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{t('Pricing.pro.name')}</h3>
-            <p className="mt-2 text-gray-500">{t('Pricing.pro.desc')}</p>
-            <div className="mt-6 flex items-baseline">
-              <span className="text-4xl font-extrabold text-gray-900">{t('Pricing.pro.price')}</span>
-              <span className="ml-1 text-xl text-gray-500">{t('Pricing.pro.period')}</span>
-            </div>
-            <ul className="mt-8 space-y-4 flex-1 text-gray-600">
-              <li className="flex items-center font-medium">⭐ {t('Pricing.pro.feature1')}</li>
-              <li className="flex items-center font-medium">⭐ {t('Pricing.pro.feature2')}</li>
-              <li className="flex items-center">✅ {t('Pricing.pro.feature3')}</li>
-            </ul>
-            <div className="mt-8 space-y-3">
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY}
-                label={t('Pricing.pro.ctaMonthly')}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_PRO_YEARLY}
-                label={t('Pricing.pro.ctaYearly')}
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-            </div>
-          </div>
+  const { subscription, usage } = data;
+  const isPro = subscription?.plan === 'pro' || subscription?.plan === 'institution';
+  const messagesUsed = usage?.messages_used || 0;
+  const limit = (subscription?.plan === 'institution' ? 10000 : isPro ? 2000 : 50) + (usage?.bonus_credits || 0);
+  const isQuotaExceeded = messagesUsed >= limit;
+  const isExpiringSoon = subscription?.current_period_end 
+    ? new Date(subscription.current_period_end).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000
+    : false;
 
-          {/* INSTITUTION */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col">
-            <h3 className="text-2xl font-bold text-gray-900">{t('Pricing.institution.name')}</h3>
-            <p className="mt-2 text-gray-500">{t('Pricing.institution.desc')}</p>
-            <div className="mt-6 flex items-baseline">
-              <span className="text-4xl font-extrabold text-gray-900">{t('Pricing.institution.price')}</span>
-              <span className="ml-1 text-xl text-gray-500">{t('Pricing.institution.period')}</span>
-            </div>
-            <ul className="mt-8 space-y-4 flex-1 text-gray-600">
-              <li className="flex items-center">✅ {t('Pricing.institution.feature1')}</li>
-              <li className="flex items-center">✅ {t('Pricing.institution.feature2')}</li>
-              <li className="flex items-center">✅ {t('Pricing.institution.feature3')}</li>
-            </ul>
-            <div className="mt-8 space-y-3">
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_INST_MONTHLY}
-                label={t('Pricing.institution.cta')}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_INST_YEARLY}
-                label={t('Pricing.institution.ctaYearly')}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* PAYG */}
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl shadow-md border border-orange-200 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">⚡</span>
-              <h3 className="text-xl font-bold text-orange-900">{t('Pricing.payg.title')}</h3>
-            </div>
-            <p className="text-orange-800 text-sm md:text-base">{t('Pricing.payg.desc')}</p>
-          </div>
-          <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-            <span className="text-3xl font-extrabold text-orange-900">{t('Pricing.payg.price')}</span>
-            <PaddleCheckoutButton
-              priceId={import.meta.env.VITE_PADDLE_PRICE_PAYG}
-              label={t('Pricing.payg.cta')}
-              className="w-full md:w-auto bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-sm whitespace-nowrap"
-            />
-          </div>
-        </div>
-
+  // 1. Utilisateur FREE (non abonné)
+  if (!isPro) {
+    return (
+      <div className="my-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
+        <h2 className="text-xl font-bold text-gray-800 mb-2">{t('Pricing.subscription.upgradeTitle')}</h2>
+        <p className="text-gray-600 mb-4">{t('Pricing.subscription.upgradeDesc')}</p>
+        <Link
+          to="/pricing"
+          className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+        >
+          {t('Pricing.subscription.upgradeCta')} →
+        </Link>
       </div>
+    );
+  }
+
+  // 2. Pro : quota presque atteint ou dépassé
+  if (isQuotaExceeded || messagesUsed > limit * 0.9) {
+    return (
+      <div className="my-8 p-6 bg-orange-50 border border-orange-200 rounded-lg shadow-sm">
+        <h2 className="text-xl font-bold text-orange-800 mb-2">{t('Pricing.subscription.quotaTitle')}</h2>
+        <p className="text-orange-700 mb-4">
+          {t('Pricing.subscription.quotaDesc', { used: messagesUsed, limit })}
+        </p>
+        <Link
+          to="/pricing"
+          className="inline-block bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+        >
+          {t('Pricing.subscription.quotaCta')} →
+        </Link>
+      </div>
+    );
+  }
+
+  // 3. Pro : expire bientôt
+  if (isExpiringSoon || subscription.status === 'past_due') {
+    return (
+      <div className="my-8 p-6 bg-red-50 border border-red-200 rounded-lg shadow-sm">
+        <h2 className="text-xl font-bold text-red-800 mb-2">{t('Pricing.subscription.expireTitle')}</h2>
+        <p className="text-red-700 mb-4">
+          {t('Pricing.subscription.expireDesc', { 
+            plan: subscription.plan.toUpperCase(), 
+            date: new Date(subscription.current_period_end).toLocaleDateString() 
+          })}
+        </p>
+        <Link
+          to="/pricing"
+          className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+        >
+          {t('Pricing.subscription.expireCta')} →
+        </Link>
+      </div>
+    );
+  }
+
+  // 4. Pro : tout va bien
+  return (
+    <div className="my-8 p-6 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+      <h2 className="text-xl font-bold text-green-800 mb-2">{t('Pricing.subscription.activeTitle')}</h2>
+      <p className="text-green-700">
+        {t('Pricing.subscription.activeDesc', { 
+          used: messagesUsed, 
+          limit, 
+          date: new Date(subscription.current_period_end).toLocaleDateString() 
+        })}
+      </p>
     </div>
   );
-}
+};
