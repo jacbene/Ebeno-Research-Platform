@@ -78,11 +78,16 @@ export default function PricingPage() {
               <li className="flex items-center">✅ {t('Pricing.institution.feature2')}</li>
               <li className="flex items-center">✅ {t('Pricing.institution.feature3')}</li>
             </ul>
-            <div className="mt-8">
+            <div className="mt-8 space-y-3">
               <PaddleCheckoutButton
                 priceId={import.meta.env.VITE_PADDLE_PRICE_INST_MONTHLY}
                 label={t('Pricing.institution.cta')}
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              />
+              <PaddleCheckoutButton
+                priceId={import.meta.env.VITE_PADDLE_PRICE_INST_YEARLY}
+                label={t('Pricing.institution.ctaYearly')}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-lg transition-colors"
               />
             </div>
           </div>
