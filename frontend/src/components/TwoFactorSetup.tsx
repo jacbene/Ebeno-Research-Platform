@@ -261,7 +261,7 @@ export const TwoFactorSetup: React.FC = () => {
           }}
         >
           {qrCode && (
-            <img src={qrCode} alt="QR 2FA" style={{ width: '200px', height: '200px' }} />
+           <img src={qrCode} alt="QR 2FA" width="200" height="200" style={{ width: '200px', height: '200px' }} />
           )}
         </div>
 

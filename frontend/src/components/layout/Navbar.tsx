@@ -248,10 +248,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               >
                 {user?.avatar ? (
                   <img
-                    src={user.avatar}
-                    alt="avatar"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+  src={user.avatar}
+  alt="avatar"
+  width="36"    {/* ✅ Ajouté */}
+  height="36"   {/* ✅ Ajouté */}
+  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+/>
                 ) : (
                   getInitials(user?.name || user?.email || '?')
                 )}
@@ -399,10 +401,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             >
               {user?.avatar ? (
                 <img
-                  src={user.avatar}
-                  alt="avatar"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+  src={user.avatar}
+  alt="avatar"
+  width="36"    {/* ✅ Ajouté */}
+  height="36"   {/* ✅ Ajouté */}
+  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+/>
               ) : (
                 getInitials(user?.name || user?.email || '?')
               )}

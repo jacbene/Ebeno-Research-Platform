@@ -621,10 +621,12 @@ const handleRestoreVersion = async (version: number) => {
               {preview.type === 'image' && preview.signedUrl && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', minHeight: '100%' }}>
                   <img
-                    src={preview.signedUrl}
-                    alt={file.fileName}
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                  />
+  src={preview.signedUrl}
+  alt={file.fileName}
+  width="800"   {/* ✅ Ajouté */}
+  height="600"  {/* ✅ Ajouté */}
+  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+/>
                 </div>
               )}
 

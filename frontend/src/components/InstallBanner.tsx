@@ -165,7 +165,7 @@ const InstallBanner: React.FC = () => {
       aria-label="Bannière d'installation"
     >
       <div style={contentStyle}>
-        <img src="/vite.svg" alt="Ebeno" style={iconStyle} />
+        <img src="/vite.svg" alt="Ebeno" width="48" height="48" style={iconStyle} />
         <div style={textStyle}>
           <div style={titleStyle}>
             {t('install.title', { defaultValue: 'Installer Ebeno sur votre appareil' })}

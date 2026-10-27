@@ -465,10 +465,12 @@ const handleTogglePush = async () => {
             <div style={{ position: 'relative' }}>
               {user?.avatar ? (
                 <img
-                  src={user.avatar}
-                  alt="Avatar"
-                  style={{
-                    width: '100px',
+ 									 src={user.avatar}
+ 									 alt="Avatar"
+ 									 width="100"   {/* ✅ Ajouté */}
+								 	 height="100"  {/* ✅ Ajouté */}
+								 									 style={{
+								    width: '100px',
                     height: '100px',
                     borderRadius: '50%',
                     objectFit: 'cover',

@@ -901,10 +901,12 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
                       >
                         {file.authorAvatar ? (
                           <img
-                            src={file.authorAvatar}
-                            alt={file.authorName || file.authorEmail}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+  src={file.authorAvatar}
+  alt={file.authorName || file.authorEmail}
+  width="40"    {/* ✅ Ajouté */}
+  height="40"   {/* ✅ Ajouté */}
+  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+/>
                         ) : (
                           getInitials(file.authorName, file.authorEmail)
                         )}

@@ -209,10 +209,12 @@ const renderComment = (c: Comment, depth: number = 0) => {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
           {c.userAvatar ? (
             <img
-              src={c.userAvatar}
-              alt={c.userName}
-              style={{
-                width: isMobile ? '24px' : '28px',
+  src={c.userAvatar}
+  alt={c.userName}
+  width="32"    {/* ✅ Ajouté */}
+  height="32"   {/* ✅ Ajouté */}
+  style={{
+    width: isMobile ? '24px' : '28px',
                 height: isMobile ? '24px' : '28px',
                 borderRadius: '50%',
                 objectFit: 'cover',
