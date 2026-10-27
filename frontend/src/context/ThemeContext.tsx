@@ -108,11 +108,18 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const effectiveMode: 'light' | 'dark' =
     mode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : mode;
 
-  // ✅ Appliquer au <html> pour les CSS globaux
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', effectiveMode);
-    document.documentElement.style.colorScheme = effectiveMode;
-  }, [effectiveMode]);
+  // ✅ Appliquer au <html> pour les CSS globaux ET pour Tailwind
+useEffect(() => {
+  document.documentElement.setAttribute('data-theme', effectiveMode);
+  document.documentElement.style.colorScheme = effectiveMode;
+  
+  // ✅ Ajout indispensable pour Tailwind (darkMode: 'class')
+  if (effectiveMode === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}, [effectiveMode]);
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
