@@ -93,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const logoStyle: React.CSSProperties = {
     margin: 0,
     fontSize: '1.1rem',
-    color: colors.light,
+    color: effectiveMode === 'dark' ? '#F5F5F4' : colors.light,
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
