@@ -903,8 +903,8 @@ const formatDate = (timestamp: number | string | null | undefined): string => {
                           <img
   src={file.authorAvatar}
   alt={file.authorName || file.authorEmail}
-  width="40"    {/* ✅ Ajouté */}
-  height="40"   {/* ✅ Ajouté */}
+  width="40"    
+  height="40"   
   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
 />
                         ) : (

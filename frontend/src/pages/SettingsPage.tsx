@@ -467,8 +467,8 @@ const handleTogglePush = async () => {
                 <img
  									 src={user.avatar}
  									 alt="Avatar"
- 									 width="100"   {/* ✅ Ajouté */}
-								 	 height="100"  {/* ✅ Ajouté */}
+ 									 width="100"   
+								 	 height="100"  
 								 									 style={{
 								    width: '100px',
                     height: '100px',

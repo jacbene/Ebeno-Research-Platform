@@ -250,8 +250,8 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   <img
   src={user.avatar}
   alt="avatar"
-  width="36"    {/* ✅ Ajouté */}
-  height="36"   {/* ✅ Ajouté */}
+  width="36"    
+  height="36"   
   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
 />
                 ) : (
@@ -403,8 +403,8 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 <img
   src={user.avatar}
   alt="avatar"
-  width="36"    {/* ✅ Ajouté */}
-  height="36"   {/* ✅ Ajouté */}
+  width="36"    
+  height="36"   
   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
 />
               ) : (

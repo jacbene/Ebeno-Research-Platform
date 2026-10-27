@@ -211,8 +211,8 @@ const renderComment = (c: Comment, depth: number = 0) => {
             <img
   src={c.userAvatar}
   alt={c.userName}
-  width="32"    {/* ✅ Ajouté */}
-  height="32"   {/* ✅ Ajouté */}
+  width="32"    
+  height="32"   
   style={{
     width: isMobile ? '24px' : '28px',
                 height: isMobile ? '24px' : '28px',
