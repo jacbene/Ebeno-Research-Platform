@@ -33,32 +33,33 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // ✅ Séparation intelligente des bibliothèques lourdes
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('recharts') || id.includes('d3') || id.includes('chart.js')) {
-                return 'vendor-charts';
-              }
-              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html2pdf')) {
-                return 'vendor-pdf';
-              }
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'vendor-react';
-              }
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
-              if (id.includes('socket.io')) {
-                return 'vendor-socket';
-              }
-              if (id.includes('i18next') || id.includes('react-i18next')) {
-                return 'vendor-i18n';
-              }
-              if (id.includes('sentry')) {
-                return 'vendor-sentry';
-              }
-              return 'vendor-core';
-            }
-          },
+        manualChunks(id) {
+  if (id.includes('node_modules')) {
+    // ✅ Tout ce qui dépend de React (React, Router, Recharts, Lucide, etc.)
+    if (
+      id.includes('react') || 
+      id.includes('recharts') || 
+      id.includes('lucide-react') || 
+      id.includes('chart.js')
+    ) {
+      return 'vendor-react';
+    }
+    // ✅ Bibliothèques indépendantes de React
+    if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html2pdf')) {
+      return 'vendor-pdf';
+    }
+    if (id.includes('socket.io')) {
+      return 'vendor-socket';
+    }
+    if (id.includes('i18next') || id.includes('react-i18next')) {
+      return 'vendor-i18n';
+    }
+    if (id.includes('sentry')) {
+      return 'vendor-sentry';
+    }
+    return 'vendor-core';
+  }
+},
         },
       },
     },
