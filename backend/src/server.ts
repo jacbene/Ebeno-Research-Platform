@@ -57,6 +57,7 @@ import pushRoutes from './routes/pushRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import chatRoutes from './routes/chatRoutes';
+import organizationRoutes from './routes/organizationRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -234,6 +235,7 @@ app.use('/api/translations', aiLimiter);
 app.use('/api/analytics', aiLimiter);
 // app.use('/api/webhooks', aiLimiter);
 app.use('/api/chat', aiLimiter);
+app.use('/api/organizations', organizationRoutes);
 
 // ============================================================
 // ROUTES
