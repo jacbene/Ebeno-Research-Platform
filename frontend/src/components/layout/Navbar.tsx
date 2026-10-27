@@ -75,8 +75,8 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   // ============================================================
 
   const headerStyle: React.CSSProperties = {
-    backgroundColor: colors.dark,
-    color: colors.light,
+    backgroundColor: effectiveMode === 'dark' ? '#1E1E32' : colors.dark,
+    color: effectiveMode === 'dark' ? '#F5F5F4' : colors.light,
     padding: '10px 16px',
     display: 'flex',
     justifyContent: 'space-between',
@@ -102,7 +102,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   };
 
   const linkStyle = (active: boolean): React.CSSProperties => ({
-    color: active ? colors.primary : colors.light,
+    color: active 
+    ? colors.primary 
+    : (effectiveMode === 'dark' ? '#E5E7EB' : colors.light),
     textDecoration: 'none',
     padding: '6px 12px',
     borderRadius: '6px',
