@@ -333,10 +333,25 @@ const startServer = async () => {
     await db.raw('SELECT 1');
     logger.info('✅ Base de données connectée');
 
-    logger.info('⏳ Exécution des migrations...');
-    await db.migrate.latest();
-    logger.info('✅ Migrations appliquées avec succès');
+// ✅ Synchronisation automatique des extensions de migration
+try {
+  if (isProd) {
+    // Sur Render : on force les .js
+    const res = await db.raw(`UPDATE knex_migrations SET name = REPLACE(name, '.ts', '.js') WHERE name LIKE '%.ts'`);
+    if (res.rowCount > 0) logger.info(`🔄 ${res.rowCount} migrations converties en .js`);
+  } else {
+    // Sur Termux (dev) : on force les .ts
+    const res = await db.raw(`UPDATE knex_migrations SET name = REPLACE(name, '.js', '.ts') WHERE name LIKE '%.js'`);
+    if (res.rowCount > 0) logger.info(`🔄 ${res.rowCount} migrations converties en .ts`);
+  }
+} catch (err: any) {
+  logger.warn(`⚠️ Sync migrations échouée: ${err.message}`);
+}
 
+logger.info('⏳ Exécution des migrations...');
+await db.migrate.latest();
+logger.info('✅ Migrations appliquées avec succès');
+    
     logger.info(`⏳ Démarrage du serveur sur le port ${port}...`);
     httpServer.listen(port, '0.0.0.0', () => {
       logger.info(`🚀 Serveur démarré sur le port ${port}`);
