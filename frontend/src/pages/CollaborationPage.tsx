@@ -2,8 +2,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -147,6 +145,10 @@ const downloadAsDocx = (doc: Document, locale: string, footerText: string) => {
 
 // ✅ PDF via jsPDF + html2canvas
 const downloadAsPdf = async (doc: Document, locale: string, footerText: string): Promise<void> => {
+  // ✅ Chargement dynamique (uniquement au clic)
+  const html2canvas = (await import('html2canvas')).default;
+  const { jsPDF } = await import('jspdf');
+
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-9999px';

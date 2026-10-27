@@ -4,8 +4,6 @@ import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { api } from '../services/api';
 
 interface DocumentData {
@@ -170,9 +168,12 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   };
 
   // ✅ Export PDF — jsPDF + html2canvas
-  //    ⚠️ On utilise `window.document` explicitement pour éviter toute ambiguïté
   const exportPDF = async () => {
-    const displayContentLocal =
+  // ✅ Chargement dynamique (uniquement au clic)
+  const html2canvas = (await import('html2canvas')).default;
+  const { jsPDF } = await import('jspdf');
+
+  const displayContentLocal = 
       result || doc.content || doc.transcriptText || '';
     if (!displayContentLocal) {
       setError('Aucun contenu à exporter.');
