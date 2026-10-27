@@ -609,6 +609,22 @@
   "anonymous": "Anónimo",
   "noLogs": "Ningún registro de auditoría por el momento."
 },
+"organization": {
+  "tab": "🏢 Organización",
+  "loadError": "No se pudieron cargar los datos de la organización.",
+  "invalidEmail": "Dirección de correo inválida.",
+  "inviteSuccess": "¡Invitación enviada con éxito!",
+  "inviteError": "Error al enviar la invitación.",
+  "plan": "Plan",
+  "seatsUsed": "Asientos usados",
+  "inviteTitle": "Invitar a un nuevo miembro",
+  "seatsFull": "Todos los asientos están ocupados. Añade asientos adicionales para invitar a más miembros.",
+  "emailPlaceholder": "Correo del investigador...",
+  "inviteButton": "Invitar",
+  "membersTitle": "Miembros del equipo",
+  "pendingTitle": "Invitaciones pendientes",
+  "pending": "Pendiente"
+},
   "textUpload": {
     "title": "📄 Importar un texto",
     "targetProject": "📁 Proyecto destino:",

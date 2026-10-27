@@ -13,28 +13,33 @@ import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { WebhooksSettings } from '../components/WebhooksSettings';
+import { OrganizationSettings } from '../components/OrganizationSettings'; // ✅ NOUVEAU
 
-type Tab = 'profile' | 'security' | 'notifications' | 'webhooks' | 'language' | 'appearance' | 'gdpr';
+type Tab = 'profile' | 'security' | 'notifications' | 'webhooks' | 'language' | 'appearance' | 'gdpr' | 'organization'; // ✅ 'organization' ajouté
 
 const SettingsPage: React.FC = () => {
   const { mode, toggleMode, colors, setCustomPalette } = useTheme();
   const { language, supportedLanguages, changeLanguage } = useLanguage();
   const toast = useToast();
   const { t } = useTranslation();
-// ✅ Push notifications
-const {
-  supported: pushSupported,
-  permission: pushPermission,
-  subscribed: pushSubscribed,
-  loading: pushLoading,
-  subscribe: pushSubscribe,
-  unsubscribe: pushUnsubscribe,
-} = usePushNotifications();
+  
+  // ✅ Push notifications
+  const {
+    supported: pushSupported,
+    permission: pushPermission,
+    subscribed: pushSubscribed,
+    loading: pushLoading,
+    subscribe: pushSubscribe,
+    unsubscribe: pushUnsubscribe,
+  } = usePushNotifications();
+  
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isOrgOwner, setIsOrgOwner] = useState(false); // ✅ NOUVEAU
+  
   // ✅ Suppression de compte
-	const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -58,14 +63,14 @@ const {
   const [gdprLoading, setGdprLoading] = useState(false);
   const [gdprExporting, setGdprExporting] = useState(false);
 
-// ✅ Notifications email
-const [emailPrefs, setEmailPrefs] = useState({
-  projectMemberAdded: true,
-  transcriptionComplete: true,
-  summaryReady: true,
-});
-const [loadingPrefs, setLoadingPrefs] = useState(false);
-const [savingPrefs, setSavingPrefs] = useState<string | null>(null);
+  // ✅ Notifications email
+  const [emailPrefs, setEmailPrefs] = useState({
+    projectMemberAdded: true,
+    transcriptionComplete: true,
+    summaryReady: true,
+  });
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState<string | null>(null);
 
   const [primaryColor, setPrimaryColor] = useState(colors.primary);
   const [primaryDark, setPrimaryDark] = useState(colors.primaryDark);
@@ -73,26 +78,42 @@ const [savingPrefs, setSavingPrefs] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-// ✅ Charger les préférences email quand on ouvre l'onglet Notifications
-useEffect(() => {
-  if (activeTab !== 'notifications') return;
-
-  const loadPrefs = async () => {
-    setLoadingPrefs(true);
-    try {
-      const res = await api.get('/auth/email-preferences');
-      if (res.data.success) {
-        setEmailPrefs(res.data.preferences);
+  // ✅ Vérifier si l'utilisateur est propriétaire d'une organisation
+  useEffect(() => {
+    const checkOrgOwnership = async () => {
+      try {
+        const res = await api.get('/organizations/me');
+        if (res.data && res.data.organization) {
+          setIsOrgOwner(true);
+        }
+      } catch (error) {
+        // 403 = pas propriétaire, c'est normal
+        setIsOrgOwner(false);
       }
-    } catch (error: any) {
-      console.error('❌ Erreur chargement prefs email:', error);
-    } finally {
-      setLoadingPrefs(false);
-    }
-  };
+    };
+    checkOrgOwnership();
+  }, []);
 
-  loadPrefs();
-}, [activeTab]);
+  // ✅ Charger les préférences email quand on ouvre l'onglet Notifications
+  useEffect(() => {
+    if (activeTab !== 'notifications') return;
+
+    const loadPrefs = async () => {
+      setLoadingPrefs(true);
+      try {
+        const res = await api.get('/auth/email-preferences');
+        if (res.data.success) {
+          setEmailPrefs(res.data.preferences);
+        }
+      } catch (error: any) {
+        console.error('❌ Erreur chargement prefs email:', error);
+      } finally {
+        setLoadingPrefs(false);
+      }
+    };
+
+    loadPrefs();
+  }, [activeTab]);
 
 
   // ✅ Charger les infos d'export RGPD quand on ouvre l'onglet
@@ -309,31 +330,31 @@ useEffect(() => {
     toast.addToast({ type: 'info', title: t('settings.appearance.resetDone') });
   };
 
-// ============================================================
-// NOTIFICATIONS EMAIL
-// ============================================================
-const togglePreference = async (key: keyof typeof emailPrefs) => {
-  const newValue = !emailPrefs[key];
+  // ============================================================
+  // NOTIFICATIONS EMAIL
+  // ============================================================
+  const togglePreference = async (key: keyof typeof emailPrefs) => {
+    const newValue = !emailPrefs[key];
 
-  // Optimistic UI
-  setEmailPrefs((prev) => ({ ...prev, [key]: newValue }));
-  setSavingPrefs(key);
+    // Optimistic UI
+    setEmailPrefs((prev) => ({ ...prev, [key]: newValue }));
+    setSavingPrefs(key);
 
-  try {
-    await api.put('/auth/email-preferences', { [key]: newValue });
-    toast.addToast({ type: 'success', title: t('settings.notifications.success') });
-  } catch (error: any) {
-    // Rollback
-    setEmailPrefs((prev) => ({ ...prev, [key]: !newValue }));
-    toast.addToast({
-      type: 'error',
-      title: t('common.error'),
-      message: error.response?.data?.message || t('settings.notifications.error'),
-    });
-  } finally {
-    setSavingPrefs(null);
-  }
-};
+    try {
+      await api.put('/auth/email-preferences', { [key]: newValue });
+      toast.addToast({ type: 'success', title: t('settings.notifications.success') });
+    } catch (error: any) {
+      // Rollback
+      setEmailPrefs((prev) => ({ ...prev, [key]: !newValue }));
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('settings.notifications.error'),
+      });
+    } finally {
+      setSavingPrefs(null);
+    }
+  };
 
   // ============================================================
   // EXPORT RGPD
@@ -371,24 +392,24 @@ const togglePreference = async (key: keyof typeof emailPrefs) => {
     }
   };
 
-// ✅ Activer / désactiver les push
-const handleTogglePush = async () => {
-  if (pushSubscribed) {
-    const ok = await pushUnsubscribe();
-    if (ok) toast.addToast({ type: 'success', title: t('settings.push.disabled') });
-  } else {
-    const ok = await pushSubscribe();
-    if (ok) {
-      toast.addToast({ type: 'success', title: t('settings.push.enabled') });
+  // ✅ Activer / désactiver les push
+  const handleTogglePush = async () => {
+    if (pushSubscribed) {
+      const ok = await pushUnsubscribe();
+      if (ok) toast.addToast({ type: 'success', title: t('settings.push.disabled') });
     } else {
-      toast.addToast({
-        type: 'error',
-        title: t('common.error'),
-        message: t('settings.push.enableError'),
-      });
+      const ok = await pushSubscribe();
+      if (ok) {
+        toast.addToast({ type: 'success', title: t('settings.push.enabled') });
+      } else {
+        toast.addToast({
+          type: 'error',
+          title: t('common.error'),
+          message: t('settings.push.enableError'),
+        });
+      }
     }
-  }
-};
+  };
 
   // Helpers
   const getInitials = (name: string) => {
@@ -402,16 +423,18 @@ const handleTogglePush = async () => {
     return <div style={{ padding: '40px', textAlign: 'center' }}>{t('settings.loading')}</div>;
   }
 
-  // ✅ Onglets traduits (avec GDPR)
+  // ✅ Onglets traduits (avec GDPR + Organisation conditionnelle)
   const tabs: { key: Tab; label: string }[] = [
-  { key: 'profile', label: t('settings.tabs.profile') },
-  { key: 'security', label: t('settings.tabs.security') },
-  { key: 'notifications', label: t('settings.tabs.notifications') },
-  { key: 'webhooks', label: t('settings.tabs.webhooks') },
-  { key: 'language', label: t('settings.tabs.language') },
-  { key: 'appearance', label: t('settings.tabs.appearance') },
-  { key: 'gdpr', label: t('gdpr.tab') },
-];
+    { key: 'profile', label: t('settings.tabs.profile') },
+    { key: 'security', label: t('settings.tabs.security') },
+    { key: 'notifications', label: t('settings.tabs.notifications') },
+    { key: 'webhooks', label: t('settings.tabs.webhooks') },
+    { key: 'language', label: t('settings.tabs.language') },
+    { key: 'appearance', label: t('settings.tabs.appearance') },
+    { key: 'gdpr', label: t('gdpr.tab') },
+    // ✅ Ajout conditionnel de l'onglet Organisation
+    ...(isOrgOwner ? [{ key: 'organization' as Tab, label: t('organization.tab', '🏢 Organisation') }] : []),
+  ];
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
@@ -465,12 +488,12 @@ const handleTogglePush = async () => {
             <div style={{ position: 'relative' }}>
               {user?.avatar ? (
                 <img
- 									 src={user.avatar}
- 									 alt="Avatar"
- 									 width="100"   
-								 	 height="100"  
-								 									 style={{
-								    width: '100px',
+                  src={user.avatar}
+                  alt="Avatar"
+                  width="100"
+                  height="100"
+                  style={{
+                    width: '100px',
                     height: '100px',
                     borderRadius: '50%',
                     objectFit: 'cover',
@@ -591,46 +614,47 @@ const handleTogglePush = async () => {
               {savingProfile ? t('settings.profile.saving') : t('settings.profile.save')}
             </Button>
           </form>
+          
           {/* ✅ Zone dangereuse */}
-<div
-  style={{
-    marginTop: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
-    borderTop: `1px solid ${colors.gray[200]}`,
-  }}
->
-  			<h4
-    			style={{
-      			margin: '0 0 8px 0',
-      			color: colors.danger,
-      			fontSize: '15px',
-    				}}
-  				>
-    			{t('settings.dangerZone.title')}
-  			</h4>
-  			<p
-    			style={{
-      		margin: '0 0 16px 0',
-      		fontSize: '13px',
-      		color: colors.gray[600],
-      		lineHeight: 1.6,
-    			}}
-  				>
-    			{t('settings.dangerZone.intro')}
-  			</p>
-  			<Button
-    			type="button"
-   			 	variant="outline"
-   			 	onClick={() => setShowDeleteModal(true)}
-   			 	style={{
-     			 borderColor: colors.danger,
-     			 color: colors.danger,
-      			fontWeight: 600,
-   					 }}
- 						 >
-   					 {t('settings.dangerZone.deleteButton')}
- 					 </Button>
-					</div>
+          <div
+            style={{
+              marginTop: theme.spacing.xl,
+              paddingTop: theme.spacing.lg,
+              borderTop: `1px solid ${colors.gray[200]}`,
+            }}
+          >
+            <h4
+              style={{
+                margin: '0 0 8px 0',
+                color: colors.danger,
+                fontSize: '15px',
+              }}
+            >
+              {t('settings.dangerZone.title')}
+            </h4>
+            <p
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '13px',
+                color: colors.gray[600],
+                lineHeight: 1.6,
+              }}
+            >
+              {t('settings.dangerZone.intro')}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteModal(true)}
+              style={{
+                borderColor: colors.danger,
+                color: colors.danger,
+                fontWeight: 600,
+              }}
+            >
+              {t('settings.dangerZone.deleteButton')}
+            </Button>
+          </div>
         </Card>
       )}
 
@@ -694,287 +718,255 @@ const handleTogglePush = async () => {
               <li>{t('settings.security.recommendation3')}</li>
             </ul>
           </div>
-{/* ✅ Section 2FA */}
-<div
-  style={{
-    marginTop: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
-    borderTop: `1px solid ${colors.gray[200]}`,
-  }}
->
-  <h4 style={{ marginTop: 0, marginBottom: '12px', color: colors.dark }}>
-    🔐 Authentification à deux facteurs (2FA)
-  </h4>
-  <TwoFactorSetup />
-</div>          
+
+          {/* ✅ Section 2FA */}
+          <div
+            style={{
+              marginTop: theme.spacing.xl,
+              paddingTop: theme.spacing.lg,
+              borderTop: `1px solid ${colors.gray[200]}`,
+            }}
+          >
+            <h4 style={{ marginTop: 0, marginBottom: '12px', color: colors.dark }}>
+              🔐 Authentification à deux facteurs (2FA)
+            </h4>
+            <TwoFactorSetup />
+          </div>          
         </Card>
       )}
 
-{/* ============================================================ */}
-{/* ONGLET NOTIFICATIONS */}
-{/* ============================================================ */}
-{activeTab === 'notifications' && (
-  <Card title={t('settings.notifications.title')}>
-    <p
-      style={{
-        margin: '0 0 20px 0',
-        fontSize: '14px',
-        color: colors.gray[600],
-        lineHeight: 1.6,
-      }}
-    >
-      {t('settings.notifications.intro')}
-    </p>
-
-    {loadingPrefs ? (
-      <p style={{ textAlign: 'center', color: colors.gray[500], fontSize: '14px' }}>
-        {t('common.loading')}
-      </p>
-    ) : (
-      <>
-        {/* ─── Section 1 : Notifications optionnelles ─── */}
-        <h4
-          style={{
-            margin: '0 0 4px 0',
-            fontSize: '15px',
-            color: colors.dark,
-          }}
-        >
-          {t('settings.notifications.sectionOptional')}
-        </h4>
-        <p
-          style={{
-            margin: '0 0 16px 0',
-            fontSize: '13px',
-            color: colors.gray[500],
-          }}
-        >
-          {t('settings.notifications.sectionOptionalHint')}
-        </p>
-
-        {[
-          { key: 'projectMemberAdded' as const, label: t('settings.notifications.projectMemberAdded'), hint: t('settings.notifications.projectMemberAddedHint'), icon: '👥' },
-          { key: 'transcriptionComplete' as const, label: t('settings.notifications.transcriptionComplete'), hint: t('settings.notifications.transcriptionCompleteHint'), icon: '🎙️' },
-          { key: 'summaryReady' as const, label: t('settings.notifications.summaryReady'), hint: t('settings.notifications.summaryReadyHint'), icon: '📝' },
-        ].map((item) => {
-          const isOn = emailPrefs[item.key];
-          const isSaving = savingPrefs === item.key;
-          return (
-            <div
-              key={item.key}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                marginBottom: '8px',
-                backgroundColor: colors.gray[50] || '#fafafa',
-                border: `1px solid ${colors.gray[200]}`,
-                borderRadius: theme.borderRadius.md,
-                opacity: isSaving ? 0.6 : 1,
-                transition: 'opacity 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 600, color: colors.dark, fontSize: '14px' }}>
-                    {item.label}
-                  </div>
-                  <div style={{ color: colors.gray[500], fontSize: '12px', marginTop: '2px' }}>
-                    {item.hint}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => togglePreference(item.key)}
-                disabled={isSaving}
-                aria-label={item.label}
-                style={{
-                  position: 'relative',
-                  width: '48px',
-                  height: '26px',
-                  borderRadius: '13px',
-                  border: 'none',
-                  cursor: isSaving ? 'wait' : 'pointer',
-                  backgroundColor: isOn ? colors.primary : colors.gray[300],
-                  transition: 'background-color 0.2s',
-                  flexShrink: 0,
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '3px',
-                    left: isOn ? '25px' : '3px',
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    backgroundColor: '#fff',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    transition: 'left 0.2s',
-                  }}
-                />
-              </button>
-            </div>
-          );
-        })}
-
-{/* ─── ✅ NOUVEAU : Notifications push navigateur ─── */}
-<h4
-  style={{
-    marginTop: '28px',
-    marginBottom: '4px',
-    fontSize: '15px',
-    color: colors.dark,
-  }}
->
-  {t('settings.push.sectionTitle')}
-</h4>
-<p
-  style={{
-    margin: '0 0 16px 0',
-    fontSize: '13px',
-    color: colors.gray[500],
-  }}
->
-  {t('settings.push.sectionHint')}
-</p>
-
-<div
-  style={{
-    padding: '14px 16px',
-    marginBottom: '8px',
-    backgroundColor: colors.gray[50] || '#fafafa',
-    border: `1px solid ${colors.gray[200]}`,
-    borderRadius: theme.borderRadius.md,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    flexWrap: 'wrap',
-    opacity: pushLoading ? 0.6 : 1,
-  }}
->
-  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-    <span style={{ fontSize: '20px' }}>🔔</span>
-    <div style={{ minWidth: 0 }}>
-      <div style={{ fontWeight: 600, color: colors.dark, fontSize: '14px' }}>
-        {t('settings.push.label')}
-      </div>
-      <div style={{ color: colors.gray[500], fontSize: '12px', marginTop: '2px' }}>
-        {!pushSupported
-          ? t('settings.push.unsupported')
-          : pushPermission === 'denied'
-          ? t('settings.push.denied')
-          : pushSubscribed
-          ? t('settings.push.active')
-          : t('settings.push.inactive')}
-      </div>
-    </div>
-  </div>
-
-  {pushSupported && pushPermission !== 'denied' && (
-    <button
-      type="button"
-      onClick={handleTogglePush}
-      disabled={pushLoading}
-      style={{
-        padding: '8px 16px',
-        backgroundColor: pushSubscribed ? colors.gray[300] : colors.primary,
-        color: pushSubscribed ? colors.dark : 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: pushLoading ? 'wait' : 'pointer',
-        fontSize: '13px',
-        fontWeight: 'bold',
-        whiteSpace: 'nowrap',
-        flexShrink: 0,
-      }}
-    >
-      {pushLoading
-        ? '…'
-        : pushSubscribed
-        ? t('settings.push.disableButton')
-        : t('settings.push.enableButton')}
-    </button>
-  )}
-
-  {pushPermission === 'denied' && (
-    <div style={{
-      fontSize: '11px',
-      color: colors.danger,
-      textAlign: 'right',
-      maxWidth: '200px',
-    }}>
-      ⚠️ {t('settings.push.deniedHint')}
-    </div>
-  )}
-</div>
-
-{/* ─── Section 2 : Notifications transactionnelles ─── */}
-<h4
-  style={{
-    marginTop: '28px',
-            marginBottom: '4px',
-            fontSize: '15px',
-            color: colors.dark,
-          }}
-        >
-          {t('settings.notifications.sectionTransactional')}
-        </h4>
-        <p
-          style={{
-            margin: '0 0 16px 0',
-            fontSize: '13px',
-            color: colors.gray[500],
-          }}
-        >
-          {t('settings.notifications.sectionTransactionalHint')}
-        </p>
-
-        <div
-          style={{
-            padding: '14px 16px',
-            backgroundColor: `${colors.primary}10`,
-            borderLeft: `3px solid ${colors.primary}`,
-            borderRadius: theme.borderRadius.md,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '16px' }}>🔒</span>
-            <strong style={{ color: colors.dark, fontSize: '13px' }}>
-              {t('settings.notifications.alwaysOn')}
-            </strong>
-          </div>
-          <ul
+      {/* ============================================================ */}
+      {/* ONGLET NOTIFICATIONS */}
+      {/* ============================================================ */}
+      {activeTab === 'notifications' && (
+        <Card title={t('settings.notifications.title')}>
+          <p
             style={{
-              margin: 0,
-              paddingLeft: '20px',
-              fontSize: '13px',
-              color: colors.gray[700],
-              lineHeight: 1.8,
+              margin: '0 0 20px 0',
+              fontSize: '14px',
+              color: colors.gray[600],
+              lineHeight: 1.6,
             }}
           >
-            <li>{t('settings.notifications.transactionalEmails.verification')}</li>
-            <li>{t('settings.notifications.transactionalEmails.passwordReset')}</li>
-            <li>{t('settings.notifications.transactionalEmails.emailChange')}</li>
-            <li>{t('settings.notifications.transactionalEmails.security')}</li>
-          </ul>
-        </div>
-      </>
-    )}
-  </Card>
-)}
+            {t('settings.notifications.intro')}
+          </p>
 
-{/* ============================================================ */}
-{/* ONGLET WEBHOOKS */}
-{/* ============================================================ */}
-{activeTab === 'webhooks' && (
-  <WebhooksSettings />
-)}
+          {loadingPrefs ? (
+            <p style={{ textAlign: 'center', color: colors.gray[500], fontSize: '14px' }}>
+              {t('common.loading')}
+            </p>
+          ) : (
+            <>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: colors.dark }}>
+                {t('settings.notifications.sectionOptional')}
+              </h4>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.gray[500] }}>
+                {t('settings.notifications.sectionOptionalHint')}
+              </p>
 
+              {[
+                { key: 'projectMemberAdded' as const, label: t('settings.notifications.projectMemberAdded'), hint: t('settings.notifications.projectMemberAddedHint'), icon: '👥' },
+                { key: 'transcriptionComplete' as const, label: t('settings.notifications.transcriptionComplete'), hint: t('settings.notifications.transcriptionCompleteHint'), icon: '🎙️' },
+                { key: 'summaryReady' as const, label: t('settings.notifications.summaryReady'), hint: t('settings.notifications.summaryReadyHint'), icon: '📝' },
+              ].map((item) => {
+                const isOn = emailPrefs[item.key];
+                const isSaving = savingPrefs === item.key;
+                return (
+                  <div
+                    key={item.key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '14px 16px',
+                      marginBottom: '8px',
+                      backgroundColor: colors.gray[50] || '#fafafa',
+                      border: `1px solid ${colors.gray[200]}`,
+                      borderRadius: theme.borderRadius.md,
+                      opacity: isSaving ? 0.6 : 1,
+                      transition: 'opacity 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                      <div>
+                        <div style={{ fontWeight: 600, color: colors.dark, fontSize: '14px' }}>
+                          {item.label}
+                        </div>
+                        <div style={{ color: colors.gray[500], fontSize: '12px', marginTop: '2px' }}>
+                          {item.hint}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => togglePreference(item.key)}
+                      disabled={isSaving}
+                      aria-label={item.label}
+                      style={{
+                        position: 'relative',
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        cursor: isSaving ? 'wait' : 'pointer',
+                        backgroundColor: isOn ? colors.primary : colors.gray[300],
+                        transition: 'background-color 0.2s',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          left: isOn ? '25px' : '3px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          backgroundColor: '#fff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                          transition: 'left 0.2s',
+                        }}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* ✅ NOUVEAU : Notifications push navigateur */}
+              <h4 style={{ marginTop: '28px', marginBottom: '4px', fontSize: '15px', color: colors.dark }}>
+                {t('settings.push.sectionTitle')}
+              </h4>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.gray[500] }}>
+                {t('settings.push.sectionHint')}
+              </p>
+
+              <div
+                style={{
+                  padding: '14px 16px',
+                  marginBottom: '8px',
+                  backgroundColor: colors.gray[50] || '#fafafa',
+                  border: `1px solid ${colors.gray[200]}`,
+                  borderRadius: theme.borderRadius.md,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  opacity: pushLoading ? 0.6 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: '20px' }}>🔔</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: colors.dark, fontSize: '14px' }}>
+                      {t('settings.push.label')}
+                    </div>
+                    <div style={{ color: colors.gray[500], fontSize: '12px', marginTop: '2px' }}>
+                      {!pushSupported
+                        ? t('settings.push.unsupported')
+                        : pushPermission === 'denied'
+                        ? t('settings.push.denied')
+                        : pushSubscribed
+                        ? t('settings.push.active')
+                        : t('settings.push.inactive')}
+                    </div>
+                  </div>
+                </div>
+
+                {pushSupported && pushPermission !== 'denied' && (
+                  <button
+                    type="button"
+                    onClick={handleTogglePush}
+                    disabled={pushLoading}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: pushSubscribed ? colors.gray[300] : colors.primary,
+                      color: pushSubscribed ? colors.dark : 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: pushLoading ? 'wait' : 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {pushLoading
+                      ? '…'
+                      : pushSubscribed
+                      ? t('settings.push.disableButton')
+                      : t('settings.push.enableButton')}
+                  </button>
+                )}
+
+                {pushPermission === 'denied' && (
+                  <div style={{
+                    fontSize: '11px',
+                    color: colors.danger,
+                    textAlign: 'right',
+                    maxWidth: '200px',
+                  }}>
+                    ⚠️ {t('settings.push.deniedHint')}
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 2 : Notifications transactionnelles ─── */}
+              <h4 style={{ marginTop: '28px', marginBottom: '4px', fontSize: '15px', color: colors.dark }}>
+                {t('settings.notifications.sectionTransactional')}
+              </h4>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.gray[500] }}>
+                {t('settings.notifications.sectionTransactionalHint')}
+              </p>
+
+              <div
+                style={{
+                  padding: '14px 16px',
+                  backgroundColor: `${colors.primary}10`,
+                  borderLeft: `3px solid ${colors.primary}`,
+                  borderRadius: theme.borderRadius.md,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>🔒</span>
+                  <strong style={{ color: colors.dark, fontSize: '13px' }}>
+                    {t('settings.notifications.alwaysOn')}
+                  </strong>
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: '20px',
+                    fontSize: '13px',
+                    color: colors.gray[700],
+                    lineHeight: 1.8,
+                  }}
+                >
+                  <li>{t('settings.notifications.transactionalEmails.verification')}</li>
+                  <li>{t('settings.notifications.transactionalEmails.passwordReset')}</li>
+                  <li>{t('settings.notifications.transactionalEmails.emailChange')}</li>
+                  <li>{t('settings.notifications.transactionalEmails.security')}</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* ============================================================ */}
+      {/* ONGLET WEBHOOKS */}
+      {/* ============================================================ */}
+      {activeTab === 'webhooks' && (
+        <WebhooksSettings />
+      )}
+
+      {/* ============================================================ */}
+      {/* ONGLET ORGANISATION (Conditionnel) */}
+      {/* ============================================================ */}
+      {activeTab === 'organization' && isOrgOwner && (
+        <OrganizationSettings />
+      )}
 
       {/* ============================================================ */}
       {/* ONGLET LANGUE */}
@@ -1193,7 +1185,6 @@ const handleTogglePush = async () => {
             {t('gdpr.intro')}
           </p>
 
-          {/* Volume de données */}
           <div
             style={{
               marginBottom: '24px',
@@ -1245,7 +1236,6 @@ const handleTogglePush = async () => {
             )}
           </div>
 
-          {/* Contenu / Exclusions */}
           <div
             style={{
               display: 'grid',
@@ -1310,7 +1300,6 @@ const handleTogglePush = async () => {
             </div>
           </div>
 
-          {/* Bouton de téléchargement */}
           <Button
             variant="primary"
             onClick={handleExportGdpr}
@@ -1332,25 +1321,25 @@ const handleTogglePush = async () => {
           </p>
         </Card>
       )}
-{/* ✅ Modal de suppression de compte */}
-<DeleteAccountModal
-  isOpen={showDeleteModal}
-  onClose={() => setShowDeleteModal(false)}
-  onSuccess={() => {
-    setShowDeleteModal(false);
-    toast.addToast({
-      type: 'success',
-      title: t('settings.dangerZone.successTitle'),
-      message: t('settings.dangerZone.successMessage'),
-    });
-    // Déconnexion après 3s
-    setTimeout(() => {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }, 3000);
-  }}
-/>
+      
+      {/* ✅ Modal de suppression de compte */}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onSuccess={() => {
+          setShowDeleteModal(false);
+          toast.addToast({
+            type: 'success',
+            title: t('settings.dangerZone.successTitle'),
+            message: t('settings.dangerZone.successMessage'),
+          });
+          setTimeout(() => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+          }, 3000);
+        }}
+      />
     </div>
   );
 };

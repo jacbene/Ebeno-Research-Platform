@@ -609,6 +609,22 @@
   "anonymous": "Anonymous",
   "noLogs": "No audit logs at the moment."
 },
+"organization": {
+  "tab": "🏢 Organisation",
+  "loadError": "Impossible de charger les données de l'organisation.",
+  "invalidEmail": "Adresse email invalide.",
+  "inviteSuccess": "Invitation envoyée avec succès !",
+  "inviteError": "Erreur lors de l'envoi de l'invitation.",
+  "plan": "Plan",
+  "seatsUsed": "Sièges utilisés",
+  "inviteTitle": "Inviter un nouveau membre",
+  "seatsFull": "Tous les sièges sont occupés. Ajoutez des sièges supplémentaires pour inviter plus de membres.",
+  "emailPlaceholder": "Email du chercheur...",
+  "inviteButton": "Inviter",
+  "membersTitle": "Membres de l'équipe",
+  "pendingTitle": "Invitations en attente",
+  "pending": "En attente"
+},
   "textUpload": {
     "title": "📄 Import text",
     "targetProject": "📁 Target project:",

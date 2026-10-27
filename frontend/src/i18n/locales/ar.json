@@ -609,6 +609,22 @@
   "anonymous": "مجهول",
   "noLogs": "لا توجد سجلات تدقيق في الوقت الحالي."
 },
+"organization": {
+  "tab": "🏢 المنظمة",
+  "loadError": "تعذر تحميل بيانات المنظمة.",
+  "invalidEmail": "عنوان بريد إلكتروني غير صالح.",
+  "inviteSuccess": "تم إرسال الدعوة بنجاح!",
+  "inviteError": "خطأ في إرسال الدعوة.",
+  "plan": "الخطة",
+  "seatsUsed": "المقاعد المستخدمة",
+  "inviteTitle": "دعوة عضو جديد",
+  "seatsFull": "جميع المقاعد مشغولة. أضف مقاعد إضافية لدعوة المزيد من الأعضاء.",
+  "emailPlaceholder": "البريد الإلكتروني للباحث...",
+  "inviteButton": "دعوة",
+  "membersTitle": "أعضاء الفريق",
+  "pendingTitle": "الدعوات المعلقة",
+  "pending": "معلق"
+},
   "textUpload": {
     "title": "📄 استيراد نص",
     "targetProject": "📁 المشروع المستهدف:",
