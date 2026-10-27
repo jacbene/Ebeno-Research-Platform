@@ -56,13 +56,22 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
       const userId = data.custom_data?.userId;
       
       if (userId) {
+        // ✅ Détecter si c'est un plan Institution
+        const instMonthlyPriceId = process.env.PADDLE_PRICE_ID_INST_MONTHLY;
+        const instYearlyPriceId = process.env.PADDLE_PRICE_ID_INST_YEARLY;
+        const isInstitution = data.items?.some((item: any) => 
+          item.price?.id === instMonthlyPriceId || item.price?.id === instYearlyPriceId
+        );
+
+        const planName = isInstitution ? 'institution' : 'pro';
+
         const existingSub = await db('subscriptions').where({ user_id: userId }).first();
         
         const subData = {
           user_id: userId,
           paddle_subscription_id: data.id,
           paddle_customer_id: data.customer_id,
-          plan: 'pro',
+          plan: planName,
           status: data.status,
           current_period_end: data.current_billing_period?.ends_at,
           updated_at: new Date()
@@ -74,22 +83,51 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
         } else {
           await db('subscriptions').insert({ ...subData, created_at: new Date() });
           console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
+        }
 
-          // ✅ ENVOI DE L'EMAIL DE CONFIRMATION (uniquement à la création)
-          try {
-            const user = await db('users').where({ id: userId }).first();
-            if (user) {
-              await sendSubscriptionConfirmationEmail({
-                to: user.email,
-                name: user.name || 'chercheur',
-                plan: 'pro',
-                nextDate: data.current_billing_period?.ends_at,
-                lang: user.language || 'fr',
-              });
-            }
-          } catch (emailErr: any) {
-            console.error('❌ Erreur envoi email abonnement:', emailErr.message);
+        // ✅ Si Institution, créer l'organisation
+        if (isInstitution) {
+          const existingOrg = await db('organizations').where({ owner_id: userId }).first();
+          
+          if (!existingOrg) {
+            // ✅ Correction du destructuring Knex
+            const [{ id: orgId }] = await db('organizations').insert({
+              name: `Organisation de ${userId}`,
+              owner_id: userId,
+              paddle_subscription_id: data.id,
+              paddle_customer_id: data.customer_id,
+              plan: 'institution',
+              max_seats: 5,
+              created_at: new Date(),
+              updated_at: new Date()
+            }).returning('id');
+
+            // Ajouter le créateur comme membre 'owner'
+            await db('organization_members').insert({
+              organization_id: orgId,
+              user_id: userId,
+              role: 'owner',
+              joined_at: new Date()
+            });
+
+            console.log(`🏢 Organisation créée pour l'utilisateur ${userId} (5 sièges)`);
           }
+        }
+
+        // ✅ Envoi de l'e-mail de confirmation
+        try {
+          const user = await db('users').where({ id: userId }).first();
+          if (user) {
+            await sendSubscriptionConfirmationEmail({
+              to: user.email,
+              name: user.name || 'chercheur',
+              plan: planName,
+              nextDate: data.current_billing_period?.ends_at,
+              lang: user.language || 'fr',
+            });
+          }
+        } catch (emailErr: any) {
+          console.error('❌ Erreur envoi email abonnement:', emailErr.message);
         }
       }
     } 
@@ -100,33 +138,33 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
       console.log(`🚫 Abonnement annulé : ${data.id}`);
     }
     else if (event_type === 'transaction.completed') {
-  const userId = data.custom_data?.userId;
-  
-  // ✅ On vérifie si c'est bien un achat PAYG via l'ID de prix (variable backend)
-  const paygPriceId = process.env.PADDLE_PRICE_ID_PAYG;
-  const isPayg = data.items?.some((item: any) => item.price?.id === paygPriceId);
+      const userId = data.custom_data?.userId;
+      
+      // ✅ On vérifie si c'est bien un achat PAYG via l'ID de prix (variable backend)
+      const paygPriceId = process.env.PADDLE_PRICE_ID_PAYG;
+      const isPayg = data.items?.some((item: any) => item.price?.id === paygPriceId);
 
-  if (isPayg && userId) {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    
-    // ✅ On ajoute 1000 crédits bonus (sans écraser le compteur existant)
-    const usage = await db('ai_usage').where({ user_id: userId, month: currentMonth }).first();
-    
-    if (usage) {
-      await db('ai_usage')
-        .where({ id: usage.id })
-        .increment('bonus_credits', 1000);
-    } else {
-      await db('ai_usage').insert({
-        user_id: userId,
-        month: currentMonth,
-        messages_used: 0,
-        bonus_credits: 1000
-      });
+      if (isPayg && userId) {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        
+        // ✅ On ajoute 1000 crédits bonus (sans écraser le compteur existant)
+        const usage = await db('ai_usage').where({ user_id: userId, month: currentMonth }).first();
+        
+        if (usage) {
+          await db('ai_usage')
+            .where({ id: usage.id })
+            .increment('bonus_credits', 1000);
+        } else {
+          await db('ai_usage').insert({
+            user_id: userId,
+            month: currentMonth,
+            messages_used: 0,
+            bonus_credits: 1000
+          });
+        }
+        console.log(`⚡ [Paddle] 1000 crédits PAYG ajoutés pour l'utilisateur ${userId}`);
+      }
     }
-    console.log(`⚡ [Paddle] 1000 crédits PAYG ajoutés pour l'utilisateur ${userId}`);
-  }
-}
 
     // 5. Enregistrement de l'événement pour l'idempotence
     await db('webhook_events').insert({
