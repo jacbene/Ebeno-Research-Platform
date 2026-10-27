@@ -42,46 +42,45 @@ router.delete('/:id', deleteUser);
 // ✅ Routes RGPD (authentifiées)
 router.get('/me/export-info', authenticate, getExportInfo);
 router.get('/me/export-data', authenticate, exportMyData);
-// ✅ Route pour générer un lien vers le portail client Paddle
 router.post('/me/billing-portal', authenticate, async (req: any, res: any) => {
   try {
     const userId = req.user.id;
-
-    // 1. Récupérer l'abonnement de l'utilisateur dans ta base
     const subscription = await db('subscriptions')
       .where({ user_id: userId, status: 'active' })
       .first();
 
     if (!subscription || !subscription.paddle_customer_id) {
       return res.status(404).json({ 
-        error: "Aucun abonnement actif trouvé pour cet utilisateur.",
+        error: "Aucun abonnement actif ou ID client Paddle manquant.",
         code: 'NO_SUBSCRIPTION'
       });
     }
 
-    // 2. Initialiser le SDK Paddle
     const paddle = new Paddle(process.env.PADDLE_API_KEY!, {
       environment: process.env.PADDLE_ENVIRONMENT === 'sandbox' 
         ? Environment.sandbox 
         : Environment.production,
     });
 
-    // 3. Créer la session de portail
     const session = await paddle.customerPortalSessions.create(
       subscription.paddle_customer_id,
       [subscription.paddle_subscription_id]
     );
 
-    // 4. Renvoyer le lien vers le portail (page générale)
-    const portalUrl = session.urls.general.overview;
-
-    res.json({ 
-      success: true, 
-      url: portalUrl 
-    });
+    res.json({ success: true, url: session.urls.general.overview });
 
   } catch (error: any) {
     console.error('❌ Erreur création portail Paddle:', error);
+    
+    // ✅ Gestion spécifique du conflit d'environnement
+    if (error.code === 'not_found' && error.detail?.includes('customer')) {
+      return res.status(400).json({ 
+        error: "Ce client n'existe pas dans l'environnement Paddle actuel (Sandbox vs Live). Veuillez contacter le support.",
+        code: 'CUSTOMER_NOT_FOUND_IN_ENV',
+        details: error.detail
+      });
+    }
+
     res.status(500).json({ 
       error: "Impossible de générer le lien du portail client.",
       details: error.message 
