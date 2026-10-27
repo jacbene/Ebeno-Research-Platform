@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'node:path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -7,8 +8,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     server: {
-      port: 3000,
+      port: 5173, // ✅ Changé de 3000 à 5173 pour éviter les conflits de cache Android
       host: true,
       watch: {
         usePolling: false,
@@ -23,12 +29,35 @@ export default defineConfig(({ mode }) => {
       outDir: 'build',
       sourcemap: true,
       target: 'es2020',
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-i18n': ['i18next', 'react-i18next'],
-            'vendor-socket': ['socket.io-client'],
+          // ✅ Séparation intelligente des bibliothèques lourdes
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('recharts') || id.includes('d3') || id.includes('chart.js')) {
+                return 'vendor-charts';
+              }
+              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html2pdf')) {
+                return 'vendor-pdf';
+              }
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'vendor-react';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('socket.io')) {
+                return 'vendor-socket';
+              }
+              if (id.includes('i18next') || id.includes('react-i18next')) {
+                return 'vendor-i18n';
+              }
+              if (id.includes('sentry')) {
+                return 'vendor-sentry';
+              }
+              return 'vendor-core';
+            }
           },
         },
       },
