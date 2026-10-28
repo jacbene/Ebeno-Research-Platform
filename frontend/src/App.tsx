@@ -1,7 +1,7 @@
 // src/App.tsx
 import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
-import * as Sentry from '@sentry/react';
+//import * as Sentry from '@sentry/react';
 import { ThemeProvider } from './context/ThemeContext';
 import { api } from './services/api';
 import { Layout } from './components/layout/Layout';
@@ -529,17 +529,14 @@ const App: React.FC = () => {
       <LanguageProvider>
         <ToastProvider>
           <Router future={{ v7_relativeSplatPath: true }}>
-            {/* ✅ DOUBLE PROTECT7ION : Sentry + ErrorBoundary custom */}
-            <Sentry.ErrorBoundary fallback={SentryFallback} showDialog={false}>
-              <ErrorBoundary>
-                <AppRoutes
-                  isAuthenticated={isAuthenticated}
-                  user={user}
-                  onLogin={handleLogin}
-                  onLogout={handleLogout}
-                />
-              </ErrorBoundary>
-            </Sentry.ErrorBoundary>
+         <ErrorBoundary>
+  <AppRoutes
+    isAuthenticated={isAuthenticated}
+    user={user}
+    onLogin={handleLogin}
+    onLogout={handleLogout}
+  />
+</ErrorBoundary>
           </Router>
          <ToastContainer />
 				 <InstallBanner />
