@@ -1,7 +1,6 @@
 // frontend/src/context/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18next';
 import { api } from '../services/api';
 
 export interface Language {
@@ -18,6 +17,7 @@ interface LanguageContextValue {
   t: (key: string, options?: any) => string;
 }
 
+// ✅ Liste statique : plus besoin d'appeler l'API au démarrage !
 const FALLBACK_LANGUAGES: Language[] = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -30,71 +30,54 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t: i18nT, i18n: i18nInstance } = useTranslation();
-  const [language, setLanguage] = useState<string>('fr');
-  const [supportedLanguages, setSupportedLanguages] = useState<Language[]>(FALLBACK_LANGUAGES);
-  const [loading, setLoading] = useState(true);
+  
+  // ✅ Initialisation instantanée (0 ms)
+  const [language, setLanguage] = useState<string>(i18nInstance.language || 'fr');
+  const [supportedLanguages] = useState<Language[]>(FALLBACK_LANGUAGES);
+  const [loading, setLoading] = useState(false); // ✅ On ne bloque plus l'app
 
-  // ✅ Chargement initial — UNE SEULE FOIS au mount
+  // ✅ Synchronisation de la langue utilisateur en arrière-plan
   useEffect(() => {
     let cancelled = false;
 
-    const loadLanguage = async () => {
-      try {
-        // 1. Langues supportées (endpoint public, toujours OK)
-        const supportedRes = await api.get('/language/supported');
-        if (!cancelled && supportedRes.data?.success) {
-          setSupportedLanguages(supportedRes.data.data);
-        }
+    const syncUserLanguage = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return; // Pas connecté → on garde la langue du navigateur
 
-        // 2. ✅ Langue utilisateur SEULEMENT si connecté (token présent)
-        const token = localStorage.getItem('authToken');
-        if (token && !cancelled) {
-          try {
-            const meRes = await api.get('/language/me');
-            if (!cancelled && meRes.data?.success) {
-              const userLang = meRes.data.data.language;
-              setLanguage(userLang);
-              if (i18nInstance.language !== userLang) {
-                await i18nInstance.changeLanguage(userLang);
-              }
-            }
-          } catch (err: any) {
-            // ✅ 401 = normal si token expiré → on ignore SILENCIEUSEMENT
-            if (err.response?.status !== 401) {
-              console.warn('[language] /language/me échoué:', err.message);
-            }
+      try {
+        const meRes = await api.get('/language/me');
+        if (!cancelled && meRes.data?.success) {
+          const userLang = meRes.data.data.language;
+          if (userLang && i18nInstance.language !== userLang) {
+            setLanguage(userLang);
+            await i18nInstance.changeLanguage(userLang);
           }
         }
-      } catch (error) {
-        // Fallback navigateur
-        if (!cancelled) {
-          const navLang = navigator.language?.split('-')[0] || 'fr';
-          const supported = FALLBACK_LANGUAGES.map((l) => l.code);
-          const detected = supported.includes(navLang) ? navLang : 'fr';
-          setLanguage(detected);
-          await i18nInstance.changeLanguage(detected);
+      } catch (err: any) {
+        if (err.response?.status !== 401) {
+          console.warn('[language] /language/me échoué:', err.message);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
 
-    loadLanguage();
+    syncUserLanguage();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ Mount only — pas de dépendance i18nInstance (stable)
+  }, [i18nInstance]);
 
-  // ✅ Changer la langue (sync i18next + backend)
+  // ✅ Changer la langue
   const changeLanguage = useCallback(
     async (code: string) => {
       const previous = language;
-      setLanguage(code); // Optimistic
+      setLanguage(code); // Optimistic UI
 
       try {
         await i18nInstance.changeLanguage(code);
-        await api.put('/language/me', { language: code });
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          await api.put('/language/me', { language: code });
+        }
       } catch (error) {
-        // Rollback
+        // Rollback en cas d'erreur
         setLanguage(previous);
         await i18nInstance.changeLanguage(previous);
         throw error;
