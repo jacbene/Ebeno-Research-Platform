@@ -60,6 +60,11 @@ const initSentry = async () => {
         tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
         enabled: import.meta.env.MODE === 'production',
         
+        // ✅ On désactive explicitement les modules lourds (Replay & Feedback)
+        integrations: (defaults) => defaults.filter((integration) => 
+          !['Replay', 'Feedback', 'ReplayCanvas'].includes(integration.name)
+        ),
+        
         // ✅ Filtrer les données sensibles avant envoi à Sentry
         beforeSend(event) {
           if (event.request?.headers) {
@@ -78,17 +83,11 @@ const initSentry = async () => {
         },
         
         ignoreErrors: [
-          'Network request failed',
-          'Failed to fetch',
-          'NetworkError',
-          'Load failed',
-          'AbortError',
-          'ChunkLoadError',
+          'Network request failed', 'Failed to fetch', 'NetworkError',
+          'Load failed', 'AbortError', 'ChunkLoadError',
         ],
       });
-      console.log(`✅ [Sentry] Frontend initialisé (${import.meta.env.MODE})`);
-    } else {
-      console.log('ℹ️  [Sentry] DSN non configuré — monitoring désactivé');
+      console.log(`✅ [Sentry] Frontend initialisé`);
     }
   } catch (err) {
     console.warn('⚠️ [Sentry] Impossible de charger le SDK:', err);
