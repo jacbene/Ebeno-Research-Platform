@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { registerSW } from 'virtual:pwa-register';
 
 // ✅ i18n INLINE (pas de fichier séparé → pas de tree-shaking)
 import i18n from 'i18next';
@@ -13,6 +14,11 @@ import en from './i18n/locales/en.json';
 import es from './i18n/locales/es.json';
 import pt from './i18n/locales/pt.json';
 import ar from './i18n/locales/ar.json';
+
+// ✅ Enregistrement automatique du Service Worker
+if ('serviceWorker' in navigator) {
+  registerSW({ immediate: true });
+}
 
 i18n
   .use(LanguageDetector)
