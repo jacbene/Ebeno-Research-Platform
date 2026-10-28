@@ -495,15 +495,22 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleLogin = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch { /* ignore */ }
-    }
-    startTransition(() => setIsAuthenticated(true));
-  };
+const handleLogin = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      setUser(JSON.parse(userStr));
+    } catch { /* ignore */ }
+  }
+  startTransition(() => setIsAuthenticated(true));
+
+  // ✅ Redirection après connexion si un paramètre ?redirect= existe
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get('redirect');
+  if (redirect) {
+    window.location.href = redirect;
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');

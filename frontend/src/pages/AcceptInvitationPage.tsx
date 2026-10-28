@@ -81,17 +81,29 @@ export default function AcceptInvitationPage() {
               Vous avez été invité à rejoindre l'organisation <strong>{invitation?.organization_name}</strong>.
             </p>
 
-            {!currentUser ? (
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6 text-sm text-blue-800 dark:text-blue-200">
-                Vous devez être connecté avec l'adresse <strong>{invitation?.email}</strong> pour accepter.
-              </div>
-            ) : (
-              currentUser.email.toLowerCase() !== invitation?.email.toLowerCase() && (
-                <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg mb-6 text-sm text-red-800 dark:text-red-200">
-                  ⚠️ Vous êtes connecté en tant que <strong>{currentUser.email}</strong>, mais l'invitation a été envoyée à <strong>{invitation?.email}</strong>.
-                </div>
-              )
-            )}
+{!currentUser ? (
+  <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6 text-sm text-blue-800 dark:text-blue-200">
+    Vous devez être connecté avec l'adresse <strong>{invitation?.email}</strong> pour accepter.
+  </div>
+) : (
+  currentUser.email.toLowerCase() !== invitation?.email.toLowerCase() && (
+    <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg mb-6 text-sm text-red-800 dark:text-red-200">
+      <p className="mb-3">
+        ⚠️ Vous êtes connecté en tant que <strong>{currentUser.email}</strong>, mais l'invitation a été envoyée à <strong>{invitation?.email}</strong>.
+      </p>
+      <button
+        onClick={() => {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          navigate(`/login?redirect=${encodeURIComponent(`/join-org?token=${token}`)}`);
+        }}
+        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+      >
+        Se déconnecter et changer de compte
+      </button>
+    </div>
+  )
+)}
 
             <button
               onClick={handleAccept}
