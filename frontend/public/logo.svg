@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fond bleu Ebeno avec coins arrondis -->
+  <rect width="512" height="512" rx="100" fill="#4A6CF7"/>
+  
+  <!-- Emoji chapeau de diplômé -->
+  <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-size="200" font-family="Arial, sans-serif">🎓</text>
+  
+  <!-- Texte "Ebeno" en bas -->
+  <text x="50%" y="80%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="64" fill="#ffffff" letter-spacing="4">EBENO</text>
+</svg>
