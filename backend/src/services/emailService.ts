@@ -506,6 +506,55 @@ export const sendSubscriptionConfirmationEmail = async ({ to, name, plan, nextDa
 };
 
 // ────────────────────────────────────────────────────────────
+// 10. Invitation à rejoindre une organisation
+// ────────────────────────────────────────────────────────────
+
+export interface SendOrgInvitationParams {
+  to: string;
+  inviterName: string;
+  organizationName: string;
+  token: string;
+  lang?: string;
+}
+
+export const sendOrgInvitationEmail = async ({
+  to,
+  inviterName,
+  organizationName,
+  token,
+  lang,
+}: SendOrgInvitationParams): Promise<boolean> => {
+  if (!BREVO_API_KEY) return false;
+
+  const L = normalizeLang(lang);
+  const S = EMAIL_STRINGS[L];
+  const inviteUrl = `${APP_URL}/join-org?token=${encodeURIComponent(token)}`;
+
+  const content = `
+    <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${S.inviteGreeting}</h2>
+    <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">
+      ${interpolate(S.inviteIntro, { owner: inviterName, organization: organizationName })}
+    </p>
+    <div style="text-align:center;"><a href="${inviteUrl}" style="${buttonStyle}">${S.inviteButton}</a></div>
+    <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.inviteNote}</p>
+    <p style="color:#6c757d;font-size:11px;background-color:#f8f9fa;padding:10px;border-radius:6px;word-break:break-all;font-family:monospace;margin:8px 0 0 0;">${inviteUrl}</p>
+  `;
+
+  const result = await sendViaBrevo({
+    to: [{ email: to }],
+    subject: interpolate(S.inviteSubject, { organization: organizationName }),
+    htmlContent: htmlWrapper(content, L),
+  });
+
+  if (result.success) {
+    logger.info(`✅ [email] Invitation envoyée à ${to} pour ${organizationName}`);
+    return true;
+  }
+  logger.error(`❌ [email] Échec invitation à ${to}: ${result.error}`);
+  return false;
+};
+
+// ────────────────────────────────────────────────────────────
 // 6. Vérification config (démarrage)
 // ────────────────────────────────────────────────────────────
 

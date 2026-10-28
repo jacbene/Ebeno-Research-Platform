@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { db } from '../db/knex';
+import { sendOrgInvitationEmail } from '../services/emailService';
 import crypto from 'crypto';
 
 const router = Router();
@@ -110,8 +111,17 @@ router.post('/invite', authenticate, requireOrgOwner, async (req: any, res: any)
       updated_at: new Date()
     });
 
-    // TODO: Envoyer l'email via Brevo avec le lien /join-org?token=xxx
-    console.log(`📧 Invitation générée pour ${email} (Token: ${token.substring(0, 8)}...)`);
+   // Récupérer le nom du propriétaire pour l'email
+const owner = await db('users').where({ id: req.user.id }).first();
+
+await sendOrgInvitationEmail({
+  to: email.toLowerCase().trim(),
+  inviterName: owner?.name || owner?.email || 'Un administrateur',
+  organizationName: org.name,
+  token: token,
+  lang: 'fr',
+});
+console.log(`📧 Invitation envoyée à ${email} pour ${org.name}`);
 
     res.json({ success: true, message: "Invitation envoyée avec succès." });
 

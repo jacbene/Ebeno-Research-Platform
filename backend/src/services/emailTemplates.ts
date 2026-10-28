@@ -57,6 +57,13 @@ export interface EmailStrings {
   subConfirmIntro: string;
   subConfirmButton: string;
   subConfirmNote: string;
+
+  inviteSubject: string;
+	inviteGreeting: string;
+	inviteIntro: string;
+	inviteButton: string;
+
+	inviteNote: string;
 }
 
 export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
@@ -115,6 +122,11 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     subConfirmIntro: "Merci pour votre confiance. Votre abonnement au plan {plan} est maintenant actif.",
     subConfirmButton: "Voir mon tableau de bord",
     subConfirmNote: "Votre prochaine facturation aura lieu le {date}.",
+    inviteSubject: "Invitation à rejoindre {organization}",
+inviteGreeting: "Bonjour,",
+inviteIntro: "{owner} vous invite à rejoindre l'organisation \"{organization}\" sur Ebeno Research Platform.",
+inviteButton: "Rejoindre l'organisation",
+inviteNote: "Cette invitation est valable 7 jours. Si vous n'attendiez pas cet email, ignorez-le.",
   },
   en: {
     tagline: 'Collaborative research platform',
@@ -171,6 +183,11 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     subConfirmIntro: "Thank you for your trust. Your subscription to the {plan} plan is now active.",
     subConfirmButton: "View my dashboard",
     subConfirmNote: "Your next billing will occur on {date}.",
+    inviteSubject: "Invitation to join {organization}",
+inviteGreeting: "Hello,",
+inviteIntro: "{owner} invites you to join \"{organization}\" on Ebeno Research Platform.",
+inviteButton: "Join organization",
+inviteNote: "This invitation is valid for 7 days. If you weren't expecting this, ignore this email.",
   },
   es: {
     tagline: 'Plataforma de investigación colaborativa',
@@ -227,6 +244,11 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     subConfirmIntro: "Gracias por tu confianza. Tu suscripción al plan {plan} ahora está activa.",
     subConfirmButton: "Ver mi panel",
     subConfirmNote: "Tu próxima facturación será el {date}.",
+    inviteSubject: "Invitation à rejoindre {organization}",
+inviteGreeting: "Bonjour,",
+inviteIntro: "{owner} vous invite à rejoindre l'organisation \"{organization}\" sur Ebeno Research Platform.",
+inviteButton: "Rejoindre l'organisation",
+inviteNote: "Cette invitation est valable 7 jours. Si vous n'attendiez pas cet email, ignorez-le.",
   },
   pt: {
     tagline: 'Plataforma de pesquisa colaborativa',
@@ -283,7 +305,11 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     subConfirmIntro: "Obrigado pela sua confiança. Sua assinatura do plano {plan} agora está ativa.",
     subConfirmButton: "Ver meu painel",
     subConfirmNote: "Sua próxima cobrança será em {date}.",
-  },
+    inviteSubject: "Invitation à rejoindre {organization}",
+inviteGreeting: "Bonjour,",
+inviteIntro: "{owner} vous invite à rejoindre l'organisation \"{organization}\" sur Ebeno Research Platform.",
+inviteButton: "Rejoindre l'organisation",
+inviteNote: "Cette invitation est valable 7 jours. Si vous n'attendiez pas cet email, ignorez-le.",  },
   ar: {
     tagline: 'منصة البحث التعاوني',
     footerNote: 'تم إرسال هذا البريد الإلكتروني تلقائيًا، يرجى عدم الرد عليه.',
@@ -339,6 +365,11 @@ export const EMAIL_STRINGS: Record<Lang, EmailStrings> = {
     subConfirmIntro: "شكرًا لثقتك. اشتراكك في خطة {plan} نشط الآن.",
     subConfirmButton: "عرض لوحة التحكم",
     subConfirmNote: "ستتم فاتورتك التالية في {date}.",
+    inviteSubject: "Invitation à rejoindre {organization}",
+inviteGreeting: "Bonjour,",
+inviteIntro: "{owner} vous invite à rejoindre l'organisation \"{organization}\" sur Ebeno Research Platform.",
+inviteButton: "Rejoindre l'organisation",
+inviteNote: "Cette invitation est valable 7 jours. Si vous n'attendiez pas cet email, ignorez-le.",
   },
 };
 
