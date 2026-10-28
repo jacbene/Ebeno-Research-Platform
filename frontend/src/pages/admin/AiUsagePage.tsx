@@ -57,12 +57,15 @@ export default function AiUsagePage() {
               </thead>
               <tbody>
                 {usage.map((u) => {
-                  const isPro = u.subscription_plan === 'pro';
-                  const baseLimit = isPro ? 2000 : 50;
-                  const bonus = u.bonus_credits || 0;
-                  const limit = baseLimit + bonus;
-                  
-                  const used = u.messages_used || 0;
+  const isOrg = !!u.org_id;
+  const isPro = u.subscription_plan === 'pro' || u.subscription_plan === 'institution';
+  
+  // ✅ Si membre d'une org, on affiche le quota de l'org (10 000)
+  const baseLimit = isOrg ? 10000 : (isPro ? 2000 : 50);
+  const bonus = isOrg ? (u.org_bonus_credits || 0) : (u.bonus_credits || 0);
+  const limit = baseLimit + bonus;
+  
+  const used = isOrg ? (u.org_messages_used || 0) : (u.messages_used || 0);
                   const percent = Math.min((used / limit) * 100, 100);
                   return (
                     <tr key={u.id} className="border-b border-gray-700 hover:bg-gray-750">

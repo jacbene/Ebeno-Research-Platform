@@ -189,7 +189,10 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
         'users.role',
         'ai_usage.messages_used',
         'ai_usage.bonus_credits',
-        'subscriptions.plan as subscription_plan'
+        'subscriptions.plan as subscription_plan',
+        'organization_members.organization_id as org_id',
+        'organization_usage.messages_used as org_messages_used',
+        'organization_usage.bonus_credits as org_bonus_credits'
       )
       .leftJoin('ai_usage', function() {
         this.on('users.id', '=', 'ai_usage.user_id')
@@ -198,6 +201,11 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
       .leftJoin('subscriptions', function() {
         this.on('users.id', '=', 'subscriptions.user_id')
             .andOn('subscriptions.status', '=', db.raw('?', ['active']));
+      })
+      .leftJoin('organization_members', 'users.id', '=', 'organization_members.user_id')
+      .leftJoin('organization_usage', function() {
+        this.on('organization_members.organization_id', '=', 'organization_usage.organization_id')
+            .andOn('organization_usage.month', '=', db.raw('?', [currentMonth]));
       })
       .orderBy('ai_usage.messages_used', 'desc');
 
