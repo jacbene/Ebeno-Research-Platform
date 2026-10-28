@@ -10,46 +10,48 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      VitePWA({
-        strategies: 'injectManifest',
-        srcDir: 'src',
-        filename: 'sw.ts',
-        registerType: 'autoUpdate',
-        injectManifest: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        },
-        manifest: {
-  name: 'Ebeno Research Platform',
-  short_name: 'Ebeno',
-  description: 'Plateforme de recherche collaborative augmentée par l\'IA',
-  theme_color: '#4A6CF7',
-  background_color: '#ffffff',
-  display: 'standalone',
-  orientation: 'portrait',
-  start_url: '/',
-  scope: '/',
-  icons: [
-    {
-      src: '/icons/icon-192x192.png',
-      sizes: '192x192',
-      type: 'image/png',
-      purpose: 'any',
-    },
-    {
-      src: '/icons/icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'any',
-    },
-    {
-      src: '/icons/maskable-icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'maskable',
-    },
-  ],
-},
-      })
+    VitePWA({
+  strategies: 'injectManifest',
+  srcDir: 'src',
+  filename: 'sw.ts',
+  registerType: 'autoUpdate',
+  injectManifest: {
+    globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+  },
+  manifest: {
+    name: 'Ebeno Research Platform',
+    short_name: 'Ebeno',
+    description: 'Plateforme de recherche collaborative augmentée par l\'IA',
+    theme_color: '#4A6CF7',
+    background_color: '#ffffff',
+    display: 'standalone',
+    orientation: 'portrait',
+    start_url: '/',
+    scope: '/',
+    lang: 'fr',
+    categories: ['education', 'productivity', 'research'],
+    icons: [
+      {
+        src: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/maskable-icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+  },
+}),
     ],
     resolve: {
       alias: {
