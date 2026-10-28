@@ -15,11 +15,6 @@ import es from './i18n/locales/es.json';
 import pt from './i18n/locales/pt.json';
 import ar from './i18n/locales/ar.json';
 
-// ✅ Enregistrement automatique du Service Worker
-if ('serviceWorker' in navigator) {
-  registerSW({ immediate: true });
-}
-
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -106,6 +101,11 @@ const initSentry = async () => {
 
 // Lance Sentry 1 seconde après le rendu initial
 setTimeout(initSentry, 1000);
+
+// ✅ Enregistrement du Service Worker
+if ('serviceWorker' in navigator) {
+  registerSW({ immediate: true });
+}
 
 // ============================================================
 // RENDU REACT
