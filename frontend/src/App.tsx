@@ -52,6 +52,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AcceptInvitationPage = lazy(() => import('./pages/AcceptInvitationPage'));
 
 // ============================================================
 // LOADER
@@ -386,11 +387,12 @@ return (
 			<Route path="/pricing" element={<PricingPage />} />
       <Route path="/refunds" element={<RefundPolicy />} />
       <Route path="/contact" element={<ContactPage />} />
+			<Route path="/join-org" element={<AcceptInvitationPage />} />
 
-{/* ✅ LANDING PUBLIQUE (visible uniquement si non connecté) */}
-<Route path="/" element={
-  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
-} />
+			{/* ✅ LANDING PUBLIQUE (visible uniquement si non connecté) */}
+			<Route path="/" element={
+			  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
+			} />
       {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
       <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

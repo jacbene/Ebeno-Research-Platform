@@ -121,4 +121,93 @@ router.post('/invite', authenticate, requireOrgOwner, async (req: any, res: any)
   }
 });
 
+// ────────────────────────────────────────────────────────────
+// 3. Vérifier un token d'invitation (public, sans auth)
+// ────────────────────────────────────────────────────────────
+router.get('/invitations/:token', async (req: any, res: any) => {
+  try {
+    const { token } = req.params;
+
+    const invitation = await db('organization_invitations')
+      .where({ token, status: 'pending' })
+      .first();
+
+    if (!invitation) {
+      return res.status(404).json({ error: "Invitation invalide ou expirée." });
+    }
+
+    // Vérifier si l'invitation a expiré
+    if (new Date(invitation.expires_at) < new Date()) {
+      await db('organization_invitations').where({ id: invitation.id }).update({ status: 'expired' });
+      return res.status(400).json({ error: "Cette invitation a expiré." });
+    }
+
+    const org = await db('organizations').where({ id: invitation.organization_id }).first();
+
+    res.json({
+      success: true,
+      invitation: {
+        email: invitation.email,
+        organization_name: org?.name || 'Organisation',
+        organization_id: org?.id,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+// 4. Accepter l'invitation (authentifié)
+// ────────────────────────────────────────────────────────────
+router.post('/invitations/:token/accept', authenticate, async (req: any, res: any) => {
+  try {
+    const { token } = req.params;
+    const userId = req.user.id;
+
+    // 1. Vérifier l'invitation
+    const invitation = await db('organization_invitations')
+      .where({ token, status: 'pending' })
+      .first();
+
+    if (!invitation) {
+      return res.status(404).json({ error: "Invitation invalide ou expirée." });
+    }
+
+    // 2. Vérifier que l'utilisateur connecté correspond à l'email invité (sécurité)
+    const user = await db('users').where({ id: userId }).first();
+    if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      return res.status(403).json({ error: "Cette invitation a été envoyée à une autre adresse email." });
+    }
+
+    // 3. Vérifier si l'utilisateur n'est pas déjà dans une organisation
+    const existingMembership = await db('organization_members').where({ user_id: userId }).first();
+    if (existingMembership) {
+      return res.status(400).json({ error: "Vous faites déjà partie d'une organisation." });
+    }
+
+    // 4. Ajouter l'utilisateur à l'organisation
+    await db('organization_members').insert({
+      organization_id: invitation.organization_id,
+      user_id: userId,
+      role: 'member',
+      joined_at: new Date()
+    });
+
+    // 5. Marquer l'invitation comme acceptée
+    await db('organization_invitations')
+      .where({ id: invitation.id })
+      .update({ status: 'accepted', updated_at: new Date() });
+
+    console.log(`🤝 ${user.email} a rejoint l'organisation ${invitation.organization_id}`);
+
+    res.json({ success: true, message: "Vous avez rejoint l'organisation avec succès !" });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur lors de l'acceptation de l'invitation." });
+  }
+});
+
 export default router;
