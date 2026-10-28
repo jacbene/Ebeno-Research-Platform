@@ -8,10 +8,10 @@
   <!-- Bouton central sur le plateau -->
   <circle cx="256" cy="150" r="15" fill="#3651B5" />
   
-  <!-- Cordon doré qui pend -->
-  <path d="M 470 170 Q 490 280 450 390" fill="none" stroke="#FFC107" stroke-width="12" stroke-linecap="round" />
+  <!-- Cordon doré qui pend à DROITE -->
+  <path d="M 42 170 Q 22 280 62 390" fill="none" stroke="#FFC107" stroke-width="12" stroke-linecap="round" />
   
-  <!-- Pompon au bout du cordon -->
-  <rect x="435" y="390" width="30" height="50" rx="5" fill="#FFD700" />
-  <path d="M 435 440 L 465 440 L 450 480 Z" fill="#FFD700" />
+  <!-- Pompon au bout du cordon (à droite) -->
+  <rect x="47" y="390" width="30" height="50" rx="5" fill="#FFD700" />
+  <path d="M 47 440 L 77 440 L 62 480 Z" fill="#FFD700" />
 </svg>
