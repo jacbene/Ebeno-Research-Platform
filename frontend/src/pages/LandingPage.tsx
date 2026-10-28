@@ -123,21 +123,21 @@ export default function LandingPage() {
             <div className="flex items-start gap-4">
               <div className="text-2xl">🔒</div>
               <div>
-                <h4 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit1Title', 'Conforme RGPD')}</h4>
+                <h3 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit1Title', 'Conforme RGPD')}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit1Desc', 'Export, suppression de compte, chiffrement : la confidentialité au cœur.')}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <div className="text-2xl">🌍</div>
               <div>
-                <h4 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit2Title', 'Multilingue')}</h4>
+                <h3 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit2Title', 'Multilingue')}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit2Desc', 'Français, anglais, espagnol, portugais, arabe — avec support RTL natif.')}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <div className="text-2xl">💳</div>
               <div>
-                <h4 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit3Title', 'Paiement flexible')}</h4>
+                <h3 className="font-bold text-gray-900 dark:text-white">{t('landing.benefit3Title', 'Paiement flexible')}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit3Desc', 'Abonnement Pro, Institution, ou crédits à l\'unité. Sans engagement.')}</p>
               </div>
             </div>

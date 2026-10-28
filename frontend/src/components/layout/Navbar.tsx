@@ -217,6 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
                 style={iconButtonStyle}
                 title={t('theme.tooltip', { label: getThemeLabel(mode) })}
+            	  aria-label="Changer de thème"
               >
                 {getThemeIcon()}
               </button>
@@ -230,6 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                         setThemeMenuOpen(false);
                       }}
                       style={dropdownItemStyle(mode === m)}
+                  		aria-label="Mode"
                     >
                       {getThemeLabel(m)}
                       {mode === m && <span style={{ marginLeft: 'auto' }}>✓</span>}
@@ -309,6 +311,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               style={{ ...iconButtonStyle, fontSize: '1.6rem' }}
+          	  aria-label="Menu"
             >
               {menuOpen ? '✕' : '☰'}
             </button>

@@ -68,7 +68,7 @@ const CookieConsentBanner: React.FC = () => {
     left: 0,
     right: 0,
     zIndex: 9999,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1f2937',
     borderTop: '1px solid #e0e0e0',
     boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
     padding: '16px 20px',
@@ -108,12 +108,12 @@ const CookieConsentBanner: React.FC = () => {
   const btnGhost: React.CSSProperties = {
     ...buttonBase,
     backgroundColor: 'transparent',
-    color: '#4A6CF7',
+    color: '#1d4ed8',
     border: '1px solid #d1d5db',
   };
 
   const linkStyle: React.CSSProperties = {
-    color: '#4A6CF7',
+    color: '#1d4ed8',
     textDecoration: 'underline',
   };
 

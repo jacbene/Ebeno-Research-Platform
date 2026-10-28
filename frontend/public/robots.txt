@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /settings
+Disallow: /chat
+Disallow: /project/
+
+Sitemap: https://ebeno-frontend.onrender.com/sitemap.xml

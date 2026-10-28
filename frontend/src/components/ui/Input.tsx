@@ -1,90 +1,56 @@
-import React, { useState } from 'react';
-import { useTheme } from '../../context/ThemeContext';
-import { theme } from '../../theme';
+import React, { forwardRef } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, type, style, ...props }) => {
-  const { colors } = useTheme();
-  const [showPassword, setShowPassword] = useState(false);
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, id, className, ...props }, ref) => {
+    // Génère un ID unique si non fourni (pour lier le label et l'input)
+    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
-  const isPassword = type === 'password';
-  const effectiveType = isPassword ? (showPassword ? 'text' : 'password') : type;
-
-  return (
-    <div style={{ marginBottom: theme.spacing.md }}>
-      {label && (
-        <label style={{
-          display: 'block',
-          marginBottom: theme.spacing.xs,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: colors.gray[700],
-        }}>
-          {label}
-        </label>
-      )}
-
-      <div style={{ position: 'relative' }}>
+    return (
+      <div style={{ marginBottom: '16px' }}>
+        {label && (
+          <label
+            htmlFor={inputId}
+            style={{
+              display: 'block',
+              marginBottom: '4px',
+              fontSize: '14px',
+              fontWeight: 500,
+              color: '#374151',
+            }}
+          >
+            {label}
+          </label>
+        )}
         <input
-          type={effectiveType}
+          ref={ref}
+          id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           style={{
             width: '100%',
-            padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-            paddingRight: isPassword ? '42px' : theme.spacing.md,
-            border: `1px solid ${error ? colors.danger : colors.gray[300]}`,
-            borderRadius: theme.borderRadius.md,
-            fontSize: theme.typography.fontSize.md,
+            padding: '10px 12px',
+            border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
+            borderRadius: '8px',
+            fontSize: '14px',
             outline: 'none',
-            transition: 'border-color 0.2s ease',
-            backgroundColor: colors.white,
-            color: colors.dark,
-            ...style,
+            backgroundColor: '#ffffff',
+            color: '#111827',
           }}
           {...props}
         />
-
-        {isPassword && (
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              right: '10px',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '18px',
-              lineHeight: 1,
-              padding: '4px',
-              color: colors.gray[500],
-              opacity: 0.7,
-              transition: 'opacity 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; }}
-          >
-            {showPassword ? '🙈' : '👁️'}
-          </button>
+        {error && (
+          <p id={`${inputId}-error`} style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+            {error}
+          </p>
         )}
       </div>
+    );
+  }
+);
 
-      {error && (
-        <p style={{
-          marginTop: theme.spacing.xs,
-          fontSize: theme.typography.fontSize.xs,
-          color: colors.danger,
-        }}>
-          {error}
-        </p>
-      )}
-    </div>
-  );
-};
+Input.displayName = 'Input';
