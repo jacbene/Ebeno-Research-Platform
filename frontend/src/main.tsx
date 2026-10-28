@@ -54,12 +54,16 @@ const initSentry = async () => {
 
     if (SENTRY_DSN) {
       Sentry.init({
-        dsn: SENTRY_DSN,
-        environment: import.meta.env.MODE || 'development',
-        release: import.meta.env.VITE_SENTRY_RELEASE || 'ebeno-frontend@1.0.0',
-        tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
-        enabled: import.meta.env.MODE === 'production',
-        
+  dsn: SENTRY_DSN,
+  environment: import.meta.env.MODE || 'development',
+  release: import.meta.env.VITE_SENTRY_RELEASE || 'ebeno-frontend@1.0.0',
+  tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
+  enabled: import.meta.env.MODE === 'production',
+  
+  // ✅ Force le tree-shaking de Replay et Feedback
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 0,       
+     
         // ✅ On désactive explicitement les modules lourds (Replay & Feedback)
         integrations: (defaults) => defaults.filter((integration) => 
           !['Replay', 'Feedback', 'ReplayCanvas'].includes(integration.name)
