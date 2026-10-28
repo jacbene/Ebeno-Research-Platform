@@ -85,6 +85,34 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
           console.log(`✨ Nouvel abonnement créé pour l'utilisateur ${userId}`);
         }
 
+        // ✅ Détecter si c'est un achat de siège supplémentaire
+const extraSeatMonthlyId = process.env.PADDLE_PRICE_ID_EXTRA_SEAT_MONTHLY;
+const extraSeatYearlyId = process.env.PADDLE_PRICE_ID_EXTRA_SEAT_YEARLY;
+const isExtraSeat = data.items?.some((item: any) => 
+  item.price?.id === extraSeatMonthlyId || item.price?.id === extraSeatYearlyId
+);
+
+if (isExtraSeat) {
+  // Récupérer la quantité achetée
+  const seatItem = data.items.find((item: any) => 
+    item.price?.id === extraSeatMonthlyId || item.price?.id === extraSeatYearlyId
+  );
+  const quantity = seatItem?.quantity || 1;
+
+  // Trouver l'organisation du buyer (il doit être owner)
+  const org = await db('organizations').where({ owner_id: userId }).first();
+  
+  if (org) {
+    // Si l'abonnement de siège vient d'être créé (pas update), on incrémente
+    if (event_type === 'subscription.created') {
+      await db('organizations').where({ id: org.id }).increment('max_seats', quantity);
+      console.log(`🪑 +${quantity} siège(s) ajouté(s) à l'organisation ${org.id} (total : ${org.max_seats + quantity})`);
+    }
+  } else {
+    console.warn(`⚠️ Achat de siège par ${userId} mais aucune organisation trouvée.`);
+  }
+}
+
         // ✅ Si Institution, créer l'organisation
         if (isInstitution) {
           const existingOrg = await db('organizations').where({ owner_id: userId }).first();
@@ -132,11 +160,34 @@ export const handlePaddleWebhook = async (req: Request, res: Response): Promise<
       }
     } 
     else if (event_type === 'subscription.canceled') {
-      await db('subscriptions')
-        .where({ paddle_subscription_id: data.id })
-        .update({ status: 'canceled', updated_at: new Date() });
-      console.log(`🚫 Abonnement annulé : ${data.id}`);
+  await db('subscriptions')
+    .where({ paddle_subscription_id: data.id })
+    .update({ status: 'canceled', updated_at: new Date() });
+  console.log(`🚫 Abonnement annulé : ${data.id}`);
+
+  // ✅ Si c'est un siège supplémentaire annulé, on décrémente
+  const extraSeatMonthlyId = process.env.PADDLE_PRICE_ID_EXTRA_SEAT_MONTHLY;
+  const extraSeatYearlyId = process.env.PADDLE_PRICE_ID_EXTRA_SEAT_YEARLY;
+  const isExtraSeat = data.items?.some((item: any) => 
+    item.price?.id === extraSeatMonthlyId || item.price?.id === extraSeatYearlyId
+  );
+
+  if (isExtraSeat) {
+    const seatItem = data.items.find((item: any) => 
+      item.price?.id === extraSeatMonthlyId || item.price?.id === extraSeatYearlyId
+    );
+    const quantity = seatItem?.quantity || 1;
+    const userId = data.custom_data?.userId;
+    
+    if (userId) {
+      const org = await db('organizations').where({ owner_id: userId }).first();
+      if (org) {
+        await db('organizations').where({ id: org.id }).decrement('max_seats', quantity);
+        console.log(`🔻 -${quantity} siège(s) retiré(s) de l'organisation ${org.id}`);
+      }
     }
+  }
+}
     else if (event_type === 'transaction.completed') {
       const userId = data.custom_data?.userId;
       

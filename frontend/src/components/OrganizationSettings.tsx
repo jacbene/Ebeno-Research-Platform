@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { PaddleCheckoutButton } from './PaddleCheckoutButton';
 
 interface Member {
   id: number;
@@ -109,6 +110,28 @@ export const OrganizationSettings = () => {
           </span>
         </div>
       </div>
+
+      {/* Bouton d'achat de sièges */}
+<div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+    🪑 Ajouter des sièges
+  </h3>
+  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+    Vous avez besoin de plus de {organization.max_seats} sièges ? Ajoutez-en à votre abonnement.
+  </p>
+  <div className="flex flex-col sm:flex-row gap-3">
+    <PaddleCheckoutButton
+      priceId={import.meta.env.VITE_PADDLE_PRICE_EXTRA_SEAT_MONTHLY}
+      label="+ 1 siège (10€/mois)"
+      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+    />
+    <PaddleCheckoutButton
+      priceId={import.meta.env.VITE_PADDLE_PRICE_EXTRA_SEAT_YEARLY}
+      label="+ 1 siège (100€/an)"
+      className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-6 rounded-lg transition-colors"
+    />
+  </div>
+</div>
 
       {/* Messages d'erreur / succès */}
       {error && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm">{error}</div>}
