@@ -131,6 +131,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
 };
   
 // ---------- Réessayer une transcription échouée ----------
+// ---------- Réessayer une transcription échouée ----------
 export const retryTranscription = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -142,13 +143,11 @@ export const retryTranscription = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Non authentifié' });
     }
 
-    // ✅ Récupérer sans filtre userId
     const transcription = await db('transcriptions').where({ id }).first();
     if (!transcription) {
       return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
     }
 
-    // ✅ Vérifier l'accès (propriétaire OU membre du projet)
     const allowed = await canAccessTranscription(transcription, userId);
     if (!allowed) {
       return res.status(403).json({ success: false, message: 'Accès non autorisé' });
@@ -168,27 +167,27 @@ export const retryTranscription = async (req: Request, res: Response) => {
       });
     }
 
-    const audioPath = path.join(
-      __dirname,
-      '../../uploads/tmp',
-      path.basename(transcription.audioUrl || '')
-    );
-
-    if (!fs.existsSync(audioPath)) {
-      return res.status(404).json({
+    // ✅ VÉRIFIER QUE L'AUDIO EST BIEN SUR CLOUDINARY
+    if (!transcription.audioUrl || !transcription.audioUrl.startsWith('http')) {
+      return res.status(400).json({
         success: false,
         message: 'Fichier audio introuvable. Veuillez re-uploader le fichier.',
       });
     }
 
+    // ✅ REMETTRE LE STATUT À PENDING
     await db('transcriptions')
       .where({ id })
       .update({
         status: 'PENDING',
         errorMessage: null,
+        // ✅ Réinitialiser quotaRefunded car on va retenter
+        //    (si la nouvelle tentative échoue, un nouveau remboursement sera possible)
+        quotaRefunded: false,
         updatedAt: new Date().toISOString(),
       });
 
+    // ✅ RELANCER LE TRAITEMENT (qui utilisera l'URL Cloudinary)
     processTranscriptionDeepgram(id).catch((err) =>
       console.error('❌ Erreur retry async:', err)
     );
