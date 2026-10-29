@@ -45,32 +45,30 @@ const getUserEmail = (user: any): string => {
 // ============================================================
 const tryWhisperFallback = async (
   transcriptionId: string,
-  audioPath: string
+  audioUrl: string // ✅ On passe l'URL
 ): Promise<{ text: string; language: string | null } | null> => {
-  if (!isWhisperConfigured()) {
-    logger.warn('⏭️ [Whisper] Fallback non disponible (clé OpenAI absente)');
-    return null;
-  }
-
-  if (!isServiceAvailable('whisper')) {
-    logger.warn('⏭️ [Whisper] Fallback ignoré (circuit ouvert)');
-    return null;
-  }
+  if (!isWhisperConfigured()) return null;
+  if (!isServiceAvailable('whisper')) return null;
 
   try {
-    logger.info(`🔄 [Fallback] Tentative Whisper pour ${transcriptionId}...`);
-    const result = await transcribeWithWhisper(audioPath);
+    logger.info(`🔄 [Fallback] Téléchargement Cloudinary pour Whisper...`);
+    
+    // ✅ Télécharger le fichier depuis Cloudinary
+    const response = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data);
+    
+    // Sauvegarde temporaire dans /tmp (autorisé par Render/Node)
+    const tempPath = path.join('/tmp', `${transcriptionId}.mp3`);
+    fs.writeFileSync(tempPath, buffer);
 
-    logger.info(
-      `✅ [Fallback] Whisper réussi pour ${transcriptionId} : langue=${result.language || '?'}`
-    );
+    const result = await transcribeWithWhisper(tempPath);
+    
+    // Nettoyage
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-    return {
-      text: result.text,
-      language: result.language,
-    };
+    return { text: result.text, language: result.language };
   } catch (err: any) {
-    logger.warn(`⚠️ [Fallback] Whisper échoué pour ${transcriptionId} : ${err.message}`);
+    logger.warn(`⚠️ [Fallback] Whisper échoué : ${err.message}`);
     return null;
   }
 };
@@ -152,23 +150,26 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
         const formData = new FormData();
         formData.append('audio', audioFile);
 
-        const response = await axios.post(DEEPGRAM_URL, formData, {
-          params: {
-            model: 'nova-2',
-            detect_language: 'true', // ✅ Auto-détection langue
-            smart_format: 'true',
-            punctuate: 'true',
-            diarize: 'false',
-            filler_words: 'false',
-          },
-          headers: {
-            Authorization: `Token ${DEEPGRAM_API_KEY}`,
-            ...formData.getHeaders(),
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-          timeout: 5 * 60 * 1000,
-        });
+        // ✅ NOUVEAU : Deepgram accepte directement l'URL Cloudinary
+const response = await axios.post(
+  DEEPGRAM_URL,
+  { url: transcription.audioUrl }, // ✅ On passe l'URL
+  {
+    params: {
+      model: 'nova-2',
+      detect_language: 'true',
+      smart_format: 'true',
+      punctuate: 'true',
+      diarize: 'false',
+      filler_words: 'false',
+    },
+    headers: {
+      Authorization: `Token ${DEEPGRAM_API_KEY}`,
+      'Content-Type': 'application/json', // ✅ JSON au lieu de multipart
+    },
+    timeout: 5 * 60 * 1000,
+  }
+);
 
         recordSuccess(SERVICE_DEEPGRAM);
 
@@ -273,28 +274,28 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
 // UPLOAD + LANCEMENT
 // ============================================================
 export const uploadAndProcessDeepgram = async (
-  file: Express.Multer.File,
+  audioUrl: string, // ✅ Devient une URL au lieu d'un objet File
   userId: string,
-  projectId?: string
+  projectId?: string,
+  originalName?: string
 ) => {
   const id = Date.now().toString();
-  const audioUrl = `/uploads/${file.filename}`;
 
   await db('transcriptions').insert({
-  id,
-  userId,
-  projectId: projectId || null,
-  title: file.originalname || 'Transcription sans titre',
-  status: TranscriptionStatus.PENDING,
-  audioUrl,
-  transcriptText: null,
-  errorMessage: null,
-  quotaRefunded: false, // ✅ NOUVEAU
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
+    id,
+    userId,
+    projectId: projectId || null,
+    title: originalName || 'Transcription sans titre',
+    status: TranscriptionStatus.PENDING,
+    audioUrl, // ✅ Stocke l'URL Cloudinary
+    transcriptText: null,
+    errorMessage: null,
+    quotaRefunded: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
 
-  logger.info(`📥 [Cascade] Nouvelle transcription ${id} : ${file.originalname}`);
+  logger.info(`📥 [Cascade] Nouvelle transcription ${id} (Cloudinary)`);
 
   processTranscriptionDeepgram(id).catch((err) =>
     logger.error('Erreur asynchrone transcription:', err)

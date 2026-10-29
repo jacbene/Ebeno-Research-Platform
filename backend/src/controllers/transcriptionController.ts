@@ -8,6 +8,7 @@ import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
+import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le chemin de ton service
 
 // ✅ Helper : vérifier que l'user est membre du projet
 const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
@@ -26,19 +27,12 @@ const canAccessTranscription = async (transcription: any, userId: string): Promi
   return false;
 };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/tmp/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = new Date().toISOString() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// ✅ Utilisation de memoryStorage (le fichier reste en RAM, pas sur le disque)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/webm',
@@ -52,7 +46,6 @@ const upload = multer({
   }
 }).single('file');
 
-// ---------- Upload ----------
 export const uploadTranscription = async (req: Request, res: Response) => {
   upload(req, res, async (err) => {
     if (err) return res.status(400).json({ success: false, message: err.message });
@@ -77,8 +70,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         }
       }
 
-      // ✅ VÉRIFICATION DU QUOTA IA AVANT TRAITEMENT
-      // (placé après validation fichier + projet pour ne pas consommer un crédit inutilement)
+      // ✅ VÉRIFICATION DU QUOTA IA
       const quota = await checkAndIncrementAiQuota(userId);
       if (!quota.allowed) {
         return res.status(403).json({
@@ -91,7 +83,21 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         });
       }
 
-      const result = await uploadAndProcessDeepgram(file, userId, projectId);
+      // ✅ 1. UPLOAD VERS CLOUDINARY (au lieu du stockage local)
+      // On utilise le buffer de Multer (file.buffer) au lieu du chemin local
+      const cloudinaryResult = await uploadToCloudinary(
+        file.buffer, 
+        `transcriptions/${userId}`, 
+        'video' // Cloudinary traite les fichiers audio comme des vidéos
+      );
+
+      // ✅ 2. LANCEMENT DU TRAITEMENT AVEC L'URL CLOUDINARY
+      const result = await uploadAndProcessDeepgram(
+        cloudinaryResult.secureUrl, // L'URL Cloudinary
+        userId, 
+        projectId, 
+        file.originalname // Le nom original pour le titre
+      );
 
       emitGlobal('transcription-uploaded', {
         projectId,
@@ -122,8 +128,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
     }
   });
-};
-      
+};      
 
 // ---------- Réessayer une transcription échouée ----------
 export const retryTranscription = async (req: Request, res: Response) => {
