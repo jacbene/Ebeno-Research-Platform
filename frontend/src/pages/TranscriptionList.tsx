@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import CommentSection from '../components/CommentSection';
 import { useSearchParams } from 'react-router-dom';
+import TranscriptionUploader from '../components/TranscriptionUploader';
 
 interface Transcription {
   id: string;
@@ -35,6 +36,7 @@ interface Analysis {
 }
 
 const TranscriptionList: React.FC = () => {
+	const [showUploader, setShowUploader] = useState(false);
   const { colors } = useTheme();
   const toast = useToast();
   const { t, i18n } = useTranslation();
@@ -237,9 +239,29 @@ useEffect(() => {
   });
 
   return (
-    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-      <h1 style={{ color: colors.dark }}>{t('transcriptionList.title')}</h1>
-
+<div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+    <h1 style={{ color: colors.dark, margin: 0 }}>{t('transcriptionList.title')}</h1>
+    <button
+      onClick={() => setShowUploader(true)}
+      style={{
+        backgroundColor: colors.primary,
+        color: 'white',
+        border: 'none',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}
+    >
+      + {t('transcriptionList.newButton', 'Nouvelle transcription')}
+    </button>
+  </div>
+    
       {/* Filtres */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button onClick={() => setFilter('all')} style={filterButtonStyle(filter === 'all')}>
@@ -427,14 +449,6 @@ useEffect(() => {
   />
 </div>
 
-{/* ✅ Commentaires (toujours visibles quand déployé) */}
-<div onClick={(e) => e.stopPropagation()}>
-  <CommentSection
-    documentId={item.id}
-    documentType="transcription"
-  />
-</div>
-
 {isCompleted && hasText && (
   <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
     <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
@@ -511,6 +525,63 @@ useEffect(() => {
         documentType={translateModal.documentType}
         documentTitle={translateModal.title}
       />
+
+      {/* ✅ Modal d'upload de transcription */}
+      {showUploader && (
+        <div
+          onClick={() => setShowUploader(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.white,
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              position: 'relative',
+            }}
+          >
+            <button
+              onClick={() => setShowUploader(false)}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                border: 'none',
+                background: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: colors.dark,
+              }}
+            >
+              ✕
+            </button>
+            <h2 style={{ marginBottom: '16px', color: colors.dark }}>
+              {t('transcriptionList.newButton', 'Nouvelle transcription')}
+            </h2>
+            <TranscriptionUploader
+              projectId=""
+              onUploadComplete={() => {
+                setShowUploader(false);
+                fetchTranscriptions();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

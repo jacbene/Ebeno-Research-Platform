@@ -33,7 +33,7 @@ import PricingPage from './pages/PricingPage';
 // ============================================================
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
-const TranscriptionPage = lazy(() => import('./pages/TranscriptionPage'));
+//const TranscriptionPage = lazy(() => import('./pages/TranscriptionPage'));
 const TranscriptionList = lazy(() => import('./pages/TranscriptionList'));
 const CollaborationPage = lazy(() => import('./pages/CollaborationPage'));
 const TextUploadPage = lazy(() => import('./pages/TextUploadPage'));
@@ -444,7 +444,7 @@ return (
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
         <Route element={<Layout user={user} onLogout={onLogout} />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/transcription" element={<TranscriptionPage />} />
+          <Route path="/transcription" element={<Navigate to="/transcriptions" replace />} />
           <Route path="/text-upload" element={<TextUploadPage />} />
           <Route path="/transcriptions" element={<TranscriptionList />} />
           <Route path="/chat" element={<ChatPage />} />

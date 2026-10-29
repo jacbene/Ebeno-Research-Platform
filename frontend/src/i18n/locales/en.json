@@ -660,6 +660,7 @@
     "sources": "sources"
   },
   "transcriptionList": {
+   	"newButton": "New transcription",
     "title": "📜 My transcriptions",
     "loading": "Loading...",
     "empty": "No items found.",

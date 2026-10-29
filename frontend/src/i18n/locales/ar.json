@@ -660,6 +660,7 @@
     "sources": "مصادر"
   },
   "transcriptionList": {
+	  "newButton": "نسخ جديد",
     "title": "📜 النسخ الخاصة بي",
     "loading": "جاري التحميل...",
     "empty": "لم يتم العثور على عناصر.",

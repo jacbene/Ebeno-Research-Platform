@@ -604,6 +604,7 @@
     "sources": "sources"
   },
   "transcriptionList": {
+	  "newButton": "Nouvelle transcription",
     "title": "📜 Mes transcriptions",
     "loading": "Chargement...",
     "empty": "Aucun élément trouvé.",

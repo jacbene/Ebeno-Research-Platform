@@ -660,6 +660,7 @@
     "sources": "fontes"
   },
   "transcriptionList": {
+	  "newButton": "Nova transcrição",
     "title": "📜 As minhas transcrições",
     "loading": "A carregar...",
     "empty": "Nenhum elemento encontrado.",
