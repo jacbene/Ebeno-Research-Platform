@@ -159,7 +159,65 @@ const cleanupDeliveries = async (webhookId: string): Promise<void> => {
   } catch (err: any) { logger.warn(`⚠️ [webhook] cleanup: ${err.message}`); }
 };
 
-export const testWebhook = async (hook: any) => {
-  // ... (garde ta fonction testWebhook existante intacte)
+export const testWebhook = async (hook: any): Promise<{
+  success: boolean;
+  statusCode?: number;
+  durationMs: number;
+  error?: string;
+}> => {
+  const body = JSON.stringify({
+    event: 'webhook.test',
+    timestamp: new Date().toISOString(),
+    data: { message: 'Test from Ebeno Research Platform' },
+  });
+
+  const signature = signPayload(body, hook.secret);
+  const startTime = Date.now();
+
+  try {
+    const check = validateWebhookUrl(hook.url);
+    if (!check.valid) {
+      logger.warn(`🚫 [webhook] URL bloquée: ${hook.url} (${check.reason})`);
+      return {
+        success: false,
+        durationMs: 0,
+        error: check.reason,
+      };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT);
+
+    const response = await fetch(hook.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Ebeno-Research-Webhook/1.0',
+        'X-Ebeno-Event': 'webhook.test',
+        'X-Ebeno-Signature': `sha256=${signature}`,
+      },
+      body,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    const duration = Date.now() - startTime;
+
+    return {
+      success: response.status >= 200 && response.status < 300,
+      statusCode: response.status,
+      durationMs: duration,
+      error: response.status >= 200 && response.status < 300
+        ? undefined
+        : `HTTP ${response.status}`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      durationMs: Date.now() - startTime,
+      error: err.name === 'AbortError' ? 'Timeout (15s)' : err.message,
+    };
+  }
 };
+
 export default { WEBHOOK_EVENTS, generateSecret, signPayload, validateWebhookUrl, triggerWebhookEvent, testWebhook };
