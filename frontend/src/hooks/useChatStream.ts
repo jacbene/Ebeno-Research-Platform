@@ -22,6 +22,7 @@ export interface StreamDone {
   tokens?: number;
   sources: Array<{ type: string; id: string; name: string }>;
   newTitle?: string;
+  quota?: { used: number; limit: number };
 }
 
 export interface StreamUserSaved {

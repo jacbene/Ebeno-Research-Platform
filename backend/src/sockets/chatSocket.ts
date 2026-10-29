@@ -183,6 +183,10 @@ export function setupChatSocket(io: SocketIOServer): void {
             tokens,
             sources,
             newTitle: update.title,
+            quota: {
+    used: quotaCheck.used,
+    limit: quotaCheck.limit,
+  }
           });
 
           logger.info(

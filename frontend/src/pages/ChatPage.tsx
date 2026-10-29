@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useChatStream, type StreamDone } from '../hooks/useChatStream';
+import { useToast } from '../context/ToastContext'; // ✅ AJOUT
 import './ChatPage.css';
 
 // ═══════════════════════════════════════════════════════════
@@ -48,7 +49,35 @@ interface Message {
 
 const ChatPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const toast = useToast(); // ✅ DOIT ÊTRE DÉCLARÉ AVANT checkQuotaWarning
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // ✅ Fonction pour afficher les alertes de quota (50% / 80% / 100%)
+  const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) => {
+    if (!quota || !quota.limit) return;
+    
+    const percent = (quota.used / quota.limit) * 100;
+
+    if (percent >= 100) {
+      toast.addToast({
+        type: 'error',
+        title: 'Quota IA épuisé 🚫',
+        message: `Vous avez utilisé vos ${quota.limit} messages. Rendez-vous sur /pricing pour recharger.`,
+      });
+    } else if (percent >= 80) {
+      toast.addToast({
+        type: 'warning',
+        title: 'Quota presque atteint ⚠️',
+        message: `Vous avez consommé ${percent.toFixed(0)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
+      });
+    } else if (percent >= 50) {
+      toast.addToast({
+        type: 'info',
+        title: 'Information sur votre quota 💡',
+        message: `Vous avez consommé ${percent.toFixed(0)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
+      });
+    }
+  }, [toast]);
 
   // Projets
   const [projects, setProjects] = useState<Project[]>([]);
@@ -77,7 +106,6 @@ const ChatPage: React.FC = () => {
   // ═══════════════════════════════════════════════════════════
   const { connected: socketConnected, sendMessage: streamMessage } = useChatStream({
     onUserSaved: (data) => {
-      // Le message user a été sauvegardé côté serveur
       setMessages((prev) => {
         const withoutTemp = prev.filter((m) => m.id !== 'temp-user');
         return [...withoutTemp, {
@@ -93,7 +121,6 @@ const ChatPage: React.FC = () => {
       setStreamingText((prev) => prev + chunk.content);
     },
     onDone: async (data: StreamDone) => {
-      // Créer le message assistant final
       const assistantMsg: Message = {
         id: data.messageId,
         role: 'assistant',
@@ -107,7 +134,11 @@ const ChatPage: React.FC = () => {
       setStreamingText('');
       setStreamingModel('');
 
-      // Rafraîchir les conversations (titre + updatedAt)
+      // ✅ Vérifier le quota après chaque réponse streaming
+      if (data.quota) {
+        checkQuotaWarning(data.quota);
+      }
+
       if (selectedProjectId) {
         const convsRes = await api.get(
           `/chat/conversations?projectId=${selectedProjectId}`,
@@ -122,35 +153,30 @@ const ChatPage: React.FC = () => {
       setStreamingModel('');
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
     },
-     // ✅ GESTION DU QUOTA ICI
-  onQuotaExceeded: (data) => {
-    // Option 1 : Une alerte simple
-    //alert(data.message);
-    // Option 2 : Rediriger vers la page des tarifs après validation
-    if (window.confirm(`${data.message}\n\nVoulez-vous voir les plans ?`)) {
-       window.location.href = '/pricing';
-     }
-  },
+    // ✅ Gestion du dépassement de quota (Socket) via useToast
+    onQuotaExceeded: (data) => {
+      toast.addToast({
+        type: 'error',
+        title: 'Quota IA épuisé 🚫',
+        message: `${data.message} Rendez-vous sur /pricing pour recharger.`,
+      });
+    },
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 1. Charger les projets au démarrage
+  // 1. Charger les projets
   // ═══════════════════════════════════════════════════════════
-
   useEffect(() => {
     const loadProjects = async () => {
       try {
         const res = await api.get('/projects');
         const raw = res.data;
-        // API renvoie : { success: true, data: [...], pagination: {...} }
         let list: Project[] = [];
         if (Array.isArray(raw)) list = raw;
         else if (Array.isArray(raw?.data)) list = raw.data;
         else if (Array.isArray(raw?.projects)) list = raw.projects;
-        console.log('[ChatPage] projects loaded:', list.length);
         setProjects(list);
 
-        // Priorité : URL param > 1er projet
         const urlProjectId = searchParams.get('projectId');
         if (urlProjectId && list.some((p: Project) => p.id === urlProjectId)) {
           setSelectedProjectId(urlProjectId);
@@ -166,9 +192,8 @@ const ChatPage: React.FC = () => {
   }, []);
 
   // ═══════════════════════════════════════════════════════════
-  // 2. Charger les conversations du projet sélectionné
+  // 2. Charger les conversations
   // ═══════════════════════════════════════════════════════════
-
   const loadConversations = useCallback(async (projectId: string) => {
     if (!projectId) return;
     setLoadingConversations(true);
@@ -179,10 +204,8 @@ const ChatPage: React.FC = () => {
       if (Array.isArray(raw)) list = raw;
       else if (Array.isArray(raw?.conversations)) list = raw.conversations;
       else if (Array.isArray(raw?.data)) list = raw.data;
-      console.log('[ChatPage] conversations loaded:', list.length);
       setConversations(list);
 
-      // Sélectionner la 1ère conversation ou aucune
       if (list.length > 0) {
         setSelectedConversationId(list[0].id);
       } else {
@@ -204,9 +227,8 @@ const ChatPage: React.FC = () => {
   }, [selectedProjectId]);
 
   // ═══════════════════════════════════════════════════════════
-  // 3. Charger les messages de la conversation sélectionnée
+  // 3. Charger les messages
   // ═══════════════════════════════════════════════════════════
-
   useEffect(() => {
     const loadMessages = async () => {
       if (!selectedConversationId) {
@@ -220,7 +242,6 @@ const ChatPage: React.FC = () => {
         if (Array.isArray(raw?.messages)) list = raw.messages;
         else if (Array.isArray(raw)) list = raw;
         else if (Array.isArray(raw?.data?.messages)) list = raw.data.messages;
-        console.log('[ChatPage] messages loaded:', list.length);
         setMessages(list);
       } catch (err: any) {
         setError(err.message || 'Erreur chargement messages');
@@ -237,7 +258,6 @@ const ChatPage: React.FC = () => {
   // ═══════════════════════════════════════════════════════════
   // 4. Créer une nouvelle conversation
   // ═══════════════════════════════════════════════════════════
-
   const createNewConversation = async () => {
     if (!selectedProjectId) {
       setError('Sélectionnez un projet d\'abord');
@@ -259,15 +279,13 @@ const ChatPage: React.FC = () => {
   };
 
   // ═══════════════════════════════════════════════════════════
-  // 5. Envoyer un message
+  // 5. Envoyer un message (REST)
   // ═══════════════════════════════════════════════════════════
-
   const sendMessage = async () => {
     const content = input.trim();
     if (!content || loading) return;
 
     if (!selectedConversationId) {
-      // Créer une conversation à la volée
       await createNewConversation();
       return;
     }
@@ -276,7 +294,6 @@ const ChatPage: React.FC = () => {
     setError(null);
     setLoading(true);
 
-    // Ajout optimiste du message user
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       role: 'user',
@@ -291,15 +308,18 @@ const ChatPage: React.FC = () => {
         { content },
       );
 
-      const { userMessage, assistantMessage } = res.data;
+      const { userMessage, assistantMessage, quota } = res.data;
 
-      // Remplacer le message temporaire par le vrai + ajouter la réponse
       setMessages((prev) => {
         const withoutTemp = prev.filter((m) => m.id !== tempUserMsg.id);
         return [...withoutTemp, userMessage, assistantMessage];
       });
 
-      // Rafraîchir la liste des conversations (titre + updatedAt)
+      // ✅ Vérifier le quota après chaque réponse REST
+      if (quota) {
+        checkQuotaWarning(quota);
+      }
+
       if (selectedProjectId) {
         const convsRes = await api.get(
           `/chat/conversations?projectId=${selectedProjectId}`,
@@ -307,7 +327,16 @@ const ChatPage: React.FC = () => {
         setConversations(convsRes.data.conversations || []);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Erreur envoi message');
+      // ✅ Gestion propre du dépassement de quota (REST 403)
+      if (err.response?.status === 403 && err.response?.data?.code === 'QUOTA_EXCEEDED') {
+        toast.addToast({
+          type: 'error',
+          title: 'Quota IA épuisé 🚫',
+          message: `${err.response.data.message} Rendez-vous sur /pricing pour recharger.`,
+        });
+      } else {
+        setError(err.response?.data?.error || err.message || 'Erreur envoi message');
+      }
       // Retirer le message temporaire si erreur
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
@@ -316,7 +345,6 @@ const ChatPage: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter = envoyer, Shift+Enter = nouvelle ligne
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -326,7 +354,6 @@ const ChatPage: React.FC = () => {
   // ═══════════════════════════════════════════════════════════
   // 6. Supprimer une conversation
   // ═══════════════════════════════════════════════════════════
-
   const deleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm('Supprimer cette conversation ?')) return;
@@ -346,7 +373,6 @@ const ChatPage: React.FC = () => {
   // ═══════════════════════════════════════════════════════════
   // 7. Changer de projet
   // ═══════════════════════════════════════════════════════════
-
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
     setSelectedConversationId('');
@@ -358,7 +384,6 @@ const ChatPage: React.FC = () => {
   // ═══════════════════════════════════════════════════════════
   // Rendu
   // ═══════════════════════════════════════════════════════════
-
   return (
     <div className="chat-container">
       {/* ═══════ Sidebar ═══════ */}
@@ -375,7 +400,6 @@ const ChatPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Sélecteur de projet */}
         <div className="project-selector">
           <label>{t('chat.project', { defaultValue: 'Projet' })}</label>
           <select
@@ -392,7 +416,6 @@ const ChatPage: React.FC = () => {
           </select>
         </div>
 
-        {/* Liste des conversations */}
         <div className="conversations-list">
           {loadingConversations && (
             <div className="loading-small">Chargement…</div>
@@ -433,7 +456,6 @@ const ChatPage: React.FC = () => {
 
       {/* ═══════ Zone principale ═══════ */}
       <main className="chat-main">
-        {/* Header */}
         <header className="chat-header">
           <button
             className="btn-menu"
@@ -449,7 +471,6 @@ const ChatPage: React.FC = () => {
           </h1>
         </header>
 
-        {/* Messages */}
         <div className="chat-messages">
           {messages.length === 0 && !loading && (
             <div className="empty-state">
@@ -505,7 +526,6 @@ const ChatPage: React.FC = () => {
             </div>
           ))}
 
-          {/* Streaming en cours : afficher les chunks au fur et à mesure */}
           {streamingText && (
             <div className="message message-assistant">
               <div className="message-bubble">
@@ -526,7 +546,6 @@ const ChatPage: React.FC = () => {
             </div>
           )}
 
-          {/* Typing indicator : uniquement quand on attend le 1er chunk */}
           {loading && !streamingText && (
             <div className="message message-assistant">
               <div className="message-bubble typing">
@@ -538,7 +557,6 @@ const ChatPage: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Error */}
         {error && (
           <div className="chat-error">
             ⚠️ {error}
@@ -546,7 +564,6 @@ const ChatPage: React.FC = () => {
           </div>
         )}
 
-        {/* Input */}
         <footer className="chat-input">
           <textarea
             value={input}
@@ -570,7 +587,6 @@ const ChatPage: React.FC = () => {
         </footer>
       </main>
 
-      {/* Overlay mobile */}
       {sidebarOpen && (
         <div
           className="sidebar-overlay"

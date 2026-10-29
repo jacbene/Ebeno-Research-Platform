@@ -68,8 +68,9 @@ export const checkAndIncrementAiQuota = async (userId: string): Promise<{
     .where({ user_id: userId, status: 'active' })
     .first();
 
-  const isPro = subscription?.plan === 'pro' || subscription?.plan === 'institution';
-  const baseLimit = isPro ? 2000 : 50;
+  const isInstitution = subscription?.plan === 'institution';
+	const isPro = subscription?.plan === 'pro';
+	const baseLimit = isInstitution ? 10000 : (isPro ? 2000 : 50);
 
   const usage = await db('ai_usage')
     .where({ user_id: userId, month: currentMonth })

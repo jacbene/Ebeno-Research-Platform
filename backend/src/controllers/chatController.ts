@@ -281,6 +281,10 @@ export const postMessage = async (req: Request, res: Response) => {
         durationMs: duration,
         sourcesCount: sources.length,
       },
+      quota: {
+   		used: quotaCheck.used,
+    	limit: quotaCheck.limit,
+  		}
     });
   } catch (err) {
     logger.error(`[chat] postMessage : ${(err as Error).message}`);
