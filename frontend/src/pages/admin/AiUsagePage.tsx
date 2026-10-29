@@ -10,6 +10,10 @@ interface UsageData {
   messages_used: number | null;
   bonus_credits: number | null;
   subscription_plan: string | null;
+  org_id: number | null;      // ✅ AJOUTÉ
+  org_name: string | null;    // ✅ AJOUTÉ
+  org_messages_used: number | null;
+  org_bonus_credits: number | null;
 }
 
 export default function AiUsagePage() {
@@ -73,13 +77,20 @@ export default function AiUsagePage() {
                         <div className="font-medium text-white">{u.name || t('AdminPanel.anonymous')}</div>
                         <div className="text-xs text-gray-400">{u.email}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          isPro ? 'bg-blue-900 text-blue-300' : 'bg-gray-700 text-gray-300'
-                        }`}>
-                          {isPro ? 'PRO' : 'FREE'}
-                        </span>
-                      </td>
+         <td className="px-6 py-4">
+  <div className="flex flex-col gap-1">
+    <span className={`px-2 py-1 rounded text-xs font-bold w-fit ${
+      isPro ? 'bg-blue-900 text-blue-300' : 'bg-gray-700 text-gray-300'
+    }`}>
+      {isPro ? 'PRO' : 'FREE'}
+    </span>
+    {isOrgMember && u.org_name && (
+      <span className="text-xs text-purple-300 bg-purple-900/30 px-2 py-1 rounded w-fit">
+        🏢 {u.org_name}
+      </span>
+    )}
+  </div>
+</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-white w-12 text-right">{used}</span>

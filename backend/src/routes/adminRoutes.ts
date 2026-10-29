@@ -177,6 +177,8 @@ router.get('/subscriptions', authenticate, requireAdmin, async (req, res) => {
 // ────────────────────────────────────────────────────────────
 // 7. Usage IA (avec bonus)
 // ────────────────────────────────────────────────────────────
+
+// ✅ Liste de l'usage IA pour le mois en cours
 router.get('/usage', authenticate, requireAdmin, async (req, res) => {
   try {
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -191,6 +193,7 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
         'ai_usage.bonus_credits',
         'subscriptions.plan as subscription_plan',
         'organization_members.organization_id as org_id',
+        'organizations.name as org_name', // ✅ NOUVEAU
         'organization_usage.messages_used as org_messages_used',
         'organization_usage.bonus_credits as org_bonus_credits'
       )
@@ -203,6 +206,7 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
             .andOn('subscriptions.status', '=', db.raw('?', ['active']));
       })
       .leftJoin('organization_members', 'users.id', '=', 'organization_members.user_id')
+      .leftJoin('organizations', 'organization_members.organization_id', 'organizations.id') // ✅ NOUVEAU
       .leftJoin('organization_usage', function() {
         this.on('organization_members.organization_id', '=', 'organization_usage.organization_id')
             .andOn('organization_usage.month', '=', db.raw('?', [currentMonth]));
