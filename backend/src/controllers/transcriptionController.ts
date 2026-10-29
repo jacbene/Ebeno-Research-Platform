@@ -7,6 +7,7 @@ import { uploadAndProcessDeepgram, processTranscriptionDeepgram } from '../servi
 import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
+import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
 
 // ✅ Helper : vérifier que l'user est membre du projet
 const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
@@ -76,6 +77,20 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         }
       }
 
+      // ✅ VÉRIFICATION DU QUOTA IA AVANT TRAITEMENT
+      // (placé après validation fichier + projet pour ne pas consommer un crédit inutilement)
+      const quota = await checkAndIncrementAiQuota(userId);
+      if (!quota.allowed) {
+        return res.status(403).json({
+          success: false,
+          message: quota.message,
+          code: 'QUOTA_EXCEEDED',
+          limit: quota.limit,
+          used: quota.used,
+          scope: quota.scope,
+        });
+      }
+
       const result = await uploadAndProcessDeepgram(file, userId, projectId);
 
       emitGlobal('transcription-uploaded', {
@@ -95,7 +110,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         targetType: 'transcription',
         targetId: result.id,
         targetName: file.originalname,
-        metadata: { size: file.size, mimeType: file.mimetype },
+        metadata: { size: file.size, mimeType: file.mimetype, quota_used: quota.used },
       });
 
       return res.status(201).json({
@@ -108,6 +123,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
     }
   });
 };
+      
 
 // ---------- Réessayer une transcription échouée ----------
 export const retryTranscription = async (req: Request, res: Response) => {
