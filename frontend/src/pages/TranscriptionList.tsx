@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import CommentSection from '../components/CommentSection';
+import { useSearchParams } from 'react-router-dom';
 
 interface Transcription {
   id: string;
@@ -49,6 +50,8 @@ const TranscriptionList: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+	const [searchParams] = useSearchParams();
+	const highlightId = searchParams.get('highlight');
 
   // ✅ Auto-traduction
   const [translateModal, setTranslateModal] = useState<{
@@ -166,6 +169,21 @@ const TranscriptionList: React.FC = () => {
   useEffect(() => {
     navigate(`?type=${filter}`, { replace: true });
   }, [filter, navigate]);
+
+  // Dans un useEffect, après chargement des données :
+useEffect(() => {
+  if (highlightId) {
+    setTimeout(() => {
+      const el = document.getElementById(`transcription-${highlightId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.backgroundColor = '#FEF3C7'; // Jaune clair
+        setTimeout(() => { el.style.backgroundColor = ''; }, 3000);
+      }
+    }, 500);
+  }
+}, [highlightId, transcriptions]);
+
 
   const filteredTranscriptions = transcriptions.filter((item) => {
     if (filter === 'all') return true;

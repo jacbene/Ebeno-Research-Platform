@@ -1,27 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 
 const TranscriptionPage: React.FC = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
-  const [transcriptions, setTranscriptions] = useState<any[]>([]);
-
-  const fetchTranscriptions = async () => {
-    try {
-      const response = await api.get('/transcriptions');
-      if (response.data.success) {
-        setTranscriptions(response.data.data.transcriptions || []);
-      }
-    } catch (error) {
-      console.error('Erreur fetch transcriptions:', error);
-    }
-  };
-
-// eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetchTranscriptions();
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -33,7 +18,7 @@ const TranscriptionPage: React.FC = () => {
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
-    setMessage('Upload en cours...');
+    setMessage('⏳ Upload en cours...');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -42,43 +27,68 @@ const TranscriptionPage: React.FC = () => {
       const response = await api.post('/transcriptions/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
-      if (response.data.success) {
-        const transcriptionId = response.data.data?.transcriptionId || 'ID inconnu';
-        setMessage(`✅ Transcription réussie ! ID: ${transcriptionId}`);
-        fetchTranscriptions();
+
+      if (response.data.success && response.data.data?.transcriptionId) {
+        // ✅ Redirection automatique vers la liste des transcriptions
+        //    (qui gère l'affichage, le polling et le retry)
+        const id = response.data.data.transcriptionId;
+        navigate(`/transcriptions?highlight=${id}`);
       } else {
-        setMessage(`❌ Erreur: ${response.data.message || 'Erreur inconnue'}`);
+        setMessage('✅ Fichier envoyé, transcription en cours...');
       }
     } catch (error: any) {
-      console.error('Erreur fetch:', error);
-      setMessage(error.response?.data?.message || '❌ Erreur de connexion au serveur');
+      const msg = error.response?.data?.message || 'Erreur serveur';
+      setMessage(`❌ ${msg}`);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: '20px' }}>
       <h1>🎙️ Transcription</h1>
       <p>Sélectionnez un fichier audio et lancez la transcription.</p>
-      <input type="file" accept="audio/*" onChange={handleFileChange} disabled={uploading} />
-      <br /><br />
+
+      <div style={{ marginBottom: '16px' }}>
+        <input
+          type="file"
+          accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.webm"
+          onChange={handleFileChange}
+          disabled={uploading}
+        />
+        {file && <span style={{ marginLeft: '8px', fontSize: '13px' }}>{file.name}</span>}
+      </div>
+
       <button
         onClick={handleUpload}
         disabled={!file || uploading}
         style={{
-          padding: '10px 20px',
-          backgroundColor: '#007bff',
+          backgroundColor: '#4A6CF7',
           color: 'white',
           border: 'none',
-          borderRadius: '4px',
-          cursor: uploading ? 'not-allowed' : 'pointer'
+          padding: '12px 24px',
+          borderRadius: '8px',
+          cursor: uploading ? 'wait' : 'pointer',
+          fontSize: '15px',
+          fontWeight: 'bold',
+          opacity: !file || uploading ? 0.6 : 1,
         }}
       >
-        {uploading ? 'Upload en cours...' : 'Transcrire'}
+        {uploading ? 'Upload...' : 'Transcrire'}
       </button>
-      {message && <p style={{ marginTop: '15px' }}>{message}</p>}
+
+      {message && (
+        <p style={{ marginTop: '16px', color: message.startsWith('❌') ? 'red' : 'green' }}>
+          {message}
+        </p>
+      )}
+
+      {/* Petit lien pour accéder à la liste manuellement */}
+      <p style={{ marginTop: '24px', fontSize: '13px' }}>
+        <a href="/transcriptions" style={{ color: '#4A6CF7' }}>
+          → Voir toutes mes transcriptions
+        </a>
+      </p>
     </div>
   );
 };
