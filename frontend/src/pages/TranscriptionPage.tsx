@@ -5,7 +5,7 @@ const TranscriptionPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
-  const [setTranscriptions] = useState([]);
+  const [transcriptions, setTranscriptions] = useState<any[]>([]);
 
   const fetchTranscriptions = async () => {
     try {
