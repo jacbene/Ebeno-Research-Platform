@@ -104,3 +104,31 @@ export const checkAndIncrementAiQuota = async (userId: string): Promise<{
 
   return { allowed: true, limit: totalLimit, used: messagesUsed + 1, scope: 'personal' };
 };
+
+/**
+ * ✅ Rembourse 1 crédit IA à l'utilisateur (ou à son organisation).
+ * Utilisé quand un service IA échoue APRÈS avoir décompté le quota.
+ */
+export const refundAiQuota = async (userId: string): Promise<void> => {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  try {
+    const membership = await db('organization_members').where({ user_id: userId }).first();
+
+    if (membership) {
+      await db('organization_usage')
+        .where({ organization_id: membership.organization_id, month: currentMonth })
+        .where('messages_used', '>', 0)
+        .decrement('messages_used', 1);
+      console.log(`💸 [quota] Remboursement 1 crédit IA à l'organisation ${membership.organization_id}`);
+    } else {
+      await db('ai_usage')
+        .where({ user_id: userId, month: currentMonth })
+        .where('messages_used', '>', 0)
+        .decrement('messages_used', 1);
+      console.log(`💸 [quota] Remboursement 1 crédit IA à l'utilisateur ${userId}`);
+    }
+  } catch (err: any) {
+    console.error(`❌ [quota] Échec du remboursement pour ${userId}: ${err.message}`);
+  }
+};

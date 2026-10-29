@@ -14,6 +14,7 @@ import { decrypt } from './encryptionService';
 import { canSendEmail } from './emailPreferencesService';
 import { sendTranscriptionCompleteEmail } from './emailService';
 import { transcribeWithWhisper, isWhisperConfigured } from './whisperService';
+import { refundAiQuota } from './aiQuotaService';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 if (!DEEPGRAM_API_KEY) {
@@ -243,14 +244,29 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const updated = await db('transcriptions').where({ id: transcriptionId }).first();
     await notifyTranscriptionComplete(transcriptionId, updated || transcription);
   } catch (error: any) {
-    logger.error(`❌ [Cascade] Erreur finale ${transcriptionId} : ${error.message}`);
+  logger.error(`❌ [Cascade] Erreur finale ${transcriptionId} : ${error.message}`);
 
-    await db('transcriptions').where({ id: transcriptionId }).update({
-      status: TranscriptionStatus.FAILED,
-      errorMessage: error.message || 'Erreur inconnue',
-      updatedAt: new Date().toISOString(),
-    });
+  // ✅ Récupérer la transcription AVANT de la marquer FAILED
+  //    pour vérifier si le quota a déjà été remboursé
+  const failedTranscription = await db('transcriptions')
+    .where({ id: transcriptionId })
+    .first();
+
+  await db('transcriptions').where({ id: transcriptionId }).update({
+    status: TranscriptionStatus.FAILED,
+    errorMessage: error.message || 'Erreur inconnue',
+    updatedAt: new Date().toISOString(),
+  });
+
+  // ✅ REMBOURSEMENT : ne rembourse que si pas déjà fait
+  if (failedTranscription && !failedTranscription.quotaRefunded && failedTranscription.userId) {
+    await refundAiQuota(failedTranscription.userId);
+    await db('transcriptions')
+      .where({ id: transcriptionId })
+      .update({ quotaRefunded: true });
+    logger.info(`💸 [Quota] 1 crédit remboursé à ${failedTranscription.userId} (échec transcription ${transcriptionId})`);
   }
+}
 };
 
 // ============================================================
@@ -265,17 +281,18 @@ export const uploadAndProcessDeepgram = async (
   const audioUrl = `/uploads/${file.filename}`;
 
   await db('transcriptions').insert({
-    id,
-    userId,
-    projectId: projectId || null,
-    title: file.originalname || 'Transcription sans titre',
-    status: TranscriptionStatus.PENDING,
-    audioUrl,
-    transcriptText: null,
-    errorMessage: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
+  id,
+  userId,
+  projectId: projectId || null,
+  title: file.originalname || 'Transcription sans titre',
+  status: TranscriptionStatus.PENDING,
+  audioUrl,
+  transcriptText: null,
+  errorMessage: null,
+  quotaRefunded: false, // ✅ NOUVEAU
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
 
   logger.info(`📥 [Cascade] Nouvelle transcription ${id} : ${file.originalname}`);
 
