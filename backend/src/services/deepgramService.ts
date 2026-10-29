@@ -45,7 +45,7 @@ const getUserEmail = (user: any): string => {
 // ============================================================
 const tryWhisperFallback = async (
   transcriptionId: string,
-  audioUrl: string // ✅ On passe l'URL
+  audioUrl: string // ✅ On passe l'URL au lieu du chemin
 ): Promise<{ text: string; language: string | null } | null> => {
   if (!isWhisperConfigured()) return null;
   if (!isServiceAvailable('whisper')) return null;
@@ -57,7 +57,7 @@ const tryWhisperFallback = async (
     const response = await axios.get(audioUrl, { responseType: 'arraybuffer' });
     const buffer = Buffer.from(response.data);
     
-    // Sauvegarde temporaire dans /tmp (autorisé par Render/Node)
+    // Sauvegarde temporaire dans /tmp (autorisé par Render)
     const tempPath = path.join('/tmp', `${transcriptionId}.mp3`);
     fs.writeFileSync(tempPath, buffer);
 
@@ -118,83 +118,61 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     const transcription = await db('transcriptions').where({ id: transcriptionId }).first();
     if (!transcription) throw new Error('Transcription introuvable');
 
-    // Marquer PROCESSING
     await db('transcriptions').where({ id: transcriptionId }).update({
       status: TranscriptionStatus.PROCESSING,
       updatedAt: new Date().toISOString(),
     });
 
-    const audioPath = path.join(
-      __dirname,
-      '../../uploads/tmp',
-      path.basename(transcription.audioUrl || '')
-    );
+    // ✅ On n'utilise plus le chemin local
+    const audioUrl = transcription.audioUrl;
 
-    if (!fs.existsSync(audioPath)) {
-      throw new Error(`Fichier introuvable: ${audioPath}`);
+    if (!audioUrl || !audioUrl.startsWith('http')) {
+      throw new Error(`URL audio invalide: ${audioUrl}`);
     }
 
-    // ============================================================
-    // ÉTAPE 1 : Deepgram
-    // ============================================================
     let transcriptText: string | null = null;
     let detectedLang: string | null = null;
     let provider = 'deepgram';
     let deepgramError: string | null = null;
 
+    // ============================================================
+    // ÉTAPE 1 : Deepgram (avec URL Cloudinary directement)
+    // ============================================================
     if (DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
       try {
-        logger.info(`🎙️ [Deepgram] Transcription en cours pour ${transcriptionId}...`);
+        logger.info(`🎙️ [Deepgram] Transcription via URL Cloudinary pour ${transcriptionId}...`);
 
-        const audioFile = fs.createReadStream(audioPath);
-        const formData = new FormData();
-        formData.append('audio', audioFile);
-
-        // ✅ NOUVEAU : Deepgram accepte directement l'URL Cloudinary
-const response = await axios.post(
-  DEEPGRAM_URL,
-  { url: transcription.audioUrl }, // ✅ On passe l'URL
-  {
-    params: {
-      model: 'nova-2',
-      detect_language: 'true',
-      smart_format: 'true',
-      punctuate: 'true',
-      diarize: 'false',
-      filler_words: 'false',
-    },
-    headers: {
-      Authorization: `Token ${DEEPGRAM_API_KEY}`,
-      'Content-Type': 'application/json', // ✅ JSON au lieu de multipart
-    },
-    timeout: 5 * 60 * 1000,
-  }
-);
+        const response = await axios.post(
+          DEEPGRAM_URL,
+          { url: audioUrl }, // ✅ On passe l'URL Cloudinary directement
+          {
+            params: {
+              model: 'nova-2',
+              detect_language: 'true',
+              smart_format: 'true',
+              punctuate: 'true',
+              diarize: 'false',
+              filler_words: 'false',
+            },
+            headers: {
+              Authorization: `Token ${DEEPGRAM_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 5 * 60 * 1000,
+          }
+        );
 
         recordSuccess(SERVICE_DEEPGRAM);
 
-        transcriptText =
-          response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+        transcriptText = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+        detectedLang = response.data?.results?.channels?.[0]?.detected_language || detectLanguage(transcriptText).language;
 
-        // Deepgram retourne detected_language dans les résultats
-        detectedLang =
-          response.data?.results?.channels?.[0]?.detected_language ||
-          detectLanguage(transcriptText).language;
-
-        logger.info(
-          `✅ [Deepgram] Transcription ${transcriptionId} : ${transcriptText.length} caractères, langue=${detectedLang || '?'}`
-        );
+        logger.info(`✅ [Deepgram] OK : ${transcriptText.length} caractères, langue=${detectedLang || '?'}`);
       } catch (err: any) {
         const status = err.response?.status;
-        const errorData = err.response?.data
-          ? JSON.stringify(err.response.data)
-          : err.message;
-
-        logger.warn(
-          `⚠️ [Deepgram] Échec (${status || 'ERR'}) pour ${transcriptionId} : ${errorData}`
-        );
+        const errorData = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+        logger.warn(`⚠️ [Deepgram] Échec (${status || 'ERR'}) : ${errorData}`);
         deepgramError = `${status || 'ERR'} : ${errorData}`;
-
         recordFailure(SERVICE_DEEPGRAM, new Error(deepgramError));
       }
     } else {
@@ -207,28 +185,24 @@ const response = await axios.post(
     // ============================================================
     if (!transcriptText && deepgramError) {
       logger.info(`🔄 [Cascade] Bascule vers Whisper pour ${transcriptionId}...`);
-
-      const whisperResult = await tryWhisperFallback(transcriptionId, audioPath);
+      const whisperResult = await tryWhisperFallback(transcriptionId, audioUrl);
 
       if (whisperResult) {
         transcriptText = whisperResult.text;
         detectedLang = whisperResult.language;
         provider = 'whisper';
       } else {
-        // Les 2 services ont échoué
-        throw new Error(
-          `Deepgram: ${deepgramError}. Whisper: indisponible ou échec.`
-        );
+        throw new Error(`Deepgram: ${deepgramError}. Whisper: indisponible ou échec.`);
       }
+    }
+
+    if (!transcriptText) {
+      throw new Error('Aucun texte transcrit (résultat vide)');
     }
 
     // ============================================================
     // ÉTAPE 3 : Sauvegarder le résultat
     // ============================================================
-    if (!transcriptText) {
-      throw new Error('Aucun texte transcrit (résultat vide)');
-    }
-
     await db('transcriptions').where({ id: transcriptionId }).update({
       transcriptText,
       status: TranscriptionStatus.COMPLETED,
@@ -237,37 +211,30 @@ const response = await axios.post(
       errorMessage: null,
     });
 
-    logger.info(
-      `✅ [Cascade] Transcription ${transcriptionId} terminée via ${provider}`
-    );
+    logger.info(`✅ [Cascade] Transcription ${transcriptionId} terminée via ${provider}`);
 
-    // ✅ Notifier par email (non bloquant)
+    // Notifier
     const updated = await db('transcriptions').where({ id: transcriptionId }).first();
     await notifyTranscriptionComplete(transcriptionId, updated || transcription);
+
   } catch (error: any) {
-  logger.error(`❌ [Cascade] Erreur finale ${transcriptionId} : ${error.message}`);
+    logger.error(`❌ [Cascade] Erreur finale ${transcriptionId} : ${error.message}`);
 
-  // ✅ Récupérer la transcription AVANT de la marquer FAILED
-  //    pour vérifier si le quota a déjà été remboursé
-  const failedTranscription = await db('transcriptions')
-    .where({ id: transcriptionId })
-    .first();
+    const failedTranscription = await db('transcriptions').where({ id: transcriptionId }).first();
 
-  await db('transcriptions').where({ id: transcriptionId }).update({
-    status: TranscriptionStatus.FAILED,
-    errorMessage: error.message || 'Erreur inconnue',
-    updatedAt: new Date().toISOString(),
-  });
+    await db('transcriptions').where({ id: transcriptionId }).update({
+      status: TranscriptionStatus.FAILED,
+      errorMessage: error.message || 'Erreur inconnue',
+      updatedAt: new Date().toISOString(),
+    });
 
-  // ✅ REMBOURSEMENT : ne rembourse que si pas déjà fait
-  if (failedTranscription && !failedTranscription.quotaRefunded && failedTranscription.userId) {
-    await refundAiQuota(failedTranscription.userId);
-    await db('transcriptions')
-      .where({ id: transcriptionId })
-      .update({ quotaRefunded: true });
-    logger.info(`💸 [Quota] 1 crédit remboursé à ${failedTranscription.userId} (échec transcription ${transcriptionId})`);
+    // ✅ Remboursement du crédit IA (avec protection anti-double-remboursement)
+    if (failedTranscription && !failedTranscription.quotaRefunded && failedTranscription.userId) {
+      await refundAiQuota(failedTranscription.userId);
+      await db('transcriptions').where({ id: transcriptionId }).update({ quotaRefunded: true });
+      logger.info(`💸 [Quota] 1 crédit remboursé à ${failedTranscription.userId}`);
+    }
   }
-}
 };
 
 // ============================================================
