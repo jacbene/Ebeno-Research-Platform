@@ -86,10 +86,13 @@ export default function AiUsagePage() {
                             {isPro ? 'PRO' : 'FREE'}
                           </span>
                           {isOrgMember && u.org_name && (
-                            <span className="text-xs text-purple-300 bg-purple-900/30 px-2 py-1 rounded w-fit">
-                              🏢 {u.org_name}
-                            </span>
-                          )}
+  <span 
+    className="text-xs text-purple-300 bg-purple-900/30 px-2 py-1 rounded w-fit max-w-[150px] truncate"
+    title={u.org_name}
+  >
+    🏢 {u.org_name}
+  </span>
+)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
