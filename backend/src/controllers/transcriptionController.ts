@@ -8,7 +8,8 @@ import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
-import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le chemin de ton service
+//import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le chemin de ton service
+import { uploadBufferToCloudinary } from '../services/cloudinaryService';
 
 // ✅ Helper : vérifier que l'user est membre du projet
 const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
@@ -83,20 +84,19 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         });
       }
 
-      // ✅ 1. UPLOAD VERS CLOUDINARY (au lieu du stockage local)
-      // On utilise le buffer de Multer (file.buffer) au lieu du chemin local
-      const cloudinaryResult = await uploadToCloudinary(
-        file.buffer, 
-        `transcriptions/${userId}`, 
-        'video' // Cloudinary traite les fichiers audio comme des vidéos
+      // ✅ 1. UPLOAD VERS CLOUDINARY (BONNE FONCTION pour les Buffers)
+      const cloudinaryResult = await uploadBufferToCloudinary(
+        file.buffer,                          // Buffer en mémoire (multer.memoryStorage)
+        `transcriptions/${userId}`,           // Dossier Cloudinary
+        file.mimetype                         // ex: 'audio/mpeg' → sera mappé sur 'video'
       );
 
       // ✅ 2. LANCEMENT DU TRAITEMENT AVEC L'URL CLOUDINARY
       const result = await uploadAndProcessDeepgram(
-        cloudinaryResult.secureUrl, // L'URL Cloudinary
-        userId, 
-        projectId, 
-        file.originalname // Le nom original pour le titre
+        cloudinaryResult.secureUrl,
+        userId,
+        projectId,
+        file.originalname
       );
 
       emitGlobal('transcription-uploaded', {
@@ -128,8 +128,8 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
     }
   });
-};      
-
+};
+  
 // ---------- Réessayer une transcription échouée ----------
 export const retryTranscription = async (req: Request, res: Response) => {
   try {
