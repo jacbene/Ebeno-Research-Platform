@@ -53,31 +53,62 @@ const ChatPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ✅ Fonction pour afficher les alertes de quota (50% / 80% / 100%)
-  const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) => {
-    if (!quota || !quota.limit) return;
-    
-    const percent = (quota.used / quota.limit) * 100;
-
-    if (percent >= 100) {
-      toast.addToast({
-        type: 'error',
-        title: 'Quota IA épuisé 🚫',
-        message: `Vous avez utilisé vos ${quota.limit} messages. Rendez-vous sur /pricing pour recharger.`,
-      });
-    } else if (percent >= 80) {
-      toast.addToast({
-        type: 'warning',
-        title: 'Quota presque atteint ⚠️',
-        message: `Vous avez consommé ${percent.toFixed(0)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
-      });
-    } else if (percent >= 50) {
-      toast.addToast({
-        type: 'info',
-        title: 'Information sur votre quota 💡',
-        message: `Vous avez consommé ${percent.toFixed(0)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
-      });
-    }
-  }, [toast]);
+const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) => {
+  if (!quota || !quota.limit) return;
+  
+  const percent = (quota.used / quota.limit) * 100;
+  
+  // Déterminer le palier atteint (50 / 75 / 95 / 100)
+  let threshold: number | null = null;
+  if (percent >= 100) threshold = 100;
+  else if (percent >= 95) threshold = 95;
+  else if (percent >= 75) threshold = 75;
+  else if (percent >= 50) threshold = 50;
+  
+  if (threshold === null) return;
+  
+  // ✅ Éviter d'afficher à nouveau un palier déjà vu ce mois-ci
+  let userId = 'anon';
+  try {
+    userId = JSON.parse(localStorage.getItem('user') || '{}')?.id || 'anon';
+  } catch {}
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const storageKey = `quota_warning_${userId}_${month}_${threshold}`;
+  
+  if (localStorage.getItem(storageKey)) return; // Déjà affiché ce mois-ci
+  localStorage.setItem(storageKey, '1');
+  
+  // ✅ Messages selon le palier atteint
+  if (threshold === 100) {
+    toast.addToast({
+      type: 'error',
+      title: 'Quota IA épuisé 🚫',
+      message: `Vous avez utilisé vos ${quota.limit} messages. Rendez-vous sur /pricing pour recharger.`,
+      duration: 6000,
+    });
+  } else if (threshold === 95) {
+    toast.addToast({
+      type: 'error',
+      title: 'Quota presque épuisé 🚨',
+      message: `Il ne vous reste que ${quota.limit - quota.used} message(s) sur ${quota.limit}. Rechargez bientôt.`,
+      duration: 6000,
+    });
+  } else if (threshold === 75) {
+    toast.addToast({
+      type: 'warning',
+      title: 'Attention, quota à 75% ⚠️',
+      message: `Vous avez consommé ${Math.round(percent)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
+      duration: 6000,
+    });
+  } else if (threshold === 50) {
+    toast.addToast({
+      type: 'info',
+      title: 'Information : 50% du quota utilisé 💡',
+      message: `Vous avez consommé la moitié de votre crédit IA (${quota.used}/${quota.limit}).`,
+      duration: 6000,
+    });
+  }
+}, [toast]);
 
   // Projets
   const [projects, setProjects] = useState<Project[]>([]);

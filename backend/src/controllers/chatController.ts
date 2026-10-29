@@ -177,13 +177,14 @@ export const postMessage = async (req: Request, res: Response) => {
     // ✅ VÉRIFICATION DU QUOTA IA
     const quotaCheck = await checkAndIncrementAiQuota(userId);
     if (!quotaCheck.allowed) {
-      return res.status(403).json({ 
-        error: "Quota dépassé", 
-        message: quotaCheck.message,
-        limit: quotaCheck.limit,
-        used: quotaCheck.used
-      });
-    }
+  return res.status(403).json({
+    error: "Quota dépassé",
+    code: 'QUOTA_EXCEEDED', // ✅ AJOUT
+    message: quotaCheck.message,
+    limit: quotaCheck.limit,
+    used: quotaCheck.used
+  });
+}
 
     const { id } = req.params;
     const { content } = req.body || {};

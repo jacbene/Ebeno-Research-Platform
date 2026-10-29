@@ -85,14 +85,14 @@ export function setupChatSocket(io: SocketIOServer): void {
     // ✅ 2. VÉRIFICATION DU QUOTA IA ICI
     const quotaCheck = await checkAndIncrementAiQuota(user.id);
     if (!quotaCheck.allowed) {
-      socket.emit('chat:error', { 
-        error: quotaCheck.message,
-        code: 'QUOTA_EXCEEDED',
-        limit: quotaCheck.limit,
-        used: quotaCheck.used
-      });
-      return; // On arrête tout ici. Pas d'enregistrement de message, pas d'appel IA.
-    }
+  socket.emit('chat:error', {
+    error: quotaCheck.message,
+    code: 'QUOTA_EXCEEDED', // ✅ AJOUT
+    limit: quotaCheck.limit,
+    used: quotaCheck.used
+  });
+  return;
+}
 
     // 3. Enregistrer le message user
     const userMsgId = genId();
