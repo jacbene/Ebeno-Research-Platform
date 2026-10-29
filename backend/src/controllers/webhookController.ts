@@ -6,16 +6,12 @@ import {
   generateSecret,
   testWebhook,
   WEBHOOK_EVENTS,
+  validateWebhookUrl,
 } from '../services/webhookService';
 import { logAuditFromReq } from '../services/auditLogService';
-import { validateWebhookUrl } from '../services/webhookService';
 
 const generateId = (): string =>
   `wh-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-
-// ============================================================
-// ✅ Valider une URL
-// ============================================================
 
 // ============================================================
 // ✅ LISTER les webhooks de l'utilisateur
@@ -42,16 +38,49 @@ export const listWebhooks = async (req: Request, res: Response) => {
 };
 
 // ============================================================
-// ✅ CRÉER un webhook
+// ✅ CRÉER un webhook (avec vérification du plan)
 // ============================================================
 export const createWebhook = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
 
+    // ✅ 1. VÉRIFICATION DU PLAN ET DE LA LIMITE
+    const subscription = await db('subscriptions')
+      .where({ user_id: userId, status: 'active' })
+      .first();
+    
+    const plan = subscription?.plan || 'free';
+    const countResult = await db('webhooks').where({ userId }).count('id as count').first();
+    const webhookCount = Number(countResult?.count || 0);
+
+    // Plan Free : 0 webhook autorisé
+    if (plan === 'free') {
+      return res.status(403).json({ 
+        error: "Les webhooks sont une fonctionnalité réservée aux plans Pro et Institution. Passez au plan Pro pour y accéder.",
+        code: 'PLAN_REQUIRED'
+      });
+    }
+
+    // Plan Pro : max 3 webhooks
+    if (plan === 'pro' && webhookCount >= 3) {
+      return res.status(403).json({ 
+        error: "Vous avez atteint la limite de 3 webhooks pour le plan Pro. Passez au plan Institution pour en créer davantage.",
+        code: 'PLAN_LIMIT_REACHED'
+      });
+    }
+
+    // Plan Institution : max 20 webhooks (limite technique de sécurité)
+    if (plan === 'institution' && webhookCount >= 20) {
+      return res.status(403).json({ 
+        error: "Limite technique de 20 webhooks atteinte pour ce compte.",
+        code: 'TECHNICAL_LIMIT_REACHED'
+      });
+    }
+
+    // ✅ 2. RÉCUPÉRATION ET VALIDATION DES DONNÉES
     const { name, url, events, projectId } = req.body;
 
-    // ✅ Valider l'URL APRÈS avoir récupéré url
     if (!url) {
       return res.status(400).json({ error: 'URL requise' });
     }
@@ -68,7 +97,6 @@ export const createWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Au moins un événement requis' });
     }
 
-    // Valider les events
     const invalidEvents = events.filter((e: string) => !WEBHOOK_EVENTS.includes(e as any));
     if (invalidEvents.length > 0) {
       return res.status(400).json({
@@ -84,6 +112,7 @@ export const createWebhook = async (req: Request, res: Response) => {
       }
     }
 
+    // ✅ 3. CRÉATION DU WEBHOOK
     const id = generateId();
     const secret = generateSecret();
     const now = new Date().toISOString();
@@ -112,8 +141,10 @@ export const createWebhook = async (req: Request, res: Response) => {
       targetId: id,
       targetName: name.trim(),
       status: 'success',
-      metadata: { events, projectId: projectId || null },
+      metadata: { events, projectId: projectId || null, plan },
     });
+
+    logger.info(`✅ [webhook] Créé par ${userId} (plan: ${plan}) → ${name.trim()}`);
 
     res.status(201).json({
       success: true,
@@ -147,12 +178,12 @@ export const updateWebhook = async (req: Request, res: Response) => {
       updates.name = name.trim();
     }
     if (url !== undefined) {
-  const urlCheck = validateWebhookUrl(url);
-  if (!urlCheck.valid) {
-    return res.status(400).json({ error: `URL invalide: ${urlCheck.reason}` });
-  }
-  updates.url = url.trim();
-}
+      const urlCheck = validateWebhookUrl(url);
+      if (!urlCheck.valid) {
+        return res.status(400).json({ error: `URL invalide: ${urlCheck.reason}` });
+      }
+      updates.url = url.trim();
+    }
     if (events !== undefined) {
       if (!Array.isArray(events) || events.length === 0) {
         return res.status(400).json({ error: 'Au moins un événement requis' });

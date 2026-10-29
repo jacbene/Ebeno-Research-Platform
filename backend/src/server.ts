@@ -326,6 +326,32 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(err.status || 500).json({ error: message });
 });
 
+// ✅ WEBHOOK RETRY WORKER
+const startWebhookRetryWorker = () => {
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const pendingRetries = await db('webhook_deliveries')
+        .where('next_retry_at', '<=', now)
+        .where('is_dead', false)
+        .where('success', false)
+        .limit(10); // Traiter par lots de 10
+
+      for (const delivery of pendingRetries) {
+        const hook = await db('webhooks').where({ id: delivery.webhookId }).first();
+        if (!hook || !hook.active) continue;
+        
+        // On rappelle la fonction d'envoi du webhookService
+        const { attemptDelivery } = require('./services/webhookService');
+        await attemptDelivery(delivery.id, hook, delivery.event, delivery.payload, delivery.attempt + 1);
+      }
+    } catch (err) {
+      logger.error('❌ [webhook-worker] Erreur:', err);
+    }
+  }, 60000); // Toutes les minutes
+  logger.info('✅ [webhook-worker] Retry worker activé (toutes les 60s)');
+};
+
 // ============================================================
 // DÉMARRAGE DU SERVEUR
 // ============================================================
@@ -376,6 +402,7 @@ logger.info('✅ Migrations appliquées avec succès');
 
     startCleanupCron();
     startAuditPurgeCron();
+    startWebhookRetryWorker();
 
     verifyEmailConnection()
       .then(() => logger.info('✅ [email] SMTP opérationnel'))
