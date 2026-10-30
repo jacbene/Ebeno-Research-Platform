@@ -1,6 +1,8 @@
 // frontend/src/components/TranscriptionUploader.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../services/api';
+import { useToast } from '../context/ToastContext';         // ✅ AJOUT QUOTA IA
+import { useQuotaWarning } from '../hooks/useQuotaWarning'; // ✅ AJOUT QUOTA IA
 import './TranscriptionUploader.css';
 
 interface TranscriptionUploaderProps {
@@ -19,6 +21,10 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ AJOUT QUOTA IA — déclarer AVANT tout usage
+  const toast = useToast();
+  const checkQuotaWarning = useQuotaWarning();
 
   // ✅ Cleanup : arrêter l'intervalle à la destruction du composant
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,6 +110,11 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         const newTranscriptionId = response.data.data?.transcriptionId;
         setTranscriptionId(newTranscriptionId);
 
+        // ✅ AJOUT QUOTA IA — paliers 50/75/95 si le backend renvoie le quota à l'upload
+        if (response.data.quota) {
+          checkQuotaWarning(response.data.quota);
+        }
+
         // ✅ Refresh immédiat : l'audio apparaît dans la liste, même en PENDING
         if (onUploadComplete && newTranscriptionId) {
           onUploadComplete(newTranscriptionId);
@@ -115,6 +126,26 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
         setUploading(false);
       }
     } catch (err: any) {
+      // ✅ AJOUT QUOTA IA — gestion du 403 QUOTA_EXCEEDED (upload bloqué)
+      if (
+        err.response?.status === 403 &&
+        err.response?.data?.code === 'QUOTA_EXCEEDED'
+      ) {
+        toast.addToast({
+          type: 'error',
+          title: 'Quota IA épuisé 🚫',
+          message: `${
+            err.response.data.message ||
+            err.response.data.error ||
+            'Quota atteint.'
+          } Rendez-vous sur /pricing pour recharger.`,
+          duration: 6000,
+        });
+        setError('');
+        setUploading(false);
+        return;
+      }
+
       setError(err.response?.data?.message || 'Erreur de connexion au serveur');
       setUploading(false);
     }
@@ -136,6 +167,13 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
             intervalRef.current = null;
             setUploading(false);
             setIsCompleted(true);
+
+            // ✅ AJOUT QUOTA IA — vérification défensive après complétion
+            //    (le quota a été consommé pendant Deepgram/Whisper)
+            const finalQuota = response.data.quota || response.data.data?.quota;
+            if (finalQuota) {
+              checkQuotaWarning(finalQuota);
+            }
 
             // ✅ Rafraîchir à la fin
             if (onUploadComplete) onUploadComplete(id);
