@@ -311,7 +311,11 @@ if (cached) {
 // ✅ VÉRIFICATION DU QUOTA ICI (avant de lancer la traduction)
 const quotaCheck = await checkAndIncrementAiQuota(userId);
 if (!quotaCheck.allowed) {
-  throw new Error(quotaCheck.message);
+  const err: any = new Error(quotaCheck.message);
+  err.code = 'QUOTA_EXCEEDED';
+  err.limit = quotaCheck.limit;
+  err.used = quotaCheck.used;
+  throw err;
 }
 
 // 2. Récupérer le texte source
@@ -357,16 +361,17 @@ const { text, sourceLang, title } = await fetchSourceText(
 
   logger.info(`✅ [translation] ${title} traduit en ${lang} via ${provider}`);
 
-  return {
-    id,
-    documentId,
-    documentType,
-    targetLang: lang,
-    sourceLang,
-    translatedText: translated,
-    provider,
-    cached: false,
-  };
+ return {
+  id,
+  documentId,
+  documentType,
+  targetLang: lang,
+  sourceLang,
+  translatedText: translated,
+  provider,
+  cached: false,
+  quota: { used: quotaCheck.used, limit: quotaCheck.limit }, // ✅ AJOUT
+};
 };
 
 // ────────────────────────────────────────────────────────────

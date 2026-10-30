@@ -68,11 +68,24 @@ export const translateDocumentHandler = async (req: Request, res: Response) => {
     });
 
     return res.json({
-      success: true,
-      data: result,
-    });
+  	success: true,
+  	data: result,
+  	quota: result.quota, // ✅ AJOUT (relayé depuis le service)
+		});
   } catch (error: any) {
-    logger.error(`❌ [translation] Erreur: ${error.message}`);
+  logger.error(`❌ [translation] Erreur: ${error.message}`);
+
+  // ✅ Gestion spécifique du dépassement de quota IA
+  if (error.code === 'QUOTA_EXCEEDED') {
+    return res.status(403).json({
+      success: false,
+      code: 'QUOTA_EXCEEDED',
+      error: 'Quota IA épuisé',
+      message: error.message,
+      limit: error.limit,
+      used: error.used,
+    });
+  }
 
     // Erreur métier connue (text trop long, doc introuvable, etc.)
     const status =

@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { LanguageBadge } from './LanguageBadge';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { useQuotaWarning } from '../hooks/useQuotaWarning';
 
 interface TranslateModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ const TranslateModal: React.FC<TranslateModalProps> = ({
 }) => {
   const { colors } = useTheme();
   const toast = useToast();
+	const checkQuotaWarning = useQuotaWarning();
   const { t } = useTranslation();
 
   const [targetLang, setTargetLang] = useState(initialLang || 'en');
@@ -70,41 +72,60 @@ const TranslateModal: React.FC<TranslateModalProps> = ({
   if (!isOpen) return null;
 
   const handleTranslate = async () => {
-    setError('');
-    setTranslatedText(null);
-    setLoading(true);
+  setError('');
+  setTranslatedText(null);
+  setLoading(true);
 
-    try {
-      const res = await api.post(`/translations/${documentType}/${documentId}`, {
-        targetLang,
+  try {
+    const res = await api.post(`/translations/${documentType}/${documentId}`, {
+      targetLang,
+    });
+
+    if (res.data.success) {
+      setTranslatedText(res.data.data.translatedText);
+      setProvider(res.data.data.provider);
+      setCached(res.data.data.cached);
+      if (!availableTranslations.includes(targetLang)) {
+        setAvailableTranslations([...availableTranslations, targetLang]);
+      }
+      toast.addToast({
+        type: 'success',
+        title: t('translation.success'),
       });
 
-      if (res.data.success) {
-        setTranslatedText(res.data.data.translatedText);
-        setProvider(res.data.data.provider);
-        setCached(res.data.data.cached);
-        if (!availableTranslations.includes(targetLang)) {
-          setAvailableTranslations([...availableTranslations, targetLang]);
-        }
-        toast.addToast({
-          type: 'success',
-          title: t('translation.success'),
-        });
-        onTranslated?.();
-      } else {
-        setError(res.data.error || t('translation.error'));
+      // ✅ Vérifie le quota après la traduction
+      if (res.data.quota) {
+        checkQuotaWarning(res.data.quota);
       }
-    } catch (err: any) {
-      const status = err.response?.status;
-      const msg = err.response?.data?.error || t('translation.error');
-      setError(msg);
-      if (status === 503) {
-        setError(t('translation.unavailable'));
-      }
-    } finally {
-      setLoading(false);
+
+      onTranslated?.();
+    } else {
+      setError(res.data.error || t('translation.error'));
     }
-  };
+  } catch (err: any) {
+    const status = err.response?.status;
+    const code = err.response?.data?.code;
+    const msg = err.response?.data?.error || t('translation.error');
+
+    // ✅ Gestion propre du dépassement de quota
+    if (status === 403 && code === 'QUOTA_EXCEEDED') {
+      toast.addToast({
+        type: 'error',
+        title: 'Quota IA épuisé 🚫',
+        message: `${err.response.data.message || msg} Rendez-vous sur /pricing pour recharger.`,
+        duration: 6000,
+      });
+      return;
+    }
+
+    setError(msg);
+    if (status === 503) {
+      setError(t('translation.unavailable'));
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCopy = async () => {
     if (!translatedText) return;
