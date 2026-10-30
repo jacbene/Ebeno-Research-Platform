@@ -33,6 +33,7 @@ export interface TranslationResult {
   translatedText: string;
   provider: string;
   cached: boolean;
+  quota?: { used: number; limit: number };
 }
 
 // ────────────────────────────────────────────────────────────
