@@ -231,11 +231,13 @@ const notifySummaryReady = async (
 /**
  * Génère le résumé d'un document
  */
+// APRÈS
 export const generateDocumentSummary = async (
   documentId: string,
   type: 'transcription' | 'memo' | 'file',
   userId: string
-): Promise<string> => {
+): Promise<{ summary: string; quota?: { used: number; limit: number } }> => {
+
   let text = '';
 
   if (type === 'transcription') {
@@ -266,8 +268,8 @@ export const generateDocumentSummary = async (
     throw new Error('Type de document inconnu');
   }
 
- if (!text || text.trim().length < 50) {
-  return 'Texte trop court pour générer un résumé.';
+if (!text || text.trim().length < 50) {
+  return { summary: 'Texte trop court pour générer un résumé.' };
 }
 
 logger.info(`📝 [summary] Texte extrait : ${text.length} caractères`);
@@ -275,7 +277,11 @@ logger.info(`📝 [summary] Texte extrait : ${text.length} caractères`);
 // ✅ VÉRIFICATION DU QUOTA ICI
 const quotaCheck = await checkAndIncrementAiQuota(userId);
 if (!quotaCheck.allowed) {
-  throw new Error(quotaCheck.message);
+  const err: any = new Error(quotaCheck.message);
+  err.code = 'QUOTA_EXCEEDED';
+  err.limit = quotaCheck.limit;
+  err.used = quotaCheck.used;
+  throw err;
 }
 
 const summary = await generateSummary(text);
@@ -302,7 +308,10 @@ const summary = await generateSummary(text);
   // ✅ NOUVEAU : Notifier par email (non bloquant)
   await notifySummaryReady(userId, documentId, type, summary);
 
-  return summary;
+return {
+    summary,
+    quota: { used: quotaCheck.used, limit: quotaCheck.limit },
+  };
 };
 
 export const getDocumentSummary = async (

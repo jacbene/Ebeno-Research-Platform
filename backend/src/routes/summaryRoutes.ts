@@ -19,10 +19,28 @@ router.post('/:type/:id', authenticate, async (req, res) => {
     }
 
     const validType = type as DocumentType;
-    const summary = await generateDocumentSummary(id, validType, userId);
-    res.json({ success: true, summary });
+    const result = await generateDocumentSummary(id, validType, userId);
+
+    res.json({
+      success: true,
+      summary: result.summary,
+      quota: result.quota, // ✅ AJOUT
+    });
   } catch (error: any) {
     console.error('Erreur génération résumé:', error);
+
+    // ✅ Gestion spécifique du dépassement de quota IA
+    if (error.code === 'QUOTA_EXCEEDED') {
+      return res.status(403).json({
+        success: false,
+        code: 'QUOTA_EXCEEDED',
+        error: 'Quota IA épuisé',
+        message: error.message,
+        limit: error.limit,
+        used: error.used,
+      });
+    }
+
     res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
