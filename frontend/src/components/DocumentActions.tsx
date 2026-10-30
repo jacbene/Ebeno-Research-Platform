@@ -5,6 +5,8 @@ import { theme } from '../theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { api } from '../services/api';
+import { useQuotaWarning } from '../hooks/useQuotaWarning';
+import { useToast } from '../context/ToastContext'; // ✅ AJOUT QUOTA IA
 
 interface DocumentData {
   id: string;
@@ -33,14 +35,15 @@ const sanitizeFileName = (name: string): string => {
   return clean || 'document';
 };
 
-// ✅ IMPORTANT : on renomme la prop `document` en `doc`
-//    Sinon `document` masque le `window.document` global → TypeError
 export const DocumentActions: React.FC<DocumentActionsProps> = ({
   document: doc,
   projectId,
   onRefresh,
 }) => {
   const { colors } = useTheme();
+  // ✅ AJOUT QUOTA IA — déclarer AVANT tout usage
+  const toast = useToast();
+  const checkQuotaWarning = useQuotaWarning();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState<string | null>(null);
@@ -154,6 +157,11 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             formattedResult = response.data.message || 'Service exécuté avec succès';
         }
         setResult(formattedResult);
+
+        // ✅ AJOUT QUOTA IA — paliers 50/75/95 (le 100% est géré dans le catch)
+        if (response.data?.quota) {
+          checkQuotaWarning(response.data.quota);
+        }
       } else {
         setError(
           response.data.error || response.data.message || 'Erreur lors du service'
@@ -161,19 +169,38 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       }
     } catch (err: any) {
       console.error('❌ Erreur service:', err);
+
+      // ✅ AJOUT QUOTA IA — gérer le 403 QUOTA_EXCEEDED
+      if (
+        err.response?.status === 403 &&
+        err.response?.data?.code === 'QUOTA_EXCEEDED'
+      ) {
+        toast.addToast({
+          type: 'error',
+          title: 'Quota IA épuisé 🚫',
+          message: `${
+            err.response.data.message ||
+            err.response.data.error ||
+            'Quota atteint.'
+          } Rendez-vous sur /pricing pour recharger.`,
+          duration: 6000,
+        });
+        setError('');
+        return;
+      }
+
       setError(err.message || 'Erreur de connexion');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Export PDF — jsPDF + html2canvas
+  // ✅ Export PDF — jsPDF + html2canvas (INCHANGÉ)
   const exportPDF = async () => {
-  // ✅ Chargement dynamique (uniquement au clic)
-  const html2canvas = (await import('html2canvas')).default;
-  const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
+    const { jsPDF } = await import('jspdf');
 
-  const displayContentLocal = 
+    const displayContentLocal =
       result || doc.content || doc.transcriptText || '';
     if (!displayContentLocal) {
       setError('Aucun contenu à exporter.');
@@ -183,12 +210,8 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     setLoading(true);
     setError(null);
 
-    // ✅ Référence explicite au document DOM global
     const dom = window.document;
 
-    // ============================================================
-    // 1. Construire un container off-screen avec tout le contenu
-    // ============================================================
     const container = dom.createElement('div');
     container.style.position = 'fixed';
     container.style.left = '-9999px';
@@ -202,7 +225,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     container.style.lineHeight = '1.6';
     container.style.boxSizing = 'border-box';
 
-    // Titre
     const title = dom.createElement('h1');
     title.textContent = doc.name;
     title.style.fontSize = '22px';
@@ -213,7 +235,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     title.style.color = '#222';
     container.appendChild(title);
 
-    // Métadonnées
     const meta = dom.createElement('p');
     meta.textContent = `Type : ${doc.type} — Généré le ${new Date().toLocaleString(
       'fr-FR'
@@ -225,7 +246,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     meta.style.marginBottom = '24px';
     container.appendChild(meta);
 
-    // Service type
     if (serviceType) {
       const badge = dom.createElement('div');
       badge.textContent = `🔧 Service : ${serviceType}`;
@@ -240,7 +260,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       container.appendChild(badge);
     }
 
-    // Contenu principal
     const content = dom.createElement('div');
     content.style.whiteSpace = 'pre-wrap';
     content.style.wordWrap = 'break-word';
@@ -249,7 +268,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     content.textContent = displayContentLocal;
     container.appendChild(content);
 
-    // Nuage de mots
     if (analysisData?.wordCloud && analysisData.wordCloud.length > 0) {
       const wcTitle = dom.createElement('h2');
       wcTitle.textContent = '☁️ Nuage de mots';
@@ -287,7 +305,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       container.appendChild(wcContainer);
     }
 
-    // Footer
     const footer = dom.createElement('div');
     footer.textContent = 'Document généré depuis Ebeno Research Platform';
     footer.style.marginTop = '40px';
@@ -301,9 +318,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     dom.body.appendChild(container);
 
     try {
-      // ============================================================
-      // 2. Rendu HTML → Canvas
-      // ============================================================
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
@@ -314,9 +328,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
         scrollY: 0,
       });
 
-      // ============================================================
-      // 3. Canvas → PDF avec pagination manuelle
-      // ============================================================
       const pdf = new jsPDF({
         unit: 'mm',
         format: 'a4',
@@ -359,15 +370,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   };
 
   const handlePrint = () => {
-  // ✅ Marque tous les autres éléments de la page avec la classe no-print
-  //    (les éléments hors de #document-content sont déjà cachés via CSS,
-  //    mais on s'assure que le titre du document est visible)
-
-  // Petit délai pour laisser React finir son rendu si besoin
-  setTimeout(() => {
-    window.print();
-  }, 100);
-};
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   const displayContent = result || doc.content || doc.transcriptText || '';
 
