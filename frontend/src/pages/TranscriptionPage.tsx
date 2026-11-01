@@ -1,9 +1,15 @@
+// frontend/src/pages/TranscriptionPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useToast } from '../context/ToastContext'; // ✅ AJOUT
+import { useQuotaWarning } from '../hooks/useQuotaWarning'; // ✅ AJOUT
 
 const TranscriptionPage: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast(); // ✅ AJOUT
+  const checkQuotaWarning = useQuotaWarning(); // ✅ AJOUT
+
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,14 +35,37 @@ const TranscriptionPage: React.FC = () => {
       });
 
       if (response.data.success && response.data.data?.transcriptionId) {
+        // ✅ GESTION DES PALIERS DE QUOTA (50/75/95)
+        if (response.data.quota) {
+          checkQuotaWarning(response.data.quota);
+        }
+
         // ✅ Redirection automatique vers la liste des transcriptions
-        //    (qui gère l'affichage, le polling et le retry)
         const id = response.data.data.transcriptionId;
         navigate(`/transcriptions?highlight=${id}`);
       } else {
         setMessage('✅ Fichier envoyé, transcription en cours...');
       }
     } catch (error: any) {
+      // ✅ GESTION DU DÉPASSEMENT DE QUOTA (100%)
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.code === 'QUOTA_EXCEEDED'
+      ) {
+        toast.addToast({
+          type: 'error',
+          title: 'Quota IA épuisé 🚫',
+          message: `${
+            error.response.data.message || error.response.data.error || 'Quota atteint.'
+          } Rendez-vous sur /pricing pour recharger.`,
+          duration: 6000,
+        });
+        setMessage(''); // On n'affiche pas d'erreur inline en rouge
+        setUploading(false);
+        return;
+      }
+
+      // Erreur classique
       const msg = error.response?.data?.message || 'Erreur serveur';
       setMessage(`❌ ${msg}`);
     } finally {
