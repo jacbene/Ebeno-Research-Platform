@@ -13,6 +13,7 @@ export const AdminLayout = () => {
     { path: '/admin/subscriptions', label: t('AdminPanel.subsPage') },
     { path: '/admin/usage', label: t('AdminPanel.usagePage') },
     { path: '/admin/moderation', label: t('AdminPanel.moderationPage') },
+    { path: '/admin/emails', label: '📧 Communication' },
   ];
 
   return (

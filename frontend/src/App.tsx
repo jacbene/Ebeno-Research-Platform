@@ -27,6 +27,7 @@ import InstallBanner from './components/InstallBanner';
 import AiUsagePage from './pages/admin/AiUsagePage';
 import ModerationPage from './pages/admin/ModerationPage';
 import PricingPage from './pages/PricingPage';
+import AdminEmailPage from './pages/admin/AdminEmailPage';)
 
 // ============================================================
 // LAZY-LOADED PAGES
@@ -438,7 +439,7 @@ return (
   <Route path="subscriptions" element={<SubscriptionsPage />} />
   <Route path="usage" element={<AiUsagePage />} />
   <Route path="moderation" element={<ModerationPage />} /> {/* <-- AJOUTER CECI */}
-
+  <Route path="emails" element={<AdminEmailPage />} />
 </Route>
 
         {/* ✅ ROUTES STANDARD (AVEC NAVBAR) */}
