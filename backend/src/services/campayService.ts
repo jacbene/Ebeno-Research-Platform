@@ -1,20 +1,35 @@
 // backend/src/services/campayService.ts
 
-// Cache pour ne charger le module qu'une seule fois
-let CampayClient: any = null;
+// URLs de base de l'API CamPay
+const CAMPAY_BASE_URL = process.env.CAMPAY_ENVIRONMENT === 'PROD' 
+  ? 'https://www.campay.net/api' 
+  : 'https://demo.campay.net/api';
 
-async function getCampayClient() {
-  if (!CampayClient) {
-    // ✅ Import dynamique : fonctionne avec les modules ESM depuis du CommonJS
-    const module = await import('@lino_sap/campay-plugin');
-    CampayClient = module.CamPayClient;
-  }
-  
-  return new CampayClient({
-    username: process.env.CAMPAY_USERNAME,
-    password: process.env.CAMPAY_PASSWORD,
-    environment: (process.env.CAMPAY_ENVIRONMENT as 'DEV' | 'PROD') || 'DEV',
+interface CamPayConfig {
+  username: string;
+  password: string;
+}
+
+// Fonction utilitaire pour obtenir le token d'authentification
+async function getAccessToken(): Promise<string> {
+  const response = await fetch(`${CAMPAY_BASE_URL}/token/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      username: process.env.CAMPAY_USERNAME,
+      password: process.env.CAMPAY_PASSWORD,
+    }),
   });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`CamPay Auth Error: ${errorData.detail || 'Échec de l\'authentification'}`);
+  }
+
+  const data = await response.json();
+  return data.token;
 }
 
 export class CampayService {
@@ -24,44 +39,50 @@ export class CampayService {
     amount: number;
     phone: string;
   }) {
-    const campay = await getCampayClient();
+    const token = await getAccessToken();
     const externalReference = `${userId}:${planId}`;
 
-    const result = await campay.initCollect({
-      amount: amount.toString(),
-      currency: 'XAF',
-      from: phone,
-      description: `Abonnement Ebeno - ${planId}`,
-      external_reference: externalReference,
+    const response = await fetch(`${CAMPAY_BASE_URL}/collect/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify({
+        amount: amount.toString(),
+        currency: 'XAF',
+        from: phone,
+        description: `Abonnement Ebeno - ${planId}`,
+        external_reference: externalReference,
+      }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`CamPay Collect Error: ${errorData.detail || errorData.message || 'Échec de l\'initialisation du paiement'}`);
+    }
+
+    const data = await response.json();
     return {
-      reference: result.reference,
-      ussdCode: result.ussd_code,
-      operator: result.operator,
+      reference: data.reference,
+      ussdCode: data.ussd_code,
+      operator: data.operator,
     };
   }
 
   static async getStatus(reference: string) {
-    const campay = await getCampayClient();
-    return await campay.getStatus(reference);
-  }
-
-  static async createPaymentLink({ userId, planId, amount }: {
-    userId: string;
-    planId: string;
-    amount: number;
-  }) {
-    const campay = await getCampayClient();
-    const link = await campay.createPaymentLink({
-      amount: amount.toString(),
-      currency: 'XAF',
-      description: `Abonnement Ebeno - ${planId}`,
-      external_reference: `${userId}:${planId}`,
-      redirect_url: `${process.env.FRONTEND_URL}/payment/success`,
-      failure_redirect_url: `${process.env.FRONTEND_URL}/payment/failure`,
+    const token = await getAccessToken();
+    const response = await fetch(`${CAMPAY_BASE_URL}/transaction/${reference}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
     });
 
-    return { url: link.link, reference: link.reference };
+    if (!response.ok) {
+      throw new Error('Impossible de récupérer le statut de la transaction');
+    }
+
+    return await response.json();
   }
 }
