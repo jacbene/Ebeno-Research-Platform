@@ -1,7 +1,8 @@
 // backend/src/controllers/paymentWebhookController.ts
 import { Request, Response } from 'express';
 import crypto from 'crypto';
-import { db } from '../config/database'; // Ton instance Knex
+import jwt from 'jsonwebtoken'; // ✅ AJOUT
+import { db } from '../db/knex'; // ✅ CORRECTION DU CHEMIN (au lieu de ../config/database)
 
 // ==========================================
 // LEMON SQUEEZY

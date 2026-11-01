@@ -2,7 +2,6 @@
 import { Request, Response } from 'express';
 import { CampayService } from '../services/campayService';
 import { db } from '../db/knex'; // Ton instance Knex
-import { AuthenticatedRequest } from '../types'; // Si tu as un type pour req.user
 
 // Définition des prix en XAF (à ajuster selon tes tarifs exacts)
 const PLAN_PRICES_XAF: Record<string, number> = {
