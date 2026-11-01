@@ -61,6 +61,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       return projectId ? q.where({ projectId }) : q.where({ userId });
     };
 
+    const currentMonth = new Date().toISOString().slice(0, 7); // ✅ AJOUT
+
     // ============================================================
     // TOUTES LES REQUÊTES INDÉPENDANTES EN PARALLÈLE
     // ============================================================
@@ -75,6 +77,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       statusGroups,
       recentActivity,
       selectedProject,
+      personalUsageRaw,     // ✅ AJOUT
+      subscriptionRaw,      // ✅ AJOUT
+      orgMember,            // ✅ AJOUT
     ] = await Promise.all([
       isFiltered
         ? Promise.resolve({ count: 1 })
@@ -159,7 +164,53 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       isFiltered
         ? db('projects').where({ id: projectId }).first()
         : Promise.resolve(null),
+
+      // ✅ NOUVEAU : Usage IA personnel
+      db('ai_usage').where({ user_id: userId, month: currentMonth }).first(),
+      
+      // ✅ NOUVEAU : Abonnement actif
+      db('subscriptions').where({ user_id: userId, status: 'active' }).first(),
+      
+      // ✅ NOUVEAU : Organisation (si membre)
+      db('organization_members')
+        .join('organizations', 'organization_members.organization_id', 'organizations.id')
+        .where({ 'organization_members.user_id': userId })
+        .select('organizations.id', 'organizations.name')
+        .first(),
     ]);
+
+    // ============================================================
+    // ✅ TRAITEMENT DU QUOTA IA
+    // ============================================================
+    let aiQuota = null;
+
+    if (orgMember) {
+      // L'utilisateur fait partie d'une organisation : on récupère l'usage du pool partagé
+      const orgUsage = await db('organization_usage')
+        .where({ organization_id: orgMember.id, month: currentMonth })
+        .first();
+
+      aiQuota = {
+        plan: 'institution',
+        personalUsed: Number(personalUsageRaw?.messages_used || 0),
+        personalLimit: 0, // Pas de limite perso quand on est dans une orga
+        organization: {
+          id: orgMember.id,
+          name: orgMember.name,
+          used: Number(orgUsage?.messages_used || 0),
+          limit: 10000,
+        }
+      };
+    } else {
+      // Utilisateur individuel (Free ou Pro)
+      const plan = subscriptionRaw?.plan || 'free';
+      aiQuota = {
+        plan: plan,
+        personalUsed: Number(personalUsageRaw?.messages_used || 0),
+        personalLimit: plan === 'pro' ? 2000 : 50,
+        organization: null,
+      };
+    }
 
     // ============================================================
     // TRAITEMENT DES ENTITÉS
@@ -277,6 +328,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const result = {
       projectId: projectId || null,
       selectedProject: selectedProject || null,
+      aiQuota, // ✅ AJOUT : Les données de quota pour le frontend
       counts: {
         projects: Number((projectsCount as any)?.count || 0),
         files: Number((filesCount as any)?.count || 0),

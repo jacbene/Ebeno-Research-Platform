@@ -1,13 +1,29 @@
+// frontend/src/components/SubscriptionCard.tsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
-export const SubscriptionCard = () => {
+// ✅ NOUVEAU : Interface pour les props
+interface SubscriptionCardProps {
+  aiQuota?: {
+    plan: string;
+    personalUsed: number;
+    personalLimit: number;
+    organization: {
+      id: string;
+      name: string;
+      used: number;
+      limit: number;
+    } | null;
+  } | null;
+}
+
+export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ aiQuota }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<{ subscription: any; usage: any } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [portalLoading, setPortalLoading] = useState(false); // ✅ Nouveau state
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     api.get('/users/me/status')
@@ -16,13 +32,11 @@ export const SubscriptionCard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Fonction pour ouvrir le portail Paddle
   const openBillingPortal = async () => {
     setPortalLoading(true);
     try {
       const res = await api.post('/users/me/billing-portal');
       if (res.data.success && res.data.url) {
-        // Redirection vers le portail Paddle
         window.location.href = res.data.url;
       } else {
         alert("Impossible d'ouvrir le portail de facturation.");
@@ -39,19 +53,45 @@ export const SubscriptionCard = () => {
   if (loading) return <div className="p-4 text-gray-500">...</div>;
   if (!data) return null;
 
-  const { subscription, usage } = data;
+  const { subscription } = data;
+  
+  // ✅ 1. AFFICHAGE POUR LES MEMBRES D'ORGANISATION
+  if (aiQuota?.organization) {
+    const percent = Math.min((aiQuota.organization.used / aiQuota.organization.limit) * 100, 100);
+    return (
+      <div className="my-8 p-6 bg-blue-50 border border-blue-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+        <h2 className="text-xl font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+          🏢 Organisation : {aiQuota.organization.name}
+        </h2>
+        <p className="text-blue-800 dark:text-blue-200 mb-4">
+          Quota IA partagé : <strong>{aiQuota.organization.used} / {aiQuota.organization.limit}</strong> messages utilisés ce mois-ci.
+        </p>
+        <div className="w-full bg-blue-200 rounded-full h-2 mb-4 dark:bg-gray-600">
+          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percent}%` }}></div>
+        </div>
+        <button
+          onClick={openBillingPortal}
+          disabled={portalLoading}
+          className="inline-block bg-white hover:bg-gray-50 text-blue-700 font-bold py-2 px-6 rounded-lg border border-blue-300 transition-colors disabled:opacity-50"
+        >
+          {portalLoading ? 'Chargement...' : '💳 Gérer mon abonnement'}
+        </button>
+      </div>
+    );
+  }
+
+  // ✅ Récupération des infos depuis le backend pour les utilisateurs individuels
   const isPro = subscription?.plan === 'pro' || subscription?.plan === 'institution';
-  const messagesUsed = usage?.messages_used || 0;
-  const limit = (subscription?.plan === 'institution' ? 10000 : isPro ? 2000 : 50) + (usage?.bonus_credits || 0);
+  const messagesUsed = aiQuota?.personalUsed !== undefined ? aiQuota.personalUsed : (data.usage?.messages_used || 0);
+  const limit = aiQuota?.personalLimit !== undefined ? aiQuota.personalLimit : ((subscription?.plan === 'institution' ? 10000 : isPro ? 2000 : 50) + (data.usage?.bonus_credits || 0));
+  
   const isQuotaExceeded = messagesUsed >= limit;
   const isExpiringSoon = subscription?.current_period_end 
     ? new Date(subscription.current_period_end).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000
     : false;
 
-  // --- RENDU CONDITIONNEL ---
-
-  // 1. Utilisateur FREE (non abonné)
-  if (!isPro) {
+  // ✅ 2. UTILISATEUR FREE (ou sans abonnement actif)
+  if (!isPro && aiQuota?.plan !== 'pro') {
     return (
       <div className="my-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm dark:from-gray-800 dark:to-gray-800 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
@@ -70,7 +110,7 @@ export const SubscriptionCard = () => {
     );
   }
 
-  // 2. Abonné Pro : Quota dépassé ou proche de l'être (PAYG)
+  // ✅ 3. QUOTA DÉPASSÉ (Pro ou bonus)
   if (isQuotaExceeded || messagesUsed > limit * 0.9) {
     return (
       <div className="my-8 p-6 bg-orange-50 border border-orange-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
@@ -99,8 +139,8 @@ export const SubscriptionCard = () => {
     );
   }
 
-  // 3. Abonné Pro : Expire bientôt ou renouvellement
-  if (isExpiringSoon || subscription.status === 'past_due') {
+  // ✅ 4. ABONNÉ PRO : Expire bientôt
+  if (isExpiringSoon || subscription?.status === 'past_due') {
     return (
       <div className="my-8 p-6 bg-red-50 border border-red-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <h2 className="text-xl font-bold text-red-800 dark:text-red-300 mb-2">
@@ -131,7 +171,7 @@ export const SubscriptionCard = () => {
     );
   }
 
-  // 4. Abonné Pro : Tout va bien
+  // ✅ 5. ABONNÉ PRO : Tout va bien
   return (
     <div className="my-8 p-6 bg-green-50 border border-green-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
       <h2 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">
@@ -141,7 +181,7 @@ export const SubscriptionCard = () => {
         {t('Pricing.subscription.activeDesc', { 
           used: messagesUsed, 
           limit, 
-          date: new Date(subscription.current_period_end).toLocaleDateString() 
+          date: subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'
         })}
       </p>
       <button
