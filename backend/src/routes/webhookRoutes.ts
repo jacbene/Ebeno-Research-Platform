@@ -1,5 +1,5 @@
 // backend/src/routes/webhookRoutes.ts
-import express, { Router } from 'express';
+import { Router } from 'express'; // ✅ 'express' retiré car inutilisé
 import { authenticate } from '../middleware/auth';
 import {
   listWebhooks,
@@ -11,13 +11,12 @@ import {
   listEvents,
 } from '../controllers/webhookController';
 
-// ✅ NOUVEL IMPORT
 import { handleCamPayWebhook } from '../controllers/paymentWebhookController';
 
 const router = Router();
 
-// ✅ Webhook CamPay (Reçoit du JSON standard)
-// Pas besoin de express.raw ici car express.json() global l'aura déjà parsé
+// ✅ Webhook CamPay
+// Les données x-www-form-urlencoded sont déjà parsées par le middleware global dans server.ts
 router.post('/payments/campay', handleCamPayWebhook);
 
 // ============================================================================
