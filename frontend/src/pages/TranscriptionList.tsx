@@ -11,7 +11,7 @@ import { api } from '../services/api';
 import CommentSection from '../components/CommentSection';
 import { useSearchParams } from 'react-router-dom';
 import TranscriptionUploader from '../components/TranscriptionUploader';
-import { socket } from '../services/socket'; // ✅ AJOUT : Vérifie le chemin de ton instance Socket.IO
+import { socket } from '../services/socket'; // ✅ IMPORT CORRIGÉ
 
 interface Transcription {
   id: string;
@@ -55,6 +55,30 @@ const TranscriptionList: React.FC = () => {
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
+
+  useEffect(() => {
+    // On se connecte si ce n'est pas déjà fait
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleRealtimeUpdate = (data: any) => {
+      console.log('⚡ Socket event received, updating transcriptions list...', data);
+      fetchTranscriptions();
+    };
+
+    // On écoute les événements émis par le backend (emitGlobal)
+    socket.on('transcription-completed', handleRealtimeUpdate);
+    socket.on('transcription-failed', handleRealtimeUpdate);
+    socket.on('transcription-uploaded', handleRealtimeUpdate);
+
+    // Nettoyage quand on quitte la page (on ne déconnecte pas le socket, on retire juste les écouteurs)
+    return () => {
+      socket.off('transcription-completed', handleRealtimeUpdate);
+      socket.off('transcription-failed', handleRealtimeUpdate);
+      socket.off('transcription-uploaded', handleRealtimeUpdate);
+    };
+  }, []);
 
   // ✅ Auto-traduction
   const [translateModal, setTranslateModal] = useState<{
