@@ -554,6 +554,49 @@ export const sendOrgInvitationEmail = async ({
   return false;
 };
 
+// backend/src/services/emailService.ts
+
+// ────────────────────────────────────────────────────────────
+// 11. Email collectif / individuel (Admin Broadcast)
+// ────────────────────────────────────────────────────────────
+
+export interface SendBroadcastParams {
+  to: string;
+  name?: string;
+  subject: string;
+  message: string; // Le texte brut écrit par l'admin
+  lang?: string;
+}
+
+export const sendBroadcastEmail = async ({ to, name, subject, message, lang }: SendBroadcastParams): Promise<boolean> => {
+  if (!BREVO_API_KEY) return false;
+
+  const L = normalizeLang(lang);
+  const S = EMAIL_STRINGS[L];
+  
+  // On garde l'entête et le footer de ta plateforme (htmlWrapper)
+  // On remplace juste le contenu par le message de l'admin
+  const content = `
+    <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${name ? `Bonjour ${name},` : 'Bonjour,'}</h2>
+    <div style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">
+      ${message.replace(/\n/g, '<br>')}
+    </div>
+  `;
+
+  const result = await sendViaBrevo({
+    to: [{ email: to, name: name || 'Utilisateur' }],
+    subject: subject,
+    htmlContent: htmlWrapper(content, L),
+  });
+
+  if (result.success) {
+    logger.info(`✅ [email] Broadcast envoyé à ${to}`);
+    return true;
+  }
+  logger.error(`❌ [email] Échec broadcast à ${to}: ${result.error}`);
+  return false;
+};
+
 // ────────────────────────────────────────────────────────────
 // 6. Vérification config (démarrage)
 // ────────────────────────────────────────────────────────────

@@ -3,6 +3,8 @@ import { Router } from 'express';
 import { backupCloudinary, dbInfo, getAuditLogs, purgeAuditLogs } from '../controllers/adminController';
 import { authenticate } from '../middleware/auth';
 import { db } from '../db/knex';
+// ✅ NOUVEL IMPORT
+import { sendBroadcast } from '../controllers/adminEmailController';
 
 const router = Router();
 
@@ -54,7 +56,7 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
         'users.name',
         'users.role',
         'users.createdAt',
-        'users.isSuspended', // ✅ AJOUTÉ
+        'users.isSuspended',
         'subscriptions.plan as subscription_plan',
         'subscriptions.status as subscription_status'
       )
@@ -69,7 +71,7 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
-// 3. Changer le rôle d'un utilisateur (MANQUANT)
+// 3. Changer le rôle d'un utilisateur
 // ────────────────────────────────────────────────────────────
 router.patch('/users/:id/role', authenticate, requireAdmin, async (req, res) => {
   try {
@@ -80,7 +82,6 @@ router.patch('/users/:id/role', authenticate, requireAdmin, async (req, res) => 
       return res.status(400).json({ error: "Rôle invalide." });
     }
 
-    // Empêcher l'admin de se retirer ses propres droits
     if ((req as any).user.id === id) {
       return res.status(400).json({ error: "Vous ne pouvez pas modifier votre propre rôle." });
     }
@@ -177,8 +178,6 @@ router.get('/subscriptions', authenticate, requireAdmin, async (req, res) => {
 // ────────────────────────────────────────────────────────────
 // 7. Usage IA (avec bonus)
 // ────────────────────────────────────────────────────────────
-
-// ✅ Liste de l'usage IA pour le mois en cours
 router.get('/usage', authenticate, requireAdmin, async (req, res) => {
   try {
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -193,7 +192,7 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
         'ai_usage.bonus_credits',
         'subscriptions.plan as subscription_plan',
         'organization_members.organization_id as org_id',
-        'organizations.name as org_name', // ✅ NOUVEAU
+        'organizations.name as org_name',
         'organization_usage.messages_used as org_messages_used',
         'organization_usage.bonus_credits as org_bonus_credits'
       )
@@ -206,7 +205,7 @@ router.get('/usage', authenticate, requireAdmin, async (req, res) => {
             .andOn('subscriptions.status', '=', db.raw('?', ['active']));
       })
       .leftJoin('organization_members', 'users.id', '=', 'organization_members.user_id')
-      .leftJoin('organizations', 'organization_members.organization_id', 'organizations.id') // ✅ NOUVEAU
+      .leftJoin('organizations', 'organization_members.organization_id', 'organizations.id')
       .leftJoin('organization_usage', function() {
         this.on('organization_members.organization_id', '=', 'organization_usage.organization_id')
             .andOn('organization_usage.month', '=', db.raw('?', [currentMonth]));
@@ -247,10 +246,17 @@ router.get('/moderation', authenticate, requireAdmin, async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
-// 9. Anciennes routes (backup / audit)
+// 9. Communication (E-mails)
+// ────────────────────────────────────────────────────────────
+// ✅ NOUVELLE ROUTE : Envoi d'e-mails collectifs ou individuels
+router.post('/emails/broadcast', authenticate, requireAdmin, sendBroadcast);
+
+
+// ────────────────────────────────────────────────────────────
+// 10. Anciennes routes (backup / audit)
 // ────────────────────────────────────────────────────────────
 router.get('/backup/cloudinary', backupCloudinary);
-router.get('/backup/db-info', dbInfo);
+router.get('/db-info', dbInfo);
 router.get('/audit-log', getAuditLogs);
 router.post('/audit-log/purge', purgeAuditLogs);
 
