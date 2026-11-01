@@ -11,24 +11,24 @@ export default function LandingPage() {
     setMode(effectiveMode === 'dark' ? 'light' : 'dark');
   };
 
-  // ✅ Liste étendue des fonctionnalités pour la landing page
+  // ✅ Liste corrigée et dédoublonnée
   const features = [
     {
       icon: '🎙️',
       title: t('landing.feature1Title', 'Transcription Audio Automatique'),
-      desc: t('landing.feature1Desc', 'Uploadez vos entretiens, conférences ou notes vocales. Notre système (Deepgram & Whisper) les transcrit avec une précision de pointe, détecte la langue et gère les fichiers jusqu\'à 100 Mo.'),
+      desc: t('landing.feature1Desc', 'Uploadez vos entretiens ou notes vocales. Le système (Deepgram & Whisper) les transcrit avec une précision de pointe, détecte la langue et gère les fichiers jusqu\'à 100 Mo.'),
       color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
     },
     {
       icon: '🤖',
       title: t('landing.feature2Title', 'Chat IA & Analyse Contextuelle'),
-      desc: t('landing.feature2Desc', 'Discutez avec vos documents. L\'IA analyse le contexte de vos projets, cite ses sources (documents, transcriptions) et répond à vos questions les plus complexes en temps réel.'),
+      desc: t('landing.feature2Desc', 'Discutez avec vos documents. L\'IA (DeepSeek) analyse le contexte de vos projets, cite ses sources (documents, transcriptions) et répond à vos questions en temps réel.'),
       color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300',
     },
     {
       icon: '🌍',
-      title: t('landing.feature3Title', 'Traduction Multilingue'),
-      desc: t('landing.feature3Desc', 'Traduisez vos résumés, notes et transcriptions en un clic. Support complet du Français, Anglais, Espagnol, Portugais et Arabe (avec interface RTL) pour la recherche internationale.'),
+      title: t('landing.feature3Title', 'Traduction de Documents'),
+      desc: t('landing.feature3Desc', 'Traduisez vos transcriptions, résumés et notes en un clic. Support complet du Français, Anglais, Espagnol, Portugais et Arabe (avec affichage RTL natif) pour vos recherches internationales.'),
       color: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300',
     },
     {
@@ -56,10 +56,10 @@ export default function LandingPage() {
       color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300',
     },
     {
-      icon: '🤝',
-      title: t('landing.feature8Title', 'Collaboration temps réel'),
-      desc: t('landing.feature8Desc', 'Invitez vos collègues à co-éditer vos analyses et documents en direct. Un espace unique pour construire vos recherches à plusieurs.'),
-      color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300',
+      icon: '🛡️', // ✅ Remplacement de la redondance par la Sécurité
+      title: t('landing.feature8Title', 'Sécurité & Authentification Forte'),
+      desc: t('landing.feature8Desc', 'Vos données de recherche sont sensibles. Ebeno intègre une authentification à deux facteurs (2FA), un chiffrement strict des emails et une politique de confidentialité RGPD.'),
+      color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
     },
   ];
 
@@ -102,7 +102,7 @@ export default function LandingPage() {
             {t('landing.heroTitle', "L'analyse qualitative augmentée par l'IA pour les chercheurs")}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto">
-            {t('landing.heroSubtitle', 'Transcrivez, analysez et collaborez sur vos données de recherche dans un espace unique et sécurisé.')}
+            {t('landing.heroSubtitle', 'Transcrivez, analysez, traduisez et collaborez sur vos données de recherche dans un espace unique et sécurisé.')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -124,7 +124,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FEATURES (Grille étendue) */}
+      {/* FEATURES */}
       <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -159,22 +159,22 @@ export default function LandingPage() {
 
       {/* BENEFITS */}
       <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
             {t('landing.benefitsTitle', 'Pourquoi les chercheurs choisissent Ebeno ?')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl">
               <div className="text-4xl mb-4">🔒</div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('landing.benefit1Title', 'Sécurité & RGPD')}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit1Desc', 'Export, suppression de compte, chiffrement des données : la confidentialité au cœur de notre architecture.')}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit1Desc', 'Export, suppression de compte, 2FA, chiffrement des données : la confidentialité au cœur de notre architecture.')}</p>
             </div>
-            <div className="text-center">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl">
               <div className="text-4xl mb-4">🌍</div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('landing.benefit2Title', 'Prêt pour l\'International')}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit2Desc', 'Français, anglais, espagnol, portugais, arabe — avec support RTL natif et détection automatique des langues.')}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit2Desc', 'Une interface et des documents traduits en 5 langues, avec le support natif de l\'arabe (RTL).')}</p>
             </div>
-            <div className="text-center">
+            <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl">
               <div className="text-4xl mb-4">💳</div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('landing.benefit3Title', 'Paiement flexible')}</h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm">{t('landing.benefit3Desc', 'Abonnement Pro, Institution, ou crédits à l\'unité (PAYG). Payez par carte ou par Mobile Money (MTN/Orange).')}</p>
@@ -185,7 +185,6 @@ export default function LandingPage() {
 
       {/* CTA FINAL */}
       <section className="py-20 px-4 bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden">
-        {/* Effet de fond décoratif */}
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-blue-500 rounded-full opacity-30 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-indigo-800 rounded-full opacity-30 blur-3xl"></div>
         
