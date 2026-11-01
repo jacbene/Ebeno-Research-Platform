@@ -7,6 +7,7 @@ import { useChatStream, type StreamDone } from '../hooks/useChatStream';
 import { useToast } from '../context/ToastContext';
 import ReactMarkdown from 'react-markdown'; // ✅ AJOUT
 import './ChatPage.css';
+import remarkGfm from 'remark-gfm';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -516,7 +517,9 @@ const ChatPage: React.FC = () => {
               <div className="message-bubble">
                 {/* ✅ CHANGEMENT ICI : Utilisation de ReactMarkdown */}
                 <div className="message-content">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                   {m.content}
+                 </ReactMarkdown>
                 </div>
 
                 {m.model && (
@@ -554,7 +557,9 @@ const ChatPage: React.FC = () => {
               <div className="message-bubble">
                 {/* ✅ CHANGEMENT ICI : Utilisation de ReactMarkdown pour le streaming */}
                 <div className="message-content">
-                  <ReactMarkdown>{streamingText}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {streamingText}
+                  </ReactMarkdown>
                   <span className="cursor">▊</span>
                 </div>
                 {streamingModel && (
