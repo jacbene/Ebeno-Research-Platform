@@ -27,7 +27,7 @@ import InstallBanner from './components/InstallBanner';
 import AiUsagePage from './pages/admin/AiUsagePage';
 import ModerationPage from './pages/admin/ModerationPage';
 import PricingPage from './pages/PricingPage';
-import AdminEmailPage from './pages/admin/AdminEmailPage';)
+import AdminEmailPage from './pages/admin/AdminEmailPage';
 
 // ============================================================
 // LAZY-LOADED PAGES
