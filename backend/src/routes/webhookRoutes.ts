@@ -1,4 +1,5 @@
-import { Router } from 'express';
+// backend/src/routes/webhookRoutes.ts
+import express, { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import {
   listWebhooks,
@@ -10,7 +11,18 @@ import {
   listEvents,
 } from '../controllers/webhookController';
 
+// ✅ NOUVEL IMPORT
+import { handleCamPayWebhook } from '../controllers/paymentWebhookController';
+
 const router = Router();
+
+// ✅ Webhook CamPay (Reçoit du JSON standard)
+// Pas besoin de express.raw ici car express.json() global l'aura déjà parsé
+router.post('/payments/campay', handleCamPayWebhook);
+
+// ============================================================================
+// ROUTES EXISTANTES (WEBHOOKS UTILISATEURS)
+// ============================================================================
 
 // ✅ Public (pour le frontend)
 router.get('/events', listEvents);

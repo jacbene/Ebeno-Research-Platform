@@ -9,6 +9,7 @@ validateAllSecrets();
 
 //Validation des abonnements
 import { handlePaddleWebhook } from './controllers/paddleController';
+import { handleLemonSqueezyWebhook } from './controllers/paymentWebhookController';
 
 import express from 'express';
 import cors from 'cors';
@@ -58,6 +59,7 @@ import analyticsRoutes from './routes/analyticsRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import chatRoutes from './routes/chatRoutes';
 import organizationRoutes from './routes/organizationRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 
 // Socket + DB + Services
 import { CollaborationSocketHandler } from './sockets/collaborationSocket';
@@ -199,8 +201,12 @@ app.use(cors({
 // ⚠️ Route Webhook Paddle DOIT être déclarée AVANT express.json() pour conserver le corps brut (raw)
 // ⚠️ Capture brute de tout Content-Type pour Paddle
 app.post('/api/webhooks/paddle', express.raw({ type: '*/*', limit: '10mb' }), handlePaddleWebhook);
+// ✅ NOUVEAU : Route Webhook Lemon Squeezy DOIT aussi être AVANT express.json()
+app.post('/api/webhooks/payments/lemonsqueezy', express.raw({ type: 'application/json' }), handleLemonSqueezyWebhook);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use(requestLogger);
@@ -270,6 +276,7 @@ app.use('/api/push', pushRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ============================================================
 // ROUTES UTILITAIRES

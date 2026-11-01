@@ -1,8 +1,20 @@
-import { PaddleCheckoutButton } from '../components/PaddleCheckoutButton';
+// frontend/src/pages/PricingPage.tsx
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PaymentModal } from '../components/PaymentModal';
+
+// Type pour stocker les infos du plan sélectionné
+interface SelectedPlan {
+  id: string;
+  name: string;
+  priceXAF: number;
+  paddlePriceId: string;
+  paddleLabel: string;
+}
 
 export default function PricingPage() {
   const { t } = useTranslation();
+  const [selectedPlan, setSelectedPlan] = useState<SelectedPlan | null>(null);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors">
@@ -52,16 +64,30 @@ export default function PricingPage() {
               <li className="flex items-center">✅ {t('Pricing.pro.feature3')}</li>
             </ul>
             <div className="mt-8 space-y-3">
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY}
-                label={t('Pricing.pro.ctaMonthly')}
+              <button
+                onClick={() => setSelectedPlan({
+                  id: 'pro_monthly',
+                  name: `${t('Pricing.pro.name')} (Mensuel)`,
+                  priceXAF: 8000,
+                  paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY,
+                  paddleLabel: t('Pricing.pro.ctaMonthly')
+                })}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_PRO_YEARLY}
-                label={t('Pricing.pro.ctaYearly')}
+              >
+                {t('Pricing.pro.ctaMonthly')}
+              </button>
+              <button
+                onClick={() => setSelectedPlan({
+                  id: 'pro_yearly',
+                  name: `${t('Pricing.pro.name')} (Annuel)`,
+                  priceXAF: 80000,
+                  paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PRO_YEARLY,
+                  paddleLabel: t('Pricing.pro.ctaYearly')
+                })}
                 className="w-full bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold py-3 px-6 rounded-lg transition-colors"
-              />
+              >
+                {t('Pricing.pro.ctaYearly')}
+              </button>
             </div>
           </div>
 
@@ -79,16 +105,30 @@ export default function PricingPage() {
               <li className="flex items-center">✅ {t('Pricing.institution.feature3')}</li>
             </ul>
             <div className="mt-8 space-y-3">
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_INST_MONTHLY}
-                label={t('Pricing.institution.cta')}
+              <button
+                onClick={() => setSelectedPlan({
+                  id: 'institution_monthly',
+                  name: `${t('Pricing.institution.name')} (Mensuel)`,
+                  priceXAF: 32000,
+                  paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_INST_MONTHLY,
+                  paddleLabel: t('Pricing.institution.cta')
+                })}
                 className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              />
-              <PaddleCheckoutButton
-                priceId={import.meta.env.VITE_PADDLE_PRICE_INST_YEARLY}
-                label={t('Pricing.institution.ctaYearly')}
+              >
+                {t('Pricing.institution.cta')}
+              </button>
+              <button
+                onClick={() => setSelectedPlan({
+                  id: 'institution_yearly',
+                  name: `${t('Pricing.institution.name')} (Annuel)`,
+                  priceXAF: 320000,
+                  paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_INST_YEARLY,
+                  paddleLabel: t('Pricing.institution.ctaYearly')
+                })}
                 className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              />
+              >
+                {t('Pricing.institution.ctaYearly')}
+              </button>
             </div>
           </div>
         </div>
@@ -104,15 +144,35 @@ export default function PricingPage() {
           </div>
           <div className="flex flex-col items-center gap-3 w-full md:w-auto">
             <span className="text-3xl font-extrabold text-orange-900 dark:text-orange-200">{t('Pricing.payg.price')}</span>
-            <PaddleCheckoutButton
-              priceId={import.meta.env.VITE_PADDLE_PRICE_PAYG}
-              label={t('Pricing.payg.cta')}
+            <button
+              onClick={() => setSelectedPlan({
+                id: 'payg',
+                name: t('Pricing.payg.title'),
+                priceXAF: 3300,
+                paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PAYG,
+                paddleLabel: t('Pricing.payg.cta')
+              })}
               className="w-full md:w-auto bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-sm whitespace-nowrap"
-            />
+            >
+              {t('Pricing.payg.cta')}
+            </button>
           </div>
         </div>
 
       </div>
+
+      {/* ✅ Ajout de la modale de paiement */}
+      {selectedPlan && (
+        <PaymentModal
+          isOpen={!!selectedPlan}
+          onClose={() => setSelectedPlan(null)}
+          planId={selectedPlan.id}
+          planName={selectedPlan.name}
+          priceXAF={selectedPlan.priceXAF}
+          paddlePriceId={selectedPlan.paddlePriceId}
+          paddleLabel={selectedPlan.paddleLabel}
+        />
+      )}
     </div>
   );
 }
