@@ -43,17 +43,16 @@ export const AdminBroadcastEmail: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 max-w-3xl">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">📧 Envoyer un e-mail aux utilisateurs</h2>
+    <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 max-w-3xl">
+      <h2 className="text-xl font-bold text-white mb-4">📧 Envoyer un e-mail aux utilisateurs</h2>
       
       <form onSubmit={handleSend} className="space-y-4">
-        {/* Cible */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Destinataires</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Destinataires</label>
           <select
             value={targetType}
             onChange={(e) => setTargetType(e.target.value as any)}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+            className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white outline-none focus:border-blue-500"
           >
             <option value="all">Tous les utilisateurs</option>
             <option value="plan">Par Plan (Free, Pro, Institution)</option>
@@ -61,14 +60,13 @@ export const AdminBroadcastEmail: React.FC = () => {
           </select>
         </div>
 
-        {/* Champ conditionnel */}
         {targetType === 'plan' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Plan</label>
             <select
               value={targetValue}
               onChange={(e) => setTargetValue(e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+              className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white outline-none focus:border-blue-500"
             >
               <option value="">Sélectionnez un plan</option>
               <option value="free">Free</option>
@@ -80,38 +78,36 @@ export const AdminBroadcastEmail: React.FC = () => {
 
         {targetType === 'specific' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email de l'utilisateur</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Email de l'utilisateur</label>
             <input
               type="email"
               value={targetValue}
               onChange={(e) => setTargetValue(e.target.value)}
               placeholder="utilisateur@email.com"
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+              className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 outline-none focus:border-blue-500"
             />
           </div>
         )}
 
-        {/* Sujet */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sujet</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Sujet</label>
           <input
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="ex: Maintenance planifiée ce week-end"
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+            className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 outline-none focus:border-blue-500"
           />
         </div>
 
-        {/* Message */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Message</label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={8}
             placeholder="Écrivez votre message ici. Les retours à la ligne seront respectés."
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+            className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-400 outline-none focus:border-blue-500"
           />
         </div>
 
