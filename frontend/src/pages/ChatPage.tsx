@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useChatStream, type StreamDone } from '../hooks/useChatStream';
-import { useToast } from '../context/ToastContext'; // ✅ AJOUT
+import { useToast } from '../context/ToastContext';
+import ReactMarkdown from 'react-markdown'; // ✅ AJOUT
 import './ChatPage.css';
 
 // ═══════════════════════════════════════════════════════════
@@ -53,62 +54,59 @@ const ChatPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ✅ Fonction pour afficher les alertes de quota (50% / 80% / 100%)
-const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) => {
-  if (!quota || !quota.limit) return;
-  
-  const percent = (quota.used / quota.limit) * 100;
-  
-  // Déterminer le palier atteint (50 / 75 / 95 / 100)
-  let threshold: number | null = null;
-  if (percent >= 100) threshold = 100;
-  else if (percent >= 95) threshold = 95;
-  else if (percent >= 75) threshold = 75;
-  else if (percent >= 50) threshold = 50;
-  
-  if (threshold === null) return;
-  
-  // ✅ Éviter d'afficher à nouveau un palier déjà vu ce mois-ci
-  let userId = 'anon';
-  try {
-    userId = JSON.parse(localStorage.getItem('user') || '{}')?.id || 'anon';
-  } catch {}
-  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
-  const storageKey = `quota_warning_${userId}_${month}_${threshold}`;
-  
-  if (localStorage.getItem(storageKey)) return; // Déjà affiché ce mois-ci
-  localStorage.setItem(storageKey, '1');
-  
-  // ✅ Messages selon le palier atteint
-  if (threshold === 100) {
-    toast.addToast({
-      type: 'error',
-      title: 'Quota IA épuisé 🚫',
-      message: `Vous avez utilisé vos ${quota.limit} messages. Rendez-vous sur /pricing pour recharger.`,
-      duration: 6000,
-    });
-  } else if (threshold === 95) {
-    toast.addToast({
-      type: 'error',
-      title: 'Quota presque épuisé 🚨',
-      message: `Il ne vous reste que ${quota.limit - quota.used} message(s) sur ${quota.limit}. Rechargez bientôt.`,
-      duration: 6000,
-    });
-  } else if (threshold === 75) {
-    toast.addToast({
-      type: 'warning',
-      title: 'Attention, quota à 75% ⚠️',
-      message: `Vous avez consommé ${Math.round(percent)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
-      duration: 6000,
-    });
-  } else if (threshold === 50) {
-    toast.addToast({
-      type: 'info',
-      title: 'Information : 50% du quota utilisé 💡',
-      message: `Vous avez consommé la moitié de votre crédit IA (${quota.used}/${quota.limit}).`,
-      duration: 6000,
-    });
-  }
-}, [toast]);
+  const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) => {
+    if (!quota || !quota.limit) return;
+    
+    const percent = (quota.used / quota.limit) * 100;
+    
+    let threshold: number | null = null;
+    if (percent >= 100) threshold = 100;
+    else if (percent >= 95) threshold = 95;
+    else if (percent >= 75) threshold = 75;
+    else if (percent >= 50) threshold = 50;
+    
+    if (threshold === null) return;
+    
+    let userId = 'anon';
+    try {
+      userId = JSON.parse(localStorage.getItem('user') || '{}')?.id || 'anon';
+    } catch {}
+    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const storageKey = `quota_warning_${userId}_${month}_${threshold}`;
+    
+    if (localStorage.getItem(storageKey)) return;
+    localStorage.setItem(storageKey, '1');
+    
+    if (threshold === 100) {
+      toast.addToast({
+        type: 'error',
+        title: 'Quota IA épuisé 🚫',
+        message: `Vous avez utilisé vos ${quota.limit} messages. Rendez-vous sur /pricing pour recharger.`,
+        duration: 6000,
+      });
+    } else if (threshold === 95) {
+      toast.addToast({
+        type: 'error',
+        title: 'Quota presque épuisé 🚨',
+        message: `Il ne vous reste que ${quota.limit - quota.used} message(s) sur ${quota.limit}. Rechargez bientôt.`,
+        duration: 6000,
+      });
+    } else if (threshold === 75) {
+      toast.addToast({
+        type: 'warning',
+        title: 'Attention, quota à 75% ⚠️',
+        message: `Vous avez consommé ${Math.round(percent)}% de votre crédit IA (${quota.used}/${quota.limit}).`,
+        duration: 6000,
+      });
+    } else if (threshold === 50) {
+      toast.addToast({
+        type: 'info',
+        title: 'Information : 50% du quota utilisé 💡',
+        message: `Vous avez consommé la moitié de votre crédit IA (${quota.used}/${quota.limit}).`,
+        duration: 6000,
+      });
+    }
+  }, [toast]);
 
   // Projets
   const [projects, setProjects] = useState<Project[]>([]);
@@ -165,7 +163,6 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
       setStreamingText('');
       setStreamingModel('');
 
-      // ✅ Vérifier le quota après chaque réponse streaming
       if (data.quota) {
         checkQuotaWarning(data.quota);
       }
@@ -184,7 +181,6 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
       setStreamingModel('');
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
     },
-    // ✅ Gestion du dépassement de quota (Socket) via useToast
     onQuotaExceeded: (data) => {
       toast.addToast({
         type: 'error',
@@ -346,7 +342,6 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
         return [...withoutTemp, userMessage, assistantMessage];
       });
 
-      // ✅ Vérifier le quota après chaque réponse REST
       if (quota) {
         checkQuotaWarning(quota);
       }
@@ -358,7 +353,6 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
         setConversations(convsRes.data.conversations || []);
       }
     } catch (err: any) {
-      // ✅ Gestion propre du dépassement de quota (REST 403)
       if (err.response?.status === 403 && err.response?.data?.code === 'QUOTA_EXCEEDED') {
         toast.addToast({
           type: 'error',
@@ -368,7 +362,6 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
       } else {
         setError(err.response?.data?.error || err.message || 'Erreur envoi message');
       }
-      // Retirer le message temporaire si erreur
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setLoading(false);
@@ -521,10 +514,9 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
           {messages.map((m) => (
             <div key={m.id} className={`message message-${m.role}`}>
               <div className="message-bubble">
+                {/* ✅ CHANGEMENT ICI : Utilisation de ReactMarkdown */}
                 <div className="message-content">
-                  {m.content.split('\n').map((line, i) => (
-                    <p key={i}>{line || '\u00A0'}</p>
-                  ))}
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
                 </div>
 
                 {m.model && (
@@ -560,10 +552,9 @@ const checkQuotaWarning = useCallback((quota?: { used: number; limit: number }) 
           {streamingText && (
             <div className="message message-assistant">
               <div className="message-bubble">
+                {/* ✅ CHANGEMENT ICI : Utilisation de ReactMarkdown pour le streaming */}
                 <div className="message-content">
-                  {streamingText.split('\n').map((line, i) => (
-                    <p key={i}>{line || '\u00A0'}</p>
-                  ))}
+                  <ReactMarkdown>{streamingText}</ReactMarkdown>
                   <span className="cursor">▊</span>
                 </div>
                 {streamingModel && (
