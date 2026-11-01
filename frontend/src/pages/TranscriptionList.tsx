@@ -11,6 +11,7 @@ import { api } from '../services/api';
 import CommentSection from '../components/CommentSection';
 import { useSearchParams } from 'react-router-dom';
 import TranscriptionUploader from '../components/TranscriptionUploader';
+import { socket } from '../services/socket'; // ✅ AJOUT : Vérifie le chemin de ton instance Socket.IO
 
 interface Transcription {
   id: string;
@@ -36,7 +37,7 @@ interface Analysis {
 }
 
 const TranscriptionList: React.FC = () => {
-	const [showUploader, setShowUploader] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
   const { colors } = useTheme();
   const toast = useToast();
   const { t, i18n } = useTranslation();
@@ -52,8 +53,8 @@ const TranscriptionList: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
   const [retryingId, setRetryingId] = useState<string | null>(null);
-	const [searchParams] = useSearchParams();
-	const highlightId = searchParams.get('highlight');
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
 
   // ✅ Auto-traduction
   const [translateModal, setTranslateModal] = useState<{
@@ -168,24 +169,40 @@ const TranscriptionList: React.FC = () => {
     fetchTranscriptions();
   }, []);
 
+  // ✅ NOUVEAU : Écoute des événements Socket.IO pour la mise à jour temps réel
+  useEffect(() => {
+    const handleRealtimeUpdate = (data: any) => {
+      console.log('⚡ Socket event received, updating transcriptions list...', data);
+      fetchTranscriptions();
+    };
+
+    socket.on('transcription-completed', handleRealtimeUpdate);
+    socket.on('transcription-failed', handleRealtimeUpdate);
+    socket.on('transcription-uploaded', handleRealtimeUpdate);
+
+    return () => {
+      socket.off('transcription-completed', handleRealtimeUpdate);
+      socket.off('transcription-failed', handleRealtimeUpdate);
+      socket.off('transcription-uploaded', handleRealtimeUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     navigate(`?type=${filter}`, { replace: true });
   }, [filter, navigate]);
 
-  // Dans un useEffect, après chargement des données :
-useEffect(() => {
-  if (highlightId) {
-    setTimeout(() => {
-      const el = document.getElementById(`transcription-${highlightId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.style.backgroundColor = '#FEF3C7'; // Jaune clair
-        setTimeout(() => { el.style.backgroundColor = ''; }, 3000);
-      }
-    }, 500);
-  }
-}, [highlightId, transcriptions]);
-
+  useEffect(() => {
+    if (highlightId) {
+      setTimeout(() => {
+        const el = document.getElementById(`transcription-${highlightId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.backgroundColor = '#FEF3C7'; // Jaune clair
+          setTimeout(() => { el.style.backgroundColor = ''; }, 3000);
+        }
+      }, 500);
+    }
+  }, [highlightId, transcriptions]);
 
   const filteredTranscriptions = transcriptions.filter((item) => {
     if (filter === 'all') return true;
@@ -239,29 +256,29 @@ useEffect(() => {
   });
 
   return (
-<div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-    <h1 style={{ color: colors.dark, margin: 0 }}>{t('transcriptionList.title')}</h1>
-    <button
-      onClick={() => setShowUploader(true)}
-      style={{
-        backgroundColor: colors.primary,
-        color: 'white',
-        border: 'none',
-        padding: '10px 20px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-      }}
-    >
-      + {t('transcriptionList.newButton', 'Nouvelle transcription')}
-    </button>
-  </div>
-    
+    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h1 style={{ color: colors.dark, margin: 0 }}>{t('transcriptionList.title')}</h1>
+        <button
+          onClick={() => setShowUploader(true)}
+          style={{
+            backgroundColor: colors.primary,
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          + {t('transcriptionList.newButton', 'Nouvelle transcription')}
+        </button>
+      </div>
+        
       {/* Filtres */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button onClick={() => setFilter('all')} style={filterButtonStyle(filter === 'all')}>
@@ -291,6 +308,7 @@ useEffect(() => {
             return (
               <div
                 key={item.id}
+                id={`transcription-${item.id}`}
                 onClick={() => toggleExpand(item.id)}
                 style={{
                   padding: '14px 18px',
@@ -316,7 +334,6 @@ useEffect(() => {
                     <span style={{ fontWeight: '500', color: colors.dark }}>
                       {item.title || t('transcriptionList.noTitle')}
                     </span>
-                    {/* ✅ Badge langue détectée */}
                     <LanguageBadge language={item.language} size="sm" showCode />
                     <span
                       style={{
@@ -334,7 +351,6 @@ useEffect(() => {
                       {formatDateTime(item.createdAt)}
                     </span>
 
-                    {/* ✅ Bouton Traduire (visible si COMPLETED avec texte) */}
                     {isCompleted && hasText && (
                       <button
                         onClick={(e) => {
@@ -365,7 +381,6 @@ useEffect(() => {
                       </button>
                     )}
 
-                    {/* ✅ Bouton Réessayer (visible uniquement pour les FAILED) */}
                     {isFailed && (
                       <button
                         onClick={(e) => handleRetry(item.id, e)}
@@ -393,7 +408,6 @@ useEffect(() => {
 
                 {isExpanded && (
                   <div style={{ marginTop: '14px' }}>
-                    {/* Message d'erreur */}
                     {item.errorMessage && (
                       <div
                         style={{
@@ -441,19 +455,19 @@ useEffect(() => {
                         </span>
                       )}
                     </div>
-{/* ✅ Commentaires (toujours visibles quand déployé) */}
-<div onClick={(e) => e.stopPropagation()}>
-  <CommentSection
-    documentId={item.id}
-    documentType="transcription"
-  />
-</div>
 
-{isCompleted && hasText && (
-  <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
-    <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
-      {t('transcriptionList.analysis.title')}
-    </h4>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CommentSection
+                        documentId={item.id}
+                        documentType="transcription"
+                      />
+                    </div>
+
+                    {isCompleted && hasText && (
+                      <div style={{ marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: colors.dark }}>
+                          {t('transcriptionList.analysis.title')}
+                        </h4>
 
                         {analysisLoading ? (
                           <p style={{ fontSize: '14px', color: colors.gray[600] }}>
@@ -517,7 +531,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* ✅ Modal de traduction */}
       <TranslateModal
         isOpen={translateModal.open}
         onClose={() => setTranslateModal({ ...translateModal, open: false })}
@@ -526,7 +539,6 @@ useEffect(() => {
         documentTitle={translateModal.title}
       />
 
-      {/* ✅ Modal d'upload de transcription */}
       {showUploader && (
         <div
           onClick={() => setShowUploader(false)}
