@@ -14,7 +14,7 @@ import { FileUpload } from '../components/FileUpload';
 import { SearchBar } from '../components/SearchBar';
 import { FiltersPanel } from '../components/FiltersPanel';
 import { FilePreviewModal } from '../components/FilePreviewModal';
-import { SummaryButton } from '../components/SummaryButton'; // ✅ Gardé pour les mémos
+import { SummaryButton } from '../components/SummaryButton';
 import { DocumentActions } from '../components/DocumentActions';
 import { PresenceBar } from '../components/PresenceBar';
 import { ActivityFeed } from '../components/ActivityFeed';
@@ -849,56 +849,73 @@ const ProjectDetail: React.FC = () => {
             {transcriptions.length === 0 ? (
               <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
             ) : (
+              // ✅ CORRECTION : Le map est directement dans le retour du ternaire, sans accolades {}
               transcriptions.map((trans) => (
                 <div
                   key={trans.id}
                   style={{
-                    padding: theme.spacing.sm,
+                    padding: '12px',
                     borderBottom: '1px solid #eee',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column', // ✅ On passe en colonne pour faire de la place au lecteur
                     gap: '8px',
-                    flexWrap: 'wrap',
                   }}
                 >
-                  <span>{trans.title}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getStatusColor(trans.status || '') }}>
-                      {getStatusLabel(trans.status || '')}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontWeight: '500', color: colors.dark }}>
+                      🎙️ {trans.title}
                     </span>
-                    {trans.status === 'FAILED' && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
-                          try {
-                            await api.post(`/transcriptions/${trans.id}/retry`);
-                            toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
-                            setTimeout(() => fetchProjectData(), 1000);
-                          } catch (err: any) {
-                            toast.addToast({
-                              type: 'error',
-                              title: t('common.error'),
-                              message: err.response?.data?.message || t('projectDetail.audio.retryError'),
-                            });
-                          }
-                        }}
-                        style={{
-                          padding: '4px 10px',
-                          backgroundColor: colors.primary,
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        {t('projectDetail.audio.retry')}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: getStatusColor(trans.status || ''), fontWeight: 'bold', fontSize: '13px' }}>
+                        {getStatusLabel(trans.status || '')}
+                      </span>
+                      
+                      {trans.status === 'FAILED' && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
+                            try {
+                              await api.post(`/transcriptions/${trans.id}/retry`);
+                              toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
+                              setTimeout(() => fetchProjectData(), 1000);
+                            } catch (err: any) {
+                              toast.addToast({
+                                type: 'error',
+                                title: t('common.error'),
+                                message: err.response?.data?.message || t('projectDetail.audio.retryError'),
+                              });
+                            }
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            backgroundColor: colors.primary,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {t('projectDetail.audio.retry')}
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* ✅ NOUVEAU : Lecteur audio (disponible même si le statut est FAILED) */}
+                  {(trans as any).raw?.audioUrl || (trans as any).audioUrl ? (
+                    <audio 
+                      controls 
+                      src={(trans as any).raw?.audioUrl || (trans as any).audioUrl} 
+                      style={{ width: '100%', height: '36px', marginTop: '4px' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: '12px', color: colors.gray[400], fontStyle: 'italic' }}>
+                      ⚠️ Fichier audio non disponible
+                    </span>
+                  )}
                 </div>
               ))
             )}
@@ -957,7 +974,6 @@ const ProjectDetail: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                       <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
-                      {/* ✅ Conservé pour les mémos */}
                       <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => { }} />
                       <button
                         onClick={() =>
@@ -1239,9 +1255,6 @@ const ProjectDetail: React.FC = () => {
                           >
                             👁️ {t('projectDetail.documents.open', 'Ouvrir')}
                           </button>
-
-                          {/* ✅ SUPPRIMÉ : Bouton Traduire (géré par DocumentActions) */}
-                          {/* ✅ SUPPRIMÉ : Bouton Résumer (géré par DocumentActions) */}
 
                           <button
                             onClick={() => deleteDocument(doc)}
