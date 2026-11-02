@@ -292,3 +292,107 @@ export const postMessage = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 };
+
+export const exportConversationToProject = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const userName = (req as any).user?.name || (req as any).user?.email || 'Utilisateur';
+    const { id: conversationId } = req.params;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    // 1. Récupérer la conversation
+    const conversation = await db('chat_conversations').where({ id: conversationId }).first();
+    if (!conversation) return res.status(404).json({ error: 'Conversation non trouvée' });
+    if (conversation.userId !== userId) return res.status(403).json({ error: 'Accès refusé' });
+
+    const projectId = conversation.projectId;
+    if (!projectId) return res.status(400).json({ error: 'Cette conversation n\'est liée à aucun projet' });
+
+    // 2. Récupérer tous les messages
+    const messages = await db('chat_messages')
+      .where({ conversationId })
+      .orderBy('createdAt', 'asc');
+
+    if (messages.length === 0) return res.status(400).json({ error: 'Conversation vide' });
+
+    // 3. Générer le contenu Markdown
+    let mdContent = `# ${conversation.title}\n\n`;
+    mdContent += `*Exporté depuis Ebeno Research Platform le ${new Date().toLocaleString('fr-FR')}*\n\n---\n\n`;
+
+    messages.forEach((m: any) => {
+      const role = m.role === 'user' ? '🧑‍🔬 **Chercheur**' : '🤖 **Assistant IA**';
+      mdContent += `### ${role}\n\n${m.content}\n\n`;
+      
+      // Ajouter les sources si présentes (stockées en JSON dans le message)
+      if (m.sources) {
+        try {
+          const sources = typeof m.sources === 'string' ? JSON.parse(m.sources) : m.sources;
+          if (Array.isArray(sources) && sources.length > 0) {
+            mdContent += `> **Sources citées :**\n`;
+            sources.forEach((s: any) => {
+              mdContent += `> - [${s.type}] ${s.name}\n`;
+            });
+            mdContent += `\n`;
+          }
+        } catch (e) {}
+      }
+      mdContent += `---\n\n`;
+    });
+
+    // 4. Uploader sur Cloudinary en tant que fichier texte
+    const buffer = Buffer.from(mdContent, 'utf-8');
+    const cleanTitle = conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const fileName = `Chat_${cleanTitle}_${Date.now()}.md`;
+
+    const cloudinaryResult = await uploadBufferToCloudinary(
+      buffer,
+      `projects/${projectId}/exports`,
+      'text/markdown' // Type MIME
+    );
+
+    // 5. Insérer dans la table project_files
+    const fileId = Date.now().toString(); // Ou utilise ta fonction generateId('file')
+    
+    await db('project_files').insert({
+      id: fileId,
+      projectId,
+      userId,
+      fileName,
+      fileSize: buffer.length,
+      mimeType: 'text/markdown',
+      filePath: cloudinaryResult.secureUrl,
+      uploadedAt: Date.now(),
+      language: 'fr', // ou la langue de la conversation
+    });
+
+    // 6. Émettre l'événement Socket.IO pour rafraîchir la liste des documents
+    emitGlobal('file-uploaded', {
+      projectId,
+      file: { id: fileId, fileName },
+      actorId: userId,
+      actorName: userName,
+      timestamp: new Date().toISOString(),
+    });
+
+    await logActivity({
+      projectId,
+      userId,
+      userName,
+      action: 'file-uploaded',
+      targetType: 'file',
+      targetId: fileId,
+      targetName: fileName,
+    });
+
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Conversation sauvegardée dans le projet',
+      data: { fileId, fileName }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erreur export conversation:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: error.message });
+  }
+};

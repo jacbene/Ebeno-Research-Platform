@@ -8,6 +8,8 @@ import { useToast } from '../context/ToastContext';
 import ReactMarkdown from 'react-markdown'; // ✅ AJOUT
 import './ChatPage.css';
 import remarkGfm from 'remark-gfm';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -406,6 +408,153 @@ const ChatPage: React.FC = () => {
     setSidebarOpen(false);
   };
 
+  // ✅ 1. Fonction d'export Markdown
+const exportToMarkdown = () => {
+  if (messages.length === 0) return;
+
+  const convTitle = conversations.find((c) => c.id === selectedConversationId)?.title || 'Conversation';
+  const date = new Date().toLocaleString(i18n.language);
+
+  let mdContent = `# ${convTitle}\n\n`;
+  mdContent += `*Exporté depuis Ebeno Research Platform le ${date}*\n\n---\n\n`;
+
+  messages.forEach((m) => {
+    const role = m.role === 'user' ? '🧑‍🔬 **Chercheur**' : '🤖 **Assistant IA**';
+    mdContent += `### ${role}\n\n${m.content}\n\n`;
+    
+    if (m.sources && m.sources.length > 0) {
+      mdContent += `> **Sources citées :**\n`;
+      m.sources.forEach((s) => {
+        mdContent += `> - [${s.type}] ${s.name}\n`;
+      });
+      mdContent += `\n`;
+    }
+    mdContent += `---\n\n`;
+  });
+
+  const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${convTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+// ✅ 2. Fonction d'export PDF
+const exportToPDF = async () => {
+  if (messages.length === 0) return;
+
+  const convTitle = conversations.find((c) => c.id === selectedConversationId)?.title || 'Conversation';
+  const dom = window.document;
+
+  // Création d'un conteneur hors-écran pour le rendu propre
+  const container = dom.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '800px';
+  container.style.padding = '40px';
+  container.style.backgroundColor = '#ffffff';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.color = '#000';
+
+  // En-tête
+  const header = dom.createElement('div');
+  header.innerHTML = `
+    <h1 style="color: #1e3a8a; margin-bottom: 4px;">Ebeno Research Platform</h1>
+    <h2 style="color: #333; margin-top: 0;">${convTitle}</h2>
+    <p style="font-size: 12px; color: #666;">Généré le ${new Date().toLocaleString('fr-FR')}</p>
+    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+  `;
+  container.appendChild(header);
+
+  // Messages
+  messages.forEach((m) => {
+    const msgDiv = dom.createElement('div');
+    msgDiv.style.marginBottom = '20px';
+    msgDiv.style.padding = '12px';
+    msgDiv.style.borderRadius = '8px';
+    
+    if (m.role === 'user') {
+      msgDiv.style.backgroundColor = '#f3f4f6';
+      msgDiv.innerHTML = `<strong>Chercheur :</strong><br/>${m.content.replace(/\n/g, '<br/>')}`;
+    } else {
+      msgDiv.style.backgroundColor = '#eff6ff';
+      msgDiv.style.borderLeft = '4px solid #3b82f6';
+      // Nettoyage basique du markdown pour le PDF (html2canvas gère mal les balises complexes)
+      const cleanContent = m.content.replace(/\*\*/g, '').replace(/#/g, '');
+      msgDiv.innerHTML = `<strong>Assistant IA :</strong><br/>${cleanContent.replace(/\n/g, '<br/>')}`;
+      
+      if (m.sources && m.sources.length > 0) {
+        msgDiv.innerHTML += `<br/><br/><span style="font-size: 11px; color: #666;">Sources : ${m.sources.map(s => s.name).join(', ')}</span>`;
+      }
+    }
+    container.appendChild(msgDiv);
+  });
+
+  dom.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true });
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= 297; // A4 height in mm
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297;
+    }
+
+    pdf.save(`${convTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+  } catch (error) {
+    console.error('❌ Erreur export PDF chat:', error);
+    toast.addToast({ type: 'error', title: 'Erreur lors de l\'export PDF' });
+  } finally {
+    dom.body.removeChild(container);
+  }
+};
+
+const [savingToProject, setSavingToProject] = useState(false);
+
+const saveToProject = async () => {
+  if (!selectedConversationId || !selectedProjectId) {
+    toast.addToast({ type: 'error', title: 'Sélectionnez une conversation et un projet' });
+    return;
+  }
+
+  setSavingToProject(true);
+  try {
+    const res = await api.post(`/chat/conversations/${selectedConversationId}/export-to-project`);
+    toast.addToast({ 
+      type: 'success', 
+      title: 'Conversation sauvegardée !', 
+      message: res.data.data.fileName 
+    });
+  } catch (err: any) {
+    toast.addToast({ 
+      type: 'error', 
+      title: 'Erreur', 
+      message: err.response?.data?.error || 'Impossible de sauvegarder la conversation' 
+    });
+  } finally {
+    setSavingToProject(false);
+  }
+};
+
+
   // ═══════════════════════════════════════════════════════════
   // Rendu
   // ═══════════════════════════════════════════════════════════
@@ -481,20 +630,59 @@ const ChatPage: React.FC = () => {
 
       {/* ═══════ Zone principale ═══════ */}
       <main className="chat-main">
-        <header className="chat-header">
-          <button
-            className="btn-menu"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Menu"
-          >
-            ☰
-          </button>
-          <h1>
-            {selectedConversationId
-              ? conversations.find((c) => c.id === selectedConversationId)?.title || 'Chat'
-              : 'Chat IA'}
-          </h1>
-        </header>
+        <header className="chat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <button
+      className="btn-menu"
+      onClick={() => setSidebarOpen(!sidebarOpen)}
+      aria-label="Menu"
+    >
+      ☰
+    </button>
+    <h1>
+      {selectedConversationId
+        ? conversations.find((c) => c.id === selectedConversationId)?.title || 'Chat'
+        : 'Chat IA'}
+    </h1>
+  </div>
+
+  {/* ✅ NOUVEAU : Boutons d'export */}
+  {messages.length > 0 && (
+    <div style={{ display: 'flex', gap: '8px' }}>
+     <button
+      onClick={saveToProject}
+      disabled={savingToProject}
+      title="Sauvegarder dans les documents du projet"
+      style={{ 
+        padding: '6px 12px', 
+        backgroundColor: savingToProject ? '#e5e7eb' : '#e0f2fe', 
+        color: '#0369a1',
+        border: '1px solid #bae6fd', 
+        borderRadius: '6px', 
+        cursor: savingToProject ? 'wait' : 'pointer', 
+        fontSize: '13px',
+        fontWeight: 'bold'
+      }}
+    >
+      {savingToProject ? '⏳...' : '💾 Projet'}
+    </button>
+      <button
+        onClick={exportToMarkdown}
+        title="Exporter en Markdown"
+        style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+      >
+        📄 .md
+      </button>
+      <button
+        onClick={exportToPDF}
+        title="Exporter en PDF"
+        style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+      >
+        📑 PDF
+      </button>
+    </div>
+  )}
+</header>
 
         <div className="chat-messages">
           {messages.length === 0 && !loading && (

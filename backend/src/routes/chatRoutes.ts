@@ -8,6 +8,7 @@ import {
   deleteConversation,
   postMessage,
 } from '../controllers/chatController';
+import { exportConversationToProject } from '../controllers/chatController';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.get('/conversations/:id', getConversation);
 router.delete('/conversations/:id', deleteConversation);
 
 router.post('/conversations/:id/messages', postMessage);
+router.post('/conversations/:id/export-to-project', authenticate, exportConversationToProject);
 
 export default router;
