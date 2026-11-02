@@ -1,6 +1,6 @@
 // frontend/src/pages/ProjectDetail.tsx
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../theme';
 import { Card } from '../components/ui/Card';
@@ -14,7 +14,7 @@ import { FileUpload } from '../components/FileUpload';
 import { SearchBar } from '../components/SearchBar';
 import { FiltersPanel } from '../components/FiltersPanel';
 import { FilePreviewModal } from '../components/FilePreviewModal';
-import { SummaryButton } from '../components/SummaryButton';
+import { SummaryButton } from '../components/SummaryButton'; // ✅ Gardé pour les mémos
 import { DocumentActions } from '../components/DocumentActions';
 import { PresenceBar } from '../components/PresenceBar';
 import { ActivityFeed } from '../components/ActivityFeed';
@@ -155,23 +155,26 @@ const ProjectDetail: React.FC = () => {
   const toast = useToast();
   const { t, i18n } = useTranslation();
 
-  // ✅ Helper de formatage de date selon la langue active
+  const [searchParams, setSearchParams] = useSearchParams();
+  const documentIdFromUrl = searchParams.get('document');
+  const documentTypeFromUrl = searchParams.get('type');
+
   const formatDate = (timestamp: number | string | null | undefined): string => {
-  if (timestamp === null || timestamp === undefined) return '-';
-  const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-  if (!ts || isNaN(ts)) return '-';
-  try {
-    return new Date(ts).toLocaleDateString(i18n.language, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return '-';
-  }
-};
+    if (timestamp === null || timestamp === undefined) return '-';
+    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+    if (!ts || isNaN(ts)) return '-';
+    try {
+      return new Date(ts).toLocaleDateString(i18n.language, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '-';
+    }
+  };
 
   const currentUser = useMemo(() => {
     try {
@@ -208,23 +211,21 @@ const ProjectDetail: React.FC = () => {
     toDate: '',
   });
 
-const [editingProject, setEditingProject] = useState(false);
-const [editTitle, setEditTitle] = useState('');
-const [editDescription, setEditDescription] = useState('');
-const [savingProject, setSavingProject] = useState(false);
+  const [editingProject, setEditingProject] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingProject, setSavingProject] = useState(false);
 
-// ✅ Modal de traduction (memo ou document)
-const [translateTarget, setTranslateTarget] = useState<{
-  open: boolean;
-  documentId: string;
-  documentTitle: string;
-  documentType: 'memo' | 'text' | 'transcription';
-}>({ open: false, documentId: '', documentTitle: '', documentType: 'memo' });
+  const [translateTarget, setTranslateTarget] = useState<{
+    open: boolean;
+    documentId: string;
+    documentTitle: string;
+    documentType: 'memo' | 'text' | 'transcription';
+  }>({ open: false, documentId: '', documentTitle: '', documentType: 'memo' });
 
   const encodedId = id ? encodeURIComponent(id) : '';
   const isOwner = project?.userId === currentUser?.id;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!id) return;
     fetchProjectData();
@@ -246,7 +247,6 @@ const [translateTarget, setTranslateTarget] = useState<{
     onDataChange: (event, data) => {
       console.log('🔄 Rafraîchissement auto suite à :', event);
 
-      // ✅ Messages d'événements traduits
       const eventKeys: Record<string, { key: string; params: any; type: any }> = {
         'file-uploaded': { key: 'projectDetail.events.file-uploaded', params: { name: data?.file?.fileName || '' }, type: 'info' },
         'file-trashed': { key: 'projectDetail.events.file-trashed', params: { name: data?.fileName || '' }, type: 'warning' },
@@ -258,7 +258,7 @@ const [translateTarget, setTranslateTarget] = useState<{
         'transcription-deleted-permanently': { key: 'projectDetail.events.transcription-deleted-permanently', params: {}, type: 'error' },
         'trash-emptied': { key: 'projectDetail.events.trash-emptied', params: { count: data?.count || 0 }, type: 'warning' },
         'document-uploaded': { key: 'projectDetail.events.document-uploaded', params: { name: data?.fileName || '' }, type: 'info' },
-    		'memo-created': { key: 'projectDetail.events.memo-created', params: { title: data?.title || data?.memo?.title || '' }, type: 'info' },
+        'memo-created': { key: 'projectDetail.events.memo-created', params: { title: data?.title || data?.memo?.title || '' }, type: 'info' },
       };
 
       const msg = eventKeys[event];
@@ -566,18 +566,18 @@ const [translateTarget, setTranslateTarget] = useState<{
         status: d.status,
       })),
       ...transcriptions
-  .filter((trans) => trans.status === 'COMPLETED' && trans.transcriptText && trans.transcriptText.trim().length > 0)
-  .map((trans) => ({
-    id: `transcript-${trans.id}`,
-    name: `📝 ${trans.title}`,
-    date: trans.createdAt,
-    size: null,
-    mimeType: 'text/plain',
-    type: 'transcription' as const,
-    icon: '📝',
-    raw: { ...trans, _originalId: trans.id },
-    status: 'COMPLETED',
-  })),
+        .filter((trans) => trans.status === 'COMPLETED' && trans.transcriptText && trans.transcriptText.trim().length > 0)
+        .map((trans) => ({
+          id: `transcript-${trans.id}`,
+          name: `📝 ${trans.title}`,
+          date: trans.createdAt,
+          size: null,
+          mimeType: 'text/plain',
+          type: 'transcription' as const,
+          icon: '📝',
+          raw: { ...trans, _originalId: trans.id },
+          status: 'COMPLETED',
+        })),
     ];
 
     switch (sortBy) {
@@ -589,13 +589,46 @@ const [translateTarget, setTranslateTarget] = useState<{
     }
   }, [projectFiles, textDocuments, transcriptions, sortBy]);
 
+  // ✅ Ouvrir automatiquement le document ciblé par l'URL
+  useEffect(() => {
+    if (!documentIdFromUrl || !documentTypeFromUrl) return;
+    if (allDocuments.length === 0) return;
+
+    const targetDoc = allDocuments.find((d) => {
+      if (documentTypeFromUrl === 'transcription') {
+        return (
+          d.raw?._originalId === documentIdFromUrl ||
+          d.id === `transcript-${documentIdFromUrl}`
+        );
+      }
+      return d.id === documentIdFromUrl;
+    });
+
+    if (targetDoc) {
+      setActiveTab('documents');
+      setSelectedDocument(targetDoc);
+
+      setTimeout(() => {
+        const el = document.getElementById(`doc-${targetDoc.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 400);
+
+      setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 1500);
+    } else {
+      console.warn(`⚠️ Document ${documentIdFromUrl} introuvable dans ce projet`);
+    }
+  }, [documentIdFromUrl, documentTypeFromUrl, allDocuments, setSearchParams]);
+
   const handleResultClick = (result: any) => {
     if (result.source === 'transcription') navigate(`/transcription/${result.id}`);
     else if (result.source === 'memo') navigate(`/memo/${result.id}`);
     else if (result.source === 'file') setPreviewFile(result);
   };
 
-  // ✅ Onglets traduits
   const tabs = [
     { key: 'audio', label: t('projectDetail.tabs.audio', { count: transcriptions.length }) },
     { key: 'memos', label: t('projectDetail.tabs.memos', { count: memos.length }) },
@@ -691,34 +724,34 @@ const [translateTarget, setTranslateTarget] = useState<{
         </div>
       </Card>
 
-     <LocalErrorBoundary name="PresenceBar">
-       <PresenceBar users={Array.isArray(users) ? users : []} connected={!!connected} />
-     </LocalErrorBoundary>
+      <LocalErrorBoundary name="PresenceBar">
+        <PresenceBar users={Array.isArray(users) ? users : []} connected={!!connected} />
+      </LocalErrorBoundary>
 
       <div style={{ marginTop: theme.spacing.lg }}>
-       <LocalErrorBoundary name="SearchBar">
-         <SearchBar
-             projectId={encodedId}
-             onResults={setSearchResults}
-             placeholder={t('projectDetail.searchPlaceholder')}
-             />
-       </LocalErrorBoundary>
+        <LocalErrorBoundary name="SearchBar">
+          <SearchBar
+            projectId={encodedId}
+            onResults={setSearchResults}
+            placeholder={t('projectDetail.searchPlaceholder')}
+          />
+        </LocalErrorBoundary>
       </div>
 
       <div style={{ marginTop: theme.spacing.sm }}>
         <LocalErrorBoundary name="FiltersPanel">
-  <FiltersPanel
-    filters={filters}
-    onFilterChange={(newFilters) => {
-      setFilters(newFilters);
-      fetchProjectData();
-    }}
-    onReset={() => {
-      setFilters({ type: 'all', status: 'all', fromDate: '', toDate: '' });
-      fetchProjectData();
-    }}
-  />
-</LocalErrorBoundary>
+          <FiltersPanel
+            filters={filters}
+            onFilterChange={(newFilters) => {
+              setFilters(newFilters);
+              fetchProjectData();
+            }}
+            onReset={() => {
+              setFilters({ type: 'all', status: 'all', fromDate: '', toDate: '' });
+              fetchProjectData();
+            }}
+          />
+        </LocalErrorBoundary>
       </div>
 
       {searchResults.length > 0 && (
@@ -742,8 +775,8 @@ const [translateTarget, setTranslateTarget] = useState<{
                     <strong>{result.title || result.fileName}</strong>
                     <Badge variant="info">
                       {result.source === 'transcription' ? t('projectDetail.sourceTypes.transcription') :
-                       result.source === 'memo' ? t('projectDetail.sourceTypes.memo') :
-                       t('projectDetail.sourceTypes.file')}
+                        result.source === 'memo' ? t('projectDetail.sourceTypes.memo') :
+                          t('projectDetail.sourceTypes.file')}
                     </Badge>
                   </div>
                   <span style={{ fontSize: '12px', color: colors.gray[500] }}>
@@ -810,67 +843,68 @@ const [translateTarget, setTranslateTarget] = useState<{
 
       <div style={{ marginTop: theme.spacing.lg }}>
         {activeTab === 'audio' && (
-  <Card title={t('projectDetail.audio.title')}>
-    <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
-    <hr style={{ margin: '16px 0' }} />
-    {transcriptions.length === 0 ? (
-      <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
-    ) : (
-      transcriptions.map((trans) => (
-        <div
-          key={trans.id}
-          style={{
-            padding: theme.spacing.sm,
-            borderBottom: '1px solid #eee',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span>{trans.title}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: getStatusColor(trans.status || '') }}>
-              {getStatusLabel(trans.status || '')}
-            </span>
-            {trans.status === 'FAILED' && (
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
-                  try {
-                    await api.post(`/transcriptions/${trans.id}/retry`);
-                    toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
-                    setTimeout(() => fetchProjectData(), 1000);
-                  } catch (err: any) {
-                    toast.addToast({
-                      type: 'error',
-                      title: t('common.error'),
-                      message: err.response?.data?.message || t('projectDetail.audio.retryError'),
-                    });
-                  }
-                }}
-                style={{
-                  padding: '4px 10px',
-                  backgroundColor: colors.primary,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                }}
-              >
-                {t('projectDetail.audio.retry')}
-              </button>
+          <Card title={t('projectDetail.audio.title')}>
+            <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
+            <hr style={{ margin: '16px 0' }} />
+            {transcriptions.length === 0 ? (
+              <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
+            ) : (
+              transcriptions.map((trans) => (
+                <div
+                  key={trans.id}
+                  style={{
+                    padding: theme.spacing.sm,
+                    borderBottom: '1px solid #eee',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span>{trans.title}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: getStatusColor(trans.status || '') }}>
+                      {getStatusLabel(trans.status || '')}
+                    </span>
+                    {trans.status === 'FAILED' && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
+                          try {
+                            await api.post(`/transcriptions/${trans.id}/retry`);
+                            toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
+                            setTimeout(() => fetchProjectData(), 1000);
+                          } catch (err: any) {
+                            toast.addToast({
+                              type: 'error',
+                              title: t('common.error'),
+                              message: err.response?.data?.message || t('projectDetail.audio.retryError'),
+                            });
+                          }
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: colors.primary,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {t('projectDetail.audio.retry')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
-          </div>
-        </div>
-      ))
-    )}
-  </Card>
-)}
+          </Card>
+        )}
+
         {activeTab === 'memos' && (
           <Card title={t('projectDetail.memos.title')}>
             <form onSubmit={createMemo} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm, marginBottom: theme.spacing.md }}>
@@ -914,53 +948,53 @@ const [translateTarget, setTranslateTarget] = useState<{
               <p style={{ color: colors.gray[500] }}>{t('projectDetail.memos.empty')}</p>
             ) : (
               memos.map(m => (
-              <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-    <div>
-      <strong>{m.title}</strong>
-      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
-      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
-    </div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
-      <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => {}} />
-      <button
-        onClick={() =>
-          setTranslateTarget({
-            open: true,
-            documentId: m.id,
-            documentTitle: m.title,
-            documentType: 'memo',
-          })
-        }
-        title={t('translation.translateTooltip')}
-        style={{
-          padding: '4px 10px',
-          backgroundColor: colors.gray[100] || '#f5f5f5',
-          color: colors.primary,
-          border: `1px solid ${colors.primary}40`,
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          alignSelf: 'flex-end',
-        }}
-      >
-        🌍 {t('translation.translateButton')}
-      </button>
-    </div>
-  </div>
+                <div key={m.id} style={{ padding: theme.spacing.sm, borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+                    <div>
+                      <strong>{m.title}</strong>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#555' }}>{m.content}</p>
+                      <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
+                      {/* ✅ Conservé pour les mémos */}
+                      <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => { }} />
+                      <button
+                        onClick={() =>
+                          setTranslateTarget({
+                            open: true,
+                            documentId: m.id,
+                            documentTitle: m.title,
+                            documentType: 'memo',
+                          })
+                        }
+                        title={t('translation.translateTooltip')}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: colors.gray[100] || '#f5f5f5',
+                          color: colors.primary,
+                          border: `1px solid ${colors.primary}40`,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          alignSelf: 'flex-end',
+                        }}
+                      >
+                        🌍 {t('translation.translateButton')}
+                      </button>
+                    </div>
+                  </div>
 
-  {/* ✅ Commentaires sur le memo */}
-  <CommentSection
-    documentId={m.id}
-    documentType="memo"
-    compact
-  />
-</div>
+                  <CommentSection
+                    documentId={m.id}
+                    documentType="memo"
+                    compact
+                  />
+                </div>
               ))
             )}
           </Card>
@@ -1014,29 +1048,29 @@ const [translateTarget, setTranslateTarget] = useState<{
         {activeTab === 'members' && (
           <Card title={t('projectDetail.members.title')}>
             <LocalErrorBoundary name="ProjectMembers">
-  <ProjectMembers projectId={encodedId} />
-</LocalErrorBoundary>
+              <ProjectMembers projectId={encodedId} />
+            </LocalErrorBoundary>
           </Card>
         )}
 
         {activeTab === 'activity' && (
           <Card title={t('projectDetail.activity.title')}>
             <LocalErrorBoundary name="ActivityFeed">
-  <ActivityFeed activities={Array.isArray(activities) ? activities : []} />
-</LocalErrorBoundary>
+              <ActivityFeed activities={Array.isArray(activities) ? activities : []} />
+            </LocalErrorBoundary>
           </Card>
         )}
 
         {activeTab === 'presence' && (
           <Card title={t('projectDetail.presence.title')}>
             <LocalErrorBoundary name="PresenceDetail">
-  <PresenceDetail
-    users={Array.isArray(users) ? users : []}
-    connected={!!connected}
-    myColor={myColor || '#4A6CF7'}
-    currentUserId={currentUser?.id}
-  />
-</LocalErrorBoundary>
+              <PresenceDetail
+                users={Array.isArray(users) ? users : []}
+                connected={!!connected}
+                myColor={myColor || '#4A6CF7'}
+                currentUserId={currentUser?.id}
+              />
+            </LocalErrorBoundary>
           </Card>
         )}
 
@@ -1081,193 +1115,172 @@ const [translateTarget, setTranslateTarget] = useState<{
                   const statusColor = doc.status ? getStatusColor(doc.status) : null;
 
                   return (
-<div
-  key={doc.id}
-  onClick={() => {
-  setSelectedDocument(doc);
-  // ✅ Ouvrir la modal pour les fichiers supportés
-  if (
-    doc.type === 'file' ||
-    doc.type === 'text' ||
-    doc.type === 'transcription'
-  ) {
-    setPreviewFile(doc);
-  }
-}}
-  style={{
-    padding: '12px 14px',
-    marginBottom: '8px',
-    border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    opacity: isDeleting ? 0.5 : 1,
-    boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
-    boxSizing: 'border-box',
-    width: '100%',
-  }}
-  onMouseEnter={(e) => {
-    if (!isSelected) {
-      e.currentTarget.style.backgroundColor = colors.gray[50];
-      e.currentTarget.style.borderColor = colors.gray[300];
-    }
-  }}
-  onMouseLeave={(e) => {
-    if (!isSelected) {
-      e.currentTarget.style.backgroundColor = colors.white;
-      e.currentTarget.style.borderColor = colors.gray[200];
-    }
-  }}
->
-  {/* ✅ Ligne 1 : icône + contenu + actions */}
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flexWrap: 'wrap',
-    }}
-  >
-    <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>{doc.icon}</div>
+                    <div
+                      key={doc.id}
+                      id={`doc-${doc.id}`}
+                      onClick={() => setSelectedDocument(doc)}
+                      style={{
+                        padding: '12px 14px',
+                        marginBottom: '8px',
+                        border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
+                        borderRadius: theme.borderRadius.md,
+                        backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        opacity: isDeleting ? 0.5 : 1,
+                        boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
+                        boxSizing: 'border-box',
+                        width: '100%',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = colors.gray[50];
+                          e.currentTarget.style.borderColor = colors.gray[300];
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = colors.white;
+                          e.currentTarget.style.borderColor = colors.gray[200];
+                        }
+                      }}
+                    >
+                      {/* Ligne 1 : icône + contenu + actions */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ fontSize: '32px', flexShrink: 0, lineHeight: 1 }}>{doc.icon}</div>
 
-    <div style={{ flex: 1, minWidth: 0 }}>
-      {/* Contenu SANS les commentaires ici */}
-      <div style={{
-        fontWeight: '600',
-        fontSize: '14px',
-        color: colors.dark,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        marginBottom: '4px',
-      }}>
-        {doc.name}
-      </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            color: colors.dark,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            marginBottom: '4px',
+                          }}>
+                            {doc.name}
+                          </div>
 
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{
-          padding: '2px 8px',
-          borderRadius: '10px',
-          fontSize: '10px',
-          fontWeight: 'bold',
-          backgroundColor: typeColor.bg,
-          color: typeColor.color,
-          letterSpacing: '0.5px',
-        }}>
-          {doc.type === 'transcription' ? t('projectDetail.documents.typeTranscription') : getFileTypeLabel(doc.name)}
-        </span>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              fontSize: '10px',
+                              fontWeight: 'bold',
+                              backgroundColor: typeColor.bg,
+                              color: typeColor.color,
+                              letterSpacing: '0.5px',
+                            }}>
+                              {doc.type === 'transcription' ? t('projectDetail.documents.typeTranscription') : getFileTypeLabel(doc.name)}
+                            </span>
 
-        <LanguageBadge language={doc.raw?.language} />
+                            <LanguageBadge language={doc.raw?.language} />
 
-        {statusColor && (
-          <span style={{
-            padding: '2px 8px',
-            borderRadius: '10px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            backgroundColor: statusColor + '20',
-            color: statusColor,
-          }}>
-            {getStatusLabel(doc.status || '')}
-          </span>
-        )}
+                            {statusColor && (
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                backgroundColor: statusColor + '20',
+                                color: statusColor,
+                              }}>
+                                {getStatusLabel(doc.status || '')}
+                              </span>
+                            )}
 
-        {doc.size !== null && (
-          <span style={{ fontSize: '12px', color: colors.gray[600] }}>
-            💾 {formatFileSize(doc.size)}
-          </span>
-        )}
+                            {doc.size !== null && (
+                              <span style={{ fontSize: '12px', color: colors.gray[600] }}>
+                                💾 {formatFileSize(doc.size)}
+                              </span>
+                            )}
 
-        <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-          {doc.type === 'text' ? t('projectDetail.documents.typeText') :
-           doc.type === 'transcription' ? t('projectDetail.documents.typeTranscriptionShort') :
-           t('projectDetail.documents.typeFile')}
-        </span>
-      </div>
+                            <span style={{ fontSize: '12px', color: colors.gray[500] }}>
+                              {doc.type === 'text' ? t('projectDetail.documents.typeText') :
+                                doc.type === 'transcription' ? t('projectDetail.documents.typeTranscriptionShort') :
+                                  t('projectDetail.documents.typeFile')}
+                            </span>
+                          </div>
 
-      <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
-        {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
-      </div>
-    </div>
+                          <div style={{ fontSize: '11px', color: colors.gray[400], marginTop: '4px' }}>
+                            {t('projectDetail.documents.addedOn', { date: formatDate(doc.date) })}
+                          </div>
+                        </div>
 
-    <div
-      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* ✅ Bouton Traduire (textes importés + transcriptions) */}
-      {(doc.type === 'text' || doc.type === 'transcription') && (
-        <button
-          onClick={() =>
-            setTranslateTarget({
-              open: true,
-              documentId: doc.type === 'transcription' && doc.raw?._originalId
-                ? doc.raw._originalId
-                : doc.id,
-              documentTitle: doc.name,
-              documentType: doc.type === 'text' ? 'text' : 'transcription',
-            })
-          }
-          title={t('translation.translateTooltip')}
-          style={{
-            padding: '6px 10px',
-            backgroundColor: colors.gray[100] || '#f5f5f5',
-            color: colors.primary,
-            border: `1px solid ${colors.primary}40`,
-            borderRadius: theme.borderRadius.sm,
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }}
-        >
-          🌍
-        </button>
-      )}
+                        <div
+                          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* ✅ Bouton Ouvrir */}
+                          <button
+                            onClick={() => setPreviewFile(doc)}
+                            title={t('projectDetail.documents.openTooltip', 'Ouvrir le document')}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: colors.primary,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: theme.borderRadius.sm,
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            👁️ {t('projectDetail.documents.open', 'Ouvrir')}
+                          </button>
 
-      <SummaryButton
-        documentId={doc.type === 'transcription' && doc.raw?._originalId ? doc.raw._originalId : doc.id}
-        type={doc.type === 'file' ? 'file' : 'transcription'}
-        onSummaryGenerated={() => {}}
-      />
-      <button
-        onClick={() => deleteDocument(doc)}
-        disabled={isDeleting}
-        title={t('projectDetail.documents.deleteTooltip')}
-        style={{
-          padding: '6px 10px',
-          backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
-          color: 'white',
-          border: 'none',
-          borderRadius: theme.borderRadius.sm,
-          cursor: isDeleting ? 'not-allowed' : 'pointer',
-          fontSize: '13px',
-          lineHeight: 1,
-        }}
-      >
-        {isDeleting ? '⏳' : '🗑️'}
-      </button>
-    </div>
-  </div>
+                          {/* ✅ SUPPRIMÉ : Bouton Traduire (géré par DocumentActions) */}
+                          {/* ✅ SUPPRIMÉ : Bouton Résumer (géré par DocumentActions) */}
 
-  {/* ✅ Ligne 2 : Commentaires PLEINE LARGEUR (hors flex-row) */}
-  {(doc.type === 'transcription' || doc.type === 'text') && (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{ width: '100%', marginTop: '8px' }}
-    >
-      <CommentSection
-        documentId={
-          doc.type === 'transcription' && doc.raw?._originalId
-            ? doc.raw._originalId
-            : doc.id
-        }
-        documentType="transcription"
-        compact
-      />
-    </div>
-  )}
-</div>
-            
+                          <button
+                            onClick={() => deleteDocument(doc)}
+                            disabled={isDeleting}
+                            title={t('projectDetail.documents.deleteTooltip')}
+                            style={{
+                              padding: '6px 10px',
+                              backgroundColor: isDeleting ? colors.gray[400] : (colors.danger || '#dc3545'),
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: theme.borderRadius.sm,
+                              cursor: isDeleting ? 'not-allowed' : 'pointer',
+                              fontSize: '13px',
+                              lineHeight: 1,
+                            }}
+                          >
+                            {isDeleting ? '⏳' : '🗑️'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Ligne 2 : Commentaires PLEINE LARGEUR */}
+                      {(doc.type === 'transcription' || doc.type === 'text') && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ width: '100%', marginTop: '8px' }}
+                        >
+                          <CommentSection
+                            documentId={
+                              doc.type === 'transcription' && doc.raw?._originalId
+                                ? doc.raw._originalId
+                                : doc.id
+                            }
+                            documentType="transcription"
+                            compact
+                          />
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               )}
@@ -1540,20 +1553,20 @@ const [translateTarget, setTranslateTarget] = useState<{
         )}
       </div>
 
-{previewFile && (
-  <FilePreviewModal
-    file={{
-      id: previewFile.raw?.id || previewFile.id,
-      fileName: previewFile.name,
-      filePath: previewFile.raw?.filePath || '',
-      mimeType: previewFile.raw?.mimeType || 'application/octet-stream',
-      fileSize: previewFile.size || 0,
-    }}
-    projectId={encodedId}
-    onClose={() => setPreviewFile(null)}
-    onSaved={() => fetchProjectData()}
-  />
-)}
+      {previewFile && (
+        <FilePreviewModal
+          file={{
+            id: previewFile.raw?.id || previewFile.id,
+            fileName: previewFile.name,
+            filePath: previewFile.raw?.filePath || '',
+            mimeType: previewFile.raw?.mimeType || 'application/octet-stream',
+            fileSize: previewFile.size || 0,
+          }}
+          projectId={encodedId}
+          onClose={() => setPreviewFile(null)}
+          onSaved={() => fetchProjectData()}
+        />
+      )}
 
       {editingProject && isOwner && (
         <div
@@ -1634,94 +1647,14 @@ const [translateTarget, setTranslateTarget] = useState<{
           </div>
         </div>
       )}
-   {editingProject && isOwner && (
-  <div
-    style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px',
-    }}
-    onClick={() => !savingProject && setEditingProject(false)}
-  >
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        backgroundColor: colors.white,
-        borderRadius: theme.borderRadius.md,
-        padding: theme.spacing.lg,
-        maxWidth: '480px',
-        width: '100%',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-      }}
-    >
-      <h2 style={{ marginTop: 0 }}>{t('projectDetail.editModal.title')}</h2>
 
-      <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
-        {t('projectDetail.editModal.titleLabel')}
-      </label>
-      <input
-        type="text"
-        value={editTitle}
-        onChange={(e) => setEditTitle(e.target.value)}
-        disabled={savingProject}
-        style={{
-          width: '100%',
-          padding: '10px',
-          border: `1px solid ${colors.gray[300]}`,
-          borderRadius: theme.borderRadius.md,
-          fontSize: '14px',
-          marginBottom: theme.spacing.md,
-          outline: 'none',
-        }}
+      <TranslateModal
+        isOpen={translateTarget.open}
+        onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
+        documentId={translateTarget.documentId}
+        documentType={translateTarget.documentType}
+        documentTitle={translateTarget.documentTitle}
       />
-
-      <label style={{ display: 'block', fontSize: '13px', color: colors.gray[700], marginBottom: '4px' }}>
-        {t('projectDetail.editModal.descriptionLabel')}
-      </label>
-      <textarea
-        value={editDescription}
-        onChange={(e) => setEditDescription(e.target.value)}
-        disabled={savingProject}
-        rows={4}
-        placeholder={t('projectDetail.editModal.descriptionPlaceholder')}
-        style={{
-          width: '100%',
-          padding: '10px',
-          border: `1px solid ${colors.gray[300]}`,
-          borderRadius: theme.borderRadius.md,
-          fontSize: '14px',
-          resize: 'vertical',
-          marginBottom: theme.spacing.lg,
-          outline: 'none',
-          fontFamily: 'inherit',
-        }}
-      />
-
-      <div style={{ display: 'flex', gap: theme.spacing.sm, justifyContent: 'flex-end' }}>
-        <Button variant="outline" onClick={() => setEditingProject(false)} disabled={savingProject}>
-          {t('projectDetail.editModal.cancel')}
-        </Button>
-        <Button variant="primary" onClick={saveProject} disabled={savingProject}>
-          {savingProject ? t('projectDetail.editModal.saving') : t('projectDetail.editModal.save')}
-        </Button>
-      </div>
-    </div>
-  </div>
-)} 
-
-      {/* ✅ Modal de traduction */}
-<TranslateModal
-  isOpen={translateTarget.open}
-  onClose={() => setTranslateTarget({ ...translateTarget, open: false })}
-  documentId={translateTarget.documentId}
-  documentType={translateTarget.documentType}
-  documentTitle={translateTarget.documentTitle}
-/>
     </div>
   );
 };

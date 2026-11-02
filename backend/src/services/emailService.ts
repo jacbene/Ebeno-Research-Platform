@@ -326,6 +326,9 @@ export interface SendSummaryReadyParams {
   summaryTitle: string;
   summaryExcerpt: string;
   projectId: string;
+  documentId: string;
+  documentType: string;  // ('file' | 'memo' | 'transcription')
+
   lang?: string;
 }
 
@@ -335,13 +338,15 @@ export const sendSummaryReadyEmail = async ({
   summaryTitle,
   summaryExcerpt,
   projectId,
+  documentId,                // ✅ AJOUT
+  documentType,              // ✅ AJOUT
   lang,
 }: SendSummaryReadyParams): Promise<boolean> => {
   if (!BREVO_API_KEY) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
-  const url = `${APP_URL}/project/${projectId}`;
+  const url = `${APP_URL}/project/${projectId}?document=${documentId}&type=${documentType}`;
 
   // Tronquer l'extrait à 300 chars
   const excerpt =
