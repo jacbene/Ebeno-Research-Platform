@@ -912,9 +912,10 @@ const ProjectDetail: React.FC = () => {
                       style={{ width: '100%', height: '36px', marginTop: '4px' }}
                     />
                   ) : (
-                    <span style={{ fontSize: '12px', color: colors.gray[400], fontStyle: 'italic' }}>
-                      ⚠️ Fichier audio non disponible
-                    </span>
+                     // Dans le lecteur audio :
+<span style={{ fontSize: '12px', color: colors.gray[400], fontStyle: 'italic' }}>
+  {t('projectDetail.audio.notAvailable')}
+</span>
                   )}
                 </div>
               ))

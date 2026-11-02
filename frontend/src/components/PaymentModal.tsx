@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import { Button } from './ui/Button';
 import { useToast } from '../context/ToastContext';
+import { useTranslation } from 'react-i18next'; // ✅ AJOUT
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -10,14 +11,15 @@ interface PaymentModalProps {
   planId: string;
   planName: string;
   priceXAF: number;
-  paddlePriceId: string; // Conservé pour compatibilité avec PricingPage
-  paddleLabel: string;   // Conservé pour compatibilité avec PricingPage
+  paddlePriceId: string;
+  paddleLabel: string;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen, onClose, planId, planName, priceXAF
 }) => {
   const toast = useToast();
+  const { t } = useTranslation(); // ✅ AJOUT
   const [method, setMethod] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,10 +27,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   if (!isOpen) return null;
 
-  // ✅ 1. Paiement Mobile Money (CamPay)
   const handleMobileMoneyPay = async () => {
     if (!phone) {
-      toast.addToast({ type: 'error', title: 'Veuillez entrer votre numéro' });
+      toast.addToast({ type: 'error', title: t('payment.phoneLabel') });
       return;
     }
 
@@ -46,40 +47,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         setUssdCode(res.data.ussdCode);
         toast.addToast({ 
           type: 'success', 
-          title: 'Paiement initié', 
-          message: 'Vérifiez votre téléphone pour valider.' 
+          title: t('payment.success'), 
+          message: t('payment.successMsg') 
         });
       }
     } catch (err: any) {
       toast.addToast({ 
         type: 'error', 
-        title: 'Erreur', 
-        message: err.response?.data?.error || 'Impossible d\'initier le paiement' 
+        title: t('common.error'), 
+        message: err.response?.data?.error || t('payment.error') 
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ 2. Paiement par Carte (Dodo Payments)
   const handleCardPay = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/payments/checkout/dodo', {
-        planId,
-      });
-
+      const res = await api.post('/payments/checkout/dodo', { planId });
       if (res.data.success && res.data.url) {
-        // Redirection vers la page de paiement Dodo
         window.location.href = res.data.url;
       } else {
-        throw new Error('URL de paiement invalide');
+        throw new Error('URL invalide');
       }
     } catch (err: any) {
       toast.addToast({ 
         type: 'error', 
-        title: 'Erreur', 
-        message: err.response?.data?.error || 'Impossible d\'initier le paiement par carte' 
+        title: t('common.error'), 
+        message: err.response?.data?.error || t('payment.errorMsg') 
       });
       setLoading(false);
     }
@@ -95,16 +91,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 24px 0', color: '#4A6CF7' }}>
-          {priceXAF > 0 ? `${priceXAF.toLocaleString()} XAF` : 'Gratuit'}
+          {priceXAF > 0 ? `${priceXAF.toLocaleString()} XAF` : t('Pricing.free.name')}
         </p>
 
         {ussdCode ? (
           <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
-            <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#166534' }}>📱 Vérifiez votre téléphone</p>
+            <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#166534' }}>{t('payment.ussdTitle')}</p>
             <p style={{ fontSize: '14px', color: '#166534', marginBottom: '16px' }}>
-              Composez <strong>{ussdCode}</strong> sur votre téléphone ou validez la notification MTN/Orange.
+              {t('payment.ussdDesc')} <strong>{ussdCode}</strong>
             </p>
-            <Button onClick={onClose} variant="outline" style={{ width: '100%' }}>Fermer</Button>
+            <Button onClick={onClose} variant="outline" style={{ width: '100%' }}>{t('payment.close')}</Button>
           </div>
         ) : (
           <>
@@ -113,30 +109,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 onClick={() => setMethod('MOBILE_MONEY')}
                 style={{ flex: 1, padding: '12px', border: `2px solid ${method === 'MOBILE_MONEY' ? '#4A6CF7' : '#ddd'}`, borderRadius: '8px', backgroundColor: method === 'MOBILE_MONEY' ? '#eef2ff' : '#fff', cursor: 'pointer', fontWeight: 'bold' }}
               >
-                📱 Mobile Money
+                📱 {t('payment.mobileMoney')}
               </button>
               <button
                 onClick={() => setMethod('CARD')}
                 style={{ flex: 1, padding: '12px', border: `2px solid ${method === 'CARD' ? '#4A6CF7' : '#ddd'}`, borderRadius: '8px', backgroundColor: method === 'CARD' ? '#eef2ff' : '#fff', cursor: 'pointer', fontWeight: 'bold' }}
               >
-                💳 Carte (Intl)
+                💳 {t('payment.card')}
               </button>
             </div>
 
             {method === 'MOBILE_MONEY' && (
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>Numéro MTN / Orange</label>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>{t('payment.phoneLabel')}</label>
                 <input
                   type="tel"
-                  placeholder="Ex: 237677777777"
+                  placeholder={t('payment.phonePlaceholder')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
                 />
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Format: 237 suivi de 9 chiffres</p>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{t('payment.phoneHelp')}</p>
                 
                 <Button onClick={handleMobileMoneyPay} disabled={loading} style={{ width: '100%', marginTop: '16px' }}>
-                  {loading ? 'Traitement...' : 'Payer par Mobile Money'}
+                  {loading ? t('payment.processing') : t('payment.payMobile')}
                 </Button>
               </div>
             )}
@@ -144,16 +140,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             {method === 'CARD' && (
               <div style={{ padding: '10px 0' }}>
                 <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px', textAlign: 'center' }}>
-                  Paiement sécurisé via Dodo Payments (Visa, Mastercard)
+                  {t('payment.secureVia')} Dodo Payments
                 </p>
-                
-                {/* ✅ NOUVEAU BOUTON DODO */}
-                <Button 
-                  onClick={handleCardPay} 
-                  disabled={loading} 
-                  style={{ width: '100%', backgroundColor: '#4A6CF7', color: '#fff' }}
-                >
-                  {loading ? 'Redirection...' : 'Payer par Carte Bancaire'}
+                <Button onClick={handleCardPay} disabled={loading} style={{ width: '100%', backgroundColor: '#4A6CF7', color: '#fff' }}>
+                  {loading ? t('payment.redirecting') : t('payment.payCard')}
                 </Button>
               </div>
             )}

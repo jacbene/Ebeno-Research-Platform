@@ -214,6 +214,65 @@
       "Url": "URLs"
     }
   },
+  "chat": {
+  "export": {
+    "project": "Save to project",
+    "markdown": "Export to Markdown",
+    "pdf": "Export to PDF",
+    "saveSuccess": "Conversation saved!",
+    "saveError": "Could not save conversation",
+    "pdfError": "Error during PDF export"
+  }
+},
+"payment": {
+  "mobileMoney": "Mobile Money",
+  "card": "Card (Intl)",
+  "processing": "Processing...",
+  "redirecting": "Redirecting...",
+  "payMobile": "Pay with Mobile Money",
+  "payCard": "Pay with Credit Card",
+  "secureVia": "Secure payment via",
+  "ussdTitle": "📱 Check your phone",
+  "ussdDesc": "Dial the code or validate the notification.",
+  "close": "Close",
+  "phoneLabel": "MTN / Orange number",
+  "phonePlaceholder": "Ex: 237677777777",
+  "phoneHelp": "Format: 237 followed by 9 digits",
+  "success": "Payment initiated",
+  "successMsg": "Check your phone to validate.",
+  "error": "Could not initiate payment",
+  "errorMsg": "Could not initiate card payment"
+},
+"admin": {
+  "email": {
+    "title": "Send email to users",
+    "recipients": "Recipients",
+    "allUsers": "All users",
+    "byPlan": "By Plan (Free, Pro, Institution)",
+    "specificUser": "A specific user",
+    "userEmail": "User email",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "🚀 Send emails",
+    "sending": "Sending...",
+    "pageTitle": "Communication",
+    "pageDesc": "Send collective or individual emails to your users with the official platform header.",
+    "confirmTitle": "Confirm sending to:"
+  },
+  "usage": {
+    "orgs": "Organizations (Shared pool)",
+    "orgName": "Organization",
+    "members": "Members",
+    "messagesUsed": "AI messages used",
+    "limit": "Limit",
+    "individuals": "Individual users",
+    "noIndividual": "No individual users"
+  }
+},
+"transcriptionList": {
+  "listenBefore": "🎧 Listen to your file before starting transcription",
+  "audioNotAvailable": "⚠️ Audio file not available"
+},
   "projectDetail": {
     "loading": "Loading...",
     "notFound": "Project not found",
@@ -250,7 +309,8 @@
       "retry": "🔄 Retry",
       "retryConfirm": "Retry the transcription?",
       "retrySuccess": "🔄 Transcription restarted",
-      "retryError": "Could not retry"
+      "retryError": "Could not retry",
+      "notAvailable": "⚠️ Audio file not available"
     },
     "memos": {
       "title": "Research memos",

@@ -214,6 +214,65 @@
       "Url": "URLs"
     }
   },
+  "chat": {
+  "export": {
+    "project": "Sauvegarder dans le projet",
+    "markdown": "Exporter en Markdown",
+    "pdf": "Exporter en PDF",
+    "saveSuccess": "Conversation sauvegardée !",
+    "saveError": "Impossible de sauvegarder la conversation",
+    "pdfError": "Erreur lors de l'export PDF"
+  }
+},
+"payment": {
+  "mobileMoney": "Mobile Money",
+  "card": "Carte (Intl)",
+  "processing": "Traitement...",
+  "redirecting": "Redirection...",
+  "payMobile": "Payer par Mobile Money",
+  "payCard": "Payer par Carte Bancaire",
+  "secureVia": "Paiement sécurisé via",
+  "ussdTitle": "📱 Vérifiez votre téléphone",
+  "ussdDesc": "Composez le code ou validez la notification.",
+  "close": "Fermer",
+  "phoneLabel": "Numéro MTN / Orange",
+  "phonePlaceholder": "Ex: 237677777777",
+  "phoneHelp": "Format: 237 suivi de 9 chiffres",
+  "success": "Paiement initié",
+  "successMsg": "Vérifiez votre téléphone pour valider.",
+  "error": "Impossible d'initier le paiement",
+  "errorMsg": "Impossible d'initier le paiement par carte"
+},
+"admin": {
+  "email": {
+    "title": "Envoyer un e-mail aux utilisateurs",
+    "recipients": "Destinataires",
+    "allUsers": "Tous les utilisateurs",
+    "byPlan": "Par Plan (Free, Pro, Institution)",
+    "specificUser": "Un utilisateur spécifique",
+    "userEmail": "Email de l'utilisateur",
+    "subject": "Sujet",
+    "message": "Message",
+    "send": "🚀 Envoyer les e-mails",
+    "sending": "Envoi en cours...",
+    "pageTitle": "Communication",
+    "pageDesc": "Envoyez des e-mails collectifs ou individuels à vos utilisateurs avec l'en-tête officiel de la plateforme.",
+    "confirmTitle": "Confirmer l'envoi à :"
+  },
+  "usage": {
+    "orgs": "Organisations (Pool partagé)",
+    "orgName": "Organisation",
+    "members": "Membres",
+    "messagesUsed": "Messages IA utilisés",
+    "limit": "Limite",
+    "individuals": "Utilisateurs individuels",
+    "noIndividual": "Aucun utilisateur individuel"
+  }
+},
+"transcriptionList": {
+  "listenBefore": "🎧 Écoutez votre fichier avant de lancer la transcription",
+  "audioNotAvailable": "⚠️ Fichier audio non disponible"
+},
   "projectDetail": {
     "loading": "Chargement...",
     "notFound": "Projet non trouvé",
@@ -250,7 +309,8 @@
       "retry": "🔄 Réessayer",
       "retryConfirm": "Relancer la transcription ?",
       "retrySuccess": "🔄 Transcription relancée",
-      "retryError": "Impossible de relancer"
+      "retryError": "Impossible de relancer",
+      "notAvailable": "⚠️ Fichier audio non disponible"
     },
     "memos": {
       "title": "Memos de recherche",

@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useQuotaWarning } from '../hooks/useQuotaWarning';
 import './TranscriptionUploader.css';
+import { useTranslation } from 'react-i18next';
 
 const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   projectId,
@@ -16,6 +17,8 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
   const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { t } = useTranslation();
 
   // ✅ NOUVEAU : URL locale pour la pré-écoute
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -124,8 +127,9 @@ const TranscriptionUploader: React.FC<TranscriptionUploaderProps> = ({
       {file && previewUrl && !uploading && !isCompleted && (
         <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
           <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0', textAlign: 'center' }}>
-            🎧 Écoutez votre fichier avant de lancer la transcription
-          </p>
+  {t('transcriptionList.listenBefore')}
+</p>
+
           <audio controls src={previewUrl} style={{ width: '100%', height: '40px' }} />
         </div>
       )}

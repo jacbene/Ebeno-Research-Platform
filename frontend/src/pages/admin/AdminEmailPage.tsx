@@ -8,13 +8,12 @@ export default function AdminEmailPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8 text-white">
-        {t('AdminPanel.communication', { defaultValue: 'Communication' })}
+        {t('admin.email.pageTitle')}
       </h1>
       <p className="text-gray-400 mb-6">
-        Envoyez des e-mails collectifs ou individuels à vos utilisateurs avec l'en-tête officiel de la plateforme.
+        {t('admin.email.pageDesc')}
       </p>
       
-      {/* Le composant du formulaire qu'on a créé précédemment */}
       <AdminBroadcastEmail />
     </div>
   );
