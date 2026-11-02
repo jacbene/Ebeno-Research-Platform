@@ -220,6 +220,8 @@ const notifySummaryReady = async (
         summaryTitle: title,
         summaryExcerpt: summary,
         projectId: projectId || '',
+        documentId: document.id,           // ✅ AJOUT
+        documentType: document.type,       // ✅ AJOUT (ex: 'file', 'memo', 'transcription')
         lang: user.language || 'fr',
       });
     } catch (err: any) {

@@ -2,10 +2,12 @@
 /**
  * Controller pour le Chat IA multilingue
  */
-
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
+import { uploadBufferToCloudinary } from '../services/cloudinaryService'; 
+import { emitGlobal } from '../socketManager';                            
+import { logActivity } from '../services/activityService';                
 import {
   buildProjectContext,
   callAI,
