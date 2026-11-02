@@ -214,14 +214,17 @@ const notifySummaryReady = async (
       const { title, projectId } = await getDocumentMeta(documentId, type);
 
       // 4. Envoyer
+ // backend/src/services/summaryService.ts
+// (dans la fonction notifySummaryReady)
+
       await sendSummaryReadyEmail({
         to,
         name: user.name || 'chercheur',
         summaryTitle: title,
         summaryExcerpt: summary,
         projectId: projectId || '',
-        documentId: document.id,           // ✅ AJOUT
-        documentType: document.type,       // ✅ AJOUT (ex: 'file', 'memo', 'transcription')
+        documentId: documentId,        // ✅ CORRIGÉ
+        documentType: type,            // ✅ CORRIGÉ
         lang: user.language || 'fr',
       });
     } catch (err: any) {
