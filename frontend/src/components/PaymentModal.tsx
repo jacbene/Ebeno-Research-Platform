@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import { Button } from './ui/Button';
 import { useToast } from '../context/ToastContext';
-import { PaddleCheckoutButton } from './PaddleCheckoutButton';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -11,12 +10,12 @@ interface PaymentModalProps {
   planId: string;
   planName: string;
   priceXAF: number;
-  paddlePriceId: string;
-  paddleLabel: string;
+  paddlePriceId: string; // Conservé pour compatibilité avec PricingPage
+  paddleLabel: string;   // Conservé pour compatibilité avec PricingPage
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
-  isOpen, onClose, planId, planName, priceXAF, paddlePriceId, paddleLabel
+  isOpen, onClose, planId, planName, priceXAF
 }) => {
   const toast = useToast();
   const [method, setMethod] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
@@ -26,7 +25,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePay = async () => {
+  // ✅ 1. Paiement Mobile Money (CamPay)
+  const handleMobileMoneyPay = async () => {
     if (!phone) {
       toast.addToast({ type: 'error', title: 'Veuillez entrer votre numéro' });
       return;
@@ -57,6 +57,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         message: err.response?.data?.error || 'Impossible d\'initier le paiement' 
       });
     } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ 2. Paiement par Carte (Dodo Payments)
+  const handleCardPay = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('/payments/checkout/dodo', {
+        planId,
+      });
+
+      if (res.data.success && res.data.url) {
+        // Redirection vers la page de paiement Dodo
+        window.location.href = res.data.url;
+      } else {
+        throw new Error('URL de paiement invalide');
+      }
+    } catch (err: any) {
+      toast.addToast({ 
+        type: 'error', 
+        title: 'Erreur', 
+        message: err.response?.data?.error || 'Impossible d\'initier le paiement par carte' 
+      });
       setLoading(false);
     }
   };
@@ -111,7 +135,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 />
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Format: 237 suivi de 9 chiffres</p>
                 
-                <Button onClick={handlePay} disabled={loading} style={{ width: '100%', marginTop: '16px' }}>
+                <Button onClick={handleMobileMoneyPay} disabled={loading} style={{ width: '100%', marginTop: '16px' }}>
                   {loading ? 'Traitement...' : 'Payer par Mobile Money'}
                 </Button>
               </div>
@@ -120,14 +144,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             {method === 'CARD' && (
               <div style={{ padding: '10px 0' }}>
                 <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px', textAlign: 'center' }}>
-                  Paiement sécurisé via Paddle (CB, Visa, Mastercard)
+                  Paiement sécurisé via Dodo Payments (Visa, Mastercard)
                 </p>
-                {/* Intégration du bouton Paddle existant */}
-                <PaddleCheckoutButton
-                  priceId={paddlePriceId}
-                  label={paddleLabel}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-                />
+                
+                {/* ✅ NOUVEAU BOUTON DODO */}
+                <Button 
+                  onClick={handleCardPay} 
+                  disabled={loading} 
+                  style={{ width: '100%', backgroundColor: '#4A6CF7', color: '#fff' }}
+                >
+                  {loading ? 'Redirection...' : 'Payer par Carte Bancaire'}
+                </Button>
               </div>
             )}
           </>

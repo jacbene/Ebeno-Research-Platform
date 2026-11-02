@@ -10,6 +10,7 @@ validateAllSecrets();
 //Validation des abonnements
 import { handlePaddleWebhook } from './controllers/paddleController';
 import { handleLemonSqueezyWebhook } from './controllers/paymentWebhookController';
+import { handleDodoWebhook } from './controllers/dodoController';
 
 import express from 'express';
 import cors from 'cors';
@@ -203,6 +204,11 @@ app.use(cors({
 app.post('/api/webhooks/paddle', express.raw({ type: '*/*', limit: '10mb' }), handlePaddleWebhook);
 // ✅ NOUVEAU : Route Webhook Lemon Squeezy DOIT aussi être AVANT express.json()
 app.post('/api/webhooks/payments/lemonsqueezy', express.raw({ type: 'application/json' }), handleLemonSqueezyWebhook);
+app.post(
+  '/api/webhooks/dodo', 
+  express.raw({ type: 'application/json' }), 
+  handleDodoWebhook
+);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
