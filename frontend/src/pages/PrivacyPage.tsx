@@ -66,6 +66,24 @@ const PrivacyPage: React.FC = () => {
             </p>
           </section>
 
+<section>
+  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">6. Sous-traitants (Sous-processors)</h2>
+  <p>Pour fournir notre service, nous partageons certaines données avec des prestataires de confiance :</p>
+  <ul className="list-disc pl-5 mt-2 space-y-1">
+    <li><strong className="text-gray-900 dark:text-white">Neon (PostgreSQL) :</strong> Hébergement sécurisé de la base de données.</li>
+    <li><strong className="text-gray-900 dark:text-white">Cloudinary :</strong> Stockage de vos avatars, audios et documents.</li>
+    <li><strong className="text-gray-900 dark:text-white">Deepgram / OpenAI (Whisper) :</strong> Traitement temporaire de l'audio pour la transcription.</li>
+    <li><strong className="text-gray-900 dark:text-white">DeepSeek / OpenAI :</strong> Analyse et génération de texte (aucune donnée n'est utilisée pour entraîner leurs modèles publics).</li>
+    <li><strong className="text-gray-900 dark:text-white">Brevo :</strong> Envoi d'emails transactionnels.</li>
+    <li><strong className="text-gray-900 dark:text-white">Render :</strong> Hébergement de notre infrastructure serveur.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">7. Cookies</h2>
+  <p>Voir notre <a href="/cookies" className="text-blue-600 dark:text-blue-400 hover:underline">Politique de Cookies</a>.</p>
+</section>
+
           <section>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">6. Cookies</h2>
             <p>

@@ -12,23 +12,26 @@ export default function ContactPage() {
           For any questions regarding the Ebeno Research Platform, billing, or technical support, 
           please contact us by email. We aim to respond within 24-48 hours.
         </p>
-
+// Remplace le bloc email et l'adresse par :
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-          <h2 className="text-lg font-bold text-blue-900 dark:text-blue-200 mb-2">📧 Email</h2>
+          <h2 className="text-lg font-bold text-blue-900 dark:text-blue-200 mb-2">📧 Email Support</h2>
           <a
-            href="mailto:jacquesbene301@gmail.com"
+            href="mailto:support@ebeno.com"
             className="text-xl text-blue-600 dark:text-blue-400 hover:underline font-mono break-all"
           >
-            jacquesbene301@gmail.com
+            support@ebeno.com
           </a>
+          <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+            (Si vous n'avez pas encore de domaine, utilisez au minimum contact@ebeno-frontend.onrender.com)
+          </p>
         </div>
 
         <div className="mt-8 text-sm text-gray-500 dark:text-gray-400 space-y-1">
           <p><strong className="text-gray-700 dark:text-gray-300">Business name :</strong> Ebeno Research Platform</p>
           <p><strong className="text-gray-700 dark:text-gray-300">Owner :</strong> Jacques Bene Mbama</p>
-          <p><strong className="text-gray-700 dark:text-gray-300">Location :</strong> Cameroon</p>
+          <p><strong className="text-gray-700 dark:text-gray-300">Physical Address :</strong> Douala, Cameroon (ou la ville où tu résides)</p>
+          <p><strong className="text-gray-700 dark:text-gray-300">Registration Number :</strong> [Ton numéro RCCM si tu l'as, sinon laisse vide]</p>
         </div>
-      </div>
-    </div>
+       
   );
 }

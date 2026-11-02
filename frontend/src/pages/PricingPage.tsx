@@ -133,6 +133,19 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* ✅ DISCLAIMER DE FACTURATION */}
+<div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
+  <p className="mb-2">
+    <strong className="text-gray-900 dark:text-white">Billing & Taxes :</strong> Prices are displayed in Euros (€). The final amount will be converted to your local currency by your bank. Our Merchant of Record handles all applicable VAT and sales taxes based on your location.
+  </p>
+  <p className="mb-2">
+    <strong className="text-gray-900 dark:text-white">Auto-renewal :</strong> Subscriptions (Pro and Institution) automatically renew at the end of each billing period. You can cancel at any time from your dashboard to avoid being charged for the next period.
+  </p>
+  <p>
+    <strong className="text-gray-900 dark:text-white">Refunds :</strong> We offer a 14-day money-back guarantee for your initial subscription. Please read our <a href="/refunds" className="text-blue-600 dark:text-blue-400 hover:underline">Refund Policy</a>.
+  </p>
+</div>
+
         {/* PAYG */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-2xl shadow-md border border-orange-200 dark:border-orange-800 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex-1">

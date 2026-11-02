@@ -206,18 +206,21 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer className="bg-gray-900 dark:bg-black text-gray-400 py-8 px-4 border-t border-transparent dark:border-gray-800">
-        <div className="max-w-6xl mx-auto text-center text-sm">
-          <div className="flex flex-wrap justify-center gap-6 mb-4">
-            <Link to="/legal" className="hover:text-white">Mentions légales</Link>
-            <Link to="/cookies" className="hover:text-white">Cookies</Link>
-            <Link to="/privacy" className="hover:text-white">Confidentialité</Link>
-            <Link to="/terms" className="hover:text-white">CGU</Link>
-            <Link to="/refunds" className="hover:text-white">Remboursement</Link>
-            <Link to="/contact" className="hover:text-white font-bold text-white">📧 Contact</Link>
-          </div>
-          <p>© {new Date().getFullYear()} Ebeno Research Platform</p>
-        </div>
-      </footer>
+  <div className="max-w-6xl mx-auto text-center text-sm">
+    <div className="flex flex-wrap justify-center gap-6 mb-4">
+      <Link to="/legal" className="hover:text-white">Mentions légales</Link>
+      <Link to="/cookies" className="hover:text-white">Cookies</Link>
+      <Link to="/privacy" className="hover:text-white">Confidentialité</Link>
+      <Link to="/terms" className="hover:text-white">CGU</Link>
+      <Link to="/refunds" className="hover:text-white">Remboursement</Link>
+      <Link to="/contact" className="hover:text-white font-bold text-white">📧 Contact</Link>
+    </div>
+    <p className="mb-2">
+      Ebeno Research Platform is a SaaS product. All international card payments are securely processed by our Merchant of Record.
+    </p>
+    <p>© {new Date().getFullYear()} Ebeno Research Platform. All rights reserved.</p>
+  </div>
+</footer>
     </div>
   );
 }

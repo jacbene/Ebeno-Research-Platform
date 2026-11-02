@@ -112,13 +112,23 @@ const TermsPage: React.FC = () => {
             </p>
           </section>
 
+          // Remplace l'Article 10 par ceci :
           <section>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Article 10 — Droit applicable</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Article 10 — Droit de rétractation (Clients européens)</h2>
             <p>
-              Les présentes CGU sont éditées depuis le Cameroun. Les conditions de vente
-              et de paiement sont régies par les CGU de <strong className="text-gray-900 dark:text-white">Paddle.com Market Ltd</strong>,
-              notre revendeur officiel (Merchant of Record). Tout litige relatif à la facturation
-              sera traité par Paddle.
+              Conformément à la législation européenne, vous disposez d'un délai de 14 jours à compter de la souscription pour exercer votre droit de rétractation, sans avoir à justifier de motifs. 
+            </p>
+            <p className="mt-2">
+              <strong className="text-gray-900 dark:text-white">Exception :</strong> En souscrivant et en utilisant immédiatement nos services numériques (génération de crédits IA, accès aux fonctionnalités Premium), vous renoncez expressément à ce droit de rétractation, conformément à l'article L.221-28 du Code de la consommation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Article 11 — Paiements et Merchant of Record</h2>
+            <p>
+              Les conditions de vente et de paiement sont régies par les CGU de notre revendeur officiel (Merchant of Record). 
+              En effectuant un achat, vous acceptez que notre Merchant of Record traite votre transaction, gère les taxes applicables (TVA, etc.) et agisse en tant que vendeur officiel pour cette transaction. 
+              Tout litige relatif à la facturation sera traité par ce dernier.
             </p>
           </section>
         </div>
