@@ -277,3 +277,73 @@ html[dir="rtl"] .emoji {
 html[dir="rtl"] body {
   overflow-x: hidden;
 }
+/* ============================================================
+   ✅ STYLES GLOBAUX POUR LE CONTENU MARKDOWN (IA)
+   ============================================================ */
+
+/* 1. Paragraphes */
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* 2. Gras */
+.markdown-content strong {
+  font-weight: 700;
+  color: inherit; /* S'adapte automatiquement au mode clair/sombre */
+}
+
+/* 3. Listes (puces et numérotées) */
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding-left: 24px;
+}
+
+.markdown-content li {
+  margin-bottom: 4px;
+}
+
+/* 4. Tableaux (Générés par l'IA) */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+  
+  /* ✅ CRUCIAL POUR MOBILE : Permet de scroller horizontalement */
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap; 
+}
+
+/* 5. Cellules du tableau */
+.markdown-content th,
+.markdown-content td {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border); /* Utilise ta variable de bordure */
+  text-align: left;
+}
+
+/* 6. En-têtes du tableau */
+.markdown-content th {
+  background-color: var(--color-bg); /* Utilise ta variable de fond (gris clair ou sombre) */
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* 7. Mode sombre spécifique pour les cellules du tableau */
+[data-theme="dark"] .markdown-content td {
+  background-color: var(--color-surface); /* Fond un peu plus clair que le fond global */
+}
+
+[data-theme="dark"] .markdown-content th {
+  background-color: #2D2D44; /* Un gris un peu plus clair pour les en-têtes */
+  color: #E5E5E8;
+}

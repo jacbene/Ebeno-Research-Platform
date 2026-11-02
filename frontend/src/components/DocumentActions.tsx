@@ -6,7 +6,10 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { api } from '../services/api';
 import { useQuotaWarning } from '../hooks/useQuotaWarning';
-import { useToast } from '../context/ToastContext'; // ✅ AJOUT QUOTA IA
+import { useToast } from '../context/ToastContext';
+// ✅ IMPORTS MARKDOWN
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface DocumentData {
   id: string;
@@ -41,9 +44,9 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   onRefresh,
 }) => {
   const { colors } = useTheme();
-  // ✅ AJOUT QUOTA IA — déclarer AVANT tout usage
   const toast = useToast();
   const checkQuotaWarning = useQuotaWarning();
+  
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState<string | null>(null);
@@ -103,14 +106,15 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       if (response.status >= 200 && response.status < 300) {
         let formattedResult = '';
         switch (service) {
-          case 'summarize':
+          case 'summarize': {
             formattedResult =
               response.data.summary ||
               response.data.data?.summary ||
               response.data.data?.content ||
               'Aucun résumé disponible.';
             break;
-          case 'entities':
+          }
+          case 'entities': { // ✅ Ajout des accolades pour isoler les variables
             const entities = response.data.entities || response.data.data || {};
             const entries = Object.entries(entities).filter(
               ([key, value]) => Array.isArray(value) && value.length > 0
@@ -119,20 +123,22 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
               formattedResult = 'Aucune entité trouvée.';
             } else {
               formattedResult = entries
-                .map(([key, value]) => `🔹 ${key}: ${(value as string[]).join(', ')}`)
-                .join('\n');
+                .map(([key, value]) => `🔹 **${key}**: ${(value as string[]).join(', ')}`)
+                .join('\n\n');
             }
             break;
-          case 'codes':
+          }
+          case 'codes': { // ✅ Ajout des accolades
             const suggestions = response.data.suggestions || response.data.data || [];
             formattedResult =
               suggestions.length > 0
-                ? `Codes suggérés :\n${suggestions
-                    .map((c: string) => `  - ${c}`)
+                ? `**Codes suggérés :**\n${suggestions
+                    .map((c: string) => `- ${c}`)
                     .join('\n')}`
                 : 'Aucun code suggéré.';
             break;
-          case 'analyze':
+          }
+          case 'analyze': { // ✅ Ajout des accolades
             const analysis = response.data;
 
             if (analysis.wordCloud && Array.isArray(analysis.wordCloud)) {
@@ -146,10 +152,11 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             const totalWords = analysis?.totalWords || 0;
             const uniqueWords = analysis?.uniqueWords || 0;
             const topKeywords = analysis?.topKeywords || [];
-            formattedResult = `📊 Total mots : ${totalWords}\n🔤 Mots uniques : ${uniqueWords}\n\n🏷️ Mots-clés les plus fréquents :\n${topKeywords
-              .map((k: any) => `  - ${k.word} (${k.count})`)
+            formattedResult = `📊 **Total mots :** ${totalWords}\n🔤 **Mots uniques :** ${uniqueWords}\n\n🏷️ **Mots-clés les plus fréquents :**\n${topKeywords
+              .map((k: any) => `- ${k.word} (${k.count})`)
               .join('\n')}`;
             break;
+          }
           case 'transcribe':
             formattedResult = response.data.message || 'Transcription en cours...';
             break;
@@ -265,7 +272,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     content.style.wordWrap = 'break-word';
     content.style.marginBottom = '24px';
     content.style.color = '#333';
-    content.textContent = displayContentLocal;
+    content.textContent = displayContentLocal; // Pour le PDF, on garde le texte brut (html2canvas gère mal le markdown complexe)
     container.appendChild(content);
 
     if (analysisData?.wordCloud && analysisData.wordCloud.length > 0) {
@@ -494,7 +501,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             border: `1px solid ${colors.gray[300]}`,
             maxHeight: '400px',
             overflowY: 'auto',
-            whiteSpace: 'pre-wrap',
+            // ✅ SUPPRESSION de whiteSpace: 'pre-wrap' pour laisser ReactMarkdown gérer les paragraphes
             fontSize: theme.typography.fontSize.sm,
             lineHeight: '1.8',
             color: colors.dark,
@@ -506,7 +513,13 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
               {serviceType}
             </Badge>
           )}
-          <div style={{ marginTop: '8px' }}>{displayContent}</div>
+          
+          {/* ✅ REMPLACEMENT PAR REACT-MARKDOWN */}
+          <div className="markdown-content" style={{ marginTop: '8px' }}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {displayContent}
+            </ReactMarkdown>
+          </div>
 
           {analysisData && (
             <div style={{ marginTop: '16px' }}>
