@@ -705,9 +705,9 @@ const saveToProject = async () => {
               <div className="message-bubble">
                 {/* ✅ CHANGEMENT ICI : Utilisation de ReactMarkdown */}
                 <div className="message-content">
-                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
                    {m.content}
-                 </ReactMarkdown>
+                  </ReactMarkdown>
                 </div>
 
                 {m.model && (

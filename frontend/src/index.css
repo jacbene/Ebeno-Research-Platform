@@ -347,3 +347,40 @@ html[dir="rtl"] body {
   background-color: #2D2D44; /* Un gris un peu plus clair pour les en-têtes */
   color: #E5E5E8;
 }
+/* ============================================================
+   ✅ TABLEAUX DANS LE CHAT IA
+   ============================================================ */
+.message-content .markdown-content table,
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+  
+  /* ✅ CRUCIAL : Scroller sur mobile au lieu de casser la page */
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; 
+}
+
+.message-content .markdown-content th,
+.message-content .markdown-content td {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border); /* Utilise tes variables de thème */
+  text-align: left;
+  white-space: nowrap; /* Évite que le texte se coupe bêtement */
+}
+
+.message-content .markdown-content th {
+  background-color: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .message-content .markdown-content th {
+  background-color: #2D2D44;
+}
+
+[data-theme="dark"] .message-content .markdown-content td {
+  border-color: #3D3D5C;
+}
