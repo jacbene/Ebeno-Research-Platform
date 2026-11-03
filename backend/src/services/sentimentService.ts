@@ -53,8 +53,17 @@ ${truncatedText}
       throw new Error(`DeepSeek API ${response.status}: ${err}`);
     }
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+ interface DeepSeekResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+const data = (await response.json()) as DeepSeekResponse;
+const content = data.choices[0].message.content;
+  
     const result: SentimentResult = JSON.parse(content);
 
     let emoji = '😐';
