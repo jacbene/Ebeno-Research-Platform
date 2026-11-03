@@ -11,7 +11,7 @@ import { api } from '../services/api';
 import CommentSection from '../components/CommentSection';
 import { useSearchParams } from 'react-router-dom';
 import TranscriptionUploader from '../components/TranscriptionUploader';
-import { socket } from '../services/socket'; // ✅ IMPORT CORRIGÉ
+import { socket } from '../services/socket';
 
 interface Transcription {
   id: string;
@@ -36,6 +36,16 @@ interface Analysis {
   wordCloud: Array<{ word: string; value: number }>;
 }
 
+const sanitizeFileName = (name: string): string => {
+  const clean = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return clean || 'document';
+};
+
 const TranscriptionList: React.FC = () => {
   const [showUploader, setShowUploader] = useState(false);
   const { colors } = useTheme();
@@ -53,32 +63,9 @@ const TranscriptionList: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'audio' | 'text'>(initialFilter);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null); // ✅ Nouvel état pour le bouton PDF
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
-
-  useEffect(() => {
-    // On se connecte si ce n'est pas déjà fait
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleRealtimeUpdate = (data: any) => {
-      console.log('⚡ Socket event received, updating transcriptions list...', data);
-      fetchTranscriptions();
-    };
-
-    // On écoute les événements émis par le backend (emitGlobal)
-    socket.on('transcription-completed', handleRealtimeUpdate);
-    socket.on('transcription-failed', handleRealtimeUpdate);
-    socket.on('transcription-uploaded', handleRealtimeUpdate);
-
-    // Nettoyage quand on quitte la page (on ne déconnecte pas le socket, on retire juste les écouteurs)
-    return () => {
-      socket.off('transcription-completed', handleRealtimeUpdate);
-      socket.off('transcription-failed', handleRealtimeUpdate);
-      socket.off('transcription-uploaded', handleRealtimeUpdate);
-    };
-  }, []);
 
   // ✅ Auto-traduction
   const [translateModal, setTranslateModal] = useState<{
@@ -88,7 +75,6 @@ const TranscriptionList: React.FC = () => {
     title: string;
   }>({ open: false, documentId: '', documentType: 'transcription', title: '' });
 
-  // ✅ Formatage de date robuste (bigint string ou number)
   const formatDateTime = (value: any): string => {
     if (value === null || value === undefined || value === '') return '-';
     try {
@@ -156,7 +142,6 @@ const TranscriptionList: React.FC = () => {
     }
   };
 
-  // ✅ Réessayer une transcription échouée
   const handleRetry = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm(t('transcriptionList.retry.confirm'))) return;
@@ -189,11 +174,133 @@ const TranscriptionList: React.FC = () => {
     }
   };
 
+  // ✅ NOUVELLE FONCTION D'EXPORT PDF
+  const handleExportPDF = async (item: Transcription, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!item.transcriptText) return;
+    if (!item.projectId) {
+      toast.addToast({ type: 'error', title: 'Impossible', message: 'Cette transcription n\'est liée à aucun projet.' });
+      return;
+    }
+
+    const defaultTitle = `Transcription_${sanitizeFileName(item.title)}`;
+    const userTitle = window.prompt(
+      "Titre du document à sauvegarder dans le projet :",
+      defaultTitle
+    );
+
+    if (!userTitle) return;
+
+    setExportingId(item.id);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const dom = window.document;
+      const container = dom.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '800px';
+      container.style.padding = '30px';
+      container.style.backgroundColor = '#ffffff';
+      container.style.color = '#000000';
+      container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+      container.style.fontSize = '14px';
+      container.style.lineHeight = '1.6';
+      container.style.boxSizing = 'border-box';
+
+      const title = dom.createElement('h1');
+      title.textContent = userTitle;
+      title.style.fontSize = '22px';
+      title.style.marginTop = '0';
+      title.style.marginBottom = '8px';
+      title.style.borderBottom = '2px solid #4A6CF7';
+      title.style.paddingBottom = '8px';
+      title.style.color = '#222';
+      container.appendChild(title);
+
+      const meta = dom.createElement('p');
+      meta.textContent = `Transcription — Généré le ${new Date().toLocaleString('fr-FR')}`;
+      meta.style.fontSize = '12px';
+      meta.style.color = '#666';
+      meta.style.fontStyle = 'italic';
+      meta.style.marginTop = '0';
+      meta.style.marginBottom = '24px';
+      container.appendChild(meta);
+
+      const content = dom.createElement('div');
+      content.style.whiteSpace = 'pre-wrap';
+      content.style.wordWrap = 'break-word';
+      content.style.marginBottom = '24px';
+      content.style.color = '#333';
+      content.textContent = item.transcriptText;
+      container.appendChild(content);
+
+      const footer = dom.createElement('div');
+      footer.textContent = 'Document généré depuis Ebeno Research Platform';
+      footer.style.marginTop = '40px';
+      footer.style.paddingTop = '12px';
+      footer.style.borderTop = '1px solid #ddd';
+      footer.style.fontSize = '10px';
+      footer.style.color = '#999';
+      footer.style.textAlign = 'center';
+      container.appendChild(footer);
+
+      dom.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 800,
+      });
+
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageContentHeight = pageHeight - margin * 2;
+      let heightLeft = imgHeight;
+      let position = margin;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageContentHeight;
+
+      while (heightLeft > 0) {
+        position = margin - (imgHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+        heightLeft -= pageContentHeight;
+      }
+
+      const pdfBlob = pdf.output('blob');
+      const formData = new FormData();
+      formData.append('file', pdfBlob, `${sanitizeFileName(userTitle)}.pdf`);
+      formData.append('title', userTitle);
+
+      await api.post(`/projects/${item.projectId}/files/upload-generated`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.addToast({ type: 'success', title: 'PDF sauvegardé dans le projet !', message: userTitle });
+      dom.body.removeChild(container);
+    } catch (err: any) {
+      console.error('❌ Erreur export PDF:', err);
+      toast.addToast({ type: 'error', title: 'Erreur lors de la sauvegarde PDF' });
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchTranscriptions();
   }, []);
 
-  // ✅ NOUVEAU : Écoute des événements Socket.IO pour la mise à jour temps réel
   useEffect(() => {
     const handleRealtimeUpdate = (data: any) => {
       console.log('⚡ Socket event received, updating transcriptions list...', data);
@@ -221,7 +328,7 @@ const TranscriptionList: React.FC = () => {
         const el = document.getElementById(`transcription-${highlightId}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.style.backgroundColor = '#FEF3C7'; // Jaune clair
+          el.style.backgroundColor = '#FEF3C7';
           setTimeout(() => { el.style.backgroundColor = ''; }, 3000);
         }
       }, 500);
@@ -302,8 +409,7 @@ const TranscriptionList: React.FC = () => {
           + {t('transcriptionList.newButton', 'Nouvelle transcription')}
         </button>
       </div>
-        
-      {/* Filtres */}
+      
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button onClick={() => setFilter('all')} style={filterButtonStyle(filter === 'all')}>
           {t('transcriptionList.filters.all')}
@@ -328,6 +434,7 @@ const TranscriptionList: React.FC = () => {
             const isFailed = item.status === 'FAILED';
             const hasText = !!item.transcriptText;
             const isRetrying = retryingId === item.id;
+            const isExporting = exportingId === item.id;
 
             return (
               <div
@@ -376,33 +483,57 @@ const TranscriptionList: React.FC = () => {
                     </span>
 
                     {isCompleted && hasText && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTranslateModal({
-                            open: true,
-                            documentId: item.id,
-                            documentType: 'transcription',
-                            title: item.title || t('transcriptionList.noTitle'),
-                          });
-                        }}
-                        title={t('translation.translateTooltip')}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: colors.gray[100] || '#f5f5f5',
-                          color: colors.primary,
-                          border: `1px solid ${colors.primary}40`,
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        🌍 {t('translation.translateButton')}
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTranslateModal({
+                              open: true,
+                              documentId: item.id,
+                              documentType: 'transcription',
+                              title: item.title || t('transcriptionList.noTitle'),
+                            });
+                          }}
+                          title={t('translation.translateTooltip')}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: colors.gray[100] || '#f5f5f5',
+                            color: colors.primary,
+                            border: `1px solid ${colors.primary}40`,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          🌍 {t('translation.translateButton')}
+                        </button>
+
+                        {/* ✅ NOUVEAU BOUTON PDF */}
+                        <button
+                          onClick={(e) => handleExportPDF(item, e)}
+                          disabled={isExporting}
+                          title="Exporter en PDF et sauvegarder dans le projet"
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: isExporting ? colors.gray[300] : colors.success,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: isExporting ? 'wait' : 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          {isExporting ? '⏳...' : '📥 PDF'}
+                        </button>
+                      </>
                     )}
 
                     {isFailed && (
