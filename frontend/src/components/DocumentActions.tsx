@@ -96,6 +96,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
           url = `/analysis/document/${docType}/${docId}`;
           method = 'GET';
           break;
+       case 'sentiment':
+         url = `/analysis/sentiment/${docType}/${docId}`;
+         method = 'POST';
+         break;         
         default:
           setError('Service inconnu');
           setLoading(false);
@@ -159,6 +163,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
           case 'transcribe':
             formattedResult = response.data.message || 'Transcription en cours...';
             break;
+          case 'sentiment': {
+            formattedResult = response.data.data?.markdown || 'Analyse indisponible.';
+            break;
+         }  
           default:
             formattedResult = response.data.message || 'Service exécuté avec succès';
         }
@@ -491,6 +499,15 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             >
               📊 Analyser
             </Button>
+            <Button
+  size="sm"
+  variant="outline"
+  onClick={() => callService('sentiment')}
+  disabled={loading}
+  style={{ borderColor: '#f59e0b', color: '#d97706' }}
+>
+  😊 Sentiment
+</Button>
           </>
         )}
         
