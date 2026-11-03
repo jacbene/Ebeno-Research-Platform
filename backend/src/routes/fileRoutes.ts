@@ -15,6 +15,7 @@ import {
   restoreVersion,
 } from '../controllers/fileController';
 import { authenticate } from '../middleware/auth';
+import { uploadGeneratedFile } from '../controllers/fileController';
 
 const router = Router({ mergeParams: true });
 
@@ -27,6 +28,8 @@ router.post('/:fileId/restore/:version', authenticate, restoreVersion);
 router.put('/:fileId/edit', authenticate, editFile);
 router.get('/:fileId/versions', authenticate, listFileVersions);
 router.get('/:fileId/text', authenticate, getFileText);
+router.post('/upload-generated', authenticate, uploadGeneratedFile);
+
 // Corbeille
 router.get('/trash', authenticate, getTrashedFiles);
 router.delete('/trash/empty', authenticate, emptyTrash);  // ✅ Vider

@@ -48,6 +48,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   const checkQuotaWarning = useQuotaWarning();
   
   const [loading, setLoading] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false); // ✅ Nouvel état pour le bouton PDF
   const [result, setResult] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
               'Aucun résumé disponible.';
             break;
           }
-          case 'entities': { // ✅ Ajout des accolades pour isoler les variables
+          case 'entities': {
             const entities = response.data.entities || response.data.data || {};
             const entries = Object.entries(entities).filter(
               ([key, value]) => Array.isArray(value) && value.length > 0
@@ -128,7 +129,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             }
             break;
           }
-          case 'codes': { // ✅ Ajout des accolades
+          case 'codes': {
             const suggestions = response.data.suggestions || response.data.data || [];
             formattedResult =
               suggestions.length > 0
@@ -138,16 +139,14 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
                 : 'Aucun code suggéré.';
             break;
           }
-          case 'analyze': { // ✅ Ajout des accolades
+          case 'analyze': {
             const analysis = response.data;
-
             if (analysis.wordCloud && Array.isArray(analysis.wordCloud)) {
               analysis.wordCloud = analysis.wordCloud.map((item: any) => ({
                 text: item.word || item.text,
                 value: item.count || item.value || 1,
               }));
             }
-
             setAnalysisData(analysis);
             const totalWords = analysis?.totalWords || 0;
             const uniqueWords = analysis?.uniqueWords || 0;
@@ -165,7 +164,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
         }
         setResult(formattedResult);
 
-        // ✅ AJOUT QUOTA IA — paliers 50/75/95 (le 100% est géré dans le catch)
         if (response.data?.quota) {
           checkQuotaWarning(response.data.quota);
         }
@@ -177,7 +175,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     } catch (err: any) {
       console.error('❌ Erreur service:', err);
 
-      // ✅ AJOUT QUOTA IA — gérer le 403 QUOTA_EXCEEDED
       if (
         err.response?.status === 403 &&
         err.response?.data?.code === 'QUOTA_EXCEEDED'
@@ -202,7 +199,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     }
   };
 
-  // ✅ Export PDF — jsPDF + html2canvas (INCHANGÉ)
+  // ✅ EXPORT PDF MODIFIÉ : Sauvegarde dans le projet avec titre personnalisé
   const exportPDF = async () => {
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
@@ -214,7 +211,16 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       return;
     }
 
-    setLoading(true);
+    // 1. Demander le titre à l'utilisateur
+    const defaultTitle = `${sanitizeFileName(doc.name)}${serviceType ? '_' + serviceType : ''}`;
+    const userTitle = window.prompt(
+      "Titre du document à sauvegarder dans le projet :",
+      defaultTitle
+    );
+
+    if (!userTitle) return; // L'utilisateur a annulé
+
+    setSavingPdf(true);
     setError(null);
 
     const dom = window.document;
@@ -233,7 +239,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     container.style.boxSizing = 'border-box';
 
     const title = dom.createElement('h1');
-    title.textContent = doc.name;
+    title.textContent = userTitle; // On utilise le titre choisi
     title.style.fontSize = '22px';
     title.style.marginTop = '0';
     title.style.marginBottom = '8px';
@@ -272,7 +278,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
     content.style.wordWrap = 'break-word';
     content.style.marginBottom = '24px';
     content.style.color = '#333';
-    content.textContent = displayContentLocal; // Pour le PDF, on garde le texte brut (html2canvas gère mal le markdown complexe)
+    content.textContent = displayContentLocal;
     container.appendChild(content);
 
     if (analysisData?.wordCloud && analysisData.wordCloud.length > 0) {
@@ -364,15 +370,34 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
         heightLeft -= pageContentHeight;
       }
 
-      pdf.save(`${sanitizeFileName(doc.name)}.pdf`);
+      // ✅ 2. Au lieu de pdf.save(), on convertit en Blob et on envoie au backend
+      const pdfBlob = pdf.output('blob');
+      
+      const formData = new FormData();
+      formData.append('file', pdfBlob, `${sanitizeFileName(userTitle)}.pdf`);
+      formData.append('title', userTitle);
+
+      await api.post(`/projects/${projectId}/files/upload-generated`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.addToast({ 
+        type: 'success', 
+        title: 'PDF sauvegardé dans le projet !',
+        message: userTitle 
+      });
+
+      if (onRefresh) onRefresh(); // Rafraîchir la liste des documents
+
     } catch (err: any) {
       console.error('❌ Erreur export PDF:', err);
-      setError(`Erreur PDF : ${err?.message || 'inconnue'}`);
+      setError(`Erreur PDF : ${err?.response?.data?.error || err?.message || 'inconnue'}`);
+      toast.addToast({ type: 'error', title: 'Erreur lors de la sauvegarde PDF' });
     } finally {
       if (dom.body.contains(container)) {
         dom.body.removeChild(container);
       }
-      setLoading(false);
+      setSavingPdf(false);
     }
   };
 
@@ -468,14 +493,17 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             </Button>
           </>
         )}
+        
+        {/* ✅ BOUTON PDF MODIFIÉ */}
         <Button
           size="sm"
           variant="success"
           onClick={exportPDF}
-          disabled={!displayContent || loading}
+          disabled={!displayContent || loading || savingPdf}
         >
-          📥 PDF
+          {savingPdf ? '⏳ Sauvegarde...' : '📥 PDF'}
         </Button>
+        
         <Button
           size="sm"
           variant="secondary"
@@ -501,7 +529,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             border: `1px solid ${colors.gray[300]}`,
             maxHeight: '400px',
             overflowY: 'auto',
-            // ✅ SUPPRESSION de whiteSpace: 'pre-wrap' pour laisser ReactMarkdown gérer les paragraphes
             fontSize: theme.typography.fontSize.sm,
             lineHeight: '1.8',
             color: colors.dark,
@@ -514,7 +541,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
             </Badge>
           )}
           
-          {/* ✅ REMPLACEMENT PAR REACT-MARKDOWN */}
           <div className="markdown-content" style={{ marginTop: '8px' }}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {displayContent}

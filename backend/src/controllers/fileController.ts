@@ -11,6 +11,7 @@ import { logger } from '../utils/logger';
 import { getFilePreview, getFileTextForTranslation } from '../services/filePreviewService';
 import { saveFileEdit, getFileVersions } from '../services/fileEditService';
 import { restoreFileVersion } from '../services/fileEditService';
+import { uploadBufferToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le nom exact de ta fonction?
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -97,6 +98,84 @@ export const uploadFile = async (req: Request, res: Response) => {
     } catch (error: any) {
       console.error('Erreur upload file:', error);
       res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    }
+  });
+};
+
+// Configuration multer spécifique en mémoire pour les PDF générés
+const uploadMemory = multer({ storage: multer.memoryStorage() }).single('file');
+
+export const uploadGeneratedFile = async (req: Request, res: Response) => {
+  uploadMemory(req, res, async (err: any) => {
+    if (err) return res.status(400).json({ error: err.message });
+
+    const user = (req as any).user;
+    const userId = user?.id;
+    const userName = user?.name || user?.email || 'Utilisateur';
+    const projectId = req.params.projectId;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+    
+    const file = (req as any).file;
+    if (!file) return res.status(400).json({ error: 'Aucun fichier reçu' });
+
+    try {
+      if (!(await isProjectMember(projectId, userId))) {
+        return res.status(403).json({ error: 'Vous n\'êtes pas membre de ce projet' });
+      }
+
+      const title = req.body.title || file.originalname || 'Export PDF';
+      const safeFileName = title.endsWith('.pdf') ? title : `${title}.pdf`;
+
+      // 1. Upload vers Cloudinary (Buffer en mémoire)
+      const cloudinaryResult = await uploadBufferToCloudinary(
+        file.buffer,
+        `projects/${projectId}/exports`,
+        'application/pdf'
+      );
+
+      // 2. Insertion dans la base de données
+      const id = Date.now().toString();
+      await db('project_files').insert({
+        id,
+        projectId,
+        userId,
+        fileName: safeFileName,
+        fileSize: file.size,
+        mimeType: 'application/pdf',
+        filePath: cloudinaryResult.secureUrl,
+        cloudinaryPublicId: cloudinaryResult.publicId,
+        uploadedAt: Date.now(),
+        deletedAt: null,
+      });
+
+      const inserted = await db('project_files').where({ id }).first();
+
+      // 3. Socket.IO
+      emitGlobal('file-uploaded', {
+        projectId,
+        file: inserted,
+        actorId: userId,
+        actorName: userName,
+        timestamp: new Date().toISOString(),
+      });
+
+      // 4. Log d'activité
+      await logActivity({
+        projectId,
+        userId,
+        userName,
+        action: 'file-uploaded',
+        targetType: 'file',
+        targetId: id,
+        targetName: safeFileName,
+        metadata: { size: file.size, mimeType: 'application/pdf', generated: true },
+      });
+
+      return res.status(201).json(inserted);
+    } catch (error: any) {
+      console.error('❌ Erreur upload generated PDF:', error);
+      return res.status(500).json({ error: 'Erreur serveur', details: error.message });
     }
   });
 };
