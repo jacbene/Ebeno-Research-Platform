@@ -12,7 +12,7 @@ const usePg = process.env.USE_NEON === 'true' || isProd;
 const migrations = {
   directory: path.join(__dirname, '../db/migrations'),
   extension: 'ts',
-  loadExtensions: ['.js', '.ts'], // <-- On autorise les deux !
+  loadExtensions: ['.js', '.ts'],
 };
 
 const config: Knex.Config = {
@@ -20,12 +20,15 @@ const config: Knex.Config = {
   connection: usePg
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false } // On force le SSL pour Neon
+        ssl: { rejectUnauthorized: false },
       }
     : isTest
-    ? { filename: ':memory:' } // ✅ Base éphémère en mémoire pour les tests
-    : { filename: './dev.db' },
-  useNullAsDefault: !usePg, // ✅ Uniquement pour SQLite
+    ? { filename: ':memory:' }
+    : {
+        // ✅ NOUVEAU : Utilise DATABASE_URL pour SQLite aussi
+        filename: process.env.DATABASE_URL || './dev.db',
+      },
+  useNullAsDefault: !usePg,
   migrations,
   pool: isProd ? { min: 2, max: 10 } : undefined,
 };
