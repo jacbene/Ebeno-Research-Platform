@@ -69,13 +69,12 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ aiQuota }) =
         <div className="w-full bg-blue-200 rounded-full h-2 mb-4 dark:bg-gray-600">
           <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percent}%` }}></div>
         </div>
-        <button
-          onClick={openBillingPortal}
-          disabled={portalLoading}
-          className="inline-block bg-white hover:bg-gray-50 text-blue-700 font-bold py-2 px-6 rounded-lg border border-blue-300 transition-colors disabled:opacity-50"
-        >
-          {portalLoading ? 'Chargement...' : '💳 Gérer mon abonnement'}
-        </button>
+     <button 
+  disabled 
+  style={{ opacity: 0.6, cursor: 'not-allowed', padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', backgroundColor: '#f5f5f5', color: '#666' }}
+>
+  💳 Portail de facturation bientôt disponible
+</button>
       </div>
     );
   }
