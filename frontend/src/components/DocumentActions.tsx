@@ -14,7 +14,7 @@ import remarkGfm from 'remark-gfm';
 interface DocumentData {
   id: string;
   name: string;
-  type: 'file' | 'text' | 'audio' | 'memo';
+  type: 'file' | 'text' | 'audio' | 'memo' | 'transcription';
   raw?: any;
   content?: string;
   transcriptText?: string;
@@ -58,7 +58,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   const isAudio =
     doc.type === 'audio' ||
     (doc.raw?.mimeType && doc.raw.mimeType.startsWith('audio/'));
-  const isText = doc.type === 'text' || doc.type === 'file' || doc.type === 'memo';
+  const isText = doc.type === 'text' || doc.type === 'file' || doc.type === 'memo' || doc.type === 'transcription';
 
   const callService = async (service: string) => {
     setLoading(true);
