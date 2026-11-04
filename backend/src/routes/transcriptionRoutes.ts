@@ -29,6 +29,7 @@ router.post('/:id/retry', authenticate, retryTranscription);
 router.patch('/:id/restore', authenticate, restoreTranscription);
 router.delete('/:id/permanent', authenticate, permanentlyDeleteTranscription);
 router.get('/:id/progress', authenticate, getTranscriptionProgress);
+router.patch('/:id/attach-to-project', authenticate, attachTranscriptionToProject);
 
 // Routes génériques (en dernier)
 router.get('/:id', authenticate, getTranscription);

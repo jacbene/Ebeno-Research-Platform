@@ -192,7 +192,7 @@ const ProjectDetail: React.FC = () => {
   const [trashedTranscriptions, setTrashedTranscriptions] = useState<ContentItem[]>([]);
   const [textDocuments, setTextDocuments] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'audio' | 'memos' | 'analysis' | 'members' | 'documents' | 'activity' | 'trash' | 'presence'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'transcriptions' | 'memos' | 'analysis' | 'members' | 'documents' | 'activity' | 'trash' | 'presence'>('audio');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
@@ -629,16 +629,17 @@ const ProjectDetail: React.FC = () => {
     else if (result.source === 'file') setPreviewFile(result);
   };
 
-  const tabs = [
-    { key: 'audio', label: t('projectDetail.tabs.audio', { count: transcriptions.length }) },
-    { key: 'memos', label: t('projectDetail.tabs.memos', { count: memos.length }) },
-    { key: 'analysis', label: t('projectDetail.tabs.analysis') },
-    { key: 'members', label: t('projectDetail.tabs.members') },
-    { key: 'documents', label: t('projectDetail.tabs.documents', { count: totalDocuments }) },
-    { key: 'activity', label: t('projectDetail.tabs.activity', { count: activities.length }) },
-    { key: 'trash', label: t('projectDetail.tabs.trash', { count: totalTrashed }) },
-    { key: 'presence', label: t('projectDetail.tabs.presence', { count: users.length }) },
-  ];
+const tabs = [
+  { key: 'audio', label: t('projectDetail.tabs.audio', { count: transcriptions.length }) },
+  { key: 'transcriptions', label: `🎙️ Transcriptions IA (${transcriptions.filter(t => t.status === 'COMPLETED' && t.transcriptText).length})` },
+  { key: 'memos', label: t('projectDetail.tabs.memos', { count: memos.length }) },
+  { key: 'analysis', label: t('projectDetail.tabs.analysis') },
+  { key: 'members', label: t('projectDetail.tabs.members') },
+  { key: 'documents', label: t('projectDetail.tabs.documents', { count: totalDocuments }) },
+  { key: 'activity', label: t('projectDetail.tabs.activity', { count: activities.length }) },
+  { key: 'trash', label: t('projectDetail.tabs.trash', { count: totalTrashed }) },
+  { key: 'presence', label: t('projectDetail.tabs.presence', { count: users.length }) },
+];
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.loading')}</div>;
   if (!project) return <div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.notFound')}</div>;
@@ -922,6 +923,143 @@ const ProjectDetail: React.FC = () => {
             )}
           </Card>
         )}
+
+
+{activeTab === 'transcriptions' && (
+  <Card title="🎙️ Transcriptions (Actions IA)">
+    {transcriptions.filter(t => t.status === 'COMPLETED' && t.transcriptText).length === 0 ? (
+      <div style={{
+        padding: '40px 20px',
+        textAlign: 'center',
+        color: colors.gray[500],
+        border: `2px dashed ${colors.gray[300]}`,
+        borderRadius: theme.borderRadius.md,
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '8px' }}>🎙️</div>
+        <p style={{ margin: 0 }}>Aucune transcription terminée dans ce projet.</p>
+        <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
+          Uploadez un fichier audio depuis l'onglet "Audio" pour commencer.
+        </p>
+      </div>
+    ) : (
+      <div>
+        <p style={{ fontSize: '13px', color: colors.gray[600], marginBottom: '12px' }}>
+          💡 Cliquez sur une transcription pour lancer le résumé, l'analyse d'entités, le sentiment, ou générer un PDF.
+        </p>
+
+        {transcriptions
+          .filter(t => t.status === 'COMPLETED' && t.transcriptText)
+          .map((trans) => {
+            const isSelected = selectedDocument?.id === trans.id;
+            const audioUrl = (trans as any).audioUrl || (trans as any).raw?.audioUrl;
+
+            return (
+              <div
+                key={trans.id}
+                id={`trans-ia-${trans.id}`}
+                onClick={() => setSelectedDocument({
+                  id: trans.id,
+                  name: trans.title,
+                  type: 'transcription',
+                  raw: { ...trans, _originalId: trans.id },
+                  transcriptText: trans.transcriptText,
+                })}
+                style={{
+                  padding: '14px',
+                  marginBottom: '10px',
+                  border: `1px solid ${isSelected ? colors.primary : colors.gray[200]}`,
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: isSelected ? colors.primary + '0d' : colors.white,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isSelected ? `0 0 0 2px ${colors.primary}33` : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = colors.gray[50];
+                    e.currentTarget.style.borderColor = colors.gray[300];
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = colors.white;
+                    e.currentTarget.style.borderColor = colors.gray[200];
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '20px' }}>🎙️</span>
+                    <span style={{ fontWeight: '600', color: colors.dark }}>{trans.title}</span>
+                    <LanguageBadge language={trans.language} />
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      backgroundColor: colors.success + '20',
+                      color: colors.success,
+                    }}>
+                      ✅ Terminé
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: colors.gray[500] }}>
+                    📅 {formatDate(trans.createdAt)}
+                  </span>
+                </div>
+
+                {/* Aperçu du texte */}
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '8px 10px',
+                    backgroundColor: colors.gray[50] || '#fafafa',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    color: colors.gray[600],
+                    maxHeight: '60px',
+                    overflow: 'hidden',
+                    lineHeight: '1.5',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {trans.transcriptText!.substring(0, 200)}
+                  {trans.transcriptText!.length > 200 && '...'}
+                </div>
+
+                {/* Lecteur audio compact */}
+                {audioUrl && (
+                  <audio
+                    controls
+                    src={audioUrl}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: '100%', height: '32px', marginTop: '8px' }}
+                  />
+                )}
+              </div>
+            );
+          })
+        )}
+
+        {/* ✅ DocumentActions pour la transcription sélectionnée */}
+        {selectedDocument && selectedDocument.type === 'transcription' && (
+          <div style={{ marginTop: '20px' }}>
+            <DocumentActions
+              document={{
+                id: selectedDocument.raw?._originalId || selectedDocument.id,
+                name: selectedDocument.name,
+                type: 'transcription',
+                transcriptText: selectedDocument.raw?.transcriptText,
+              }}
+              projectId={encodedId}
+              onRefresh={fetchProjectData}
+            />
+          </div>
+        )}
+      </div>
+    )}
+  </Card>
+)}        
 
         {activeTab === 'memos' && (
           <Card title={t('projectDetail.memos.title')}>

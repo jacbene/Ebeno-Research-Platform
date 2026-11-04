@@ -217,9 +217,42 @@ export const retryTranscription = async (req: Request, res: Response) => {
   }
 };
 
+// ---------- Rattacher une transcription à un projet ----------
+export const attachTranscriptionToProject = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+    const { projectId } = req.body;
+
+    if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
+    if (!projectId) return res.status(400).json({ success: false, message: 'projectId requis' });
+
+    // Vérifier que l'utilisateur est propriétaire de la transcription
+    const transcription = await db('transcriptions').where({ id, userId }).first();
+    if (!transcription) return res.status(404).json({ success: false, message: 'Transcription non trouvée' });
+
+    // Vérifier que l'utilisateur est membre du projet
+    const isMember = await db('project_members').where({ projectId, userId }).first();
+    if (!isMember) return res.status(403).json({ success: false, message: 'Vous n\'êtes pas membre de ce projet' });
+
+    // Rattacher
+    await db('transcriptions').where({ id }).update({ projectId, updatedAt: new Date().toISOString() });
+
+    return res.json({ success: true, message: 'Transcription rattachée au projet' });
+  } catch (error: any) {
+    console.error('Erreur attachTranscription:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 // ---------- Liste des transcriptions ----------
 export const getUserTranscriptions = async (req: Request, res: Response) => {
   try {
+    // ✅ NOUVEAU : Forcer un contenu frais (pas de cache 304)
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Non authentifié' });
 

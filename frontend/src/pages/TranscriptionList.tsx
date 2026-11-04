@@ -127,20 +127,21 @@ const TranscriptionList: React.FC = () => {
     }
   };
 
-  const fetchAnalysis = async (id: string) => {
-    setAnalysisLoading(true);
-    try {
-      const response = await api.get(`/analysis/${id}`);
-      if (response.status === 200) {
-        setAnalysis(response.data);
-      }
-    } catch (error) {
-      console.error('❌ Erreur analyse:', error);
-      setAnalysis(null);
-    } finally {
-      setAnalysisLoading(false);
+const fetchAnalysis = async (id: string) => {
+  setAnalysisLoading(true);
+  try {
+    // ✅ CORRECTION : la vraie route est /analysis/document/transcription/:id
+    const response = await api.get(`/analysis/document/transcription/${id}`);
+    if (response.status === 200) {
+      setAnalysis(response.data);
     }
-  };
+  } catch (error) {
+    console.error('❌ Erreur analyse:', error);
+    setAnalysis(null);
+  } finally {
+    setAnalysisLoading(false);
+  }
+};
 
   const handleRetry = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
