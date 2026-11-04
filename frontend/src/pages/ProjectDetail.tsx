@@ -643,26 +643,43 @@ const highlightFromUrl = searchParams.get('highlight');
     }
   }, [documentIdFromUrl, documentTypeFromUrl, allDocuments, setSearchParams]);
 
-// ✅ NOUVEAU : Gérer l'ouverture automatique de l'onglet Transcriptions IA et le scroll
+// ✅ 1. Changer d'onglet dès que l'URL le demande
 useEffect(() => {
   if (tabFromUrl === 'transcriptions') {
     setActiveTab('transcriptions');
   }
+}, [tabFromUrl]);
 
-  if (highlightFromUrl) {
-    setTimeout(() => {
+// ✅ 2. Scroller vers la transcription UNIQUEMENT quand les données sont chargées
+useEffect(() => {
+  if (highlightFromUrl && transcriptions.length > 0 && !hasScrolledRef.current) {
+    // On laisse un petit délai pour que React finisse de peindre la liste
+    const timer = setTimeout(() => {
       const el = document.getElementById(`trans-ia-${highlightFromUrl}`);
+      
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Effet visuel pour repérer la transcription
+        
+        // Effet visuel surligné jaune
         el.style.backgroundColor = '#FEF3C7';
+        el.style.transition = 'background-color 0.5s ease';
+        
         setTimeout(() => {
           el.style.backgroundColor = '';
         }, 3000);
+        
+        // ✅ On marque comme "fait" pour ne pas re-scroller si la liste se met à jour
+        hasScrolledRef.current = true;
+      } else {
+        console.warn(`⚠️ Élément trans-ia-${highlightFromUrl} introuvable.`);
       }
-    }, 500); // Petit délai pour laisser le temps au DOM de se charger
+    }, 500);
+
+    return () => clearTimeout(timer);
   }
-}, [tabFromUrl, highlightFromUrl, transcriptions]);
+}, [highlightFromUrl, transcriptions]);
+
+const hasScrolledRef = useRef(false);
 
   const handleResultClick = (result: any) => {
     if (result.source === 'transcription') navigate(`/transcription/${result.id}`);
