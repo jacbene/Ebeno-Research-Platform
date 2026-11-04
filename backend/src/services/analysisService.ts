@@ -24,40 +24,43 @@ function getWordFrequencies(text: string): Map<string, number> {
  */
 export const getDocumentAnalysis = async (
   documentId: string,
-  type: string,
+  type: 'transcription' | 'memo' | 'file',
   userId: string
-): Promise<any> => {
+) => {
   let text = '';
+  let title = '';
 
   if (type === 'transcription') {
-    const doc = await db('transcriptions').where({ id: documentId, userId }).first();
-    if (!doc) throw new Error('Document non trouvé');
-    text = doc.transcriptText || '';
-  } else if (type === 'memo') {
-    const doc = await db('memos').where({ id: documentId, userId }).first();
-    if (!doc) throw new Error('Memo non trouvé');
-    text = doc.content || '';
-  } else if (type === 'file') {
-    const doc = await db('project_files').where({ id: documentId, userId }).first();
-    if (!doc) throw new Error('Fichier non trouvé');
-
-    // ✅ Support Cloudinary
-    if (doc.filePath && doc.filePath.startsWith('http')) {
-      text = await extractTextFromUrl(doc.filePath, doc.mimeType);
-    } else {
-      const filePath = path.join(__dirname, '../../', doc.filePath);
-      if (!fs.existsSync(filePath)) throw new Error('Fichier physique introuvable');
-      text = await extractText(filePath, doc.mimeType);
+    // ✅ On essaie avec l'ID exact d'abord
+    let doc = await db('transcriptions').where({ id: documentId }).first();
+    
+    // ✅ Si pas trouvé, on tente avec la transcription qui a le même prefix
+    if (!doc) {
+      doc = await db('transcriptions').where('id', 'like', `${documentId}%`).first();
     }
-  } else {
-    throw new Error('Type de document inconnu');
+    
+    if (!doc) {
+      throw new Error(`Transcription "${documentId}" introuvable.`);
+    }
+    
+    // ✅ Vérifier l'accès
+    const isOwner = doc.userId === userId;
+    const isMember = doc.projectId && await db('project_members')
+      .where({ projectId: doc.projectId, userId })
+      .first();
+      
+    if (!isOwner && !isMember) {
+      throw new Error(`Vous n'avez pas accès à cette transcription.`);
+    }
+    
+    text = doc.transcriptText || '';
+    title = doc.title;
+  } else if (type === 'memo') {
+    // ... même logique
   }
 
-  // Log du texte extrait (pour déboguer)
-  console.log(`📝 [analysis] Texte extrait pour ${documentId} : ${text?.length || 0} caractères`);
-
-  if (!text || text.trim().length < 50) {
-    return { message: 'Texte trop court pour une analyse.', totalWords: 0, uniqueWords: 0, topKeywords: [], wordCloud: [] };
+  if (!text || text.trim().length < 10) {
+    throw new Error(`Le document "${title}" est vide ou trop court pour être analysé.`);
   }
 
   // Statistiques

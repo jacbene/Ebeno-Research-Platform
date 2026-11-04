@@ -23,6 +23,40 @@ const extractKeywords = (text: string): string[] => {
     .filter(w => w.length > 3 && !stopwords.has(w)); // ✅ min 4 caractères
 };
 
+// Dans la boucle de collecte de texte des fichiers
+const SUPPORTED_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+];
+
+for (const f of files) {
+  // ✅ Skip les types non supportés silencieusement
+  if (!SUPPORTED_MIME_TYPES.includes(f.mimeType)) {
+    continue;
+  }
+
+  try {
+    let text = '';
+    if (f.filePath?.startsWith('http')) {
+      text = await extractTextFromUrl(f.filePath, f.mimeType);
+    } else {
+      const filePath = path.join(__dirname, '../../', f.filePath);
+      if (fs.existsSync(filePath)) {
+        const buffer = await fs.promises.readFile(filePath);
+        text = await extractTextFromBuffer(buffer, f.mimeType);
+      }
+    }
+    if (text) allText += ' ' + text;
+  } catch (err: any) {
+    // ✅ Log discret en warn (pas en erreur)
+    logger.warn(`⚠️ Fichier ignoré (${f.mimeType}, id=${f.id}): ${err.message}`);
+  }
+}
+
 export const suggestCodesForProject = async (projectId: string): Promise<string[]> => {
   console.log(`🔍 Suggestions de codes pour projet ${projectId}`);
 

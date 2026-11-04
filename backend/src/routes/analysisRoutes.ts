@@ -62,10 +62,12 @@ router.post('/sentiment/:type/:id', authenticate, async (req, res) => {
     const userId = (req as any).user?.id;
     const { type, id } = req.params;
 
-    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-    if (!['transcription', 'memo'].includes(type)) {
-      return res.status(400).json({ error: 'Type de document invalide pour le sentiment (transcription ou memo uniquement).' });
-    }
+   if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+if (!['transcription', 'memo'].includes(type)) {
+  return res.status(400).json({
+    error: `L'analyse de sentiment n'est pas disponible pour les fichiers "${type}". Utilisez-la sur les transcriptions ou les mémos.`,
+  });
+}
 
     // 1. Récupérer le texte selon le type
     let text = '';

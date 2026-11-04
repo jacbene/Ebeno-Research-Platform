@@ -181,30 +181,43 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
         );
       }
     } catch (err: any) {
-      console.error('❌ Erreur service:', err);
+  console.error('❌ Erreur service:', err);
 
-      if (
-        err.response?.status === 403 &&
-        err.response?.data?.code === 'QUOTA_EXCEEDED'
-      ) {
-        toast.addToast({
-          type: 'error',
-          title: 'Quota IA épuisé 🚫',
-          message: `${
-            err.response.data.message ||
-            err.response.data.error ||
-            'Quota atteint.'
-          } Rendez-vous sur /pricing pour recharger.`,
-          duration: 6000,
-        });
-        setError('');
-        return;
-      }
+  // ✅ Gestion du quota IA
+  if (
+    err.response?.status === 403 &&
+    err.response?.data?.code === 'QUOTA_EXCEEDED'
+  ) {
+    toast.addToast({
+      type: 'error',
+      title: 'Quota IA épuisé 🚫',
+      message: `${err.response.data.message || err.response.data.error} Rendez-vous sur /pricing pour recharger.`,
+      duration: 6000,
+    });
+    setError('');
+    return;
+  }
 
-      setError(err.message || 'Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
+  // ✅ NOUVEAU : Afficher un message explicite pour toutes les autres erreurs
+  const backendMessage =
+    err.response?.data?.error ||
+    err.response?.data?.message ||
+    err.message ||
+    'Erreur de connexion';
+
+  // Cas spécifique : type de document non supporté pour le sentiment
+  if (err.response?.status === 400 && serviceType === 'sentiment') {
+    setError(
+      `❌ ${backendMessage}\n\n💡 L'analyse de sentiment fonctionne uniquement sur les transcriptions et les mémos (pas sur les fichiers PDF/images).`
+    );
+  } else if (err.response?.status === 404) {
+    setError(`❌ ${backendMessage}\n\n💡 Le document n'existe peut-être plus, ou vous n'y avez pas accès.`);
+  } else {
+    setError(`❌ ${backendMessage}`);
+  }
+} finally {
+  setLoading(false);
+}
   };
 
   // ✅ EXPORT PDF MODIFIÉ : Sauvegarde dans le projet avec titre personnalisé
