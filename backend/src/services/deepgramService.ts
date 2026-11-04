@@ -97,13 +97,14 @@ const notifyTranscriptionComplete = async (
         return;
       }
 
-      await sendTranscriptionCompleteEmail({
-        to,
-        name: uploader.name || 'chercheur',
-        transcriptionTitle: transcription.title || 'Transcription',
-        projectId: transcription.projectId || '',
-        lang: uploader.language || 'fr',
-      });
+ await sendTranscriptionCompleteEmail({
+  to,
+  name: uploader.name || 'chercheur',
+  transcriptionTitle: transcription.title || 'Transcription',
+  projectId: transcription.projectId || '',
+  transcriptionId: transcription.id, // ✅ AJOUT
+  lang: uploader.language || 'fr',
+});
     } catch (err: any) {
       logger.warn(`⚠️ [email] Échec notif "transcription terminée": ${err.message}`);
     }

@@ -158,6 +158,8 @@ const ProjectDetail: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const documentIdFromUrl = searchParams.get('document');
   const documentTypeFromUrl = searchParams.get('type');
+const tabFromUrl = searchParams.get('tab');
+const highlightFromUrl = searchParams.get('highlight');
 
   const formatDate = (timestamp: number | string | null | undefined): string => {
     if (timestamp === null || timestamp === undefined) return '-';
@@ -622,6 +624,27 @@ const ProjectDetail: React.FC = () => {
       console.warn(`⚠️ Document ${documentIdFromUrl} introuvable dans ce projet`);
     }
   }, [documentIdFromUrl, documentTypeFromUrl, allDocuments, setSearchParams]);
+
+// ✅ NOUVEAU : Gérer l'ouverture automatique de l'onglet Transcriptions IA et le scroll
+useEffect(() => {
+  if (tabFromUrl === 'transcriptions') {
+    setActiveTab('transcriptions');
+  }
+
+  if (highlightFromUrl) {
+    setTimeout(() => {
+      const el = document.getElementById(`trans-ia-${highlightFromUrl}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Effet visuel pour repérer la transcription
+        el.style.backgroundColor = '#FEF3C7';
+        setTimeout(() => {
+          el.style.backgroundColor = '';
+        }, 3000);
+      }
+    }, 500); // Petit délai pour laisser le temps au DOM de se charger
+  }
+}, [tabFromUrl, highlightFromUrl, transcriptions]);
 
   const handleResultClick = (result: any) => {
     if (result.source === 'transcription') navigate(`/transcription/${result.id}`);

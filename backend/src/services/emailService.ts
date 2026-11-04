@@ -278,6 +278,7 @@ export interface SendTranscriptionCompleteParams {
   name: string;
   transcriptionTitle: string;
   projectId: string;
+  transcriptionId: string; 
   lang?: string;
 }
 
@@ -286,14 +287,16 @@ export const sendTranscriptionCompleteEmail = async ({
   name,
   transcriptionTitle,
   projectId,
+  transcriptionId, // ✅ AJOUT
   lang,
 }: SendTranscriptionCompleteParams): Promise<boolean> => {
   if (!BREVO_API_KEY) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
-  const url = `${APP_URL}/transcriptions?projectId=${projectId}`;
 
+  const url = `${APP_URL}/project/${projectId}?tab=transcriptions&highlight=${transcriptionId}`;
+  
   const content = `
     <h2 style="color:#212529;margin:0 0 16px 0;font-size:22px;">${S.transcriptionHeading}</h2>
     <p style="color:#495057;font-size:15px;line-height:1.6;margin:0 0 16px 0;">${interpolate(S.transcriptionGreeting, { name })}</p>
