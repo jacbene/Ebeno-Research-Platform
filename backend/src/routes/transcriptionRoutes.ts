@@ -11,6 +11,7 @@ import {
   emptyTrashTranscriptions,
   retryTranscription,
   getTranscriptionProgress,
+  attachTranscriptionToProject,
 } from '../controllers/transcriptionController';
 import { authenticate } from '../middleware/auth';
 
