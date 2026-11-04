@@ -282,6 +282,8 @@ const TranscriptionList: React.FC = () => {
       const formData = new FormData();
       formData.append('file', pdfBlob, `${sanitizeFileName(userTitle)}.pdf`);
       formData.append('title', userTitle);
+      // ✅ NOUVEAU : Envoyer le texte brut
+      formData.append('content', item.transcriptText || '');
 
       await api.post(`/projects/${item.projectId}/files/upload-generated`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

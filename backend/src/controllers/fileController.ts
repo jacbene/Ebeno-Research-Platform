@@ -126,15 +126,16 @@ export const uploadGeneratedFile = async (req: Request, res: Response) => {
 
       const title = req.body.title || file.originalname || 'Export PDF';
       const safeFileName = title.endsWith('.pdf') ? title : `${title}.pdf`;
+      
+      // ✅ NOUVEAU : Récupérer le texte brut
+      const extractedText = req.body.content || null;
 
-      // 1. Upload vers Cloudinary (Buffer en mémoire)
       const cloudinaryResult = await uploadBufferToCloudinary(
         file.buffer,
         `projects/${projectId}/exports`,
         'application/pdf'
       );
 
-      // 2. Insertion dans la base de données
       const id = Date.now().toString();
       await db('project_files').insert({
         id,
@@ -147,11 +148,11 @@ export const uploadGeneratedFile = async (req: Request, res: Response) => {
         cloudinaryPublicId: cloudinaryResult.publicId,
         uploadedAt: Date.now(),
         deletedAt: null,
+        extractedText, // ✅ NOUVEAU
       });
 
       const inserted = await db('project_files').where({ id }).first();
 
-      // 3. Socket.IO
       emitGlobal('file-uploaded', {
         projectId,
         file: inserted,
@@ -160,7 +161,6 @@ export const uploadGeneratedFile = async (req: Request, res: Response) => {
         timestamp: new Date().toISOString(),
       });
 
-      // 4. Log d'activité
       await logActivity({
         projectId,
         userId,

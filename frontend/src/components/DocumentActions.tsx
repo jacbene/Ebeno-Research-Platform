@@ -392,11 +392,16 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       }
 
       // ✅ 2. Au lieu de pdf.save(), on convertit en Blob et on envoie au backend
+ // frontend/src/components/DocumentActions.tsx
+// ... (dans la fonction exportPDF, vers la fin)
+
       const pdfBlob = pdf.output('blob');
       
       const formData = new FormData();
       formData.append('file', pdfBlob, `${sanitizeFileName(userTitle)}.pdf`);
       formData.append('title', userTitle);
+      // ✅ NOUVEAU : Envoyer le texte brut pour que l'analyse fonctionne
+      formData.append('content', displayContentLocal);
 
       await api.post(`/projects/${projectId}/files/upload-generated`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
