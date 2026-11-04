@@ -161,22 +161,40 @@ const ProjectDetail: React.FC = () => {
 const tabFromUrl = searchParams.get('tab');
 const highlightFromUrl = searchParams.get('highlight');
 
-  const formatDate = (timestamp: number | string | null | undefined): string => {
-    if (timestamp === null || timestamp === undefined) return '-';
-    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-    if (!ts || isNaN(ts)) return '-';
-    try {
-      return new Date(ts).toLocaleDateString(i18n.language, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return '-';
+ const formatDate = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return '-';
+  
+  let date: Date;
+  
+  if (typeof value === 'number') {
+    // Timestamp Unix en millisecondes
+    date = new Date(value);
+  } else if (typeof value === 'string') {
+    // Si la chaîne est purement numérique (ex: "1793549811801"), c'est un timestamp
+    if (/^\d+$/.test(value)) {
+      date = new Date(parseInt(value, 10));
+    } else {
+      // Sinon, c'est une chaîne ISO (ex: "2026-11-01T16:16:51.801Z")
+      date = new Date(value);
     }
-  };
+  } else {
+    return '-';
+  }
+  
+  if (isNaN(date.getTime())) return '-';
+  
+  try {
+    return date.toLocaleDateString(i18n.language, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '-';
+  }
+};
 
   const currentUser = useMemo(() => {
     try {
