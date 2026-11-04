@@ -1039,7 +1039,7 @@ const tabs = [
               </div>
             );
           })
-        )}
+        }
 
         {/* ✅ DocumentActions pour la transcription sélectionnée */}
         {selectedDocument && selectedDocument.type === 'transcription' && (
