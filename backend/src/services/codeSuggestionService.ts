@@ -1,6 +1,7 @@
 // backend/src/services/codeSuggestionService.ts
 import { db } from '../db/knex';
-import { extractText, extractTextFromUrl } from './textExtractor';
+import { extractText, extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
+import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs';
 
@@ -16,14 +17,7 @@ const stopwords = new Set([
   'false', 'true', 'null', 'undefined',
 ]);
 
-const extractKeywords = (text: string): string[] => {
-  const words = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
-  return words
-    .map(w => w.trim())
-    .filter(w => w.length > 3 && !stopwords.has(w)); // ✅ min 4 caractères
-};
-
-// Dans la boucle de collecte de texte des fichiers
+// ✅ Types MIME supportés pour l'extraction de texte
 const SUPPORTED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -33,29 +27,12 @@ const SUPPORTED_MIME_TYPES = [
   'text/csv',
 ];
 
-for (const f of files) {
-  // ✅ Skip les types non supportés silencieusement
-  if (!SUPPORTED_MIME_TYPES.includes(f.mimeType)) {
-    continue;
-  }
-
-  try {
-    let text = '';
-    if (f.filePath?.startsWith('http')) {
-      text = await extractTextFromUrl(f.filePath, f.mimeType);
-    } else {
-      const filePath = path.join(__dirname, '../../', f.filePath);
-      if (fs.existsSync(filePath)) {
-        const buffer = await fs.promises.readFile(filePath);
-        text = await extractTextFromBuffer(buffer, f.mimeType);
-      }
-    }
-    if (text) allText += ' ' + text;
-  } catch (err: any) {
-    // ✅ Log discret en warn (pas en erreur)
-    logger.warn(`⚠️ Fichier ignoré (${f.mimeType}, id=${f.id}): ${err.message}`);
-  }
-}
+const extractKeywords = (text: string): string[] => {
+  const words = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
+  return words
+    .map(w => w.trim())
+    .filter(w => w.length > 3 && !stopwords.has(w));
+};
 
 export const suggestCodesForProject = async (projectId: string): Promise<string[]> => {
   console.log(`🔍 Suggestions de codes pour projet ${projectId}`);
@@ -69,7 +46,13 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
   memos.forEach(m => { if (m.content) allText += ' ' + m.content; });
   transcriptions.forEach(t => { if (t.transcriptText) allText += ' ' + t.transcriptText; });
 
+  // ✅ Boucle de traitement des fichiers (maintenant DANS la fonction)
   for (const f of files) {
+    // ✅ Skip les types non supportés silencieusement
+    if (!SUPPORTED_MIME_TYPES.includes(f.mimeType)) {
+      continue;
+    }
+
     try {
       let text = '';
       if (f.filePath && f.filePath.startsWith('http')) {
@@ -77,14 +60,16 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
       } else {
         const filePath = path.join(__dirname, '../../', f.filePath);
         if (fs.existsSync(filePath)) {
-          text = await extractText(filePath, f.mimeType);
+          const buffer = await fs.promises.readFile(filePath);
+          text = await extractTextFromBuffer(buffer, f.mimeType);
         }
       }
       if (text && text.trim().length > 10) {
         allText += ' ' + text;
       }
     } catch (err: any) {
-      console.error(`❌ Erreur extraction fichier ${f.id}:`, err.message);
+      // ✅ Log discret en warn (pas en erreur)
+      logger.warn(`⚠️ Fichier ignoré (${f.mimeType}, id=${f.id}): ${err.message}`);
     }
   }
 
@@ -104,13 +89,13 @@ export const suggestCodesForProject = async (projectId: string): Promise<string[
   const freq: Record<string, number> = {};
   keywords.forEach(k => { freq[k] = (freq[k] || 0) + 1; });
 
-  const minCount = allText.trim().split(/\s+/).length > 200 ? 3 : 2; // ✅ seuil plus élevé
+  const minCount = allText.trim().split(/\s+/).length > 200 ? 3 : 2;
   console.log(`📊 [codes] Seuil de fréquence : ${minCount}`);
 
   const suggestions = Object.entries(freq)
     .filter(([word, count]) => count >= minCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 50) // ✅ Limiter à 50 suggestions max
+    .slice(0, 50)
     .map(([word, count]) => word);
 
   console.log(`💡 [codes] ${suggestions.length} suggestions générées`);
@@ -149,7 +134,6 @@ export const updateCodeStatus = async (codeId: string, status: 'accepted' | 'rej
     .update({ status, updatedAt: Date.now() });
 };
 
-// ✅ Nouvelle fonction : vider les codes d'un projet
 export const clearSuggestedCodes = async (projectId: string): Promise<number> => {
   const deleted = await db('suggested_codes').where({ projectId }).delete();
   console.log(`🗑️ ${deleted} codes supprimés pour le projet ${projectId}`);
