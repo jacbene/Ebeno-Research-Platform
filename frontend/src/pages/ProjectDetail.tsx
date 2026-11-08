@@ -922,47 +922,67 @@ const tabs = [
                     gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontWeight: '500', color: colors.dark }}>
-                      🎙️ {trans.title}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: getStatusColor(trans.status || ''), fontWeight: 'bold', fontSize: '13px' }}>
-                        {getStatusLabel(trans.status || '')}
-                      </span>
-                      
-                      {trans.status === 'FAILED' && (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
-                            try {
-                              await api.post(`/transcriptions/${trans.id}/retry`);
-                              toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
-                              setTimeout(() => fetchProjectData(), 1000);
-                            } catch (err: any) {
-                              toast.addToast({
-                                type: 'error',
-                                title: t('common.error'),
-                                message: err.response?.data?.message || t('projectDetail.audio.retryError'),
-                              });
-                            }
-                          }}
-                          style={{
-                            padding: '4px 10px',
-                            backgroundColor: colors.primary,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {t('projectDetail.audio.retry')}
-                        </button>
-                      )}
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+  <span style={{ color: getStatusColor(trans.status || ''), fontWeight: 'bold', fontSize: '13px' }}>
+    {getStatusLabel(trans.status || '')}
+  </span>
+  
+  {trans.status === 'FAILED' && (
+    <button
+      onClick={async (e) => {
+        e.stopPropagation();
+        if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
+        try {
+          await api.post(`/transcriptions/${trans.id}/retry`);
+          toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
+          setTimeout(() => fetchProjectData(), 1000);
+        } catch (err: any) {
+          toast.addToast({
+            type: 'error',
+            title: t('common.error'),
+            message: err.response?.data?.message || t('projectDetail.audio.retryError'),
+          });
+        }
+      }}
+      style={{
+        padding: '4px 10px',
+        backgroundColor: colors.primary,
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 'bold',
+      }}
+    >
+      {t('projectDetail.audio.retry')}
+    </button>
+  )}
+
+  {/* ✅ NOUVEAU BOUTON CORBEILLE */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      deleteDocument({ id: trans.id, name: trans.title, type: 'transcription' });
+    }}
+    title={t('common.delete', 'Supprimer')}
+    style={{
+      padding: '4px 10px',
+      backgroundColor: colors.danger,
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+    }}
+  >
+    🗑️
+  </button>
+</div>
                   </div>
 
                   {/* ✅ NOUVEAU : Lecteur audio (disponible même si le statut est FAILED) */}
