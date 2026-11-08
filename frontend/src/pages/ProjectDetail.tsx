@@ -423,15 +423,17 @@ const highlightFromUrl = searchParams.get('highlight');
     }
   };
 
-  const deleteMemo = async (memoId: string) => {
-    if (!confirm(t('projectDetail.memos.deleteConfirm'))) return;
-    try {
-      await api.delete(`/memos/${memoId}`);
-      fetchProjectData();
-    } catch (error) {
-      console.error('Erreur suppression memo:', error);
-    }
-  };
+ const deleteMemo = async (memoId: string) => {
+  if (!confirm(t('projectDetail.memos.deleteConfirm'))) return;
+  try {
+    await api.delete(`/memos/${memoId}`);
+    toast.addToast({ type: 'success', title: 'Mémo supprimé', message: 'Le mémo a été retiré du projet.' });
+    fetchProjectData();
+  } catch (error) {
+    console.error('Erreur suppression memo:', error);
+    toast.addToast({ type: 'error', title: t('common.error'), message: 'Impossible de supprimer le mémo.' });
+  }
+};
 
   const deleteDocument = async (doc: any) => {
     const confirmMsg = t('projectDetail.trash.deleteConfirm', { name: doc.name });
@@ -1170,7 +1172,27 @@ const tabs = [
                       <small style={{ color: '#999' }}>{new Date(m.createdAt).toLocaleString(i18n.language)}</small>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-                      <button onClick={() => deleteMemo(m.id)} style={{ color: '#dc3545', border: 'none', background: 'none', cursor: 'pointer', alignSelf: 'flex-end' }}>✕</button>
+                       <button 
+  onClick={() => deleteMemo(m.id)} 
+  title={t('common.delete', 'Supprimer')}
+  style={{
+    padding: '4px 10px',
+    backgroundColor: colors.danger,
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    alignSelf: 'flex-end',
+    marginBottom: '4px'
+  }}
+>
+  🗑️
+</button>
                       <SummaryButton documentId={m.id} type="memo" onSummaryGenerated={() => { }} />
                       <button
                         onClick={() =>
