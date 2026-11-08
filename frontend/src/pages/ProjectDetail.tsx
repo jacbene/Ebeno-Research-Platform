@@ -903,107 +903,106 @@ const tabs = [
       )}
 
       <div style={{ marginTop: theme.spacing.lg }}>
-        {activeTab === 'audio' && (
-          <Card title={t('projectDetail.audio.title')}>
-            <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
-            <hr style={{ margin: '16px 0' }} />
-            {transcriptions.length === 0 ? (
-              <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
-            ) : (
-              // ✅ CORRECTION : Le map est directement dans le retour du ternaire, sans accolades {}
-              transcriptions.map((trans) => (
-                <div
-                  key={trans.id}
+
+{activeTab === 'audio' && (
+  <Card title={t('projectDetail.audio.title')}>
+    <TranscriptionUploader projectId={id || ''} onUploadComplete={() => fetchProjectData()} />
+    <hr style={{ margin: '16px 0' }} />
+    {transcriptions.length === 0 ? (
+      <p style={{ color: colors.gray[500] }}>{t('projectDetail.audio.empty')}</p>
+    ) : (
+      transcriptions.map((trans) => (
+        <div
+          key={trans.id}
+          style={{
+            padding: '12px',
+            borderBottom: '1px solid #eee',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <span style={{ fontWeight: '500', color: colors.dark }}>
+              🎙️ {trans.title}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: getStatusColor(trans.status || ''), fontWeight: 'bold', fontSize: '13px' }}>
+                {getStatusLabel(trans.status || '')}
+              </span>
+
+              {trans.status === 'FAILED' && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
+                    try {
+                      await api.post(`/transcriptions/${trans.id}/retry`);
+                      toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
+                      setTimeout(() => fetchProjectData(), 1000);
+                    } catch (err: any) {
+                      toast.addToast({
+                        type: 'error',
+                        title: t('common.error'),
+                        message: err.response?.data?.message || t('projectDetail.audio.retryError'),
+                      });
+                    }
+                  }}
                   style={{
-                    padding: '12px',
-                    borderBottom: '1px solid #eee',
-                    display: 'flex',
-                    flexDirection: 'column', // ✅ On passe en colonne pour faire de la place au lecteur
-                    gap: '8px',
+                    padding: '4px 10px',
+                    backgroundColor: colors.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-  <span style={{ color: getStatusColor(trans.status || ''), fontWeight: 'bold', fontSize: '13px' }}>
-    {getStatusLabel(trans.status || '')}
-  </span>
-  
-  {trans.status === 'FAILED' && (
-    <button
-      onClick={async (e) => {
-        e.stopPropagation();
-        if (!confirm(t('projectDetail.audio.retryConfirm'))) return;
-        try {
-          await api.post(`/transcriptions/${trans.id}/retry`);
-          toast.addToast({ type: 'info', title: t('projectDetail.audio.retrySuccess') });
-          setTimeout(() => fetchProjectData(), 1000);
-        } catch (err: any) {
-          toast.addToast({
-            type: 'error',
-            title: t('common.error'),
-            message: err.response?.data?.message || t('projectDetail.audio.retryError'),
-          });
-        }
-      }}
-      style={{
-        padding: '4px 10px',
-        backgroundColor: colors.primary,
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontWeight: 'bold',
-      }}
-    >
-      {t('projectDetail.audio.retry')}
-    </button>
-  )}
+                  {t('projectDetail.audio.retry')}
+                </button>
+              )}
 
-  {/* ✅ NOUVEAU BOUTON CORBEILLE */}
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      deleteDocument({ id: trans.id, name: trans.title, type: 'transcription' });
-    }}
-    title={t('common.delete', 'Supprimer')}
-    style={{
-      padding: '4px 10px',
-      backgroundColor: colors.danger,
-      color: 'white',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: 'bold',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-    }}
-  >
-    🗑️
-  </button>
-</div>
-                  </div>
+              {/* ✅ Bouton corbeille */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteDocument({ id: trans.id, name: trans.title, type: 'transcription' });
+                }}
+                title={t('common.delete', 'Supprimer')}
+                style={{
+                  padding: '4px 10px',
+                  backgroundColor: colors.danger,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                }}
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
 
-                  {/* ✅ NOUVEAU : Lecteur audio (disponible même si le statut est FAILED) */}
-                  {(trans as any).raw?.audioUrl || (trans as any).audioUrl ? (
-                    <audio 
-                      controls 
-                      src={(trans as any).raw?.audioUrl || (trans as any).audioUrl} 
-                      style={{ width: '100%', height: '36px', marginTop: '4px' }}
-                    />
-                  ) : (
-                     // Dans le lecteur audio :
-<span style={{ fontSize: '12px', color: colors.gray[400], fontStyle: 'italic' }}>
-  {t('projectDetail.audio.notAvailable')}
-</span>
-                  )}
-                </div>
-              ))
-            )}
-          </Card>
-        )}
-
+          {/* Lecteur audio */}
+          {(trans as any).raw?.audioUrl || (trans as any).audioUrl ? (
+            <audio
+              controls
+              src={(trans as any).raw?.audioUrl || (trans as any).audioUrl}
+              style={{ width: '100%', height: '36px', marginTop: '4px' }}
+            />
+          ) : (
+            <span style={{ fontSize: '12px', color: colors.gray[400], fontStyle: 'italic' }}>
+              {t('projectDetail.audio.notAvailable')}
+            </span>
+          )}
+        </div>
+      ))
+    )}
+  </Card>
+)}
 
 {activeTab === 'transcriptions' && (
   <Card title="🎙️ Transcriptions (Actions IA)">
