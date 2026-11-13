@@ -132,21 +132,23 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
   return (
     <div style={{ position: 'relative' }}>
       {/* Zone de texte */}
-      <div
-        ref={containerRef}
-        onMouseUp={handleMouseUp}
-        style={{
-          whiteSpace: 'pre-wrap',
-          lineHeight: 1.8,
-          fontSize: '14px',
-          padding: '16px',
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb',
-        }}
-      >
-        {renderHighlightedText()}
-      </div>
+      {/* Zone de texte */}
+<div
+  ref={containerRef}
+  onMouseUp={handleMouseUp}
+  onTouchEnd={handleMouseUp} // ✅ AJOUT POUR MOBILE
+  style={{
+    whiteSpace: 'pre-wrap',
+    lineHeight: 1.8,
+    fontSize: '14px',
+    padding: '16px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+  }}
+>
+  {renderHighlightedText()}
+</div>
 
       {/* Popup de sélection */}
       {selection && !showCodeInput && (
