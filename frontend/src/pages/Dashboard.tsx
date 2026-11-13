@@ -1071,96 +1071,101 @@ const Dashboard: React.FC = () => {
           {!isFiltered && stats.recentProjects.length > 0 && (
             <Card title={t('dashboard.recentProjects')} style={{ marginBottom: theme.spacing.lg }}>
               <div style={{ display: 'grid', gap: theme.spacing.md }}>
-                {stats.recentProjects.map((project) => {
-                  const isOwner = project.userId === currentUser?.id;
-                  return (
-                    <div
-                      key={project.id}
-                      style={{
-                        padding: theme.spacing.md,
-                        border: `1px solid ${colors.gray[200]}`,
-                        borderRadius: theme.borderRadius.md,
-                        backgroundColor: colors.gray[50] || colors.gray[100],
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: theme.spacing.sm,
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4
-                          style={{
-                            margin: `0 0 ${theme.spacing.xs} 0`,
-                            color: colors.dark,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          {project.title}
-                          {isOwner && (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 8px',
-                                borderRadius: '10px',
-                                backgroundColor: '#ffc107',
-                                color: '#856404',
-                                fontWeight: 'bold',
-                              }}
-                            >
-                              {t('dashboard.ownerBadge')}
-                            </span>
-                          )}
-                        </h4>
-                        <p
-                          style={{
-                            margin: `0 0 ${theme.spacing.xs} 0`,
-                            color: colors.gray[600],
-                            fontSize: '13px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {project.description || t('dashboard.noDescription')}
-                        </p>
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: theme.spacing.sm,
-                            flexWrap: 'wrap',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <Badge variant="info">{project.status}</Badge>
-                          <span
-                            style={{
-                              fontSize: theme.typography.fontSize.xs,
-                              color: colors.gray[500],
-                            }}
-                          >
-                            {t('dashboard.modifiedOn', {
-                              date: new Date(project.updatedAt).toLocaleDateString(i18n.language),
-                            })}
-                          </span>
-                        </div>
-                      </div>
+{stats.recentProjects.map((project) => {
+  const isOwner = project.userId === currentUser?.id;
+  return (
+    <div
+      key={project.id}
+      style={{
+        padding: theme.spacing.md,
+        border: `1px solid ${colors.gray[200]}`,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: colors.gray[50] || colors.gray[100],
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: theme.spacing.md, // ✅ Ajout de gap pour espacer le bouton
+      }}
+    >
+      <div style={{ flex: 1, minWidth: '200px' }}>
+        <h4
+          style={{
+            margin: `0 0 ${theme.spacing.xs} 0`,
+            color: colors.dark,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {project.title}
+          {isOwner && (
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                backgroundColor: '#ffc107',
+                color: '#856404',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('dashboard.ownerBadge')}
+            </span>
+          )}
+        </h4>
+        <p
+          style={{
+            margin: `0 0 ${theme.spacing.xs} 0`,
+            color: colors.gray[600],
+            fontSize: '13px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2, // ✅ Limite à 2 lignes sur mobile au lieu de forcer une ligne
+            WebkitBoxOrient: 'vertical',
+            wordBreak: 'break-word',
+          }}
+        >
+          {project.description || t('dashboard.noDescription')}
+        </p>
+        <div
+          style={{
+            display: 'flex',
+            gap: theme.spacing.sm,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
+          <Badge variant="info">{project.status}</Badge>
+          <span
+            style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: colors.gray[500],
+            }}
+          >
+            {/* ✅ Utilisation de formatDate robuste */}
+            {t('dashboard.modifiedOn', {
+              date: formatDate(project.updatedAt),
+            })}
+          </span>
+        </div>
+      </div>
 
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => navigate(`/project/${encodeURIComponent(project.id)}`)}
-                        >
-                          {t('dashboard.open')}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => navigate(`/project/${encodeURIComponent(project.id)}`)}
+        >
+          {t('dashboard.open')}
+        </Button>
+      </div>
+    </div>
+  );
+})}
               </div>
             </Card>
           )}
