@@ -1,169 +1,157 @@
-# Plan de Travail pour la Plateforme de Recherche Ebeno
+# 🗺️ Plan de Travail — Ebeno Research Platform
 
-Ce document présente les modules et fonctionnalités envisagés pour les prochaines versions de la plateforme.
+Ce document présente les modules et fonctionnalités de la plateforme, mis à jour selon l'état réel du développement (Novembre 2026).
 
-## Phase 0: Infrastructure et IA (✓ COMPLÉTÉ)
+---
+
+## Phase 0 : Infrastructure, IA & Monétisation (✓ COMPLÉTÉ)
 
 ### 0.1. Infrastructure de Base
 - [x] Backend Node.js/Express avec TypeScript
-- [x] Frontend React avec TypeScript et Vite
-- [x] Base de données PostgreSQL avec Prisma
-- [x] Authentification JWT sécurisée
-- [x] Déploiement continu sur Firebase
+- [x] Frontend React 18 avec TypeScript et Vite
+- [x] Base de données PostgreSQL (Neon) avec Knex
+- [x] Authentification JWT sécurisée (avec 2FA)
+- [x] Déploiement continu sur Render (Frontend & Backend)
+- [x] PWA (Progressive Web App) avec Workbox
 
 ### 0.2. Intégration d'IA pour la Recherche
 - [x] **Assistant IA DeepSeek Intégré**
   - [x] API complète avec rate limiting et sécurité
-  - [x] Interface de chat avec historique
-  - [x] Streaming de réponses en temps réel
-  - [x] Analyse spécialisée de textes de recherche
-  - [x] Support multilingue (FR, EN, AR)
+  - [x] Interface de chat avec historique et streaming temps réel (Socket.IO)
+  - [x] Rendu Markdown (tableaux, gras) et export PDF/Markdown des conversations
+  - [x] Cascade de fallback (DeepSeek → OpenAI → Deepgram → Heuristique)
+- [x] **Transcription Audio**
+  - [x] Cascade Deepgram → Whisper
+  - [x] Upload Cloudinary, lecteur audio (pré-écoute et post-écoute)
+  - [x] Export PDF et sauvegarde dans les documents du projet
+- [x] **Analyse Documentaire**
+  - [x] Résumés intelligents, Extraction d'entités (NER), Suggestions de codes
+  - [x] Analyse de sentiment (Positif/Négatif/Neutre/Mixte avec score)
+  - [x] Traduction multilingue (5 langues, support RTL)
 
-## Phase 1: Consolidation de l'Analyse Qualitative (CAQDAS)
+### 0.3. Monétisation & Gestion
+- [x] **Paiements** : Mobile Money (CamPay) + Intégration Cartes Bancaires (en cours avec Startbutton/Paddle)
+- [x] **Système de Quotas** : 50 (Free), 2000 (Pro), 10000 (Institution)
+- [x] **Admin Panel** : Gestion des utilisateurs, abonnements, usage IA, modération
+- [x] **Envoi d'emails** : Notifications transactionnelles (Brevo) et campagnes collectives
+- [x] **Internationalisation (i18n)** : FR, EN, ES, PT, AR
 
-L'objectif de cette phase est de doter la plateforme de véritables outils d'analyse de données qualitatives, transformant Ebeno en un logiciel d'aide à l'analyse qualitative de données (CAQDAS) complet.
+---
+
+## Phase 1 : Consolidation de l'Analyse Qualitative (CAQDAS) — 🚧 EN COURS
+
+L'objectif est de transformer Ebeno en un logiciel d'aide à l'analyse qualitative complet.
 
 ### 1.1. Module de Codage (Coding)
-- **Objectif:** Permettre aux chercheurs d'analyser systématiquement leurs données textuelles.
-- **Fonctionnalités Clés:**
-    - [ ] Créer et gérer une banque de codes (tags) par projet (avec nom, description, couleur).
-    - [ ] Mettre en place une hiérarchie de codes (codes parents/enfants).
-    - [ ] Surligner des segments de texte dans les documents et transcriptions.
-    - [ ] Associer un ou plusieurs codes à ces segments surlignés.
-    - [ ] Visualiser tous les extraits associés à un code spécifique.
-    - [ ] **Intégration IA:** Suggestion automatique de codes par l'assistant DeepSeek.
+- [x] *Partiel* : Banque de codes suggérés par l'IA (`suggested_codes`).
+- [ ] *À faire* : **Surlignage interactif** (sélectionner un segment de texte et lui attribuer un code).
+- [ ] *À faire* : Hiérarchie de codes (parents/enfants).
+- [ ] *À faire* : Visualisation de tous les extraits associés à un code.
 
 ### 1.2. Mémos Analytiques
-- **Objectif:** Offrir un espace pour la réflexion et l'interprétation théorique.
-- **Fonctionnalités Clés:**
-    - [ ] Créer des mémos (notes de recherche) riches en texte.
-    - [ ] Lier des mémos à des projets, des documents, des codes ou des extraits de texte spécifiques.
-    - [ ] Organiser et rechercher dans les mémos.
-    - [ ] **Intégration IA:** Aide à la rédaction et structuration des mémos par l'IA.
+- [x] Création, édition et suppression de mémos liés au projet.
+- [x] Commentaires et collaboration sur les mémos.
+- [x] Résumés et traduction IA des mémos.
 
 ### 1.3. Visualisations de Données Qualitatives
-- **Objectif:** Aider à la synthèse et à l'exploration des données codées.
-- **Fonctionnalités Clés:**
-    - [ ] Afficher des graphiques de fréquence des codes.
-    - [ ] Générer des nuages de mots à partir des codes ou du contenu des documents.
-    - [ ] Créer des matrices de co-occurrence de codes pour explorer les relations entre les thèmes.
-    - [ ] **Intégration IA:** Génération automatique de visualisations pertinentes.
+- [x] Nuage de mots (WordCloud) et Top Keywords (via l'onglet Analyse).
+- [ ] *À faire* : Graphiques de fréquence des codes.
+- [ ] *À faire* : Matrices de co-occurrence des codes.
 
 ### 1.4. Analyse Assistée par IA
-- **Objectif:** Utiliser l'IA DeepSeek pour approfondir l'analyse qualitative.
-- **Fonctionnalités Clés:**
-    - [ ] Analyse thématique automatique des transcriptions
-    - [ ] Détection de motifs récurrents dans les données
-    - [ ] Génération de résumés analytiques
-    - [ ] Suggestions de méthodologies d'analyse
-    - [ ] Comparaison inter-cas assistée par IA
+- [x] Résumés analytiques et extraction d'entités.
+- [x] Analyse de sentiment.
+- [ ] *À faire* : Analyse thématique automatique complète et comparaison inter-cas.
 
 ---
 
-## Phase 2: Gestion Intégrée des Données de Recherche
+## Phase 2 : Vision "Self-Hosted" & Confidentialité (Nouveau)
 
-Cette phase vise à centraliser d'autres aspects du cycle de vie de la recherche au sein de la plateforme.
+De nombreux chercheurs (santé, droit) font face à des exigences strictes de confidentialité. L'objectif est de proposer une version **entièrement autonome** (On-Premise), garantissant que les données ne quittent jamais le réseau local.
 
-### 2.1. Gestion Bibliographique
-- **Objectif:** Intégrer un outil de gestion de références pour éviter aux chercheurs de jongler avec plusieurs logiciels.
-- **Fonctionnalités Clés:**
-    - [ ] Ajouter manuellement des références bibliographiques (articles, livres, chapitres).
-    - [ ] Importer des références depuis des fichiers (BibTeX, RIS).
-    - [ ] Organiser les références dans des dossiers.
-    - [ ] Joindre des fichiers PDF aux références.
-    - [ ] Générer des bibliographies formatées (APA, Chicago, MLA, etc.).
-    - [ ] **Intégration IA:** Suggestions de lectures pertinentes basées sur les projets.
+### Niveau 1 — Self-Hosted pour les Institutions (Docker)
+**Cible :** Clients plan "Institution" (Universités, Labos).
+**Principe :** Déploiement sur serveur local via Docker Compose.
+**Stack :**
+- Base de données : PostgreSQL local.
+- IA : Ollama (Llama 3.1 / Mistral) + Whisper.cpp pour l'audio.
+- Zéro dépendance aux APIs Cloud (ni DeepSeek, ni Paddle).
+**Argument commercial :** "Vos données restent chez vous." (Licence d'usage annuelle).
 
-### 2.2. Outil d'Enquêtes et de Sondages
-- **Objectif:** Permettre la collecte de données quantitatives et mixtes.
-- **Fonctionnalités Clés:**
-    - [ ] Créateur de formulaires avec différents types de questions.
-    - [ ] Partager les enquêtes via un lien public.
-    - [ ] Collecter et visualiser les réponses directement dans la plateforme.
-    - [ ] Exporter les résultats au format CSV.
-    - [ ] **Intégration IA:** Analyse automatique des résultats d'enquêtes.
+### Niveau 2 — Mode Hybride "Confidentialité" (Desktop App)
+**Cible :** Clients plan "Pro" sensibles.
+**Principe :** Application desktop (Tauri/Electron) embarquant un modèle quantifié via Ollama. Bascule possible entre "IA Cloud" (rapide) et "IA Locale" (100% privé).
 
-### 2.3. Gestion de Données de Terrain
-- **Objectif:** Centraliser toutes les données de terrain.
-- **Fonctionnalités Clés:**
-    - [ ] Carnet de terrain numérique
-    - [ ] Gestion d'entretiens et d'observations
-    - [ ] Géolocalisation des données de terrain
-    - [ ] Synchronisation mobile
+### Niveau 3 — 100% Local sur Mobile
+**Cible :** Chercheurs sur le terrain sans connexion.
+**Principe :** Modèles ultra-légers (ex: Phi-3 quantifié) tournant sur smartphone pour des tâches basiques (résumés courts, extraction simple).
+
+### Préparation technique
+- [x] L'architecture utilise déjà une cascade de fournisseurs dans `chatService.ts` et `summaryService.ts`.
+- [ ] *À faire* : Ajouter le fournisseur `ollama` en fonction de la variable `OLLAMA_URL`.
 
 ---
 
-## Phase 3: Amélioration de la Collaboration et de la Diffusion
+## Phase 3 : Gestion Intégrée des Données de Recherche
 
-Cette dernière phase se concentre sur le renforcement du travail d'équipe et la préparation à la publication.
+### 3.1. Gestion Bibliographique
+- [ ] Ajouter manuellement des références (articles, livres).
+- [ ] Importer des références (BibTeX, RIS).
+- [ ] Générer des bibliographies formatées (APA, Chicago, MLA).
+- [ ] *IA* : Suggestions de lectures pertinentes.
 
-### 3.1. Collaboration en Temps Réel
-- **Objectif:** Rendre la collaboration sur les documents plus fluide et interactive.
-- **Fonctionnalités Clés:**
-    - [ ] Permettre à plusieurs utilisateurs d'éditer simultanément un même document ou mémo.
-    - [ ] Afficher les curseurs et les modifications des autres collaborateurs en temps réel.
-    - [ ] Système de commentaires et annotations collaboratives.
+### 3.2. Outil d'Enquêtes et de Sondages
+- [ ] Créateur de formulaires (questions multiples, échelles).
+- [ ] Partage public via lien.
+- [ ] Collecte et visualisation des réponses.
+- [ ] *IA* : Analyse automatique des résultats.
 
-### 3.2. Module d'Évaluation par les Pairs (Peer Review)
-- **Objectif:** Faciliter le processus de relecture interne avant la soumission à des revues.
-- **Fonctionnalités Clés:**
-    - [ ] Soumettre un brouillon d'article pour relecture.
-    - [ ] Système de commentaires et d'annotations.
-    - [ ] Gérer les différentes versions du document (versioning).
-    - [ ] **Intégration IA:** Vérification automatique de la structure et du style académique.
-
-### 3.3. Assistant à la Rédaction Scientifique
-- **Objectif:** Aider les chercheurs dans la rédaction de leurs articles.
-- **Fonctionnalités Clés:**
-    - [ ] Templates de sections d'articles
-    - [ ] Vérificateur de conventions académiques
-    - [ ] Suggestions d'amélioration stylistique
-    - [ ] Génération de résumés et abstracts
-
-### 3.4. Tableau de Bord Analytique Avancé
-- **Objectif:** Offrir une vue d'ensemble des projets de recherche.
-- **Fonctionnalités Clés:**
-    - [ ] Métriques d'avancement des projets
-    - [ ] Visualisation des réseaux de collaborateurs
-    - [ ] Statistiques d'utilisation de l'IA
-    - [ ] Rapports d'activité automatisés
+### 3.3. Gestion de Données de Terrain
+- [ ] Carnet de terrain numérique.
+- [ ] Géolocalisation des observations.
+- [ ] Synchronisation mobile.
 
 ---
 
-## Phase 4: Extension et Intégrations
+## Phase 4 : Collaboration et Diffusion
 
-### 4.1. API Publique
-- **Objectif:** Permettre l'intégration avec d'autres outils de recherche.
-- **Fonctionnalités Clés:**
-    - [ ] Documentation OpenAPI/Swagger
-    - [ ] Authentification OAuth2
-    - [ ] Webhooks pour les événements
+### 4.1. Collaboration en Temps Réel
+- [x] Présence des utilisateurs, indicateur de frappe, fil d'activité.
+- [ ] *À faire* : Édition simultanée (Google Docs-like) sur les mémos et documents.
 
-### 4.2. Applications Mobiles
-- **Objectif:** Accéder à la plateforme depuis mobile.
-- **Fonctionnalités Clés:**
-    - [ ] Application iOS
-    - [ ] Application Android
-    - [ ] Synchronisation hors-ligne
+### 4.2. Module d'Évaluation par les Pairs (Peer Review)
+- [ ] Soumission de brouillons pour relecture interne.
+- [ ] Système d'annotations et gestion de versions.
 
-### 4.3. Intégrations Tierces
-- **Objectif:** Connecter Ebeno à l'écosystème de recherche existant.
-- **Fonctionnalités Clés:**
-    - [ ] Zotero / Mendeley
-    - [ ] NVivo / MAXQDA
-    - [ ] Google Scholar / ORCID
-    - [ ] Dropbox / Google Drive
+### 4.3. Assistant à la Rédaction Scientifique
+- [ ] Templates de sections d'articles.
+- [ ] Vérificateur de conventions académiques.
+- [ ] *IA* : Génération de résumés et abstracts.
 
 ---
 
-## Priorités à Court Terme (Q1 2024)
+## Phase 5 : Extensions et Intégrations
 
-1. ✅ **Intégration IA DeepSeek** - Complétée
-2. 🔄 Module de codage de base
-3. 🔄 Gestion bibliographique simple
-4. 🔄 Amélioration de l'interface de transcription
+### 5.1. API Publique
+- [ ] Documentation OpenAPI/Swagger.
+- [ ] Authentification OAuth2 pour les intégrations tierces.
+- [x] *Partiel* : Webhooks utilisateurs déjà en place.
 
-## Métriques de Succès
+### 5.2. Intégrations Tierces
+- [ ] Zotero / Mendeley.
+- [ ] NVivo / MAXQDA.
+- [ ] Google Scholar / ORCID.
+
+---
+
+## Priorités à Court Terme (Q1 2027)
+
+1. ✅ **Intégration IA & Paiements** — Complété (CamPay opérationnel).
+2. 🔄 **Validation Paddle / Startbutton** pour les paiements par carte.
+3. 🔄 **Module de codage interactif** (Surlignage de texte).
+4. 🔄 **Version Self-Hosted (Docker)** pour les institutions.
+
+## Métriques de Succès (2027)
 
 - [ ] 100 chercheurs utilisateurs actifs
 - [ ] 500 projets de recherche hébergés
@@ -172,7 +160,5 @@ Cette dernière phase se concentre sur le renforcement du travail d'équipe et l
 
 ---
 
-Ce plan de travail n'est pas figé et pourra être adapté en fonction des retours des utilisateurs et des priorités du projet. La phase 0 étant complétée, nous nous concentrons maintenant sur la Phase 1 (CAQDAS).
-
-**Dernière mise à jour :** Decembre 2025
-**Prochaine revue :** Avril 2026
+**Dernière mise à jour :** Novembre 2026
+**Prochaine revue :** Février 2027
