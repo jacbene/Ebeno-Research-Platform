@@ -84,13 +84,6 @@ const PrivacyPage: React.FC = () => {
   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">7. Cookies</h2>
   <p>Voir notre <a href="/cookies" className="text-blue-600 dark:text-blue-400 hover:underline">Politique de Cookies</a>.</p>
 </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">6. Cookies</h2>
-            <p>
-              Voir notre <a href="/cookies" className="text-blue-600 dark:text-blue-400 hover:underline">Politique de Cookies</a>.
-            </p>
-          </section>
         </div>
 
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-12">
