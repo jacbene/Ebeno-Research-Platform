@@ -195,16 +195,36 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
-  const formatDate = (timestamp: number | string | null | undefined): string => {
-    if (timestamp === null || timestamp === undefined) return '-';
-    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-    if (!ts || isNaN(ts)) return '-';
-    try {
-      return new Date(ts).toLocaleDateString(i18n.language);
-    } catch {
-      return '-';
+  const formatDate = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return '-';
+  
+  let date: Date;
+  if (typeof value === 'number') {
+    date = new Date(value);
+  } else if (typeof value === 'string') {
+    // Si c'est une chaîne purement numérique (timestamp en ms)
+    if (/^\d+$/.test(value)) {
+      date = new Date(parseInt(value, 10));
+    } else {
+      // Sinon, c'est une chaîne ISO
+      date = new Date(value);
     }
-  };
+  } else {
+    return '-';
+  }
+  
+  if (isNaN(date.getTime())) return '-';
+  
+  try {
+    return date.toLocaleDateString(i18n.language, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return '-';
+  }
+}; 
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
