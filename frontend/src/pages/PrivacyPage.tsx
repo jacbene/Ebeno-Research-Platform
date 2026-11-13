@@ -76,6 +76,7 @@ const PrivacyPage: React.FC = () => {
     <li><strong className="text-gray-900 dark:text-white">DeepSeek / OpenAI :</strong> Analyse et génération de texte (aucune donnée n'est utilisée pour entraîner leurs modèles publics).</li>
     <li><strong className="text-gray-900 dark:text-white">Brevo :</strong> Envoi d'emails transactionnels.</li>
     <li><strong className="text-gray-900 dark:text-white">Render :</strong> Hébergement de notre infrastructure serveur.</li>
+<li><strong className="text-gray-900 dark:text-white">Render (Hébergement) et ses sous-traitants ultérieurs :</strong> Anthropic (IA), Grafana Labs (Monitoring), Temporal (Workflows), TypeSafe AI (IA).</li>
   </ul>
 </section>
 
