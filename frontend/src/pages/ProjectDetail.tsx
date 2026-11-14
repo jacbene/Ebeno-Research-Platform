@@ -31,6 +31,7 @@ import { LanguageBadge } from '../components/LanguageBadge';
 import TranslateModal from '../components/TranslateModal';
 import CommentSection from '../components/CommentSection';
 import { TextCoder } from '../components/TextCoder'; // ✅ NOUVEL IMPORT
+import { CodePanel } from '../components/CodePanel'; // ✅ NOUVEL IMPORT
 
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
@@ -233,6 +234,8 @@ const ProjectDetail: React.FC = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [savingProject, setSavingProject] = useState(false);
+const [activeCodeFilter, setActiveCodeFilter] = useState<string | null>(null);
+const [codeRefresh, setCodeRefresh] = useState(0);
 
   const [translateTarget, setTranslateTarget] = useState<{
     open: boolean;
@@ -1019,7 +1022,14 @@ const ProjectDetail: React.FC = () => {
                 <p style={{ fontSize: '13px', color: colors.gray[600], marginBottom: '12px' }}>
                   💡 Cliquez sur une transcription pour lancer le résumé, l'analyse d'entités, le sentiment, ou générer un PDF.
                 </p>
-
+<div style={{ marginBottom: '16px' }}>
+  <CodePanel
+    projectId={encodedId}
+    onFilterChange={setActiveCodeFilter}
+    activeFilter={activeCodeFilter}
+    refreshTrigger={codeRefresh}
+  />
+</div>
                 {transcriptions
                   .filter(t => t.status === 'COMPLETED' && t.transcriptText)
                   .map((trans) => {
@@ -1086,11 +1096,13 @@ const ProjectDetail: React.FC = () => {
                           style={{ marginTop: '8px', maxHeight: '300px', overflowY: 'auto' }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <TextCoder
-                            text={trans.transcriptText || ''}
-                            documentId={trans.id}
-                            documentType="transcription"
-                          />
+                         <TextCoder
+  text={trans.transcriptText || ''}
+  documentId={trans.id}
+  documentType="transcription"
+  filterCodeName={activeCodeFilter}
+  onCodeAdded={() => setCodeRefresh(prev => prev + 1)}
+/>
                         </div>
 
                         {audioUrl && (

@@ -16,9 +16,11 @@ interface TextCoderProps {
   text: string;
   documentId: string;
   documentType: 'transcription' | 'memo' | 'file';
+  filterCodeName?: string | null; // ✅ NOUVEAU
+  onCodeAdded?: () => void;       // ✅ NOUVEAU
 }
 
-export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, documentType }) => {
+export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, documentType, filterCodeName = null, onCodeAdded }) => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [selection, setSelection] = useState<{ start: number; end: number; text: string } | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
@@ -112,13 +114,14 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
 
       const res = await api.post('/codes/segments', newSegment);
       if (res.data.success) {
-        setSegments([...segments, { ...newSegment, id: res.data.id }]);
-        toast.addToast({ type: 'success', title: 'Segment codé !' });
-        setSelection(null);
-        setShowCodeInput(false);
-        setCodeName('');
-        window.getSelection()?.removeAllRanges();
-      }
+  setSegments([...segments, { ...newSegment, id: res.data.id }]);
+  toast.addToast({ type: 'success', title: 'Segment codé !' });
+  setSelection(null);
+  setShowCodeInput(false);
+  setCodeName('');
+  window.getSelection()?.removeAllRanges();
+  if (onCodeAdded) onCodeAdded(); // ✅ NOUVEAU : prévenir le parent
+}
     } catch (err: any) {
       toast.addToast({ type: 'error', title: 'Erreur lors du codage' });
     }
@@ -160,6 +163,7 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
             borderBottom: `2px solid ${seg.color}`,
             padding: '2px 0',
             cursor: 'pointer',
+            boxShadow: filterCodeName ? `0 0 0 1px ${seg.color}` : 'none',
           }}
           title={`Code : ${seg.code_name} (cliquer pour supprimer)`}
           onClick={(e) => handleDeleteSegment(seg.id, e)}
