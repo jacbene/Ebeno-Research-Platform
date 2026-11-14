@@ -41,32 +41,59 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
     fetchSegments();
   }, [documentId, documentType]);
 
-  // ✅ NOUVEAU : Écouter les changements de sélection (fonctionne sur mobile)
+  // ✅ FONCTION ROBUSTE : Calcule l'offset réel en parcourant les nœuds texte
+  const getCaretOffset = (node: Node, offset: number): number => {
+    if (!containerRef.current) return 0;
+    const walker = document.createTreeWalker(containerRef.current, NodeFilter.SHOW_TEXT);
+    let totalOffset = 0;
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+      if (currentNode === node) {
+        return totalOffset + offset;
+      }
+      totalOffset += currentNode.textContent?.length || 0;
+      currentNode = walker.nextNode();
+    }
+    return totalOffset;
+  };
+
+  // ✅ Écouter les changements de sélection
   useEffect(() => {
     const handleSelectionChange = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !containerRef.current) return;
-
-      // Vérifier que la sélection est bien à l'intérieur du conteneur
       if (!containerRef.current.contains(sel.anchorNode)) return;
 
       const range = sel.getRangeAt(0);
-      const preSelectionRange = range.cloneRange();
-      preSelectionRange.selectNodeContents(containerRef.current);
-      preSelectionRange.setEnd(range.startContainer, range.startOffset);
-      
-      const start = preSelectionRange.toString().length;
-      const end = start + range.toString().length;
-      const selectedText = range.toString();
 
-      if (selectedText.trim().length > 0) {
-        setSelection({ start, end, text: selectedText });
+      let start = getCaretOffset(range.startContainer, range.startOffset);
+      let end = getCaretOffset(range.endContainer, range.endOffset);
+
+      // Sécurité : s'assurer que start < end
+      if (start > end) [start, end] = [end, start];
+
+      // Récupérer le texte brut sélectionné
+      const rawSelectedText = text.substring(start, end);
+      const trimmed = rawSelectedText.trim();
+      if (trimmed.length === 0) {
+        setSelection(null);
+        return;
       }
+
+      // Ajuster les offsets pour ne pas inclure les espaces début/fin
+      const leadingWhitespace = rawSelectedText.length - rawSelectedText.trimStart().length;
+      start += leadingWhitespace;
+      end = start + trimmed.length;
+
+      // Limiter end à la taille du texte
+      if (end > text.length) end = text.length;
+
+      setSelection({ start, end, text: trimmed });
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, []);
+  }, [text]);
 
   // Enregistrer le code
   const handleSaveCode = async () => {
@@ -77,7 +104,7 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
         documentId,
         documentType,
         codeName: codeName.trim(),
-        color: '#f59e0b', // Couleur par défaut (jaune ambre)
+        color: '#f59e0b',
         startOffset: selection.start,
         endOffset: selection.end,
         selectedText: selection.text,
@@ -97,6 +124,19 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
     }
   };
 
+  // ✅ NOUVEAU : Supprimer un segment au clic
+  const handleDeleteSegment = async (segmentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Supprimer ce code ?')) return;
+    try {
+      await api.delete(`/codes/segments/${segmentId}`);
+      setSegments(segments.filter(s => s.id !== segmentId));
+      toast.addToast({ type: 'success', title: 'Code supprimé' });
+    } catch (err) {
+      toast.addToast({ type: 'error', title: 'Erreur lors de la suppression' });
+    }
+  };
+
   // Afficher le texte avec les surlignages
   const renderHighlightedText = () => {
     if (segments.length === 0) return text;
@@ -106,6 +146,9 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
     let lastIndex = 0;
 
     sorted.forEach((seg) => {
+      // Éviter les chevauchements
+      if (seg.start_offset < lastIndex) return;
+      
       if (seg.start_offset > lastIndex) {
         parts.push(text.substring(lastIndex, seg.start_offset));
       }
@@ -116,9 +159,10 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
             backgroundColor: `${seg.color}40`,
             borderBottom: `2px solid ${seg.color}`,
             padding: '2px 0',
-            cursor: 'help',
+            cursor: 'pointer',
           }}
-          title={`Code : ${seg.code_name}`}
+          title={`Code : ${seg.code_name} (cliquer pour supprimer)`}
+          onClick={(e) => handleDeleteSegment(seg.id, e)}
         >
           {text.substring(seg.start_offset, seg.end_offset)}
         </span>
@@ -151,8 +195,8 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
         {renderHighlightedText()}
       </div>
 
-      {/* ✅ NOUVEAU : Bouton fixe toujours visible en bas */}
-      <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+      {/* Bouton fixe */}
+      <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <button
           onClick={() => setShowCodeInput(true)}
           disabled={!selection}
@@ -174,7 +218,7 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
           🏷️ Coder la sélection
         </button>
         {selection && (
-          <span style={{ marginLeft: '10px', fontSize: '12px', color: '#666', alignSelf: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#666' }}>
             {selection.text.length} caractères sélectionnés
           </span>
         )}
