@@ -92,7 +92,11 @@ const isProd = process.env.NODE_ENV === 'production';
 // ============================================================
 // ✅ CORS STRICT (whitelist)
 // ============================================================
+// backend/src/server.ts
+
 const ALLOWED_ORIGINS = [
+  'https://ebenoresearch.com',       // ✅ NOUVEAU DOMAINE
+  'https://www.ebenoresearch.com',   // ✅ NOUVEAU DOMAINE (avec www)
   'https://ebeno-frontend.onrender.com',
   'http://localhost:3000',
   'http://localhost:5173',
