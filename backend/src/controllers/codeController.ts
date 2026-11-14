@@ -100,3 +100,60 @@ export const getProjectCodes = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+// ✅ Calculer la matrice de co-occurrence des codes d'un projet
+export const getCooccurrenceMatrix = async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const isMember = await db('project_members').where({ projectId, userId }).first();
+    if (!isMember) return res.status(403).json({ error: 'Accès non autorisé' });
+
+    // Récupérer tous les segments codés du projet (avec document_id)
+    const segments = await db('coded_segments')
+      .join('transcriptions', 'coded_segments.document_id', 'transcriptions.id')
+      .where('transcriptions.projectId', projectId)
+      .where('coded_segments.document_type', 'transcription')
+      .select('coded_segments.code_name', 'coded_segments.document_id');
+
+    // 1. Lister tous les codes uniques
+    const codesSet = new Set<string>();
+    segments.forEach(s => codesSet.add(s.code_name));
+    const codes = Array.from(codesSet).sort();
+
+    // 2. Construire un dictionnaire : pour chaque document, quels codes y sont présents ?
+    const docCodes: Record<string, Set<string>> = {};
+    segments.forEach(seg => {
+      if (!docCodes[seg.document_id]) docCodes[seg.document_id] = new Set();
+      docCodes[seg.document_id].add(seg.code_name);
+    });
+
+    // 3. Calculer la matrice
+    const matrix: Record<string, Record<string, number>> = {};
+    codes.forEach(codeA => {
+      matrix[codeA] = {};
+      codes.forEach(codeB => {
+        matrix[codeA][codeB] = 0;
+      });
+    });
+
+    Object.values(docCodes).forEach(codeSetInDoc => {
+      codes.forEach(codeA => {
+        if (!codeSetInDoc.has(codeA)) return;
+        codes.forEach(codeB => {
+          if (codeSetInDoc.has(codeB)) {
+            matrix[codeA][codeB]++;
+          }
+        });
+      });
+    });
+
+    return res.json({ success: true, codes, matrix });
+  } catch (error: any) {
+    console.error('Erreur getCooccurrenceMatrix:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};

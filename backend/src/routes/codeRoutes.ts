@@ -9,6 +9,7 @@ import {
 } from '../services/codeSuggestionService';
 import { getCodedSegments, addCodedSegment, deleteCodedSegment } from '../controllers/codeController';
 import { getProjectCodes } from '../controllers/codeController';
+import { getProjectCodes, getCooccurrenceMatrix } from '../controllers/codeController';
 
 const router = Router();
 
@@ -70,5 +71,6 @@ router.get('/segments/:documentType/:documentId', authenticate, getCodedSegments
 router.post('/segments', authenticate, addCodedSegment);
 router.delete('/segments/:id', authenticate, deleteCodedSegment);
 router.get('/project/:projectId', authenticate, getProjectCodes);
+router.get('/cooccurrence/:projectId', authenticate, getCooccurrenceMatrix); // ✅ NOUVELLE ROUTE
 
 export default router;

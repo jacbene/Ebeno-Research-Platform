@@ -33,7 +33,7 @@ import CommentSection from '../components/CommentSection';
 import { TextCoder } from '../components/TextCoder'; // ✅ NOUVEL IMPORT
 import { CodePanel } from '../components/CodePanel'; // ✅ NOUVEL IMPORT
 import { ThemeAnalysisPanel } from '../components/ThemeAnalysisPanel';
-
+import { CooccurrencePanel } from '../components/CooccurrencePanel';
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
   { children: React.ReactNode; name: string },
@@ -1256,7 +1256,11 @@ const [codeRefresh, setCodeRefresh] = useState(0);
           <Card title={t('projectDetail.analysis.title')}>
     <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${colors.gray[200]}` }}>
       <ThemeAnalysisPanel projectId={encodedId} refreshTrigger={codeRefresh} />
-    </div>          
+    </div> 
+    <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${colors.gray[200]}` }}>
+      <CooccurrencePanel projectId={encodedId} refreshTrigger={codeRefresh} />
+    </div>
+             
             {analysisLoading ? (
               <p>{t('projectDetail.analysis.loading')}</p>
             ) : analysisData && analysisData.totalWords > 0 ? (
