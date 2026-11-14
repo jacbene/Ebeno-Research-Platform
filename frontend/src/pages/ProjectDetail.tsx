@@ -32,6 +32,7 @@ import TranslateModal from '../components/TranslateModal';
 import CommentSection from '../components/CommentSection';
 import { TextCoder } from '../components/TextCoder'; // ✅ NOUVEL IMPORT
 import { CodePanel } from '../components/CodePanel'; // ✅ NOUVEL IMPORT
+import { ThemeAnalysisPanel } from '../components/ThemeAnalysisPanel';
 
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
@@ -1253,6 +1254,9 @@ const [codeRefresh, setCodeRefresh] = useState(0);
 
         {activeTab === 'analysis' && (
           <Card title={t('projectDetail.analysis.title')}>
+    <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${colors.gray[200]}` }}>
+      <ThemeAnalysisPanel projectId={encodedId} refreshTrigger={codeRefresh} />
+    </div>          
             {analysisLoading ? (
               <p>{t('projectDetail.analysis.loading')}</p>
             ) : analysisData && analysisData.totalWords > 0 ? (
