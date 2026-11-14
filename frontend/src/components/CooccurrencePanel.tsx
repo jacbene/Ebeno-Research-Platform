@@ -30,14 +30,17 @@ export const CooccurrencePanel: React.FC<CooccurrencePanelProps> = ({ projectId,
     fetchMatrix();
   }, [projectId, refreshTrigger]);
 
-  if (loading) return <p style={{ fontSize: '13px', color: '#666' }}>Chargement de la matrice...</p>;
-  if (codes.length < 2) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontSize: '13px' }}>
-        Il faut au moins 2 codes pour voir une matrice de co-occurrence.
-      </div>
-    );
-  }
+ // ✅ 1. D'abord, vérifier le chargement
+if (loading) return <p style={{ fontSize: '13px', color: '#666' }}>Chargement de la matrice...</p>;
+
+// ✅ 2. Ensuite, vérifier le nombre de codes (une fois les données chargées)
+if (codes.length < 2) {
+  return (
+    <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontSize: '13px' }}>
+      Il faut au moins 2 codes pour voir une matrice de co-occurrence.
+    </div>
+  );
+}
 
   // Trouver la valeur maximale pour normaliser les couleurs
   let maxVal = 1;
