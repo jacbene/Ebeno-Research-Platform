@@ -9,6 +9,7 @@ import {
 } from '../services/codeSuggestionService';
 import { getCodedSegments, addCodedSegment, deleteCodedSegment } from '../controllers/codeController';
 import { getProjectCodes, getCooccurrenceMatrix } from '../controllers/codeController';
+import { getCodeMemos, addCodeMemo, deleteCodeMemo } from '../controllers/codeController';
 
 const router = Router();
 
@@ -69,7 +70,13 @@ router.delete('/clear/:projectId', authenticate, async (req, res) => {
 router.get('/segments/:documentType/:documentId', authenticate, getCodedSegments);
 router.post('/segments', authenticate, addCodedSegment);
 router.delete('/segments/:id', authenticate, deleteCodedSegment);
+
 router.get('/project/:projectId', authenticate, getProjectCodes);
+
 router.get('/cooccurrence/:projectId', authenticate, getCooccurrenceMatrix);
+
+router.get('/memos', authenticate, getCodeMemos);
+router.post('/memos', authenticate, addCodeMemo);
+router.delete('/memos/:id', authenticate, deleteCodeMemo);
 
 export default router;

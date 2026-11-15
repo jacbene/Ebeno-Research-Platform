@@ -157,3 +157,55 @@ export const getCooccurrenceMatrix = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+// ✅ Récupérer les mémos d'un code
+export const getCodeMemos = async (req: Request, res: Response) => {
+  try {
+    const { projectId, codeName } = req.query;
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const memos = await db('code_memos')
+      .where({ project_id: projectId, code_name: codeName })
+      .orderBy('created_at', 'desc');
+
+    return res.json({ success: true, memos });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// ✅ Ajouter un mémo à un code
+export const addCodeMemo = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { projectId, codeName, content } = req.body;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+    if (!content) return res.status(400).json({ error: 'Contenu requis' });
+
+    const id = Date.now().toString();
+    await db('code_memos').insert({
+      id,
+      project_id: projectId,
+      code_name: codeName,
+      user_id: userId,
+      content,
+    });
+
+    return res.status(201).json({ success: true, id });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// ✅ Supprimer un mémo
+export const deleteCodeMemo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    await db('code_memos').where({ id, user_id: userId }).delete();
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
