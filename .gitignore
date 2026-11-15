@@ -50,3 +50,6 @@ backup_*.sql*
 *.before-fix-*
 *.bak
 *.backup
+*.before-fix-*
+*.bak
+*.backup
