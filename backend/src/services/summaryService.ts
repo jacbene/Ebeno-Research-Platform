@@ -3,6 +3,7 @@ import { db } from '../db/knex';
 import { extractTextFromUrl, extractTextFromBuffer } from './textExtractor';
 import { generateSummaryWithOpenAI, isOpenAIConfigured } from './openaiService';
 import { generateSummaryWithDeepSeek, isDeepSeekConfigured } from './deepseekSummaryService';
+import { isOllamaConfigured, summarizeWithOllama } from './ollamaService';
 
 import {
   isServiceAvailable,
@@ -100,7 +101,19 @@ const generateHeuristicSummary = (text: string): string => {
  *   DeepSeek → OpenAI → Deepgram → Heuristique
  */
 const generateSummary = async (text: string): Promise<string> => {
-  // 1️⃣ DeepSeek
+  // ✅ 1. PRIORITÉ : Ollama (self-hosted)
+  if (isOllamaConfigured() && isServiceAvailable(SERVICE_DEEPSEEK)) {
+    try {
+      logger.info('🦙 [summary] Tentative Ollama (local)...');
+      const result = await summarizeWithOllama(text);
+      recordSuccess(SERVICE_DEEPSEEK); // On réutilise le circuit breaker
+      return result;
+    } catch (error: any) {
+      logger.warn(`⚠️ [summary] Ollama échoué, bascule: ${error.message}`);
+    }
+  }
+
+  // ✅ 2. DeepSeek
   if (isDeepSeekConfigured() && isServiceAvailable(SERVICE_DEEPSEEK)) {
     try {
       logger.info('🟣 [summary] Tentative DeepSeek...');

@@ -15,13 +15,29 @@ services:
     restart: unless-stopped
 
   # --- IA Locale (Ollama) ---
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-    restart: unless-stopped
+ollama:
+  image: ollama/ollama:latest
+  volumes:
+    - ollama_data:/root/.ollama
+  ports:
+    - "11434:11434"
+  restart: unless-stopped
+  # ✅ Télécharge automatiquement llama3.1 au démarrage si absent
+  healthcheck:
+    test: ["CMD", "ollama", "list"]
+    interval: 10s
+    timeout: 5s
+    retries: 20
+
+# ✅ Service d'init : télécharge le modèle une seule fois
+ollama-init:
+  image: ollama/ollama:latest
+  depends_on:
+    ollama:
+      condition: service_healthy
+  entrypoint: >
+    sh -c "OLLAMA_HOST=http://ollama:11434 ollama pull llama3.1"
+  restart: "no"
     # Décommente la ligne suivante si tu as un GPU NVIDIA
     # deploy:
     #   resources:
@@ -40,6 +56,7 @@ services:
       DATABASE_URL: postgres://ebeno:ebeno_secret@db:5432/ebeno_db
       OLLAMA_URL: http://ollama:11434
       # Tu peux ajouter ici d'autres variables (JWT_SECRET, etc.)
+      OLLAMA_MODEL: llama3.1
       JWT_SECRET: change_me_in_production
     depends_on:
       - db
