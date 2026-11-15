@@ -235,6 +235,8 @@ app.use('/api', invalidateStatsOnWrite);
 // RATE LIMITING
 // ============================================================
 
+const exemptedPaths = ['/codes/segments', '/codes/memos', '/codes/project', '/codes/cooccurrence', '/codes/thematic'];
+
 app.use('/api', globalLimiter);
 
 app.use('/api/auth/login', authLimiter);
@@ -249,7 +251,9 @@ app.use('/api/entities', aiLimiter);
 app.use('/api/codes', aiLimiter);
 app.use('/api/translations', aiLimiter);
 app.use('/api/analytics', aiLimiter);
+
 // app.use('/api/webhooks', aiLimiter);
+
 app.use('/api/chat', aiLimiter);
 app.use('/api/organizations', organizationRoutes);
 

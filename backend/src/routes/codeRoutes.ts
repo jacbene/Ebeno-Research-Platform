@@ -10,6 +10,7 @@ import {
 import { getCodedSegments, addCodedSegment, deleteCodedSegment } from '../controllers/codeController';
 import { getProjectCodes, getCooccurrenceMatrix } from '../controllers/codeController';
 import { getCodeMemos, addCodeMemo, deleteCodeMemo } from '../controllers/codeController';
+import { generateProjectThematicAnalysis } from '../controllers/codeController';
 
 const router = Router();
 
@@ -54,6 +55,8 @@ router.delete('/clear/:projectId', authenticate, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.post('/thematic/:projectId', authenticate, generateProjectThematicAnalysis);
 
 // ═══════════════════════════════════════════════════════════════════
 // 2. ROUTES GÉNÉRIQUES (déclarées EN DERNIER)

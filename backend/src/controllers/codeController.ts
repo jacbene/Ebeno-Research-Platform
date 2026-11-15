@@ -1,6 +1,7 @@
 // backend/src/controllers/codeController.ts
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
+import { generateThematicAnalysis } from '../services/thematicAnalysisService';
 
 // ✅ Récupérer tous les segments codés d'un document
 export const getCodedSegments = async (req: Request, res: Response) => {
@@ -228,6 +229,56 @@ export const deleteCodeMemo = async (req: Request, res: Response) => {
     await db('code_memos').where({ id, user_id: userId }).delete();
     return res.json({ success: true });
   } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// ✅ Générer l'analyse thématique automatique
+export const generateProjectThematicAnalysis = async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    // Vérifier l'accès
+    const isMember = await db('project_members').where({ projectId, userId }).first();
+    if (!isMember) return res.status(403).json({ error: 'Accès non autorisé' });
+
+    // 1. Récupérer les codes du projet
+    const segments = await db('coded_segments')
+      .join('transcriptions', 'coded_segments.document_id', 'transcriptions.id')
+      .where('transcriptions.projectId', projectId)
+      .where('coded_segments.document_type', 'transcription')
+      .select('coded_segments.code_name');
+
+    const codesCount: Record<string, number> = {};
+    segments.forEach((s) => {
+      codesCount[s.code_name] = (codesCount[s.code_name] || 0) + 1;
+    });
+
+    if (Object.keys(codesCount).length < 2) {
+      return res.status(400).json({ 
+        error: 'Il faut au moins 2 codes pour générer une analyse thématique.' 
+      });
+    }
+
+    // 2. Récupérer les notes analytiques de chaque code
+    const memos = await db('code_memos').where({ project_id: projectId });
+
+    const codesWithNotes = Object.entries(codesCount).map(([name, count]) => ({
+      name,
+      count,
+      notes: memos.filter((m) => m.code_name === name).map((m) => m.content),
+    }));
+
+    // 3. Appeler DeepSeek
+    console.log(`🤖 [thematic] Génération pour ${codesWithNotes.length} codes...`);
+    const themes = await generateThematicAnalysis(codesWithNotes);
+
+    return res.json({ success: true, themes });
+  } catch (error: any) {
+    console.error('Erreur generateProjectThematicAnalysis:', error);
     return res.status(500).json({ error: error.message });
   }
 };
