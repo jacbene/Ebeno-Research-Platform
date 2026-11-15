@@ -34,6 +34,8 @@ import { TextCoder } from '../components/TextCoder'; // ✅ NOUVEL IMPORT
 import { CodePanel } from '../components/CodePanel'; // ✅ NOUVEL IMPORT
 import { ThemeAnalysisPanel } from '../components/ThemeAnalysisPanel';
 import { CooccurrencePanel } from '../components/CooccurrencePanel';
+import { ThematicAnalysisPanel } from '../components/ThematicAnalysisPanel';
+
 // ✅ ErrorBoundary local pour isoler les composants qui plantent
 class LocalErrorBoundary extends React.Component<
   { children: React.ReactNode; name: string },
@@ -1260,7 +1262,10 @@ const [codeRefresh, setCodeRefresh] = useState(0);
     <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${colors.gray[200]}` }}>
       <CooccurrencePanel projectId={encodedId} refreshTrigger={codeRefresh} />
     </div>
-             
+     <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${colors.gray[200]}` }}>
+      <ThematicAnalysisPanel projectId={encodedId} />
+    </div>
+            
             {analysisLoading ? (
               <p>{t('projectDetail.analysis.loading')}</p>
             ) : analysisData && analysisData.totalWords > 0 ? (
