@@ -13,7 +13,25 @@ import { getCodeMemos, addCodeMemo, deleteCodeMemo } from '../controllers/codeCo
 
 const router = Router();
 
-// Suggérer des codes pour un projet
+// ═══════════════════════════════════════════════════════════════════
+// 1. ROUTES SPÉCIFIQUES (déclarées EN PREMIER)
+// ═══════════════════════════════════════════════════════════════════
+
+// --- Mémos de codes ---
+router.get('/memos', authenticate, getCodeMemos);
+router.post('/memos', authenticate, addCodeMemo);
+router.delete('/memos/:id', authenticate, deleteCodeMemo);
+
+// --- Segments de codes ---
+router.get('/segments/:documentType/:documentId', authenticate, getCodedSegments);
+router.post('/segments', authenticate, addCodedSegment);
+router.delete('/segments/:id', authenticate, deleteCodedSegment);
+
+// --- Projet et co-occurrence ---
+router.get('/project/:projectId', authenticate, getProjectCodes);
+router.get('/cooccurrence/:projectId', authenticate, getCooccurrenceMatrix);
+
+// --- Suggestions IA ---
 router.post('/suggest/:projectId', authenticate, async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -25,7 +43,24 @@ router.post('/suggest/:projectId', authenticate, async (req, res) => {
   }
 });
 
-// Récupérer les codes suggérés d'un projet
+// --- Gestion des codes suggérés ---
+router.delete('/clear/:projectId', authenticate, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const count = await clearSuggestedCodes(projectId);
+    res.json({ success: true, message: `${count} codes supprimés`, count });
+  } catch (error: any) {
+    console.error('Erreur clear codes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. ROUTES GÉNÉRIQUES (déclarées EN DERNIER)
+// ⚠️ Ces routes capturent TOUT ce qui n'a pas matché au-dessus
+// ═══════════════════════════════════════════════════════════════════
+
+// Récupérer les codes suggérés d'un projet (route générique :projectId)
 router.get('/:projectId', authenticate, async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -37,7 +72,7 @@ router.get('/:projectId', authenticate, async (req, res) => {
   }
 });
 
-// Mettre à jour le statut d'un code (accepted / rejected)
+// Mettre à jour le statut d'un code (route générique :codeId)
 router.patch('/:codeId', authenticate, async (req, res) => {
   try {
     const { codeId } = req.params;
@@ -54,29 +89,5 @@ router.patch('/:codeId', authenticate, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ✅ Vider tous les codes d'un projet
-router.delete('/clear/:projectId', authenticate, async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const count = await clearSuggestedCodes(projectId);
-    res.json({ success: true, message: `${count} codes supprimés`, count });
-  } catch (error: any) {
-    console.error('Erreur clear codes:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/segments/:documentType/:documentId', authenticate, getCodedSegments);
-router.post('/segments', authenticate, addCodedSegment);
-router.delete('/segments/:id', authenticate, deleteCodedSegment);
-
-router.get('/project/:projectId', authenticate, getProjectCodes);
-
-router.get('/cooccurrence/:projectId', authenticate, getCooccurrenceMatrix);
-
-router.get('/memos', authenticate, getCodeMemos);
-router.post('/memos', authenticate, addCodeMemo);
-router.delete('/memos/:id', authenticate, deleteCodeMemo);
 
 export default router;
