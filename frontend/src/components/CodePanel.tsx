@@ -29,11 +29,15 @@ export const CodePanel: React.FC<CodePanelProps> = ({ projectId, onFilterChange,
       setLoading(true);
       try {
         const res = await api.get(`/codes/project/${projectId}`);
-        if (res.data.success) {
+        // ✅ SÉCURITÉ
+        if (res.data.success && Array.isArray(res.data.codes)) {
           setCodes(res.data.codes);
+        } else {
+          setCodes([]);
         }
       } catch (err) {
         console.error('Erreur chargement codes projet', err);
+        setCodes([]);
       } finally {
         setLoading(false);
       }
@@ -42,16 +46,19 @@ export const CodePanel: React.FC<CodePanelProps> = ({ projectId, onFilterChange,
   }, [projectId, refreshTrigger]);
 
   if (loading) return <p style={{ fontSize: '13px', color: '#666' }}>Chargement des codes...</p>;
-  if (codes.length === 0) return <p style={{ fontSize: '13px', color: '#666' }}>Aucun code pour ce projet. Sélectionnez du texte pour en créer.</p>;
+  
+  // ✅ SÉCURITÉ
+  const safeCodes = Array.isArray(codes) ? codes : [];
+  if (safeCodes.length === 0) return <p style={{ fontSize: '13px', color: '#666' }}>Aucun code pour ce projet. Sélectionnez du texte pour en créer.</p>;
 
-  const total = codes.reduce((acc, c) => acc + c.count, 0);
+  const total = safeCodes.reduce((acc, c) => acc + c.count, 0);
 
   return (
-    <> {/* ✅ FRAGMENT pour englober la div et la modale */}
+    <>
       <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#111' }}>
-            🏷️ Codes du projet ({codes.length})
+            🏷️ Codes du projet ({safeCodes.length})
           </h4>
           <span style={{ fontSize: '11px', color: '#666' }}>
             {total} segment{total > 1 ? 's' : ''}
@@ -75,8 +82,7 @@ export const CodePanel: React.FC<CodePanelProps> = ({ projectId, onFilterChange,
             Tous
           </button>
           
-          {codes.map((code) => (
-            /* ✅ ON ENVELOPPE LES DEUX BOUTONS DANS UNE DIV FLEX */
+          {safeCodes.map((code) => (
             <div key={code.name} style={{ display: 'flex', alignItems: 'center' }}>
               <button
                 onClick={() => onFilterChange(code.name)}
@@ -87,8 +93,8 @@ export const CodePanel: React.FC<CodePanelProps> = ({ projectId, onFilterChange,
                   backgroundColor: activeFilter === code.name ? code.color : `${code.color}20`,
                   color: activeFilter === code.name ? 'white' : '#374151',
                   border: `1px solid ${code.color}`,
-                  borderRight: 'none', // ✅ Collé au bouton 📝
-                  borderRadius: '20px 0 0 20px', // ✅ Demi-cercle à gauche
+                  borderRight: 'none',
+                  borderRadius: '20px 0 0 20px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -117,7 +123,7 @@ export const CodePanel: React.FC<CodePanelProps> = ({ projectId, onFilterChange,
                   padding: '6px 8px',
                   backgroundColor: '#f3f4f6',
                   border: `1px solid ${code.color}`,
-                  borderRadius: '0 20px 20px 0', // ✅ Demi-cercle à droite
+                  borderRadius: '0 20px 20px 0',
                   cursor: 'pointer',
                   fontSize: '12px',
                 }}

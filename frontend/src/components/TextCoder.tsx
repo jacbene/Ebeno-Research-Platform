@@ -16,11 +16,17 @@ interface TextCoderProps {
   text: string;
   documentId: string;
   documentType: 'transcription' | 'memo' | 'file';
-  filterCodeName?: string | null; // ✅ NOUVEAU
-  onCodeAdded?: () => void;       // ✅ NOUVEAU
+  filterCodeName?: string | null;
+  onCodeAdded?: () => void;
 }
 
-export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, documentType, filterCodeName = null, onCodeAdded }) => {
+export const TextCoder: React.FC<TextCoderProps> = ({ 
+  text, 
+  documentId, 
+  documentType, 
+  filterCodeName = null, 
+  onCodeAdded 
+}) => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [selection, setSelection] = useState<{ start: number; end: number; text: string } | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
@@ -28,38 +34,37 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
   const toast = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Charger les segments existants
+  // ✅ SÉCURITÉ : Chargement des segments
   useEffect(() => {
     const fetchSegments = async () => {
       try {
         const res = await api.get(`/codes/segments/${documentType}/${documentId}`);
-        if (res.data.success) {
+        if (res.data.success && Array.isArray(res.data.segments)) {
           setSegments(res.data.segments);
+        } else {
+          setSegments([]);
         }
       } catch (err) {
         console.error('Erreur chargement segments', err);
+        setSegments([]);
       }
     };
     fetchSegments();
   }, [documentId, documentType]);
 
-  // ✅ FONCTION ROBUSTE : Calcule l'offset réel en parcourant les nœuds texte
   const getCaretOffset = (node: Node, offset: number): number => {
     if (!containerRef.current) return 0;
     const walker = document.createTreeWalker(containerRef.current, NodeFilter.SHOW_TEXT);
     let totalOffset = 0;
     let currentNode = walker.nextNode();
     while (currentNode) {
-      if (currentNode === node) {
-        return totalOffset + offset;
-      }
+      if (currentNode === node) return totalOffset + offset;
       totalOffset += currentNode.textContent?.length || 0;
       currentNode = walker.nextNode();
     }
     return totalOffset;
   };
 
-  // ✅ Écouter les changements de sélection
   useEffect(() => {
     const handleSelectionChange = () => {
       const sel = window.getSelection();
@@ -67,14 +72,10 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
       if (!containerRef.current.contains(sel.anchorNode)) return;
 
       const range = sel.getRangeAt(0);
-
       let start = getCaretOffset(range.startContainer, range.startOffset);
       let end = getCaretOffset(range.endContainer, range.endOffset);
-
-      // Sécurité : s'assurer que start < end
       if (start > end) [start, end] = [end, start];
 
-      // Récupérer le texte brut sélectionné
       const rawSelectedText = text.substring(start, end);
       const trimmed = rawSelectedText.trim();
       if (trimmed.length === 0) {
@@ -82,12 +83,9 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
         return;
       }
 
-      // Ajuster les offsets pour ne pas inclure les espaces début/fin
       const leadingWhitespace = rawSelectedText.length - rawSelectedText.trimStart().length;
       start += leadingWhitespace;
       end = start + trimmed.length;
-
-      // Limiter end à la taille du texte
       if (end > text.length) end = text.length;
 
       setSelection({ start, end, text: trimmed });
@@ -97,7 +95,6 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
   }, [text]);
 
-  // Enregistrer le code
   const handleSaveCode = async () => {
     if (!codeName.trim() || !selection) return;
 
@@ -114,20 +111,19 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
 
       const res = await api.post('/codes/segments', newSegment);
       if (res.data.success) {
-  setSegments([...segments, { ...newSegment, id: res.data.id }]);
-  toast.addToast({ type: 'success', title: 'Segment codé !' });
-  setSelection(null);
-  setShowCodeInput(false);
-  setCodeName('');
-  window.getSelection()?.removeAllRanges();
-  if (onCodeAdded) onCodeAdded(); // ✅ NOUVEAU : prévenir le parent
-}
+        setSegments([...segments, { ...newSegment, id: res.data.id }]);
+        toast.addToast({ type: 'success', title: 'Segment codé !' });
+        setSelection(null);
+        setShowCodeInput(false);
+        setCodeName('');
+        window.getSelection()?.removeAllRanges();
+        if (onCodeAdded) onCodeAdded();
+      }
     } catch (err: any) {
       toast.addToast({ type: 'error', title: 'Erreur lors du codage' });
     }
   };
 
-  // ✅ NOUVEAU : Supprimer un segment au clic
   const handleDeleteSegment = async (segmentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('Supprimer ce code ?')) return;
@@ -140,16 +136,22 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
     }
   };
 
-  // Afficher le texte avec les surlignages
   const renderHighlightedText = () => {
-    if (segments.length === 0) return text;
+    // ✅ SÉCURITÉ
+    const safeSegments = Array.isArray(segments) ? segments : [];
+    if (safeSegments.length === 0) return text;
 
-    const sorted = [...segments].sort((a, b) => a.start_offset - b.start_offset);
+    const filteredSegments = filterCodeName
+      ? safeSegments.filter(s => s.code_name === filterCodeName)
+      : safeSegments;
+
+    if (filteredSegments.length === 0) return text;
+
+    const sorted = [...filteredSegments].sort((a, b) => a.start_offset - b.start_offset);
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
 
     sorted.forEach((seg) => {
-      // Éviter les chevauchements
       if (seg.start_offset < lastIndex) return;
       
       if (seg.start_offset > lastIndex) {
@@ -183,7 +185,6 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Zone de texte */}
       <div
         ref={containerRef}
         style={{
@@ -199,7 +200,6 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
         {renderHighlightedText()}
       </div>
 
-      {/* Bouton fixe */}
       <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <button
           onClick={() => setShowCodeInput(true)}
@@ -228,7 +228,6 @@ export const TextCoder: React.FC<TextCoderProps> = ({ text, documentId, document
         )}
       </div>
 
-      {/* Formulaire d'ajout de code */}
       {showCodeInput && selection && (
         <div style={{
           position: 'fixed',

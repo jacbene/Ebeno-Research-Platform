@@ -25,11 +25,15 @@ export const ThemeAnalysisPanel: React.FC<ThemeAnalysisPanelProps> = ({ projectI
       setLoading(true);
       try {
         const res = await api.get(`/codes/project/${projectId}`);
-        if (res.data.success) {
+        // ✅ SÉCURITÉ
+        if (res.data.success && Array.isArray(res.data.codes)) {
           setCodes(res.data.codes);
+        } else {
+          setCodes([]);
         }
       } catch (err) {
         console.error('Erreur chargement codes', err);
+        setCodes([]);
       } finally {
         setLoading(false);
       }
@@ -38,7 +42,10 @@ export const ThemeAnalysisPanel: React.FC<ThemeAnalysisPanelProps> = ({ projectI
   }, [projectId, refreshTrigger]);
 
   if (loading) return <p style={{ padding: '20px', color: '#666' }}>Chargement des données...</p>;
-  if (codes.length === 0) {
+  
+  // ✅ SÉCURITÉ
+  const safeCodes = Array.isArray(codes) ? codes : [];
+  if (safeCodes.length === 0) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
         <p>Aucun code pour ce projet.</p>
@@ -47,13 +54,12 @@ export const ThemeAnalysisPanel: React.FC<ThemeAnalysisPanelProps> = ({ projectI
     );
   }
 
-  const total = codes.reduce((acc, c) => acc + c.count, 0);
-  const maxCount = Math.max(...codes.map(c => c.count));
+  const total = safeCodes.reduce((acc, c) => acc + c.count, 0);
+  const maxCount = Math.max(...safeCodes.map(c => c.count));
 
-  // ✅ Export CSV
   const handleExportCSV = () => {
     let csv = "Code,Fréquence,Pourcentage\n";
-    codes.forEach(c => {
+    safeCodes.forEach(c => {
       const percent = ((c.count / total) * 100).toFixed(1);
       csv += `"${c.name}",${c.count},${percent}%\n`;
     });
@@ -78,7 +84,7 @@ export const ThemeAnalysisPanel: React.FC<ThemeAnalysisPanelProps> = ({ projectI
             📊 Fréquence des codes
           </h3>
           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
-            {codes.length} codes • {total} segments au total
+            {safeCodes.length} codes • {total} segments au total
           </p>
         </div>
         <button
@@ -102,7 +108,7 @@ export const ThemeAnalysisPanel: React.FC<ThemeAnalysisPanelProps> = ({ projectI
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {codes.map((code) => {
+        {safeCodes.map((code) => {
           const percent = (code.count / maxCount) * 100;
           return (
             <div key={code.name}>

@@ -30,9 +30,15 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
       setLoading(true);
       try {
         const res = await api.get(`/codes/memos`, { params: { projectId, codeName } });
-        if (res.data.success) setMemos(res.data.memos);
+        // ✅ SÉCURITÉ : on s'assure d'avoir un tableau
+        if (res.data.success && Array.isArray(res.data.memos)) {
+          setMemos(res.data.memos);
+        } else {
+          setMemos([]);
+        }
       } catch (err) {
         console.error(err);
+        setMemos([]);
       } finally {
         setLoading(false);
       }
@@ -68,6 +74,9 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
   };
 
   if (!isOpen) return null;
+
+  // ✅ SÉCURITÉ : Fallback si memos devient undefined
+  const safeMemos = Array.isArray(memos) ? memos : [];
 
   return (
     <div style={{
@@ -126,13 +135,13 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
         <div style={{ flex: 1, overflowY: 'auto', borderTop: '1px solid #eee', paddingTop: '16px' }}>
           {loading ? (
             <p style={{ color: '#666', textAlign: 'center' }}>Chargement...</p>
-          ) : memos.length === 0 ? (
+          ) : safeMemos.length === 0 ? (
             <p style={{ color: '#999', textAlign: 'center', fontStyle: 'italic', fontSize: '13px' }}>
               Aucune note pour ce code. Soyez le premier à théoriser !
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {memos.map(memo => (
+              {safeMemos.map(memo => (
                 <div key={memo.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                   <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333', whiteSpace: 'pre-wrap' }}>{memo.content}</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
