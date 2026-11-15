@@ -53,3 +53,10 @@ backup_*.sql*
 *.before-fix-*
 *.bak
 *.backup
+
+# Backups et fichiers obsolètes
+*.before-*
+*.before-refonte
+*.before-fix-*
+*.bak
+*.backup

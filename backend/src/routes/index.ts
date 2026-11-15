@@ -7,7 +7,7 @@ import projectRoutes from './projectRoutes';
 import codingRoutes from './codingRoutes';
 import memoRoutes from './memoRoutes';
 import transcriptionRoutes from './transcriptionRoutes';
-import deepseekRoutes from './deepseekRoutes';
+//import deepseekRoutes from './deepseekRoutes';
 //import visualizationRoutes from './visualizationRoutes';
 //import referenceRoutes from './referenceRoutes';
 //import surveyRoutes from './surveyRoutes';
@@ -26,7 +26,7 @@ router.use('/projects', projectRoutes);
 router.use('/coding', codingRoutes);
 router.use('/memos', memoRoutes);
 router.use('/transcriptions', transcriptionRoutes);
-router.use('/deepseek', deepseekRoutes);
+//router.use('/deepseek', deepseekRoutes);
 
 router.use('/collaboration', collaborationRoutes);
 
