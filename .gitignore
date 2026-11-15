@@ -47,3 +47,6 @@ backup_*.sql*
 *.backup
 *.bak
 *.old
+*.before-fix-*
+*.bak
+*.backup
