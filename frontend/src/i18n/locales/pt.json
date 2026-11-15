@@ -349,6 +349,36 @@
       "memo-created": "📝 Novo memo: {{title}}"
     }
   },
+  "thematic": {
+  "title": "Análise temática por IA",
+  "desc": "A IA analisa seus códigos e notas para sugerir agrupamentos temáticos.",
+  "generate": "✨ Gerar temas",
+  "regenerate": "🔄 Regenerar",
+  "loading": "Análise em andamento...",
+  "loadingHint": "A IA está lendo seus códigos e notas analíticas...",
+  "empty": "Clique em \"Gerar temas\" para que a IA analise seus códigos.",
+  "themeNumber": "Tema {{number}}",
+  "disclaimer": "Esta análise é gerada por IA e deve ser validada pelo pesquisador.",
+  "success": "Análise temática gerada!",
+  "successMessage": "{{count}} tema(s) identificado(s)",
+  "error": "Erro na análise"
+},
+"wordcloud": {
+  "loading": "Carregando nuvem de palavras...",
+  "empty": "Nenhuma palavra para a nuvem."
+},
+"codes": {
+  "memosTitle": "Notas",
+  "memosPlaceholder": "Escreva uma nota analítica sobre este código...",
+  "memosEmpty": "Nenhuma nota para este código ainda. Seja o primeiro a teorizar!",
+  "addMemo": "Adicionar nota",
+  "editMemo": "✏️ Editar",
+  "deleteMemo": "Excluir",
+  "memoSaved": "Nota salva",
+  "memoUpdated": "Nota modificada",
+  "memoDeleted": "Nota excluída",
+  "viewMemos": "Ver notas analíticas"
+},
   "files": {
     "preview": {
       "unavailable": "Pré-visualização indisponível para este ficheiro",
