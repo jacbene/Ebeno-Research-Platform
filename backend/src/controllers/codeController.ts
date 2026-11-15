@@ -282,3 +282,25 @@ export const generateProjectThematicAnalysis = async (req: Request, res: Respons
     return res.status(500).json({ error: error.message });
   }
 };
+
+// ✅ Modifier un mémo
+export const updateCodeMemo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Contenu requis' });
+
+    const updated = await db('code_memos')
+      .where({ id, user_id: userId })
+      .update({ content: content.trim() });
+
+    if (updated === 0) return res.status(404).json({ error: 'Note non trouvée ou non autorisée' });
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};

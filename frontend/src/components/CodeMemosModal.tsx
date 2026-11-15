@@ -20,6 +20,8 @@ interface CodeMemosModalProps {
 export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose, projectId, codeName, codeColor }) => {
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newMemo, setNewMemo] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
@@ -29,18 +31,8 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
     const fetchMemos = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/codes/memos`, { 
-         params: {
-          projectId, 
-          codeName,
-          _t: Date.now() // ✅ Cache buster
-           }
-          });
-        if (res.data.success && Array.isArray(res.data.memos)) {
-          setMemos(res.data.memos);
-        } else {
-          setMemos([]);
-        }
+        const res = await api.get(`/codes/memos`, { params: { projectId, codeName, _t: Date.now() } });
+        setMemos(Array.isArray(res.data?.memos) ? res.data.memos : []);
       } catch (err) {
         console.error(err);
         setMemos([]);
@@ -68,6 +60,33 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
     }
   };
 
+  // ✅ NOUVEAU : Mode édition
+  const handleStartEdit = (memo: Memo) => {
+    setEditingId(memo.id);
+    setEditContent(memo.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editContent.trim()) return;
+    setSaving(true);
+    try {
+      await api.put(`/codes/memos/${id}`, { content: editContent.trim() });
+      setMemos(memos.map(m => m.id === id ? { ...m, content: editContent.trim() } : m));
+      setEditingId(null);
+      setEditContent('');
+      toast.addToast({ type: 'success', title: 'Note modifiée' });
+    } catch (err) {
+      toast.addToast({ type: 'error', title: 'Erreur lors de la modification' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteMemo = async (id: string) => {
     if (!confirm('Supprimer cette note ?')) return;
     try {
@@ -79,9 +98,6 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
   };
 
   if (!isOpen) return null;
-
-  // ✅ SÉCURITÉ : Fallback si memos devient undefined
-  const safeMemos = Array.isArray(memos) ? memos : [];
 
   return (
     <div style={{
@@ -98,21 +114,14 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
           display: 'flex', flexDirection: 'column',
         }}
       >
-        {/* En-tête */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ 
-              width: '16px', height: '16px', borderRadius: '50%', 
-              backgroundColor: codeColor 
-            }} />
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>
-              Notes : {codeName}
-            </h2>
+            <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: codeColor }} />
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>Notes : {codeName}</h2>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
         </div>
 
-        {/* Formulaire d'ajout */}
         <div style={{ marginBottom: '16px' }}>
           <textarea
             value={newMemo}
@@ -136,27 +145,55 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
           </button>
         </div>
 
-        {/* Liste des mémos */}
         <div style={{ flex: 1, overflowY: 'auto', borderTop: '1px solid #eee', paddingTop: '16px' }}>
           {loading ? (
             <p style={{ color: '#666', textAlign: 'center' }}>Chargement...</p>
-          ) : safeMemos.length === 0 ? (
+          ) : memos.length === 0 ? (
             <p style={{ color: '#999', textAlign: 'center', fontStyle: 'italic', fontSize: '13px' }}>
               Aucune note pour ce code. Soyez le premier à théoriser !
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {safeMemos.map(memo => (
+              {memos.map(memo => (
                 <div key={memo.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333', whiteSpace: 'pre-wrap' }}>{memo.content}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: '#999' }}>
-                      {new Date(memo.created_at).toLocaleString()}
-                    </span>
-                    <button onClick={() => handleDeleteMemo(memo.id)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '12px' }}>
-                      Supprimer
-                    </button>
-                  </div>
+                  {editingId === memo.id ? (
+                    // ✅ MODE ÉDITION
+                    <>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        autoFocus
+                        style={{ width: '100%', padding: '8px', border: '1px solid #4A6CF7', borderRadius: '6px', fontSize: '14px', resize: 'vertical', fontFamily: 'inherit' }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                        <button onClick={handleCancelEdit} style={{ background: 'none', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                          Annuler
+                        </button>
+                        <button onClick={() => handleSaveEdit(memo.id)} disabled={saving} style={{ background: '#4A6CF7', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: saving ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                          {saving ? '...' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    // ✅ MODE LECTURE
+                    <>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333', whiteSpace: 'pre-wrap' }}>{memo.content}</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: '#999' }}>
+                          {new Date(memo.created_at).toLocaleString()}
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleStartEdit(memo)} style={{ background: 'none', border: 'none', color: '#4A6CF7', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                            ✏️ Modifier
+                          </button>
+                          <button onClick={() => handleDeleteMemo(memo.id)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '12px' }}>
+                            Supprimer
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

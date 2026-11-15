@@ -11,6 +11,7 @@ import { getCodedSegments, addCodedSegment, deleteCodedSegment } from '../contro
 import { getProjectCodes, getCooccurrenceMatrix } from '../controllers/codeController';
 import { getCodeMemos, addCodeMemo, deleteCodeMemo } from '../controllers/codeController';
 import { generateProjectThematicAnalysis } from '../controllers/codeController';
+import { updateCodeMemo } from '../controllers/codeController';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ const router = Router();
 router.get('/memos', authenticate, getCodeMemos);
 router.post('/memos', authenticate, addCodeMemo);
 router.delete('/memos/:id', authenticate, deleteCodeMemo);
+router.put('/memos/:id', authenticate, updateCodeMemo);
 
 // --- Segments de codes ---
 router.get('/segments/:documentType/:documentId', authenticate, getCodedSegments);
