@@ -409,6 +409,36 @@
       "memo-created": "📝 New memo: {{title}}"
     }
   },
+  "thematic": {
+  "title": "AI-Powered Thematic Analysis",
+  "desc": "AI analyzes your codes and notes to suggest thematic groupings.",
+  "generate": "✨ Generate themes",
+  "regenerate": "🔄 Regenerate",
+  "loading": "Analysis in progress...",
+  "loadingHint": "AI is reading your codes and analytical notes...",
+  "empty": "Click \"Generate themes\" to have AI analyze your codes.",
+  "themeNumber": "Theme {{number}}",
+  "disclaimer": "This analysis is AI-generated and must be validated by the researcher.",
+  "success": "Thematic analysis generated!",
+  "successMessage": "{{count}} theme(s) identified",
+  "error": "Analysis error"
+},
+"wordcloud": {
+  "loading": "Loading word cloud...",
+  "empty": "No words for the cloud."
+},
+"codes": {
+  "memosTitle": "Notes",
+  "memosPlaceholder": "Write an analytical note about this code...",
+  "memosEmpty": "No notes for this code yet. Be the first to theorize!",
+  "addMemo": "Add note",
+  "editMemo": "✏️ Edit",
+  "deleteMemo": "Delete",
+  "memoSaved": "Note saved",
+  "memoUpdated": "Note updated",
+  "memoDeleted": "Note deleted",
+  "viewMemos": "View analytical notes"
+},
   "files": {
     "preview": {
       "unavailable": "Preview not available for this file",

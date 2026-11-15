@@ -409,6 +409,36 @@
       "memo-created": "📝 Nouveau memo : {{title}}"
     }
   },
+  "thematic": {
+  "title": "Analyse thématique par IA",
+  "desc": "L'IA analyse vos codes et notes pour proposer des regroupements thématiques.",
+  "generate": "✨ Générer les thèmes",
+  "regenerate": "🔄 Regénérer",
+  "loading": "Analyse en cours...",
+  "loadingHint": "L'IA lit vos codes et notes analytiques...",
+  "empty": "Cliquez sur \"Générer les thèmes\" pour que l'IA analyse vos codes.",
+  "themeNumber": "Thème {{number}}",
+  "disclaimer": "Cette analyse est générée par IA et doit être validée par le chercheur.",
+  "success": "Analyse thématique générée !",
+  "successMessage": "{{count}} thème(s) identifié(s)",
+  "error": "Erreur lors de l'analyse"
+},
+"wordcloud": {
+  "loading": "Chargement du nuage...",
+  "empty": "Aucun mot pour le nuage."
+},
+"codes": {
+  "memosTitle": "Notes",
+  "memosPlaceholder": "Écrivez une note analytique sur ce code...",
+  "memosEmpty": "Aucune note pour ce code. Soyez le premier à théoriser !",
+  "addMemo": "Ajouter la note",
+  "editMemo": "✏️ Modifier",
+  "deleteMemo": "Supprimer",
+  "memoSaved": "Note enregistrée",
+  "memoUpdated": "Note modifiée",
+  "memoDeleted": "Note supprimée",
+  "viewMemos": "Voir les notes analytiques"
+},
   "files": {
     "preview": {
       "unavailable": "Aperçu non disponible pour ce fichier",
