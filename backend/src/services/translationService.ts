@@ -1,5 +1,14 @@
 // backend/src/services/translationService.ts
-// ✅ Service de traduction à la demande (DeepSeek → OpenAI cascade)
+/**
+ * Service de traduction à la demande
+ *
+ * Cascade IA (self-hosted prioritaire) :
+ *   Ollama (local) → DeepSeek (cloud) → OpenAI (cloud)
+ *
+ * ⚠️ Ollama uniquement si le texte est court (< OLLAMA_TRANSLATION_MAX_CHARS).
+ *    Au-delà, on va directement sur DeepSeek pour éviter les timeouts CPU
+ *    et préserver la qualité sur de longs documents.
+ */
 
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
@@ -9,16 +18,26 @@ import {
   recordSuccess,
 } from './circuitBreaker';
 import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
+import { isOllamaConfigured, chatWithOllama } from './ollamaService';
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
+const SERVICE_OLLAMA = 'ollama';
 const SERVICE_DEEPSEEK = 'deepseek';
 const SERVICE_OPENAI = 'openai';
 
 const MAX_TEXT_LENGTH = 50_000;
+
+// Seuil (en caractères) au-delà duquel Ollama est contourné d'office.
+// Configurable via env. Défaut : 20 000 chars (~5K tokens).
+const OLLAMA_TRANSLATION_MAX_CHARS = parseInt(
+  process.env.OLLAMA_TRANSLATION_MAX_CHARS || '20000',
+  10,
+);
+
 const SUPPORTED_LANGS = ['fr', 'en', 'es', 'pt', 'ar'] as const;
 type Lang = typeof SUPPORTED_LANGS[number];
 
@@ -64,18 +83,35 @@ Rules:
 - If the text is already in ${langName}, return it unchanged`;
 };
 
-const truncate = (text: string): { text: string; truncated: boolean } => {
-  if (text.length <= MAX_TEXT_LENGTH) return { text, truncated: false };
-  return { text: text.substring(0, MAX_TEXT_LENGTH), truncated: true };
-};
+// ────────────────────────────────────────────────────────────
+// Appels IA — providers
+// ────────────────────────────────────────────────────────────
 
-// ────────────────────────────────────────────────────────────
-// Appels IA
-// ────────────────────────────────────────────────────────────
+const translateWithOllama = async (
+  text: string,
+  targetLang: Lang,
+): Promise<string> => {
+  if (!isOllamaConfigured()) {
+    throw new Error('Ollama non configuré');
+  }
+
+  const translated = await chatWithOllama(
+    [
+      { role: 'system', content: buildSystemPrompt(targetLang) },
+      { role: 'user', content: text },
+    ],
+    { temperature: 0.3 },
+  );
+
+  if (!translated?.trim()) {
+    throw new Error('Réponse Ollama vide');
+  }
+  return translated.trim();
+};
 
 const translateWithDeepSeek = async (
   text: string,
-  targetLang: Lang
+  targetLang: Lang,
 ): Promise<string> => {
   if (!DEEPSEEK_API_KEY || !DEEPSEEK_API_KEY.startsWith('sk-')) {
     throw new Error('DEEPSEEK_API_KEY non configurée');
@@ -114,7 +150,7 @@ const translateWithDeepSeek = async (
 
 const translateWithOpenAI = async (
   text: string,
-  targetLang: Lang
+  targetLang: Lang,
 ): Promise<string> => {
   if (!OPENAI_API_KEY || !OPENAI_API_KEY.startsWith('sk-')) {
     throw new Error('OPENAI_API_KEY non configurée');
@@ -151,14 +187,40 @@ const translateWithOpenAI = async (
 };
 
 // ────────────────────────────────────────────────────────────
-// Cascade DeepSeek → OpenAI
+// Cascade Ollama → DeepSeek → OpenAI
 // ────────────────────────────────────────────────────────────
 
 const translateText = async (
   text: string,
-  targetLang: Lang
+  targetLang: Lang,
 ): Promise<{ translated: string; provider: string }> => {
-  // 1️⃣ DeepSeek
+  // 1️⃣ Ollama (uniquement si configuré + texte sous le seuil + circuit fermé)
+  const canTryOllama =
+    isOllamaConfigured() &&
+    text.length <= OLLAMA_TRANSLATION_MAX_CHARS &&
+    isServiceAvailable(SERVICE_OLLAMA);
+
+  if (canTryOllama) {
+    try {
+      logger.info(
+        `🦙 [translation] Tentative Ollama → ${targetLang} (${text.length} chars)...`,
+      );
+      const translated = await translateWithOllama(text, targetLang);
+      recordSuccess(SERVICE_OLLAMA);
+      return { translated, provider: 'ollama' };
+    } catch (err: any) {
+      recordFailure(SERVICE_OLLAMA, err);
+      logger.warn(`⚠️ [translation] Ollama échoué : ${err.message}`);
+    }
+  } else if (isOllamaConfigured() && text.length > OLLAMA_TRANSLATION_MAX_CHARS) {
+    logger.info(
+      `⏭️ [translation] Ollama ignoré (${text.length} chars > ${OLLAMA_TRANSLATION_MAX_CHARS})`,
+    );
+  } else if (isOllamaConfigured()) {
+    logger.info('⏭️ [translation] Ollama ignoré (circuit ouvert)');
+  }
+
+  // 2️⃣ DeepSeek
   if (isServiceAvailable(SERVICE_DEEPSEEK)) {
     try {
       logger.info(`🟣 [translation] Tentative DeepSeek → ${targetLang}...`);
@@ -173,7 +235,7 @@ const translateText = async (
     logger.info('⏭️ [translation] DeepSeek ignoré (circuit ouvert)');
   }
 
-  // 2️⃣ OpenAI
+  // 3️⃣ OpenAI
   if (isServiceAvailable(SERVICE_OPENAI)) {
     try {
       logger.info(`🔵 [translation] Tentative OpenAI → ${targetLang}...`);
@@ -192,24 +254,20 @@ const translateText = async (
 };
 
 // ────────────────────────────────────────────────────────────
-// Récupération du texte source selon le type de document
+// Récupération du texte source (INCHANGÉ)
 // ────────────────────────────────────────────────────────────
 
 const fetchSourceText = async (
   documentId: string,
   documentType: DocumentType,
-  userId: string
+  userId: string,
 ): Promise<{ text: string; sourceLang: string | null; title: string }> => {
-  // ✅ Audio (transcription) ET textes importés — même table "transcriptions"
   if (documentType === 'transcription' || documentType === 'text') {
     const doc = await db('transcriptions').where({ id: documentId }).first();
     if (!doc) throw new Error('Document non trouvé');
 
-    // ✅ Vérifier l'accès (propriétaire OU membre du projet)
     if (doc.userId !== userId) {
-      if (!doc.projectId) {
-        throw new Error('Accès non autorisé');
-      }
+      if (!doc.projectId) throw new Error('Accès non autorisé');
       const member = await db('project_members')
         .where({ projectId: doc.projectId, userId })
         .first();
@@ -220,7 +278,7 @@ const fetchSourceText = async (
       throw new Error(
         documentType === 'text'
           ? 'Le texte est vide ou trop court'
-          : 'La transcription n\'est pas encore prête'
+          : "La transcription n'est pas encore prête",
       );
     }
 
@@ -233,7 +291,6 @@ const fetchSourceText = async (
     };
   }
 
-  // ✅ Memos
   if (documentType === 'memo') {
     const doc = await db('memos').where({ id: documentId, userId }).first();
     if (!doc) throw new Error('Memo non trouvé');
@@ -247,7 +304,6 @@ const fetchSourceText = async (
     };
   }
 
-  // ✅ Documents collaboratifs
   if (documentType === 'collaboration') {
     const doc = await db('collaboration_documents')
       .where({ id: documentId })
@@ -273,29 +329,28 @@ const fetchSourceText = async (
 };
 
 // ────────────────────────────────────────────────────────────
-// ✅ FONCTION PRINCIPALE
+// Fonction principale (INCHANGÉE, sauf typage cascade)
 // ────────────────────────────────────────────────────────────
 
 export const translateDocument = async (
   documentId: string,
   documentType: DocumentType,
   targetLang: string,
-  userId: string
+  userId: string,
 ): Promise<TranslationResult> => {
-  // Validation
   const lang = targetLang.toLowerCase() as Lang;
   if (!SUPPORTED_LANGS.includes(lang)) {
     throw new Error(`Langue non supportée : ${targetLang}`);
   }
 
-  // 1. Vérifier le cache DB
-const cached = await db('document_translations')
-  .where({ documentId, documentType, targetLang: lang })
-  .first();
+  // 1. Cache DB
+  const cached = await db('document_translations')
+    .where({ documentId, documentType, targetLang: lang })
+    .first();
 
-if (cached) {
+  if (cached) {
     logger.info(
-      `✅ [translation] Cache hit pour ${documentType}/${documentId} → ${lang}`
+      `✅ [translation] Cache hit pour ${documentType}/${documentId} → ${lang}`,
     );
     return {
       id: cached.id,
@@ -309,27 +364,26 @@ if (cached) {
     };
   }
 
-// ✅ VÉRIFICATION DU QUOTA ICI (avant de lancer la traduction)
-const quotaCheck = await checkAndIncrementAiQuota(userId);
-if (!quotaCheck.allowed) {
-  const err: any = new Error(quotaCheck.message);
-  err.code = 'QUOTA_EXCEEDED';
-  err.limit = quotaCheck.limit;
-  err.used = quotaCheck.used;
-  throw err;
-}
+  // 2. Quota
+  const quotaCheck = await checkAndIncrementAiQuota(userId);
+  if (!quotaCheck.allowed) {
+    const err: any = new Error(quotaCheck.message);
+    err.code = 'QUOTA_EXCEEDED';
+    err.limit = quotaCheck.limit;
+    err.used = quotaCheck.used;
+    throw err;
+  }
 
-// 2. Récupérer le texte source
-const { text, sourceLang, title } = await fetchSourceText(
+  // 3. Texte source
+  const { text, sourceLang, title } = await fetchSourceText(
     documentId,
     documentType,
-    userId
+    userId,
   );
 
-  // 3. Vérifier la taille
   if (text.length > MAX_TEXT_LENGTH) {
     throw new Error(
-      `Document trop long (${text.length} caractères > ${MAX_TEXT_LENGTH} max)`
+      `Document trop long (${text.length} caractères > ${MAX_TEXT_LENGTH} max)`,
     );
   }
 
@@ -337,13 +391,13 @@ const { text, sourceLang, title } = await fetchSourceText(
     throw new Error('Texte trop court pour être traduit');
   }
 
-  // 4. Traduire
+  // 4. Traduction (cascade Ollama → DeepSeek → OpenAI)
   logger.info(
-    `🌍 [translation] ${documentType}/${documentId} (${text.length} chars) → ${lang}`
+    `🌍 [translation] ${documentType}/${documentId} (${text.length} chars) → ${lang}`,
   );
   const { translated, provider } = await translateText(text, lang);
 
-  // 5. Sauvegarder en DB
+  // 5. Sauvegarde DB
   const id = generateId();
   const now = new Date().toISOString();
 
@@ -362,27 +416,27 @@ const { text, sourceLang, title } = await fetchSourceText(
 
   logger.info(`✅ [translation] ${title} traduit en ${lang} via ${provider}`);
 
- return {
-  id,
-  documentId,
-  documentType,
-  targetLang: lang,
-  sourceLang,
-  translatedText: translated,
-  provider,
-  cached: false,
-  quota: { used: quotaCheck.used, limit: quotaCheck.limit }, // ✅ AJOUT
-};
+  return {
+    id,
+    documentId,
+    documentType,
+    targetLang: lang,
+    sourceLang,
+    translatedText: translated,
+    provider,
+    cached: false,
+    quota: { used: quotaCheck.used, limit: quotaCheck.limit },
+  };
 };
 
 // ────────────────────────────────────────────────────────────
-// Autres opérations
+// Autres opérations (INCHANGÉES, sauf isTranslationConfigured)
 // ────────────────────────────────────────────────────────────
 
 export const getTranslation = async (
   documentId: string,
   documentType: DocumentType,
-  targetLang: string
+  targetLang: string,
 ): Promise<TranslationResult | null> => {
   const row = await db('document_translations')
     .where({ documentId, documentType, targetLang: targetLang.toLowerCase() })
@@ -404,7 +458,7 @@ export const getTranslation = async (
 
 export const getAllTranslationsForDocument = async (
   documentId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
 ) => {
   return db('document_translations')
     .where({ documentId, documentType })
@@ -414,7 +468,7 @@ export const getAllTranslationsForDocument = async (
 
 export const deleteTranslation = async (
   id: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> => {
   const deleted = await db('document_translations')
     .where({ id, requestedBy: userId })
@@ -423,9 +477,10 @@ export const deleteTranslation = async (
 };
 
 export const isTranslationConfigured = (): boolean => {
+  const hasOllama = isOllamaConfigured();
   const hasDeepSeek = !!DEEPSEEK_API_KEY && DEEPSEEK_API_KEY.startsWith('sk-');
   const hasOpenAI = !!OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-');
-  return hasDeepSeek || hasOpenAI;
+  return hasOllama || hasDeepSeek || hasOpenAI;
 };
 
 export default {
