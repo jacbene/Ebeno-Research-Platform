@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # --- Base de données PostgreSQL locale ---
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ebeno
+      POSTGRES_PASSWORD: ebeno_secret
+      POSTGRES_DB: ebeno_db
+    volumes:
+      - ebeno_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # --- IA Locale (Ollama) ---
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # Décommente la ligne suivante si tu as un GPU NVIDIA
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # --- Backend Node.js ---
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: postgres://ebeno:ebeno_secret@db:5432/ebeno_db
+      OLLAMA_URL: http://ollama:11434
+      # Tu peux ajouter ici d'autres variables (JWT_SECRET, etc.)
+      JWT_SECRET: change_me_in_production
+    depends_on:
+      - db
+      - ollama
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+
+  # --- Frontend (Nginx) ---
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  ebeno_db_data:
+  ollama_data:
