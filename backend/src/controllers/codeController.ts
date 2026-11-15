@@ -159,7 +159,6 @@ export const getCooccurrenceMatrix = async (req: Request, res: Response) => {
 };
 
 // ✅ Récupérer les mémos d'un code
-// ✅ Récupérer les mémos d'un code
 export const getCodeMemos = async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
@@ -174,22 +173,15 @@ export const getCodeMemos = async (req: Request, res: Response) => {
     const cleanCodeName = String(codeName || '').trim();
     const cleanProjectId = String(projectId || '').trim();
 
-    console.log('🔍 [getCodeMemos] Cherche:', { projectId: cleanProjectId, codeName: cleanCodeName });
-
     // ✅ Requête SANS filtre sur code_name d'abord, pour voir tout ce qui existe
     const allMemos = await db('code_memos')
       .where({ project_id: cleanProjectId })
       .orderBy('created_at', 'desc');
 
-    console.log('🔍 [getCodeMemos] Total notes pour ce projet:', allMemos.length);
-    console.log('🔍 [getCodeMemos] Code names existants:', allMemos.map(m => `"${m.code_name}"`));
-
     // ✅ Filtrage en JS (robuste aux espaces/casse)
     const memos = allMemos.filter(
       m => String(m.code_name).trim().toLowerCase() === cleanCodeName.toLowerCase()
     );
-
-    console.log('🔍 [getCodeMemos] Notes matchées:', memos.length);
 
     return res.json({ success: true, memos });
   } catch (error: any) {
@@ -203,13 +195,6 @@ export const addCodeMemo = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { projectId, codeName, content } = req.body;
-
-    console.log('🔍 [addCodeMemo] Reçu:', { 
-      projectId, 
-      codeName, 
-      userId, 
-      contentLength: content?.length 
-    });
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
     if (!content || !content.trim()) return res.status(400).json({ error: 'Contenu requis' });
@@ -227,8 +212,6 @@ export const addCodeMemo = async (req: Request, res: Response) => {
       user_id: userId,
       content: content.trim(),
     });
-
-    console.log('✅ [addCodeMemo] Note insérée:', { id, project_id: cleanProjectId, code_name: cleanCodeName });
 
     return res.status(201).json({ success: true, id });
   } catch (error: any) {
