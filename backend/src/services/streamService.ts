@@ -1,11 +1,22 @@
 // backend/src/services/streamService.ts
 /**
- * Service de streaming IA (DeepSeek → OpenAI)
+ * Service de streaming IA (Ollama → DeepSeek → OpenAI)
  * API en mode "stream: true" → AsyncIterator de chunks.
+ *
+ * Ordre (self-hosted prioritaire) :
+ *   1. Ollama (local) — NDJSON
+ *   2. DeepSeek (cloud) — SSE
+ *   3. OpenAI (cloud) — SSE
+ *   4. Fallback texte
+ *
+ * ⚠️ Si un provider émet des chunks PUIS échoue, on ne peut pas rejouer
+ *    depuis zéro (le client a déjà reçu du texte). On émet alors un
+ *    `done` avec finishReason='partial' et on conserve le texte partiel.
  */
 
 import { logger } from '../utils/logger';
 import type { ChatMessage } from './chatService';
+import { isOllamaConfigured, chatWithOllamaStream } from './ollamaService';
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-chat';
@@ -25,7 +36,7 @@ export interface StreamChunk {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Parser SSE (Server-Sent Events)
+// Parser SSE (Server-Sent Events) — DeepSeek / OpenAI
 // ═══════════════════════════════════════════════════════════
 
 async function* parseSSE(
@@ -44,7 +55,6 @@ async function* parseSSE(
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-
       const events = buffer.split('\n\n');
       buffer = events.pop() || '';
 
@@ -75,6 +85,22 @@ async function* parseSSE(
   } finally {
     reader.releaseLock();
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Ollama streaming (NDJSON via ollamaService)
+// ═══════════════════════════════════════════════════════════
+
+async function* streamOllama(
+  messages: ChatMessage[],
+): AsyncGenerator<StreamChunk, void, void> {
+  for await (const content of chatWithOllamaStream(messages as any)) {
+    if (content) {
+      yield { type: 'chunk', content, model: 'ollama' };
+    }
+  }
+  // Fin normale : `chatWithOllamaStream` a vu `json.done === true`
+  yield { type: 'done', model: 'ollama', finishReason: 'stop' };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -192,44 +218,72 @@ async function* streamOpenAI(
 }
 
 // ═══════════════════════════════════════════════════════════
-// Cascade streaming
+// Cascade streaming : Ollama → DeepSeek → OpenAI
 // ═══════════════════════════════════════════════════════════
 
 export async function* streamAI(
   messages: ChatMessage[],
 ): AsyncGenerator<StreamChunk, void, void> {
-  // 1. DeepSeek
+  // Compteur partagé : a-t-on déjà émis du contenu au client ?
+  let hasEmittedChunk = false;
+
+  // ─── 1. Ollama (self-hosted prioritaire) ───
+  if (isOllamaConfigured()) {
+    try {
+      logger.info('[stream] Appel Ollama (local)...');
+      for await (const chunk of streamOllama(messages)) {
+        if (chunk.type === 'chunk' && chunk.content) hasEmittedChunk = true;
+        yield chunk;
+        if (chunk.type === 'done') return;
+      }
+    } catch (err) {
+      logger.warn(`[stream] ❌ Ollama échec : ${(err as Error).message}`);
+      if (hasEmittedChunk) {
+        // Le client a déjà reçu du texte — on ne peut pas relancer
+        logger.warn('[stream] Stream Ollama partiel conservé (pas de fallback)');
+        yield { type: 'done', model: 'ollama', finishReason: 'partial' };
+        return;
+      }
+    }
+  }
+
+  // ─── 2. DeepSeek ───
   try {
     logger.info('[stream] Appel DeepSeek...');
-    let hasChunk = false;
     for await (const chunk of streamDeepSeek(messages)) {
-      if (chunk.type === 'chunk') hasChunk = true;
+      if (chunk.type === 'chunk' && chunk.content) hasEmittedChunk = true;
       yield chunk;
       if (chunk.type === 'done') return;
     }
-    if (hasChunk) return;
   } catch (err) {
     logger.warn(`[stream] ❌ DeepSeek échec : ${(err as Error).message}`);
+    if (hasEmittedChunk) {
+      yield { type: 'done', model: DEEPSEEK_MODEL, finishReason: 'partial' };
+      return;
+    }
   }
 
-  // 2. OpenAI fallback
+  // ─── 3. OpenAI fallback ───
   try {
     logger.info('[stream] Fallback OpenAI...');
-    let hasChunk = false;
     for await (const chunk of streamOpenAI(messages)) {
-      if (chunk.type === 'chunk') hasChunk = true;
+      if (chunk.type === 'chunk' && chunk.content) hasEmittedChunk = true;
       yield chunk;
       if (chunk.type === 'done') return;
     }
-    if (hasChunk) return;
   } catch (err) {
     logger.error(`[stream] ❌ OpenAI échec : ${(err as Error).message}`);
+    if (hasEmittedChunk) {
+      yield { type: 'done', model: OPENAI_MODEL, finishReason: 'partial' };
+      return;
+    }
   }
 
-  // 3. Fallback texte
+  // ─── 4. Fallback texte ───
   yield {
     type: 'chunk',
-    content: "Désolé, les services d'IA sont temporairement indisponibles. Réessayez dans quelques minutes.",
+    content:
+      "Désolé, les services d'IA sont temporairement indisponibles. Réessayez dans quelques minutes.",
     model: 'fallback',
   };
   yield { type: 'done', model: 'fallback', finishReason: 'error' };

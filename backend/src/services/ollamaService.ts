@@ -1,7 +1,8 @@
 // backend/src/services/ollamaService.ts
 import { logger } from '../utils/logger';
 
-const OLLAMA_URL = process.env.OLLAMA_URL || '';
+// backend/src/services/ollamaService.ts — LIGNE 4-5
+const OLLAMA_URL = process.env.OLLAMA_URL || process.env.OLLAMA_BASE_URL || '';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.1';
 const OLLAMA_TIMEOUT_MS = 120_000; // 2 minutes (les modèles locaux sont lents)
 
@@ -148,3 +149,80 @@ export const analyzeSentimentWithOllama = async (text: string): Promise<{
     throw new Error('Réponse Ollama invalide (JSON malformé)');
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// Streaming (NDJSON) — pour le Chat IA via Socket.IO
+// ═══════════════════════════════════════════════════════════
+
+export interface OllamaMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Stream la réponse d'Ollama chunk par chunk.
+ * Ollama renvoie du NDJSON : une ligne JSON par token.
+ * Utiliser en boucle : `for await (const chunk of chatWithOllamaStream(msgs)) { ... }`
+ */
+export async function* chatWithOllamaStream(
+  messages: OllamaMessage[],
+  opts: { timeoutMs?: number } = {},
+): AsyncGenerator<string> {
+  // ✅ APRÈS (utilise le module-level, cohérent avec chatWithOllama)
+if (!OLLAMA_URL) throw new Error('OLLAMA_URL non configurée');
+const baseUrl = OLLAMA_URL;
+const model = OLLAMA_MODEL;
+
+  const timeoutMs = opts.timeoutMs ?? 120_000; // 120s : self-hosted peut être lent
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        options: { temperature: 0.7, num_predict: 1500 },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Ollama HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    }
+    if (!res.body) throw new Error('Ollama: body vide');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // garde la ligne incomplète
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const json = JSON.parse(trimmed);
+          const content: string | undefined = json?.message?.content;
+          if (content) yield content;
+          if (json?.done) return;
+        } catch {
+          // ligne partielle/corrompue : ignorer
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+}

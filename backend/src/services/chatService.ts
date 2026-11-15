@@ -2,12 +2,16 @@
 /**
  * Chat IA multilingue avec contexte projet
  *
- * Cascade IA : DeepSeek → OpenAI
- * Contexte : résumés + transcriptions + documents du projet
+ * Cascade IA (self-hosted prioritaire) :
+ *   Ollama (local) → DeepSeek (cloud) → OpenAI (cloud) → fallback texte
+ *
+ * ⚠️ Le streaming Socket.IO (namespace /chat) utilise streamService.ts (streamAI).
+ *    Ici on ne touche qu'à callAI() — utilisé par POST /messages (chatController).
  */
 
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
+import { isOllamaConfigured, chatWithOllama } from './ollamaService';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -20,7 +24,7 @@ export interface ChatMessage {
 
 export interface AIResponse {
   content: string;
-  model: string;          // 'deepseek-chat' | 'gpt-4o-mini' | 'fallback'
+  model: string;          // 'ollama' | 'deepseek-chat' | 'gpt-4o-mini' | 'fallback'
   tokens?: number;
   finishReason?: string;
 }
@@ -107,7 +111,6 @@ export async function buildProjectContext(projectId: string): Promise<{
         for (const s of summaries) {
           const content = (s.summary || '').slice(0, 1500);
           if (content) {
-            // Retrouver le nom du document
             const file = await db('project_files').where({ id: s.documentId }).first();
             const docName = file?.fileName || 'Document';
             parts.push(`### ${docName}\n${content}`);
@@ -163,7 +166,38 @@ export async function buildProjectContext(projectId: string): Promise<{
 }
 
 // ═══════════════════════════════════════════════════════════
-// 2. DeepSeek
+// 2. Ollama (self-hosted prioritaire)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Appel Ollama via ollamaService.
+ * Tolère les deux signatures possibles de chatWithOllama :
+ *   - Promise<string>
+ *   - Promise<{ content: string }>
+ */
+async function callOllama(messages: ChatMessage[]): Promise<AIResponse> {
+  if (!isOllamaConfigured()) {
+    throw new Error('Ollama non configuré');
+  }
+
+  const raw = await chatWithOllama(messages as any);
+
+  const content: string =
+    typeof raw === 'string' ? raw : (raw as any)?.content ?? '';
+
+  if (!content.trim()) {
+    throw new Error('Ollama : réponse vide');
+  }
+
+  return {
+    content,
+    model: 'ollama',
+    finishReason: 'stop',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3. DeepSeek
 // ═══════════════════════════════════════════════════════════
 
 async function callDeepSeek(messages: ChatMessage[]): Promise<AIResponse> {
@@ -214,7 +248,7 @@ async function callDeepSeek(messages: ChatMessage[]): Promise<AIResponse> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 3. OpenAI (fallback)
+// 4. OpenAI (fallback)
 // ═══════════════════════════════════════════════════════════
 
 async function callOpenAI(messages: ChatMessage[]): Promise<AIResponse> {
@@ -264,11 +298,23 @@ async function callOpenAI(messages: ChatMessage[]): Promise<AIResponse> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 4. Cascade DeepSeek → OpenAI
+// 5. Cascade Ollama → DeepSeek → OpenAI
 // ═══════════════════════════════════════════════════════════
 
 export async function callAI(messages: ChatMessage[]): Promise<AIResponse> {
-  // 1. DeepSeek
+  // 1. Ollama (self-hosted prioritaire)
+  if (isOllamaConfigured()) {
+    try {
+      logger.info('[chat] Appel Ollama (local)...');
+      const result = await callOllama(messages);
+      logger.info(`[chat] ✅ Ollama OK (${result.content.length} chars)`);
+      return result;
+    } catch (err) {
+      logger.warn(`[chat] ❌ Ollama échec : ${(err as Error).message}`);
+    }
+  }
+
+  // 2. DeepSeek (cloud)
   try {
     logger.info('[chat] Appel DeepSeek...');
     const result = await callDeepSeek(messages);
@@ -278,7 +324,7 @@ export async function callAI(messages: ChatMessage[]): Promise<AIResponse> {
     logger.warn(`[chat] ❌ DeepSeek échec : ${(err as Error).message}`);
   }
 
-  // 2. OpenAI (fallback)
+  // 3. OpenAI (fallback cloud)
   try {
     logger.info('[chat] Fallback OpenAI...');
     const result = await callOpenAI(messages);
@@ -288,7 +334,7 @@ export async function callAI(messages: ChatMessage[]): Promise<AIResponse> {
     logger.error(`[chat] ❌ OpenAI échec : ${(err as Error).message}`);
   }
 
-  // 3. Fallback ultime
+  // 4. Fallback ultime
   return {
     content:
       "Désolé, les services d'IA sont temporairement indisponibles. Réessayez dans quelques minutes.",
@@ -298,7 +344,7 @@ export async function callAI(messages: ChatMessage[]): Promise<AIResponse> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 5. Titre automatique
+// 6. Titre automatique
 // ═══════════════════════════════════════════════════════════
 
 export async function generateTitle(firstUserMessage: string): Promise<string> {
@@ -321,7 +367,7 @@ export async function generateTitle(firstUserMessage: string): Promise<string> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 6. Construction du prompt système
+// 7. Construction du prompt système
 // ═══════════════════════════════════════════════════════════
 
 export function buildSystemPrompt(
