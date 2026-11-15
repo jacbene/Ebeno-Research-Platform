@@ -3,29 +3,19 @@ import fs from 'fs';
 import mammoth from 'mammoth';
 import { v2 as cloudinary } from 'cloudinary';
 
-// ⚠️ IMPORTANT : ne PAS require('pdf-parse') ici (bug connu : plante au démarrage)
 const fetch = require('node-fetch');
 
 cloudinary.config();
 
-/**
- * ⚠️ Require paresseux de pdf-parse (évite le crash au chargement du module)
- */
 const parsePDF = async (buffer: Buffer) => {
   const pdfParse = require('pdf-parse');
   return await pdfParse(buffer);
 };
 
-/**
- * Génère une URL signée Cloudinary
- */
 const getDownloadUrl = (url: string): string => {
-  // ✅ Fichiers uploadés en type "upload" → PUBLICS → pas de signature nécessaire.
-  // L'ancienne implémentation signait et Cloudinary renvoyait 400.
   return url;
 };
 
-// Extraction depuis un fichier local
 export const extractText = async (filePath: string, mimeType: string): Promise<string> => {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Fichier introuvable: ${filePath}`);
@@ -34,7 +24,6 @@ export const extractText = async (filePath: string, mimeType: string): Promise<s
   return extractTextFromBuffer(buffer, mimeType);
 };
 
-// Extraction depuis une URL (Cloudinary)
 export const extractTextFromUrl = async (url: string, mimeType: string): Promise<string> => {
   try {
     const downloadUrl = getDownloadUrl(url);
@@ -54,7 +43,6 @@ export const extractTextFromUrl = async (url: string, mimeType: string): Promise
   }
 };
 
-// Extraction depuis un buffer
 export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): Promise<string> => {
   // TXT
   if (mimeType === 'text/plain' || mimeType.includes('text')) {
@@ -67,8 +55,9 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
       const data = await parsePDF(buffer);
       return data.text;
     } catch (error) {
-      console.error('❌ Erreur extraction PDF:', error);
-      return 'Impossible d\'extraire le texte du PDF.';
+      // ✅ CORRECTION : Warn au lieu de Error, et return vide
+      console.warn('⚠️ [textExtractor] Erreur extraction PDF (fichier probablement corrompu)');
+      return '';
     }
   }
 
@@ -79,8 +68,9 @@ export const extractTextFromBuffer = async (buffer: Buffer, mimeType: string): P
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     } catch (error) {
-      console.error('❌ Erreur extraction DOCX:', error);
-      return 'Impossible d\'extraire le texte du DOCX.';
+      // ✅ CORRECTION : Warn au lieu de Error, et return vide
+      console.warn('⚠️ [textExtractor] Erreur extraction DOCX (fichier probablement corrompu)');
+      return '';
     }
   }
 
