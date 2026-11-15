@@ -29,8 +29,13 @@ export const CodeMemosModal: React.FC<CodeMemosModalProps> = ({ isOpen, onClose,
     const fetchMemos = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/codes/memos`, { params: { projectId, codeName } });
-        // ✅ SÉCURITÉ : on s'assure d'avoir un tableau
+        const res = await api.get(`/codes/memos`, { 
+         params: {
+          projectId, 
+          codeName,
+          _t: Date.now() // ✅ Cache buster
+           }
+          });
         if (res.data.success && Array.isArray(res.data.memos)) {
           setMemos(res.data.memos);
         } else {

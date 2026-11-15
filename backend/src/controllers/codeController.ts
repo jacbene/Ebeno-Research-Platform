@@ -160,6 +160,11 @@ export const getCooccurrenceMatrix = async (req: Request, res: Response) => {
 
 // ✅ Récupérer les mémos d'un code
 export const getCodeMemos = async (req: Request, res: Response) => {
+  // ✅ NOUVEAU : Désactiver le cache HTTP
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   try {
     const { projectId, codeName } = req.query;
     const userId = (req as any).user?.id;
