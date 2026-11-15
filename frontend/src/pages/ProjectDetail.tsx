@@ -1274,13 +1274,26 @@ const [codeRefresh, setCodeRefresh] = useState(0);
                   <p><strong>{t('projectDetail.analysis.totalWords')} :</strong> {analysisData.totalWords}</p>
                   <p><strong>{t('projectDetail.analysis.uniqueWords')} :</strong> {analysisData.uniqueWords}</p>
                 </div>
-                <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>{t('projectDetail.analysis.wordCloudLoading')}</div>}>
-                  <WordCloudComponent
-                    words={analysisData.wordCloud || []}
-                    width={isMobile ? 350 : 600}
-                    height={isMobile ? 250 : 400}
-                  />
-                </Suspense>
+ <div style={{
+  width: '100%',
+  height: isMobile ? '250px' : '400px', // ✅ Hauteur forcée
+  backgroundColor: '#f9fafb',
+  borderRadius: '8px',
+  border: '1px dashed #e5e7eb',
+  marginBottom: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  overflow: 'hidden', // ✅ Empêche les débordements
+}}>
+  <Suspense fallback={<div style={{ padding: '20px', color: '#666' }}>Chargement du nuage...</div>}>
+    <WordCloudComponent
+      words={analysisData.wordCloud || []}
+      width={isMobile ? 350 : 600}
+      height={isMobile ? 250 : 400}
+    />
+  </Suspense>
+</div>         
                 <div style={{ marginTop: '16px' }}>
                   <h4 style={{ margin: '0 0 8px 0' }}>{t('projectDetail.analysis.keywords')}</h4>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
