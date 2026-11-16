@@ -4,14 +4,13 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
-import { deleteFromCloudinary } from '../services/cloudinaryService';
+import { uploadBuffer, deleteFile as deleteFileFromStorage } from '../services/storageService';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { logger } from '../utils/logger';
 import { getFilePreview, getFileTextForTranslation } from '../services/filePreviewService';
 import { saveFileEdit, getFileVersions } from '../services/fileEditService';
 import { restoreFileVersion } from '../services/fileEditService';
-import { uploadBufferToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le nom exact de ta fonction?
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -130,10 +129,10 @@ export const uploadGeneratedFile = async (req: Request, res: Response) => {
       // ✅ NOUVEAU : Récupérer le texte brut
       const extractedText = req.body.content || null;
 
-      const cloudinaryResult = await uploadBufferToCloudinary(
+      const cloudinaryResult = await uploadBuffer(
         file.buffer,
         `projects/${projectId}/exports`,
-        'application/pdf'
+        'application/pdf',
       );
 
       const id = Date.now().toString();
@@ -357,7 +356,7 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
     if (file.cloudinaryPublicId) {
-      try { await deleteFromCloudinary(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
+      try { await deleteFileFromStorage(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
     }
     if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
       try { fs.unlinkSync(file.filePath); } catch (err) {}
@@ -421,7 +420,7 @@ export const emptyTrash = async (req: Request, res: Response) => {
     for (const file of trashedFiles) {
       try {
         if (file.cloudinaryPublicId) {
-          try { await deleteFromCloudinary(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
+          try { await deleteFileFromStorage(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
         }
         if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
           try { fs.unlinkSync(file.filePath); } catch (err) {}

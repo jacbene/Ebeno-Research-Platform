@@ -5,7 +5,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
-import { uploadBufferToCloudinary } from '../services/cloudinaryService'; 
+import { uploadBuffer } from '../services/storageService';
 import { emitGlobal } from '../socketManager';                            
 import { logActivity } from '../services/activityService';                
 import {
@@ -347,12 +347,11 @@ export const exportConversationToProject = async (req: Request, res: Response) =
     const cleanTitle = conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const fileName = `Chat_${cleanTitle}_${Date.now()}.md`;
 
-    const cloudinaryResult = await uploadBufferToCloudinary(
+    const cloudinaryResult = await uploadBuffer(
       buffer,
       `projects/${projectId}/exports`,
-      'text/markdown' // Type MIME
+      'text/markdown',
     );
-
     // 5. Insérer dans la table project_files
     const fileId = Date.now().toString(); // Ou utilise ta fonction generateId('file')
     

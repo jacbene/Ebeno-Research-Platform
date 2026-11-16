@@ -18,6 +18,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1169.0",
+    "@aws-sdk/s3-request-presigner": "^3.1169.0",
     "@deepgram/sdk": "^5.8.0",
     "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
     "@lino_sap/campay-plugin": "^1.0.0",

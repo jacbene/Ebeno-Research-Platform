@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
 import { extractText, extractTextFromBuffer } from '../services/textExtractor';
-import { uploadToCloudinary } from '../services/cloudinaryService';
+import { uploadFromFile } from '../services/storageService';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { logger } from '../utils/logger';
@@ -76,7 +76,7 @@ export const uploadText = async (req: Request, res: Response) => {
       // 2. Uploader le fichier original vers Cloudinary
       const folder = `projects/${projectId || 'global'}/texts`;
       const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'raw';
-      const { publicId, secureUrl } = await uploadToCloudinary(filePath, folder, resourceType);
+      const { publicId, secureUrl } = await uploadFromFile(filePath, folder, resourceType);
 
       // 3. Insérer en base
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;

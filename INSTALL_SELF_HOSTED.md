@@ -21,7 +21,41 @@ Version : 2.3.0+ — Dernière mise à jour : Novembre 2026
 10. [Sauvegarde et restauration](#10-sauvegarde-et-restauration)
 11. [Mise à jour](#11-mise-à-jour)
 12. [Dépannage](#12-dépannage)
-13. [Désactiver Ollama (repasser en mode cloud)](#13-désactiver-ollama-repasser-en-mode-cloud)
+## 13. Stockage local (MinIO)
+
+Par défaut, Ebeno stocke les fichiers (PDF, DOCX, audio, exports) chez **Cloudinary** (service cloud US). Pour une **souveraineté totale**, activez **MinIO** (S3-compatible, open source, auto-hébergé).
+
+### Pourquoi MinIO ?
+
+| Critère | Cloudinary (SaaS) | MinIO (self-hosted) |
+|---|---|---|
+| Localisation données | US (par défaut) | **Votre serveur** |
+| Coût récurrent | Payant au-delà du free tier | **Gratuit** (juste le disque) |
+| RGPD / souveraineté | ⚠️ Transfert hors UE | ✅ Aucun transfert |
+| Compatibilité code | ✅ | ✅ (abstraction `storageService`) |
+
+### Activation (déjà configurée dans docker-compose.yml)
+
+MinIO est **inclus par défaut** dans `docker-compose.yml` (services `minio` + `minio-init`). Pour l'activer :
+
+```bash
+# 1. Éditer backend/.env
+nano backend/.env
+
+# 2. Changer STORAGE_PROVIDER
+STORAGE_PROVIDER=minio
+
+# 3. Personnaliser les credentials (⚠️ OBLIGATOIRE en production)
+MINIO_ACCESS_KEY=votre-cle-forte-aleatoire   # ex: openssl rand -hex 32
+MINIO_SECRET_KEY=votre-secret-fort-aleatoire  # ex: openssl rand -hex 64
+MINIO_BUCKET=ebeno-files
+
+# 4. (Optionnel) URL publique si vous avez un domaine dédié
+# MINIO_PUBLIC_URL=https://files.mon-universite.fr
+
+# 5. Redémarrer le backend
+docker compose up -d --force-recreate backend
+14. [Désactiver Ollama (repasser en mode cloud)](#13-désactiver-ollama-repasser-en-mode-cloud)
 
 ---
 

@@ -3,7 +3,7 @@
 
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
-import { uploadBufferToCloudinary } from './cloudinaryService';
+import { uploadBuffer } from './storageService';
 
 const generateId = (): string =>
   `fv-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
@@ -127,10 +127,10 @@ export const saveFileEdit = async (options: SaveEditOptions): Promise<{ version:
   }
 
   // 6. Uploader vers Cloudinary
-  const uploaded = await uploadBufferToCloudinary(
+  const uploaded = await uploadBuffer(
     newBuffer,
     `${file.projectId}/${publicIdPrefix}_v${currentVersion + 1}`,
-    newMimeType
+    newMimeType,
   );
 
   logger.info(`💾 [edit] Fichier ${fileId} édité par ${userId} → v${currentVersion + 1}`);

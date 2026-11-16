@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/knex';
-import { uploadToCloudinary } from '../services/cloudinaryService';
+import { uploadFromFile } from '../services/storageService';
 import { extractTextFromUrl } from '../services/textExtractor';
 import { detectLanguage } from '../services/languageDetectionService';
 import { logger } from '../utils/logger';
@@ -111,7 +111,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         resourceType = 'raw';
       }
 
-      const { publicId, secureUrl } = await uploadToCloudinary(file.path, folder, resourceType);
+      const { publicId, secureUrl } = await uploadFromFile(file.path, folder, resourceType);
 
       // 2bis. Détection de langue
       const language = await detectFileLanguage(secureUrl, file.mimetype);

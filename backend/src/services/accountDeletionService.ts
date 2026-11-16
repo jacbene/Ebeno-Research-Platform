@@ -4,7 +4,7 @@ import cron from 'node-cron';
 import { db } from '../db/knex';
 import { encrypt, decrypt } from './encryptionService';
 import { logger } from '../utils/logger';
-import { deleteFromCloudinary } from './cloudinaryService';
+import { deleteFile } from './storageService';
 
 const TOKEN_LENGTH = 32;
 const GRACE_PERIOD_DAYS = 30;
@@ -92,7 +92,7 @@ export const permanentlyDeleteAccount = async (userId: string): Promise<void> =>
   for (const file of files) {
     if (file.cloudinaryPublicId) {
       try {
-        await deleteFromCloudinary(file.cloudinaryPublicId);
+        await deleteFile(file.cloudinaryPublicId);
       } catch (err: any) {
         logger.warn(`⚠️ [account-deletion] Cloudinary delete failed ${file.cloudinaryPublicId}: ${err.message}`);
       }
@@ -104,7 +104,7 @@ export const permanentlyDeleteAccount = async (userId: string): Promise<void> =>
     try {
       const match = user.avatar.match(/\/([^/]+)\.[a-z]+$/i);
       if (match) {
-        await deleteFromCloudinary(`avatars/${userId}/${match[1]}`);
+        await deleteFile(`avatars/${userId}/${match[1]}`);
       }
     } catch (err: any) {
       logger.warn(`⚠️ [account-deletion] Avatar delete failed: ${err.message}`);

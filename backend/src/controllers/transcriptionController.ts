@@ -8,8 +8,7 @@ import { db } from '../db/knex';
 import { emitGlobal } from '../socketManager';
 import { logActivity } from '../services/activityService';
 import { checkAndIncrementAiQuota } from '../services/aiQuotaService';
-//import { uploadToCloudinary } from '../services/cloudinaryService'; // ✅ Vérifie le chemin de ton service
-import { uploadBufferToCloudinary } from '../services/cloudinaryService';
+import { uploadBuffer } from '../services/storageService';
 
 // ✅ Helper : vérifier que l'user est membre du projet
 const isProjectMember = async (projectId: string, userId: string): Promise<boolean> => {
@@ -85,10 +84,10 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       }
 
       // ✅ 1. UPLOAD VERS CLOUDINARY (BONNE FONCTION pour les Buffers)
-      const cloudinaryResult = await uploadBufferToCloudinary(
-        file.buffer,                          // Buffer en mémoire (multer.memoryStorage)
-        `transcriptions/${userId}`,           // Dossier Cloudinary
-        file.mimetype                         // ex: 'audio/mpeg' → sera mappé sur 'video'
+     const cloudinaryResult = await uploadBuffer(
+       file.buffer,
+       `transcriptions/${userId}`,
+       file.mimetype,
       );
 
       // ✅ 2. LANCEMENT DU TRAITEMENT AVEC L'URL CLOUDINARY

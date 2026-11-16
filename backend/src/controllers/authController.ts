@@ -3,11 +3,10 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/knex';
-import { uploadToCloudinary } from '../services/cloudinaryService';
+import { uploadFromFile } from '../services/storageService';
 import { logAuditFromReq } from '../services/auditLogService';
 import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
 import { verifyTotpCode, verifyBackupCode } from '../services/totpService';
-//import { sendVerificationEmail } from '../services/emailService';
 import {
   createVerificationToken,
   verifyEmailToken,
@@ -806,7 +805,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     const file = (req as any).file;
     if (!file) return res.status(400).json({ message: 'Aucun fichier' });
 
-    const { publicId, secureUrl } = await uploadToCloudinary(
+    const { publicId, secureUrl } = await uploadFromFile(
       file.path,
       `avatars/${userId}`,
       'image'
