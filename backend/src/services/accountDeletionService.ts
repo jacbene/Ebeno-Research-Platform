@@ -4,7 +4,7 @@ import cron from 'node-cron';
 import { db } from '../db/knex';
 import { encrypt, decrypt } from './encryptionService';
 import { logger } from '../utils/logger';
-import { deleteFile } from './storageService';
+import { deleteFile, extractLegacyStorageKey } from './storageService';
 
 const TOKEN_LENGTH = 32;
 const GRACE_PERIOD_DAYS = 30;
@@ -100,16 +100,25 @@ export const permanentlyDeleteAccount = async (userId: string): Promise<void> =>
   }
 
   // Supprimer l'avatar Cloudinary si présent
-  if (user.avatar && user.avatar.includes('cloudinary')) {
-    try {
-      const match = user.avatar.match(/\/([^/]+)\.[a-z]+$/i);
-      if (match) {
-        await deleteFile(`avatars/${userId}/${match[1]}`);
-      }
-    } catch (err: any) {
-      logger.warn(`⚠️ [account-deletion] Avatar delete failed: ${err.message}`);
-    }
+// Supprimer l'avatar (provider-agnostique + fallback legacy)
+const avatarKey =
+  (user as any).avatarKey || extractLegacyStorageKey(user.avatar || null);
+
+if (avatarKey) {
+  try {
+    await deleteFile(avatarKey);
+    logger.info(`✅ [account-deletion] Avatar supprimé: ${avatarKey}`);
+  } catch (err: any) {
+    // Non-bloquant : 404 MinIO/Cloudinary = déjà supprimé → OK
+    logger.warn(
+      `⚠️ [account-deletion] Avatar delete failed (non-blocking): ${err.message}`
+    );
   }
+} else if (user.avatar) {
+  logger.warn(
+    `⚠️ [account-deletion] Avatar présent mais clé non résolue: ${user.avatar}`
+  );
+}
 
   // 4. Suppression cascade en transaction
   await db.transaction(async (trx) => {

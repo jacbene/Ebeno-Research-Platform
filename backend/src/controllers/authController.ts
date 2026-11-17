@@ -3,7 +3,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/knex';
-import { uploadFromFile } from '../services/storageService';
+import {
+  uploadFromFile,
+  deleteFile,
+  extractLegacyStorageKey,
+} from '../services/storageService';
 import { logAuditFromReq } from '../services/auditLogService';
 import { encrypt, decrypt, hashEmail } from '../services/encryptionService';
 import { verifyTotpCode, verifyBackupCode } from '../services/totpService';
@@ -805,6 +809,12 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     const file = (req as any).file;
     if (!file) return res.status(400).json({ message: 'Aucun fichier' });
 
+    // Récupérer l'ancien avatar pour nettoyage (évite les orphelins MinIO/Cloudinary)
+    const previousUser = await db('users')
+      .select('avatar', 'avatarKey')
+      .where({ id: userId })
+      .first();
+
     const { publicId, secureUrl } = await uploadFromFile(
       file.path,
       `avatars/${userId}`,
@@ -813,7 +823,27 @@ export const uploadAvatar = async (req: Request, res: Response) => {
 
     await db('users')
       .where({ id: userId })
-      .update({ avatar: secureUrl, updatedAt: new Date().toISOString() });
+      .update({
+        avatar: secureUrl,
+        avatarKey: publicId, // ← clé persistée pour suppression future
+        updatedAt: new Date().toISOString(),
+      });
+
+    // Nettoyage non-bloquant de l'ancien avatar
+    const previousKey =
+      previousUser?.avatarKey ||
+      extractLegacyStorageKey(previousUser?.avatar || null);
+
+    if (previousKey && previousKey !== publicId) {
+      try {
+        await deleteFile(previousKey);
+        logger.info(`🗑️ [avatar] Ancien avatar supprimé: ${previousKey}`);
+      } catch (err: any) {
+        logger.warn(
+          `⚠️ [avatar] Suppression ancien avatar non-bloquante: ${err.message}`
+        );
+      }
+    }
 
     await logAuditFromReq(req, {
       userId,
@@ -821,7 +851,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       targetType: 'user',
       targetId: userId,
       status: 'success',
-      metadata: { size: file.size, mimeType: file.mimetype },
+      metadata: { size: file.size, mimeType: file.mimetype, key: publicId },
     });
 
     return res.json({
@@ -831,7 +861,9 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('❌ Erreur uploadAvatar:', error);
-    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+    return res
+      .status(500)
+      .json({ message: 'Erreur serveur', error: error.message });
   }
 };
 

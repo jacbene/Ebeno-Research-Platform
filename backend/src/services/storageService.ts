@@ -186,3 +186,42 @@ export async function pingStorage(): Promise<boolean> {
   // Cloudinary : simple vérification des variables
   return !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY);
 }
+
+// ═══════════════════════════════════════════════════════════
+// Legacy : extraction de clé depuis URL publique
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Reconstruit la clé de stockage depuis une URL publique.
+ *
+ * À utiliser UNIQUEMENT pour les fichiers uploadés AVANT l'ajout de
+ * la persistance de la clé (fallback legacy : avatars pré-v2.6).
+ * Pour tout nouvel upload, utiliser directement le `publicId` retourné
+ * par uploadFromFile/uploadBuffer.
+ *
+ * Formats supportés :
+ *   MinIO     : http://host:9000/BUCKET/avatars/USER/FILE.ext[?sig...]
+ *               → retourne avatars/USER/FILE.ext
+ *   Cloudinary: https://res.cloudinary.com/CLOUD/image/upload/v123/avatars/USER/FILE.ext
+ *               → retourne avatars/USER/FILE (sans extension = publicId Cloudinary)
+ */
+export function extractLegacyStorageKey(url: string | null): string | null {
+  if (!url) return null;
+
+  if (PROVIDER === 'minio') {
+    try {
+      const parsed = new URL(url);
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      // segments[0] = bucket (path-style), le reste = la clé
+      if (segments.length >= 2) return segments.slice(1).join('/');
+    } catch {
+      // URL malformée → fallback null
+    }
+    return null;
+  }
+
+  // Cloudinary : publicId = path sans extension
+  const match = url.match(/\/avatars\/([^/]+)\/([^/.?]+)/i);
+  if (match) return `avatars/${match[1]}/${match[2]}`;
+  return null;
+}
