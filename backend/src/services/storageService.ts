@@ -160,6 +160,81 @@ export async function deleteFile(publicId: string): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Suppression à partir d'une URL stockée en base (avatar, etc.)
+// ═══════════════════════════════════════════════════════════
+
+export interface ParsedStorageUrl {
+  provider: 'cloudinary' | 'minio';
+  key: string; // publicId Cloudinary ou clé d'objet MinIO
+}
+
+/**
+ * Extrait le publicId (Cloudinary) ou la clé d'objet (MinIO) d'une URL déjà stockée en base.
+ * Retourne null si l'URL n'est pas reconnue (URL externe, data:, vide…).
+ */
+export function parseStorageUrl(rawUrl: string): ParsedStorageUrl | null {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const value = rawUrl.trim();
+  if (!value) return null;
+
+  // Chemin nu (pas d'URL) : clé relative au provider courant
+  if (!/^https?:\/\//i.test(value)) {
+    const key = value.replace(/^\/+/, '');
+    return key ? { provider: PROVIDER, key } : null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  const path = decodeURIComponent(url.pathname);
+
+  // MinIO path-style : /<bucket>/<clé>
+  const bucket = process.env.MINIO_BUCKET || 'ebeno-files';
+  const marker = `/${bucket}/`;
+  const at = path.indexOf(marker);
+  if (at !== -1) {
+    const key = path.slice(at + marker.length);
+    return key ? { provider: 'minio', key } : null;
+  }
+
+  // Cloudinary : /<cloud>/image|video|raw/upload/[v123/]<publicId>[.ext]
+  if (/res\.cloudinary\.com$/i.test(url.hostname)) {
+    const m = path.match(/\/(?:image|video|raw)\/upload\/(?:v\d+\/)?(.+)$/);
+    if (m) {
+      return {
+        provider: 'cloudinary',
+        key: m[1].replace(/\.[a-z0-9]{1,5}$/i, ''),
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Supprime un fichier à partir de l'URL/du chemin stocké en base, quel que soit le provider
+ * qui l'a produit (nécessaire après une migration Cloudinary → MinIO).
+ * Retourne false si l'URL n'est pas reconnue (on ne supprime rien).
+ */
+export async function deleteFileByUrl(rawUrl: string): Promise<boolean> {
+  const parsed = parseStorageUrl(rawUrl);
+  if (!parsed) {
+    logger.warn(`⚠️ [storage] URL non reconnue, suppression ignorée : ${String(rawUrl).slice(0, 120)}`);
+    return false;
+  }
+  if (parsed.provider === 'minio') {
+    await deleteFromMinio(parsed.key);
+  } else {
+    await deleteFromCloudinary(parsed.key);
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
 // URL signée (MinIO uniquement — Cloudinary renvoie déjà secureUrl)
 // ═══════════════════════════════════════════════════════════
 
