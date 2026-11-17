@@ -32,7 +32,7 @@
 import 'dotenv/config';
 import path from 'path';
 import { db } from '../src/db/knex';
-import { uploadToMinio, deleteFromMinio } from '../src/services/minioService';
+import { uploadToMinio } from '../src/services/minioService';
 import { deleteFromCloudinary } from '../src/services/cloudinaryService';
 
 // ═══════════════════════════════════════════════════════════
@@ -139,8 +139,26 @@ function targetFolder(row: { publicId?: string | null; projectId?: string | null
   return row.projectId ? `projects/${row.projectId}` : row.fallback;
 }
 
+/**
+ * fetch global (Node 18+). Typé en any volontairement : le tsconfig du backend
+ * cible `lib: ES2020`, où `fetch` n'existe pas ; la déclaration globale dépend
+ * de la version de @types/node installée. On évite ainsi un « Cannot find name
+ * 'fetch' » à la compilation comme à l'exécution.
+ */
+const httpFetch = (globalThis as any).fetch as
+  | ((input: string) => Promise<{
+      ok: boolean;
+      status: number;
+      headers: { get(name: string): string | null };
+      arrayBuffer(): Promise<ArrayBuffer>;
+    }>)
+  | undefined;
+
 async function download(url: string): Promise<{ buffer: Buffer; contentType: string }> {
-  const res = await fetch(url);
+  if (!httpFetch) {
+    throw new Error('fetch indisponible : Node 18+ est requis pour télécharger les assets');
+  }
+  const res = await httpFetch(url);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} en téléchargeant ${url.slice(0, 90)}`);
   }
