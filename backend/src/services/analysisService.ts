@@ -20,7 +20,7 @@ const STOP_WORDS = new Set([
 // ✅ Fonction utilitaire pour analyser un texte
 const analyzeTextContent = (text: string) => {
   // 1. Nettoyage et tokenisation
-  const words = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
+ const words: string[] = text.toLowerCase().match(/[a-zàâäéèêëîïôöùûüÿç']+/g) || [];
   
   // 2. Filtrage des stop words et des mots trop courts
   const filteredWords = words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
