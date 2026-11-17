@@ -4,7 +4,7 @@ import cron from 'node-cron';
 import { db } from '../db/knex';
 import { encrypt, decrypt } from './encryptionService';
 import { logger } from '../utils/logger';
-import { deleteFile } from './storageService';
+import { deleteFile, deleteFileByUrl } from './storageService';
 
 const TOKEN_LENGTH = 32;
 const GRACE_PERIOD_DAYS = 30;
@@ -99,12 +99,12 @@ export const permanentlyDeleteAccount = async (userId: string): Promise<void> =>
     }
   }
 
-  // Supprimer l'avatar Cloudinary si présent
-  if (user.avatar && user.avatar.includes('cloudinary')) {
+  // Supprimer l'avatar (Cloudinary OU MinIO — le provider est déterminé par l'URL stockée)
+  if (user.avatar) {
     try {
-      const match = user.avatar.match(/\/([^/]+)\.[a-z]+$/i);
-      if (match) {
-        await deleteFile(`avatars/${userId}/${match[1]}`);
+      const deleted = await deleteFileByUrl(user.avatar);
+      if (!deleted) {
+        logger.info(`ℹ️ [account-deletion] Avatar non supprimé (URL non gérée) pour ${userId}`);
       }
     } catch (err: any) {
       logger.warn(`⚠️ [account-deletion] Avatar delete failed: ${err.message}`);
