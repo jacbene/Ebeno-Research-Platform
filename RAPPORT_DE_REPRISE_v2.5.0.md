@@ -136,3 +136,52 @@ cp backend/.env.example backend/.env
 # Éditer JWT_SECRET + STORAGE_PROVIDER=minio
 docker compose up -d
 docker compose logs -f ollama-init   # attendre "success"
+```
+
+→ Ça validera 90% des risques restants.
+
+Option B — Release GitHub v2.5.0
+
+Créer une release officielle sur GitHub pour marquer le jalon self-hosted :
+
+· https://github.com/<org>/Ebeno-Research-Platform/releases/new
+· Tag : v2.5.0-minio-storage
+· Titre : "v2.5.0 — Self-Hosted Complete"
+
+Option C — Dette technique v2.x
+
+Fix accountDeletionService.ts (avatar MinIO) + compléter INSTALL_SELF_HOSTED.md.
+
+Option D — V3 (souveraineté totale)
+
+Whisper local, SMTP, GlitchTip.
+
+---
+
+📌 7. Question de reprise (à poser au nouveau chat)
+
+Bonjour, voici le rapport de reprise pour Ebeno Research Platform v2.5.0-minio-storage.
+
+On a terminé le chantier Self-Hosted (Ollama + MinIO + Docker). Tous les services IA sont maintenant Ollama-first avec cascade DeepSeek → OpenAI. Le stockage est abstrait entre Cloudinary (SaaS) et MinIO (self-hosted).
+
+Il reste 3 priorités :
+
+1. Test end-to-end docker compose up -d sur serveur Linux (bloqué car je suis sur Android/Termux)
+2. Fix accountDeletionService.ts : avatar.includes('cloudinary') ne détecte pas MinIO
+3. Compléter INSTALL_SELF_HOSTED.md section 13 (vérification, sauvegarde, limitations)
+
+Question : par lequel commencer ? Peux-tu me guider étape par étape, fichier par fichier (comme on a fait pour les migrations Ollama/MinIO) ?
+
+---
+
+🎁 8. Bonus — modules déjà packagés
+
+· ✅ Plan Institution : Pool partagé 10 000 messages IA/mois
+· ✅ Export CSV : fonctionne
+· ✅ Export PDF : fonctionne (jsPDF + html2canvas)
+· ✅ Webhooks utilisateurs : retry worker 60s
+· ✅ PWA : installable, push VAPID
+
+---
+
+🚀 Fin du rapport
