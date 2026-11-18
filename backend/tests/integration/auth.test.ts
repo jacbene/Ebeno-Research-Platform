@@ -55,6 +55,8 @@ describe('Auth API', () => {
         .post('/api/auth/login')
         .send({ email: 'valid@test.com', password });
 
+expect(response.status).toBe(200);
+
       expect(response.status).toBe(200);
       expect(response.body.token).toBeDefined();
       expect(response.body.user).toBeDefined();

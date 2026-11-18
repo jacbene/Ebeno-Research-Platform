@@ -36,6 +36,7 @@ export const clearTestDatabase = async (): Promise<void> => {
   if (!testDb) return;
 
   const tables = [
+    'audit_log',
     'project_activity',
     'document_summaries',
     'document_entities',
@@ -58,24 +59,79 @@ export const clearTestDatabase = async (): Promise<void> => {
 };
 
 async function createTables(db: Knex): Promise<void> {
-  // users
+  // ─────────────────────────────────────────────────────────────
+  // users — schéma aligné avec src/db/migrations + login/register
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('users'))) {
     await db.schema.createTable('users', (table) => {
       table.string('id').primary();
       table.string('email').unique().notNullable();
+      table.string('emailHash').nullable();
+      table.text('emailEncrypted').nullable();
       table.string('name');
       table.string('password').notNullable();
       table.string('role').defaultTo('RESEARCHER');
       table.boolean('isVerified').defaultTo(false);
+      table.timestamp('emailVerifiedAt').nullable();
+
+      // Vérification email
       table.string('verificationToken');
       table.string('resetToken');
       table.timestamp('resetTokenExpiry');
+
+      // Profil
+      table.string('avatar').nullable();
+      table.string('avatarKey').nullable();      // v2.5.1
+      table.text('bio').nullable();
+      table.text('bioEncrypted').nullable();
+      table.string('institution').nullable();
+      table.text('institutionEncrypted').nullable();
+      table.string('language').defaultTo('fr');
+
+      // 2FA
+      table.boolean('twoFactorEnabled').defaultTo(false);
+      table.text('twoFactorSecretEncrypted').nullable();
+      table.text('twoFactorBackupCodes').nullable();
+
+      // Modération / RGPD
+      table.boolean('isSuspended').defaultTo(false);
+      table.timestamp('deletionRequestedAt').nullable();
+      table.timestamp('deletionScheduledFor').nullable();
+      table.text('deletionToken').nullable();
+      table.text('deletionReason').nullable();
+
+      // Préférences email
+      table.boolean('emailProjectMemberAdded').defaultTo(true);
+      table.boolean('emailTranscriptionComplete').defaultTo(true);
+      table.boolean('emailSummaryReady').defaultTo(true);
       table.timestamp('createdAt').defaultTo(db.fn.now());
       table.timestamp('updatedAt').defaultTo(db.fn.now());
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // audit_log — utilisé par logAuditFromReq dans chaque action auth
+  // ─────────────────────────────────────────────────────────────
+  if (!(await db.schema.hasTable('audit_log'))) {
+    await db.schema.createTable('audit_log', (table) => {
+      table.string('id').primary();
+      table.string('userId').nullable();
+      table.string('userEmail').nullable();
+      table.string('action').notNullable();
+      table.string('targetType').nullable();
+      table.string('targetId').nullable();
+      table.string('targetName').nullable();
+      table.string('status').nullable();
+      table.string('ipAddress').nullable();
+      table.string('userAgent').nullable();
+      table.text('metadata').nullable();
+      table.timestamp('createdAt').defaultTo(db.fn.now());
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // projects
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('projects'))) {
     await db.schema.createTable('projects', (table) => {
       table.string('id').primary();
@@ -89,7 +145,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // project_members
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('project_members'))) {
     await db.schema.createTable('project_members', (table) => {
       table.string('id').primary();
@@ -101,7 +159,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // memos
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('memos'))) {
     await db.schema.createTable('memos', (table) => {
       table.string('id').primary();
@@ -115,7 +175,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // project_files
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('project_files'))) {
     await db.schema.createTable('project_files', (table) => {
       table.string('id').primary();
@@ -127,12 +189,15 @@ async function createTables(db: Knex): Promise<void> {
       table.string('filePath');
       table.string('fileHash');
       table.string('cloudinaryPublicId');
+      table.text('extractedText');
       table.bigint('uploadedAt');
       table.bigint('deletedAt').nullable();
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // transcriptions
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('transcriptions'))) {
     await db.schema.createTable('transcriptions', (table) => {
       table.string('id').primary();
@@ -151,7 +216,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // document_summaries
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('document_summaries'))) {
     await db.schema.createTable('document_summaries', (table) => {
       table.string('id').primary();
@@ -163,7 +230,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // document_entities
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('document_entities'))) {
     await db.schema.createTable('document_entities', (table) => {
       table.string('id').primary();
@@ -177,7 +246,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // project_activity
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('project_activity'))) {
     await db.schema.createTable('project_activity', (table) => {
       table.string('id').primary();
@@ -193,7 +264,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // collaboration_documents
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('collaboration_documents'))) {
     await db.schema.createTable('collaboration_documents', (table) => {
       table.string('id').primary();
@@ -207,7 +280,9 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
   // suggested_codes
+  // ─────────────────────────────────────────────────────────────
   if (!(await db.schema.hasTable('suggested_codes'))) {
     await db.schema.createTable('suggested_codes', (table) => {
       table.string('id').primary();

@@ -259,7 +259,8 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
     }
     // ✅ Bloquer la connexion si le compte est suspendu
-if (user.isSuspended) {
+// APRÈS (coercition explicite — safe en prod, safe en test, safe si string "false" remonte de pg-mem)
+if (user.isSuspended === true || user.isSuspended === 1) {
   await logAuditFromReq(req, {
     userId: user.id,
     userEmail: getUserEmail(user),
@@ -294,7 +295,8 @@ if (user.isSuspended) {
  }
 
     // ✅ 2FA : si activée, on renvoie un tempToken (pas le JWT complet)
-    if (user.twoFactorEnabled) {
+    // APRÈS (pg-mem renvoie "false" string → truthy)
+    if (user.twoFactorEnabled === true || user.twoFactorEnabled === 1) {
       const tempToken = jwt.sign(
         { id: user.id, purpose: '2fa-pending' },
         TWOFA_TEMP_SECRET,
@@ -897,7 +899,7 @@ export const verify2FALogin = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    if (!user.twoFactorEnabled) {
+    if (!(user.twoFactorEnabled === true || user.twoFactorEnabled === 1)) {
       return res.status(400).json({ message: '2FA désactivée' });
     }
 
