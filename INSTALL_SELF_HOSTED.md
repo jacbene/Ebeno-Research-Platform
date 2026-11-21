@@ -603,4 +603,43 @@ Le code chatService.ts et streamService.ts gèrent automatiquement l'absence d'O
 
 ---
 
+## 15. Monitoring local (GlitchTip)
+
+Pour remplacer Sentry (SaaS) par une solution auto-hébergée, le projet inclut **GlitchTip** (clone open-source compatible avec le SDK Sentry).
+
+### 15.1 Activation
+
+1. Générer une clé secrète forte :
+   ```bash
+   openssl rand -hex 32
+2. Ajouter dans backend/.env :
+   ```bash
+   GLITCHTIP_SECRET_KEY=<la clé générée>
+   ```
+3. Démarrer la stack :
+   ```bash
+   docker compose up -d
+   ```
+4. Accéder à l'interface : http://localhost:8000
+5. Créer un compte administrateur, puis un Projet.
+6. Récupérer le DSN (Settings → Projects → [Votre Projet] → Client Keys).
+7. Mettre à jour backend/.env :
+   ```bash
+   SENTRY_DSN=<le DSN copié>
+   ```
+8. Redémarrer le backend :
+   ```bash
+   docker compose up -d --force-recreate backend
+   ```
+
+15.2 Vérification
+
+Provoquer une erreur (ex: accéder à une route inexistante) et vérifier que l'événement remonte dans l'interface GlitchTip (http://localhost:8000).
+
+15.3 Limitations
+
+GlitchTip consomme ~500 Mo de RAM (web + worker + DB + Redis). C'est le prix de la souveraineté totale.
+
+---
+
 Fin du guide — Pour toute question : contact@ebenoresearch.com

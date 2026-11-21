@@ -133,6 +133,64 @@ mailpit:
     timeout: 3s
     retries: 5
 
+# --- Monitoring Local (GlitchTip - Clone Sentry) ---
+glitchtip-db:
+  image: postgres:15-alpine
+  environment:
+    POSTGRES_USER: glitchtip
+    POSTGRES_PASSWORD: glitchtip_secret
+    POSTGRES_DB: glitchtip
+  volumes:
+    - glitchtip_db_data:/var/lib/postgresql/data
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U glitchtip -d glitchtip"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+glitchtip-redis:
+  image: redis:7-alpine
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+glitchtip-web:
+  image: glitchtip/glitchtip:latest
+  container_name: ebeno-glitchtip
+  depends_on:
+    glitchtip-db:
+      condition: service_healthy
+    glitchtip-redis:
+      condition: service_healthy
+  environment:
+    DATABASE_URL: postgres://glitchtip:glitchtip_secret@glitchtip-db:5432/glitchtip
+    REDIS_URL: redis://glitchtip-redis:6379/0
+    SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change_me_in_prod_glitchtip}
+    PORT: 8000
+    EMAIL_URL: smtp://mailpit:1025
+    GLITCHTIP_DOMAIN: http://localhost:8000
+  ports:
+    - "8000:8000"
+  restart: unless-stopped
+
+glitchtip-worker:
+  image: glitchtip/glitchtip:latest
+  command: ./bin/run-celery-with-beat.sh
+  depends_on:
+    glitchtip-db:
+      condition: service_healthy
+    glitchtip-redis:
+      condition: service_healthy
+  environment:
+    DATABASE_URL: postgres://glitchtip:glitchtip_secret@glitchtip-db:5432/glitchtip
+    REDIS_URL: redis://glitchtip-redis:6379/0
+    SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change_me_in_prod_glitchtip}
+  restart: unless-stopped
+
   # --- Backend Node.js ---
   backend:
     build: ./backend
@@ -175,6 +233,9 @@ mailpit:
         condition: service_completed_successfully
       mailpit:
         condition: service_healthy
+      # Optionnel : attendre que GlitchTip soit prêt
+        glitchtip-web:
+          condition: service_started
 
     ports:
       - "5001:5001"
@@ -194,3 +255,4 @@ volumes:
   ollama_data:
   minio_data:
   whisper_models:
+  glitchtip_db_data:
