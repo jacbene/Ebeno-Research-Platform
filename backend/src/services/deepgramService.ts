@@ -14,6 +14,7 @@ import { decrypt } from './encryptionService';
 import { canSendEmail } from './emailPreferencesService';
 import { sendTranscriptionCompleteEmail } from './emailService';
 import { transcribeWithWhisper, isWhisperConfigured } from './whisperService';
+import { transcribeWithWhisperLocal, isWhisperLocalConfigured } from './whisperLocalService';
 import { refundAiQuota } from './aiQuotaService';
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
@@ -69,6 +70,36 @@ const tryWhisperFallback = async (
     return { text: result.text, language: result.language };
   } catch (err: any) {
     logger.warn(`⚠️ [Fallback] Whisper échoué : ${err.message}`);
+    return null;
+  }
+};
+
+// ============================================================
+// ✅ WHISPER LOCAL (souveraineté totale)
+// ============================================================
+const tryWhisperLocal = async (
+  transcriptionId: string,
+  audioUrl: string
+): Promise<{ text: string; language: string | null } | null> => {
+  if (!isWhisperLocalConfigured()) return null;
+  if (!isServiceAvailable('whisper-local')) return null;
+
+  try {
+    logger.info(`🔄 [Whisper Local] Téléchargement audio pour ${transcriptionId}...`);
+
+    const response = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data);
+
+    const tempPath = path.join('/tmp', `${transcriptionId}.mp3`);
+    fs.writeFileSync(tempPath, buffer);
+
+    const result = await transcribeWithWhisperLocal(tempPath);
+
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
+    return { text: result.text, language: result.language };
+  } catch (err: any) {
+    logger.warn(`⚠️ [Whisper Local] Échoué : ${err.message}`);
     return null;
   }
 };
@@ -136,10 +167,26 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
     let provider = 'deepgram';
     let deepgramError: string | null = null;
 
-    // ============================================================
-    // ÉTAPE 1 : Deepgram (avec URL Cloudinary directement)
-    // ============================================================
-    if (DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
+// ============================================================
+// ÉTAPE 0 : Whisper Local (souveraineté totale — si configuré)
+// ============================================================
+if (isWhisperLocalConfigured()) {
+  logger.info(`🇫🇷 [Cascade] Tentative Whisper Local pour ${transcriptionId}...`);
+  const localResult = await tryWhisperLocal(transcriptionId, audioUrl);
+  if (localResult && localResult.text) {
+    transcriptText = localResult.text;
+    detectedLang = localResult.language;
+    provider = 'whisper-local';
+    logger.info(`✅ [Whisper Local] Succès : ${transcriptText.length} caractères`);
+  } else {
+    logger.info(`⏭️ [Whisper Local] Échec ou vide — bascule sur Deepgram`);
+  }
+}
+
+// ============================================================
+// ÉTAPE 1 : Deepgram (avec URL Cloudinary directement)
+// ============================================================
+if (!transcriptText && DEEPGRAM_API_KEY && isServiceAvailable(SERVICE_DEEPGRAM)) {
       try {
         logger.info(`🎙️ [Deepgram] Transcription via URL Cloudinary pour ${transcriptionId}...`);
 
@@ -181,10 +228,10 @@ export const processTranscriptionDeepgram = async (transcriptionId: string) => {
       deepgramError = 'Circuit ouvert ou clé absente';
     }
 
-    // ============================================================
-    // ÉTAPE 2 : Fallback Whisper (si Deepgram a échoué)
-    // ============================================================
-    if (!transcriptText && deepgramError) {
+// ============================================================
+// ÉTAPE 2 : Fallback OpenAI Whisper (si tout a échoué)
+// ============================================================
+if (!transcriptText && (deepgramError || isWhisperLocalConfigured())) {
       logger.info(`🔄 [Cascade] Bascule vers Whisper pour ${transcriptionId}...`);
       const whisperResult = await tryWhisperFallback(transcriptionId, audioUrl);
 

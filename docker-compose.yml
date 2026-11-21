@@ -51,6 +51,39 @@ services:
     #           count: all
     #           capabilities: [gpu]
 
+# --- Whisper Local (transcription audio souveraine) ---
+whisper:
+  image: onerahmet/openai-whisper-asr-webservice:latest
+  container_name: ebeno-whisper
+  environment:
+    - ASR_MODEL=${WHISPER_LOCAL_MODEL:-base}
+    - ASR_ENGINE=faster_whisper
+    - ASR_LANG=fr
+  volumes:
+    - whisper_models:/root/.cache/huggingface
+  ports:
+    - "9000:9000"
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:9000/docs"]
+    interval: 15s
+    timeout: 5s
+    retries: 20
+    start_period: 120s
+
+whisper-init:
+  image: onerahmet/openai-whisper-asr-webservice:latest
+  container_name: ebeno-whisper-init
+  depends_on:
+    whisper:
+      condition: service_healthy
+  entrypoint: >
+    sh -c "
+      echo '✅ Whisper Local prêt (modèle ${WHISPER_LOCAL_MODEL:-base})' &&
+      exit 0
+    "
+  restart: "no"
+
   # --- MinIO (stockage fichiers S3-compatible) ---
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
@@ -104,12 +137,18 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-ebeno-files}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      # Transcription locale (souveraineté)
+      WHISPER_LOCAL_URL: http://whisper:9000
+      WHISPER_LOCAL_MODEL: ${WHISPER_LOCAL_MODEL:-base}
+      WHISPER_LOCAL_LANG: ${WHISPER_LOCAL_LANG:-fr}
     depends_on:
       db:
         condition: service_healthy
       ollama:
         condition: service_started
       minio-init:
+        condition: service_completed_successfully
+      whisper-init:
         condition: service_completed_successfully
     ports:
       - "5001:5001"
@@ -128,3 +167,4 @@ volumes:
   ebeno_db_data:
   ollama_data:
   minio_data:
+  whisper_models:
