@@ -87,7 +87,7 @@ export const createTestFile = async (
     mimeType: overrides.mimeType || 'text/plain',
     filePath: overrides.filePath || 'https://res.cloudinary.com/test/file.txt',
     fileHash: overrides.fileHash || `hash-${Date.now()}`,
-    cloudinaryPublicId: overrides.cloudinaryPublicId || 'test-public-id',
+    storagePublicId: overrides.storagePublicId || 'test-public-id',
     uploadedAt: Date.now(),
     deletedAt: null,
   };

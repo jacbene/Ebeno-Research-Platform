@@ -99,7 +99,7 @@ export const saveFileEdit = async (options: SaveEditOptions): Promise<{ version:
       fileId,
       version: currentVersion,
       filePath: file.filePath,
-      cloudinaryPublicId: file.cloudinaryPublicId || null,
+      storagePublicId: file.storagePublicId || null,
       fileName: file.fileName,
       fileSize: file.fileSize,
       mimeType: file.mimeType,
@@ -140,7 +140,7 @@ export const saveFileEdit = async (options: SaveEditOptions): Promise<{ version:
 const newVersion = currentVersion + 1;
 await db('project_files').where({ id: fileId }).update({
   filePath: uploaded.secureUrl,
-  cloudinaryPublicId: uploaded.publicId,
+  storagePublicId: uploaded.publicId,
   fileSize: newBuffer.length,
   mimeType: newMimeType,
   version: newVersion,
@@ -153,7 +153,7 @@ await db('project_files').where({ id: fileId }).update({
     fileId,
     version: newVersion,
     filePath: uploaded.secureUrl,
-    cloudinaryPublicId: uploaded.publicId,
+    storagePublicId: uploaded.publicId,
     fileName: file.fileName,
     fileSize: newBuffer.length,
     mimeType: newMimeType,
@@ -226,7 +226,7 @@ export const restoreFileVersion = async (
   // 5. Mettre à jour project_files : pointer vers le fichier de la version cible
   await db('project_files').where({ id: fileId }).update({
     filePath: target.filePath,
-    cloudinaryPublicId: target.cloudinaryPublicId || null,
+    storagePublicId: target.storagePublicId || null,
     fileSize: target.fileSize,
     mimeType: target.mimeType,
     version: newVersion,
@@ -239,7 +239,7 @@ export const restoreFileVersion = async (
     fileId,
     version: newVersion,
     filePath: target.filePath,
-    cloudinaryPublicId: target.cloudinaryPublicId || null,
+    storagePublicId: target.storagePublicId || null,
     fileName: target.fileName,
     fileSize: target.fileSize,
     mimeType: target.mimeType,

@@ -188,7 +188,7 @@ async function createTables(db: Knex): Promise<void> {
       table.string('mimeType');
       table.string('filePath');
       table.string('fileHash');
-      table.string('cloudinaryPublicId');
+      table.string('storagePublicId');
       table.text('extractedText');
       table.bigint('uploadedAt');
       table.bigint('deletedAt').nullable();

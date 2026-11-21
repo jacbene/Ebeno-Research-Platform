@@ -144,7 +144,7 @@ export const uploadGeneratedFile = async (req: Request, res: Response) => {
         fileSize: file.size,
         mimeType: 'application/pdf',
         filePath: cloudinaryResult.secureUrl,
-        cloudinaryPublicId: cloudinaryResult.publicId,
+        storagePublicId: cloudinaryResult.publicId,
         uploadedAt: Date.now(),
         deletedAt: null,
         extractedText, // ✅ NOUVEAU
@@ -355,8 +355,8 @@ export const permanentlyDeleteFile = async (req: Request, res: Response) => {
     const file = await db('project_files').where({ id: fileId, projectId }).first();
     if (!file) return res.status(404).json({ error: 'Fichier non trouvé' });
 
-    if (file.cloudinaryPublicId) {
-      try { await deleteFileFromStorage(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
+    if (file.storagePublicId) {
+      try { await deleteFileFromStorage(file.storagePublicId); } catch (err: any) { console.warn(err.message); }
     }
     if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
       try { fs.unlinkSync(file.filePath); } catch (err) {}
@@ -419,8 +419,8 @@ export const emptyTrash = async (req: Request, res: Response) => {
 
     for (const file of trashedFiles) {
       try {
-        if (file.cloudinaryPublicId) {
-          try { await deleteFileFromStorage(file.cloudinaryPublicId); } catch (err: any) { console.warn(err.message); }
+        if (file.storagePublicId) {
+          try { await deleteFileFromStorage(file.storagePublicId); } catch (err: any) { console.warn(err.message); }
         }
         if (file.filePath && !file.filePath.startsWith('http') && fs.existsSync(file.filePath)) {
           try { fs.unlinkSync(file.filePath); } catch (err) {}

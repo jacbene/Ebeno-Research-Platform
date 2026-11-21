@@ -86,15 +86,15 @@ export const permanentlyDeleteAccount = async (userId: string): Promise<void> =>
   const files = await db('project_files')
     .whereIn('projectId', projectIds.length ? projectIds : ['__none__'])
     .orWhere({ userId })
-    .select('id', 'cloudinaryPublicId');
+    .select('id', 'storagePublicId');
 
   // Supprimer les fichiers Cloudinary
   for (const file of files) {
-    if (file.cloudinaryPublicId) {
+    if (file.storagePublicId) {
       try {
-        await deleteFile(file.cloudinaryPublicId);
+        await deleteFile(file.storagePublicId);
       } catch (err: any) {
-        logger.warn(`⚠️ [account-deletion] Cloudinary delete failed ${file.cloudinaryPublicId}: ${err.message}`);
+        logger.warn(`⚠️ [account-deletion] Cloudinary delete failed ${file.storagePublicId}: ${err.message}`);
       }
     }
   }

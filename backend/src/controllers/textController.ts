@@ -126,7 +126,7 @@ export const uploadText = async (req: Request, res: Response) => {
           message: 'Fichier texte importé avec succès',
           status: 'COMPLETED',
           fileUrl: secureUrl,
-          cloudinaryPublicId: publicId,
+          storagePublicId: publicId,
           language: detection.language,   // ✅ Retour au front pour info
         },
       });

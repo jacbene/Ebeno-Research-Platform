@@ -127,7 +127,7 @@ export const uploadFile = async (req: Request, res: Response) => {
         mimeType: file.mimetype,
         filePath: secureUrl,
         fileHash,
-        cloudinaryPublicId: publicId,
+        storagePublicId: publicId,
         language,
         uploadedAt: Date.now(),
       });
