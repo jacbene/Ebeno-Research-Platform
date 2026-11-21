@@ -3,6 +3,8 @@
 
 > Plateforme de recherche collaborative conçue pour les **Sciences Humaines et Sociales (SHS)**.  
 > Application web **monorepo** offrant une suite d'outils complète pour assister les chercheurs dans leurs projets d'analyse qualitative.
+>
+> 📘 **Guide de déploiement université (self-hosted)** : [GUIDE_DEPLOIEMENT_UNIVERSITE.md](./GUIDE_DEPLOIEMENT_UNIVERSITE.md)
 
 [![Tests](https://img.shields.io/badge/tests-52%2F52%20passing-brightgreen)]()
 [![Smoke](https://img.shields.io/badge/smoke%20test-11%2F11-brightgreen)]()
