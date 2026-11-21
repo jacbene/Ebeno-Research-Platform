@@ -1,6 +1,4 @@
-// backend/src/services/emailService.ts
-// ✅ API HTTP Brevo (port 443) + branding "Ebeno Research Platform" + 6 emails
-
+import nodemailer, { Transporter } from 'nodemailer';
 import { logger } from '../utils/logger';
 import {
   EMAIL_STRINGS,
@@ -12,12 +10,47 @@ import {
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const EMAIL_FROM = process.env.SMTP_FROM || 'Ebeno Research Platform <noreply@ebeno.com>';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+
+// ── SMTP local (souveraineté) ──
+const SMTP_HOST = process.env.SMTP_HOST || '';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASSWORD = process.env.SMTP_PASSWORD || '';
+const SMTP_TRANSPORT = SMTP_HOST ? 'smtp' : (BREVO_API_KEY ? 'brevo' : 'none');
+
+let transporter: Transporter | null = null;
+
+const getTransporter = (): Transporter | null => {
+  if (!SMTP_HOST) return null;
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      ...(SMTP_USER
+        ? { auth: { user: SMTP_USER, pass: SMTP_PASSWORD } }
+        : {}),
+      tls: { rejectUnauthorized: false },
+    });
+    logger.info(`📧 [email] Transport SMTP: ${SMTP_HOST}:${SMTP_PORT}`);
+  }
+  return transporter;
+};
+
+if (SMTP_TRANSPORT === 'smtp') {
+  logger.info(`✅ [email] SMTP configuré (${SMTP_HOST}:${SMTP_PORT}) — provider principal`);
+} else if (SMTP_TRANSPORT === 'brevo') {
+  logger.info(`✅ [email] Brevo configuré (fallback cloud)`);
+} else {
+  logger.warn('⚠️ [email] Aucun transport configuré (ni SMTP_HOST ni BREVO_API_KEY)');
+}
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 // ✅ Brand : JAMAIS traduit, JAMAIS abrégé
 const BRAND_NAME = 'Ebeno Research Platform';
 
-if (!BREVO_API_KEY) {
+if (!BREVO_API_KEY && !SMTP_HOST) {
   logger.warn('⚠️ [email] BREVO_API_KEY non configurée. Les emails ne seront pas envoyés.');
 }
 
@@ -84,6 +117,59 @@ const sendViaBrevo = async (payload: {
   }
 };
 
+// ────────────────────────────────────────────────────────────
+// ✅ SMTP LOCAL (souveraineté)
+// ────────────────────────────────────────────────────────────
+const sendViaSMTP = async (payload: {
+  to: { email: string; name?: string }[];
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  const t = getTransporter();
+  if (!t) return { success: false, error: 'SMTP non configuré' };
+
+  try {
+    const to = payload.to
+      .map((r) => (r.name ? `"${r.name}" <${r.email}>` : r.email))
+      .join(', ');
+
+    const info = await t.sendMail({
+      from: EMAIL_FROM,
+      to,
+      subject: payload.subject,
+      html: payload.htmlContent,
+      text: payload.textContent,
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        Importance: 'high',
+      },
+    });
+
+    logger.info(`✅ [email/SMTP] Envoyé à ${to} (id=${info.messageId})`);
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    logger.error(`❌ [email/SMTP] Erreur: ${err.message}`);
+    return { success: false, error: err.message };
+  }
+};
+
+// ────────────────────────────────────────────────────────────
+// ✅ DISPATCHER : SMTP en priorité, Brevo en fallback
+// ────────────────────────────────────────────────────────────
+const sendEmail = async (payload: {
+  to: { email: string; name?: string }[];
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  if (SMTP_TRANSPORT === 'smtp') {
+    return sendViaSMTP(payload);
+  }
+  return sendViaBrevo(payload);
+};
+
 const buttonStyle = `display:inline-block;background-color:#4A6CF7;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;margin:20px 0;`;
 
 // ────────────────────────────────────────────────────────────
@@ -143,8 +229,8 @@ export const sendVerificationEmail = async ({
   token,
   lang,
 }: SendVerificationParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) {
-    logger.warn(`⚠️ [email] BREVO_API_KEY manquante, email non envoyé à ${to}`);
+  if (!BREVO_API_KEY && !SMTP_HOST) {
+    logger.warn(`⚠️ [email] Aucun transport email configuré (ni SMTP ni Brevo) à ${to}`);
     return false;
   }
 
@@ -160,7 +246,7 @@ export const sendVerificationEmail = async ({
     <p style="color:#6c757d;font-size:11px;background-color:#f8f9fa;padding:10px;border-radius:6px;word-break:break-all;font-family:monospace;margin:8px 0 0 0;">${verifyUrl}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: S.verificationSubject,
     htmlContent: htmlWrapper(content, L),
@@ -192,7 +278,7 @@ export const sendPasswordResetEmail = async ({
   token,
   lang,
 }: SendPasswordResetParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -206,7 +292,7 @@ export const sendPasswordResetEmail = async ({
     <p style="color:#d63031;font-size:13px;margin:20px 0 0 0;">${S.resetWarning}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: S.resetSubject,
     htmlContent: htmlWrapper(content, L),
@@ -241,7 +327,7 @@ export const sendProjectMemberAddedEmail = async ({
   projectId,
   lang,
 }: SendProjectMemberAddedParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -255,7 +341,7 @@ export const sendProjectMemberAddedEmail = async ({
     <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.memberAddedNote}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: interpolate(S.memberAddedSubject, { project: projectName }),
     htmlContent: htmlWrapper(content, L),
@@ -290,7 +376,7 @@ export const sendTranscriptionCompleteEmail = async ({
   transcriptionId, // ✅ AJOUT
   lang,
 }: SendTranscriptionCompleteParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -305,7 +391,7 @@ export const sendTranscriptionCompleteEmail = async ({
     <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.transcriptionNote}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: interpolate(S.transcriptionSubject, { title: transcriptionTitle }),
     htmlContent: htmlWrapper(content, L),
@@ -345,7 +431,7 @@ export const sendSummaryReadyEmail = async ({
   documentType,              // ✅ AJOUT
   lang,
 }: SendSummaryReadyParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -369,7 +455,7 @@ export const sendSummaryReadyEmail = async ({
     <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.summaryNote}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: interpolate(S.summarySubject, { title: summaryTitle }),
     htmlContent: htmlWrapper(content, L),
@@ -402,7 +488,7 @@ export const sendDeletionScheduledEmail = async ({
   scheduledDate,
   lang,
 }: SendDeletionScheduledParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -431,7 +517,7 @@ export const sendDeletionScheduledEmail = async ({
     <p style="color:#6c757d;font-size:11px;background-color:#f8f9fa;padding:10px;border-radius:6px;word-break:break-all;font-family:monospace;margin:8px 0 0 0;">${cancelUrl}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
   to: [{ email: to, name }],
   subject: S.deletionSubject,
   htmlContent: htmlWrapper(content, L),
@@ -456,7 +542,7 @@ export interface SendWelcomeParams {
 }
 
 export const sendWelcomeEmail = async ({ to, name, lang }: SendWelcomeParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
   const url = `${APP_URL}/`;
@@ -468,7 +554,7 @@ export const sendWelcomeEmail = async ({ to, name, lang }: SendWelcomeParams): P
     <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${S.welcomeNote}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: S.welcomeSubject,
     htmlContent: htmlWrapper(content, L),
@@ -491,7 +577,7 @@ export interface SendSubConfirmParams {
 }
 
 export const sendSubscriptionConfirmationEmail = async ({ to, name, plan, nextDate, lang }: SendSubConfirmParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
   const url = `${APP_URL}/settings`;
@@ -503,7 +589,7 @@ export const sendSubscriptionConfirmationEmail = async ({ to, name, plan, nextDa
     <p style="color:#6c757d;font-size:13px;margin:20px 0 0 0;">${interpolate(S.subConfirmNote, { date: new Date(nextDate).toLocaleDateString('fr-FR') })}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name }],
     subject: S.subConfirmSubject,
     htmlContent: htmlWrapper(content, L),
@@ -532,7 +618,7 @@ export const sendOrgInvitationEmail = async ({
   token,
   lang,
 }: SendOrgInvitationParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -548,7 +634,7 @@ export const sendOrgInvitationEmail = async ({
     <p style="color:#6c757d;font-size:11px;background-color:#f8f9fa;padding:10px;border-radius:6px;word-break:break-all;font-family:monospace;margin:8px 0 0 0;">${inviteUrl}</p>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to }],
     subject: interpolate(S.inviteSubject, { organization: organizationName }),
     htmlContent: htmlWrapper(content, L),
@@ -577,7 +663,7 @@ export interface SendBroadcastParams {
 }
 
 export const sendBroadcastEmail = async ({ to, name, subject, message, lang }: SendBroadcastParams): Promise<boolean> => {
-  if (!BREVO_API_KEY) return false;
+  if (!BREVO_API_KEY && !SMTP_HOST) return false;
 
   const L = normalizeLang(lang);
   const S = EMAIL_STRINGS[L];
@@ -591,7 +677,7 @@ export const sendBroadcastEmail = async ({ to, name, subject, message, lang }: S
     </div>
   `;
 
-  const result = await sendViaBrevo({
+  const result = await sendEmail({
     to: [{ email: to, name: name || 'Utilisateur' }],
     subject: subject,
     htmlContent: htmlWrapper(content, L),
@@ -610,7 +696,7 @@ export const sendBroadcastEmail = async ({ to, name, subject, message, lang }: S
 // ────────────────────────────────────────────────────────────
 
 export const verifyEmailConnection = async (): Promise<void> => {
-  if (!BREVO_API_KEY) {
+  if (!BREVO_API_KEY && !SMTP_HOST) {
     logger.warn('⚠️ [email] BREVO_API_KEY non configurée — emails désactivés');
     return;
   }

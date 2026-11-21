@@ -119,6 +119,20 @@ whisper-init:
       "
     restart: "no"
 
+# --- Mailpit (SMTP local + UI web, pour dev/test souveraineté) ---
+mailpit:
+  image: axllent/mailpit:latest
+  container_name: ebeno-mailpit
+  ports:
+    - "1025:1025"   # SMTP
+    - "8025:8025"   # UI web (visualisation emails envoyés)
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+
   # --- Backend Node.js ---
   backend:
     build: ./backend
@@ -141,6 +155,15 @@ whisper-init:
       WHISPER_LOCAL_URL: http://whisper:9000
       WHISPER_LOCAL_MODEL: ${WHISPER_LOCAL_MODEL:-base}
       WHISPER_LOCAL_LANG: ${WHISPER_LOCAL_LANG:-fr}
+
+      # Email : SMTP local prioritaire, Brevo fallback
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      # SMTP_USER / SMTP_PASSWORD : laisser vides pour Mailpit (pas d'auth)
+      SMTP_FROM: ${SMTP_FROM:-Ebeno Research Platform <noreply@ebeno.local>}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+
     depends_on:
       db:
         condition: service_healthy
@@ -150,6 +173,9 @@ whisper-init:
         condition: service_completed_successfully
       whisper-init:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+
     ports:
       - "5001:5001"
     restart: unless-stopped
