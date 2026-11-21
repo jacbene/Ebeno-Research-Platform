@@ -17,7 +17,8 @@ Version courante : **v2.5.0-minio-storage**
 | Domaine | Hostinger → Render | ebenoresearch.com + www |
 | SSL | Render (auto) | ✅ |
 | Emails | Brevo | API OK |
-| Stockage | Cloudinary | Opérationnel |
+| Stockage | Cloudinar
+y | Opérationnel |
 | IA Texte | DeepSeek + OpenAI | ✅ |
 | IA Audio | Deepgram + Whisper | ✅ |
 | Monitoring | Sentry | ✅ |
@@ -411,5 +412,52 @@ Objectif V3 finale : 5/5 = 100%
 ```bash
 cd ~/Ebeno-Research-Platform
 nano RAPPORT_DE_REPRISE_v2.5.0.md
+
+---
+
+## Session 21 Nov 2026 (suite) — V3 Souveraineté 100% : SMTP + GlitchTip
+
+### ✅ Livré
+
+**1. Brique 4/5 — SMTP Auto-hébergé (`v2.5.3`)**
+- `emailService.ts` : cascade `SMTP local (nodemailer) → Brevo API`
+- `sendViaSMTP` + dispatcher `sendEmail` (10 fonctions migrées)
+- `docker-compose.yml` : service `mailpit` (SMTP + UI web dev/test)
+- Variables `.env` : `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`
+- Zero-impact SaaS (sur Render, cascade SMTP gère Brevo via port 465)
+
+**2. Brique 5/5 — GlitchTip Monitoring (`v2.5.4`)**
+- `docker-compose.yml` : services `glitchtip-web`, `glitchtip-worker`, `glitchtip-db`, `glitchtip-redis`
+- Volume `glitchtip_db_data`
+- `.env.example` : documentation `SENTRY_DSN` + `GLITCHTIP_SECRET_KEY`
+- `INSTALL_SELF_HOSTED.md` : section 15 (activation, vérification, limitations)
+- Zéro changement de code : `instrument.ts` déjà compatible SDK Sentry
+
+### 🏆 Souveraineté V3 — 100% Atteinte
+
+| Brique | Techno | Version | Statut |
+|---|---|---|---|
+| IA Texte | Ollama (llama3.1) | v2.0.0 | ✅ |
+| Stockage | MinIO | v2.5.0 | ✅ |
+| IA Audio | Whisper Local | v2.5.2 | ✅ |
+| Emails | SMTP local (Mailpit/Mailu) | v2.5.3 | ✅ |
+| Monitoring | GlitchTip | v2.5.4 | ✅ |
+
+**Architecture finale self-hosted** : 11 services Docker (db, ollama, ollama-init, minio, minio-init, whisper, whisper-init, mailpit, glitchtip-web, glitchtip-worker, glitchtip-db, glitchtip-redis, backend, frontend).
+
+### 🧪 Validation
+- ✅ `npx tsc --noEmit` : clean
+- ✅ `npm test` : 59 passed, 3 skipped, 0 failed
+- ✅ Render deploy : zero regression, SMTP Brevo relay + Sentry SaaS actifs
+- 🔵 Test E2E Docker complet : à faire sur serveur Linux (Codespaces/VPS)
+
+### 📦 Commits
+- `5948864` — feat(email): SMTP local + Brevo fallback
+- `62d6e08` — feat(monitoring): GlitchTip self-hosted (V3 5/5)
+
+### 🚧 Reste à faire
+- 🔴 **Test E2E Docker** du `docker-compose.yml` complet (bloqué sur environnement Linux)
+- 🟡 **Configuration production** : Mailu/Postfix (remplace Mailpit), DNS, certificats TLS
+- 🟢 **Documentation administrateur** : guide de déploiement université de A à Z
 
 🚀 Fin du rapport
