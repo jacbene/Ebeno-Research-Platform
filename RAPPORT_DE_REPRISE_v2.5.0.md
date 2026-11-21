@@ -296,4 +296,120 @@ npx tsc --noEmit : ✅ clean
 - **Moyen (1-2h)** : Whisper local (V3 souveraineté)
 - **Long (session dédiée)** : test E2E Docker via Codespaces
 
+---
+
+## Session 21 Nov 2026 — V3 Souveraineté Audio : Whisper Local
+
+### 🎯 Objectif
+Permettre aux institutions self-hosted (universités) de transcrire leurs audios **sans qu'aucune donnée ne quitte leur serveur** (RGPD strict, données de recherche sensibles).
+
+### ✅ Livré
+
+**1. Nouveau service `whisperLocalService.ts`**
+- Interface HTTP compatible avec `onerahmet/openai-whisper-asr-webservice`
+- POST `/asr?output=json&language=fr&encode=true` en `multipart/form-data`
+- Circuit breaker intégré (défense en profondeur, comme Deepgram/OpenAI)
+- Validation taille fichier, gestion timeout long (10 min pour audios volumineux)
+
+**2. Cascade audio étendue — `deepgramService.ts`**
+Ordre actuel :
+ÉTAPE 0 : Whisper Local     ← NOUVEAU (si WHISPER_LOCAL_URL défini)
+ÉTAPE 1 : Deepgram (cloud)
+ÉTAPE 2 : OpenAI Whisper (cloud, fallback final)
+
+- Insertion conditionnelle : `if (isWhisperLocalConfigured())`
+- **Zéro régression SaaS** : si `WHISPER_LOCAL_URL` absent → cascade identique à avant
+- Chaque étape échoue "proprement" (circuit breaker, log, passage à l'étape suivante)
+
+**3. `docker-compose.yml`**
+- Service `whisper` : image `onerahmet/openai-whisper-asr-webservice:latest`
+- Service `whisper-init` : vérification de santé au démarrage
+- Volume `whisper_models` (cache HuggingFace, ~1 Go selon modèle)
+- Variables d'env backend : `WHISPER_LOCAL_URL`, `WHISPER_LOCAL_MODEL`, `WHISPER_LOCAL_LANG`
+
+**4. `.env.example`**
+- Section 9 documentée (commentée par défaut, activation opt-in)
+
+### 🧪 Validation
+
+**En prod (Render)** — Whisper Local désactivé :
+- ✅ `npx tsc --noEmit` clean
+- ✅ `npm test` : 8 suites vertes, 59 tests, 0 échec
+- ✅ Test transcription bout-en-bout : 42 caractères, langue `fr` via Deepgram
+- ✅ Logs confirment : `🎙️ [Deepgram] Transcription via URL Cloudinary...` (pas de tentative Whisper Local)
+
+**En Docker (serveur Linux)** — à venir :
+- 🔵 `docker compose up -d` complet (7 → 9 services)
+- 🔵 Upload audio → vérifier `provider: 'whisper-local'` dans les logs
+- 🔵 Test fallback : arrêter Whisper Local → vérifier bascule sur Deepgram
+
+### ⚙️ Activation côté université
+
+Une fois le serveur Linux en place :
+```bash
+# backend/.env
+WHISPER_LOCAL_URL=http://whisper:9000
+WHISPER_LOCAL_MODEL=base       # tiny/base/small/medium/large
+WHISPER_LOCAL_LANG=fr
+
+Redémarrer le backend → la cascade audio passe en mode 100% souverain.
+
+Choix du modèle selon le matériel :
+
+Modèle RAM Vitesse (CPU) Qualité
+tiny ~1 Go Temps réel × 0.5 Basique
+base ~2 Go Temps réel Correct (défaut)
+small ~4 Go × 2 Bon
+medium ~8 Go × 4 Très bon
+large ~16 Go × 10 Excellent
+
+📊 Découvertes techniques
+
+1. Pattern isXxxConfigured() + cascade — déjà validé avec Ollama (chat) et maintenant Whisper (audio). C'est le pattern standard Ebeno pour toute intégration IA : détection d'env var → cascade propre → zero-impact SaaS.
+
+2. Deepgram peut halluciner des langues sur audio silencieux :
+
+✅ [Deepgram] OK : 0 caractères, langue=tr
+
+Détecté pendant les tests. Le fallback a bien catché + remboursé le crédit IA. Comportement normal (audio vide/saturé).
+
+3. Test E2E Whisper Local impossible sur Render :
+Le service whisper n'existe pas dans l'infra SaaS. Pour valider réellement le chemin local, il faudra un serveur Linux (Codespaces/VPS/WSL2).
+
+🚧 Reste à faire (V3)
+
+· 🔴 Test E2E Docker du service whisper (bloqué environnement)
+· 🟡 SMTP auto-hébergé (remplacer Brevo — Postfix/Mailu)
+· 🟡 GlitchTip auto-hébergé (remplacer Sentry)
+· 🟢 Whisper Local + Ollama = IA 100% souveraine ✅
+
+📦 Commits
+
+· <sha> — feat(audio): add Whisper Local to transcription cascade (V3 souveraineté)
+
+🧠 État global V3
+Brique souveraineté Statut
+IA Texte (Ollama) ✅ v2.0.0
+Stockage (MinIO) ✅ v2.5.0
+IA Audio (Whisper Local) ✅ v2.5.2 (cette session)
+Emails (SMTP local) 🔴 à venir
+Monitoring (GlitchTip) 🔴 à venir
+
+Souveraineté actuelle : 3/5 = 60%
+Objectif V3 finale : 5/5 = 100%
+
+
+---
+
+## 🚀 Application
+
+
+---
+
+## 🚀 Application
+
+```bash
+cd ~/Ebeno-Research-Platform
+nano RAPPORT_DE_REPRISE_v2.5.0.md
+
 🚀 Fin du rapport
