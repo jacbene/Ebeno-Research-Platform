@@ -1,313 +1,210 @@
-```markdown
-# 🎓 Plateforme de Recherche Ebeno
+<div align="center">
 
-> Plateforme de recherche collaborative conçue pour les **Sciences Humaines et Sociales (SHS)**.  
-> Application web **monorepo** offrant une suite d'outils complète pour assister les chercheurs dans leurs projets d'analyse qualitative.
->
-> 📘 **Guide de déploiement université (self-hosted)** : [GUIDE_DEPLOIEMENT_UNIVERSITE.md](./GUIDE_DEPLOIEMENT_UNIVERSITE.md)
+# 🎓 Ebeno Research Platform
 
-[![Tests](https://img.shields.io/badge/tests-52%2F52%20passing-brightgreen)]()
-[![Smoke](https://img.shields.io/badge/smoke%20test-11%2F11-brightgreen)]()
+**Plateforme collaborative d'analyse qualitative et de gestion de projets de recherche pour les Sciences Humaines et Sociales (SHS).**
+
+[![Tests](https://img.shields.io/badge/tests-59%20passed-brightgreen)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)]()
+[![Souveraineté](https://img.shields.io/badge/souverainet%C3%A9-100%25-success)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
+[![Docker](https://img.shields.io/badge/docker-compose%2011%20services-2496ED)]()
+
+[Documentation technique](./INSTALL_SELF_HOSTED.md) · [Guide université](./GUIDE_DEPLOIEMENT_UNIVERSITE.md) · [Signaler un bug](https://github.com/jacbene/Ebeno-Research-Platform/issues)
+
+</div>
 
 ---
 
-## ✨ Fonctionnalités principales
+## 🌍 Souveraineté 100% — Pourquoi Ebeno ?
 
-### 🔐 Authentification & Profil
-- Inscription, connexion sécurisée (JWT)
-- Gestion du profil utilisateur et **avatar personnalisé**
-- Mode **Dark / Light / System** complet
+Ebeno a été conçu dès le départ pour les institutions qui ne peuvent pas envoyer leurs données de recherche chez un cloud tiers (RGPD strict, données médicales, données sensibles).
 
-### 📁 Gestion de projets
+**Toutes les briques critiques sont auto-hébergeables** :
+
+| Brique | Technologie | Mode SaaS (Cloud) | Mode Self-Hosted (Souverain) |
+| :--- | :--- | :--- | :--- |
+| 🧠 **IA Texte** | Ollama / DeepSeek | DeepSeek / OpenAI | **Ollama** (local) |
+| 🎙️ **IA Audio** | Whisper / Deepgram | Deepgram / OpenAI | **Whisper Local** (local) |
+| 💾 **Stockage** | S3-compatible | Cloudinary | **MinIO** (local) |
+| 📧 **Emails** | SMTP | Brevo (API) | **Mailpit / Mailu** (local) |
+| 🚨 **Monitoring** | Sentry SDK | Sentry.io | **GlitchTip** (local) |
+
+> 🔒 **Résultat** : en mode self-hosted, **aucune donnée de recherche ne quitte vos serveurs**. Idéal pour les universités, laboratoires CNRS, et projets financés par l'ANR/ERC.
+
+---
+
+## ✨ Fonctionnalités Clés
+
+### 🔐 Authentification & Sécurité
+- Inscription et connexion sécurisées (JWT)
+- **Double authentification (2FA TOTP)** avec codes de secours
+- Vérification d'email obligatoire
+- Chiffrement AES des données sensibles (bio, institution)
+- Suppression de compte RGPD (art. 17) avec délai de grâce de 30 jours
+
+### 📁 Gestion de Projets
 - CRUD complet des projets de recherche
-- **Édition réservée au propriétaire** du projet
-- Sélecteur global : *Tous mes projets* ou projet spécifique
-- Ajout de **tags** aux projets
+- **Rôles granulaires** (owner, admin, member)
+- Ajout de tags, statuts, visibilité
+- Suivi d'activité en temps réel (WebSocket)
+- **Organisations** (multi-utilisateurs, quota IA partagé)
 
 ### 📄 Documents & Sources
-- Upload de documents (PDF, Word, TXT…)
-- **Stockage Cloudinary** avec **corbeille** (soft delete / restauration / suppression définitive)
-- Renommage et **téléchargement** en PDF / Word / TXT
-- **Édition collaborative** en temps réel
+- Upload multi-format (PDF, DOCX, TXT, MD)
+- **Extraction de texte** (PDF, DOCX) pour l'analyse IA
+- Corbeille avec soft-delete / restauration
+- **Édition collaborative** temps réel
+- Téléchargement réécrit (PDF / Word / TXT)
 
 ### 🎙️ Audios & Transcriptions
-- Upload de fichiers **audio et vidéo**
-- **Transcription automatique** (Deepgram)
-- Suivi du **statut des transcriptions** (4 états : pending, processing, completed, failed)
-- **Retry automatique** en cas d'échec
+- Upload audio / vidéo (MP3, WAV, MP4, M4A, WebM)
+- Transcription automatique en **cascade** (Whisper Local → Deepgram → OpenAI)
+- Suivi de statut (4 états : pending, processing, completed, failed)
+- **Retry intelligent** avec remboursement automatique de quota IA en cas d'échec
 
-### 🧠 Intelligence Artificielle
-- **Résumé IA en cascade** (avec bouton *Réessayer*)
-- Extraction d'**entités** (Personnes, Lieux, Organisations, Dates…)
-- **Circuit breakers** pour éviter le spam en cas de panne IA
-- Intégration DeepSeek pour l'assistance à l'analyse
+### 🧠 Intelligence Artificielle Souveraine
+- **Résumé IA** (cascade Ollama → DeepSeek → OpenAI)
+- **Extraction d'entités** (personnes, lieux, organisations, dates)
+- **Analyse thématique** (CAQDAS : codage manuel et suggestif)
+- **Détection de langue** automatique (99 langues)
+- **Traduction** multi-langues
+- **Chat collaboratif** avec contexte projet
 
-### 🏷️ Analyse qualitative
-- **Entités** : extraction + filtres par type + compteur d'occurrences
-- **Codes et annotations** sur documents et transcriptions
-- Nuage de mots (WordCloud) et fréquences
-- Suggestions de codes par IA
+### 📊 CAQDAS
+- Codage de segments (manuel et suggestions IA)
+- Analyse thématique de corpus
+- Export vers NVivo / Atlas.ti *(roadmap v2.6)*
 
-### 🤝 Collaboration temps réel
-- Édition collaborative synchronisée (Socket.IO)
-- **Présence** des utilisateurs (avatars colorés)
-- **Curseurs partagés** et **indicateurs de frappe**
-- **Documents collaboratifs** partagés entre chercheurs
-- Feed d'**activité récente**
-
-### 🔎 Recherche & Statistiques
-- **Recherche globale** sur tous les contenus
-- Dashboard analytique avec cartes de stats
-- Top entités, fichiers récents, projets récents
-
-### 🛡️ Fiabilité & Observabilité
-- **Rate limiting** par usage (global / auth / upload / IA)
-- **Circuit breakers** pour services externes
-- **Cache mémoire 30s** sur les stats du dashboard
-- **Health checks** : `/health`, `/health/db`, `/health/ready`, `/health/breakers`
-- **Smoke test** automatisé pour valider les déploiements
+### 📈 Statistiques & Monitoring
+- Dashboard temps réel (projets, fichiers, entités)
+- Suivi d'activité par projet
+- **Monitoring auto-hébergé** (GlitchTip)
 
 ---
 
-## 🏗️ Stack technique
+## 🏗️ Architecture
 
-### Backend
-| Composant | Technologie |
-|-----------|-------------|
-| Runtime | Node.js 20+ |
-| Framework | Express 4 |
-| Base de données | **PostgreSQL** (prod) / **SQLite** (dev/test) |
-| ORM | **Knex.js** (migrations + query builder) |
-| Temps réel | Socket.IO 4 |
-| Authentification | JWT + bcrypt |
-| Stockage fichiers | Cloudinary |
-| IA / Transcription | OpenAI, Deepgram, DeepSeek |
-| Logs | Winston |
-| Tests | Jest + Supertest |
+### Mode SaaS (Cloud) — Production actuelle
 
-### Frontend
-| Composant | Technologie |
-|-----------|-------------|
-| Framework | React 18 + TypeScript |
-| Build | Create React App (react-scripts) |
-| Routing | React Router 6 |
-| HTTP | Axios |
-| Éditeur collaboratif | Custom (Socket.IO) |
-| Export PDF | html2pdf.js (lazy-loaded) |
-| Nuage de mots | WordCloud (lazy-loaded) |
-| Thème | Context API (Light/Dark/System) |
-
----
-
-## 📁 Structure du projet
-
+```text
+Frontend (React 18)  ──▶  Backend (Node 24)  ──▶  PostgreSQL (Neon)
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+        Cloudinary        DeepSeek         Brevo
+        (stockage)          (IA)          (email)
 ```
 
-Ebeno-Research-Platform/
-├── backend/                    # API Express + Socket.IO + Knex
-│   ├── src/
-│   │   ├── config/             # knexfile, configs
-│   │   ├── controllers/        # Logique métier par domaine
-│   │   ├── db/migrations/      # Migrations Knex
-│   │   ├── middleware/         # Auth, rate limit, logger, sanitize
-│   │   ├── routes/             # Déclaration des routes
-│   │   ├── services/           # Cache, circuit breakers, cleanup
-│   │   ├── sockets/            # Handlers Socket.IO
-│   │   ├── utils/              # Logger, generateId, helpers
-│   │   └── server.ts           # Point d'entrée
-│   └── tests/                  # Jest (unit + integration)
-│
-├── frontend/                   # React + TypeScript
-│   ├── src/
-│   │   ├── components/         # UI réutilisable
-│   │   ├── context/            # Theme, Toast, Auth
-│   │   ├── hooks/              # useProjectSocket, useMediaQuery…
-│   │   ├── pages/              # Dashboard, ProjectDetail, Collaboration…
-│   │   └── services/           # API client
-│   └── public/
-│
-├── scripts/                    # Outils (smoke test…)
-│   ├── smoke-test.sh
-│   └── smoke-test.env.example
-│
-└── README.md                   # Ce fichier
+### Mode Self-Hosted (Souverain) — 11 services Docker
 
+```text
+                  Reverse Proxy (Nginx/Traefik + Let's Encrypt)
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              ▼                     ▼                     ▼
+          Frontend                Backend            PostgreSQL
+                                    │
+       ┌───────┬───────┬────────────┼────────┬────────┬─────────┐
+       ▼       ▼       ▼            ▼        ▼        ▼         ▼
+     Ollama  Whisper  MinIO       Mailpit  GlitchTip  Ollama-init
+      (IA)   (local) (stockage)   (email)  (monitor)
 ```
 
 ---
 
-## 🚀 Démarrage rapide
+## 🚀 Démarrage Rapide
 
 ### Prérequis
 
-- **Node.js** ≥ 20
-- **npm** ou **pnpm**
-- **PostgreSQL** (pour la prod ; SQLite suffit en dev)
+- **Node.js** 20+ (backend)
+- **Docker** + **Docker Compose** (self-hosted)
+- **PostgreSQL** 15+ (ou Neon en SaaS)
 
-### Installation
+### Option 1 — Mode Self-Hosted (recommandé pour les universités)
 
 ```bash
 git clone https://github.com/jacbene/Ebeno-Research-Platform.git
 cd Ebeno-Research-Platform
-
-# Backend
-cd backend && npm install
-
-# Frontend (dans un autre terminal)
-cd frontend && npm install
+cp backend/.env.example backend/.env
+nano backend/.env
+docker compose up -d
+docker compose logs -f ollama-init
 ```
 
-Configuration — backend/.env
+📘 **Guide complet** : [GUIDE_DEPLOIEMENT_UNIVERSITE.md](./GUIDE_DEPLOIEMENT_UNIVERSITE.md)
+🔧 **Référence technique** : [INSTALL_SELF_HOSTED.md](./INSTALL_SELF_HOSTED.md)
 
-Crée un fichier backend/.env :
-
-```env
-# === Base de données ===
-# Prod : PostgreSQL (Render, Supabase…)
-DATABASE_URL="postgresql://user:password@host:5432/dbname"
-# Dev : SQLite (par défaut)
-NODE_ENV=development
-
-# === Auth ===
-JWT_SECRET="votre_secret_jwt_super_long"
-
-# === Cloudinary (stockage fichiers) ===
-CLOUDINARY_CLOUD_NAME="..."
-CLOUDINARY_API_KEY="..."
-CLOUDINARY_API_SECRET="..."
-
-# === Services IA ===
-OPENAI_API_KEY="sk-..."       # Résumés IA
-DEEPGRAM_API_KEY="..."         # Transcription audio
-DEEPSEEK_API_KEY="..."         # Assistance analyse
-
-# === Application ===
-PORT=5001
-```
-
-Lancer le projet
+### Option 2 — Développement local
 
 ```bash
-# Backend (migrations automatiques au démarrage)
-cd backend
-npm run dev
-
-# Frontend (dans un autre terminal)
-cd frontend
-npm start
+cd backend && npm install && npm run dev
+cd frontend && npm install && npm run dev
 ```
-
-· API : http://localhost:5001
-· Frontend : http://localhost:3000
-· Health : http://localhost:5001/api/health
 
 ---
 
-🧪 Tests
+## 🛠️ Stack Technique
 
-Tests unitaires + intégration
+| Couche | Technologies |
+| :--- | :--- |
+| **Frontend** | React 18, Vite, TypeScript, TailwindCSS, PWA (Workbox) |
+| **Backend** | Node.js 24, Express, Knex, Socket.IO |
+| **Base de données** | PostgreSQL 15+ (Neon en SaaS, ou local) |
+| **IA Texte** | Ollama (llama3.1), DeepSeek, OpenAI |
+| **IA Audio** | Whisper Local (faster-whisper), Deepgram, OpenAI |
+| **Stockage** | MinIO (self-hosted) ou Cloudinary (SaaS) |
+| **Emails** | SMTP Local (Mailpit/Mailu) ou Brevo |
+| **Monitoring** | GlitchTip (self-hosted) ou Sentry |
+| **Tests** | Jest (unit + integration), pg-mem |
+| **CI/CD** | Render (SaaS), GitHub Actions |
+
+---
+
+## 🧪 Tests & Qualité
 
 ```bash
-cd backend
-npm test                 # Tous les tests (52 tests, ~2min)
-npm run test:unit        # Tests unitaires uniquement
-npm run test:integration # Tests d'intégration uniquement
-npm run test:coverage    # Avec rapport de couverture
+cd backend && npm test
+npx tsc --noEmit
 ```
 
-Smoke test post-déploiement
+**État actuel :**
 
-Teste l'API en production en ~15 secondes (11 checks) :
-
-```bash
-cd ~/Ebeno-Research-Platform
-./scripts/smoke-test.sh
-```
-
-Vérifie :
-
-· Health check + DB + readiness
-· Circuit breakers
-· Login (valide et invalide)
-· Auth (accès sans token)
-· Liste des projets
-· Stats dashboard + cache
-· Recherche globale
-
-Alias Termux (optionnel) :
-
-```bash
-echo "alias smoke='cd ~/Ebeno-Research-Platform && ./scripts/smoke-test.sh'" >> ~/.bashrc
-```
+- ✅ **59 tests passent** (62 total, 3 skipped)
+- ✅ **8 suites vertes** sur 9
+- ✅ **0 erreur TypeScript**
+- ✅ **Smoke test** : 11/11
 
 ---
 
-🏥 Health Checks
+## 📚 Documentation
 
-Endpoint Usage Réponse
-GET /api/health Liveness (process vivant ?) { status: 'OK', uptime }
-GET /api/health/db Test DB + latence { status: 'OK', latencyMs: 12 }
-GET /api/health/ready Readiness (Render) { ready: true, checks: {...} }
-GET /api/health/breakers État circuits IA { breakers: {...} }
-
-Configure Render Health Check Path sur /api/health/ready.
+| Document | Public | Description |
+| :--- | :--- | :--- |
+| [INSTALL_SELF_HOSTED.md](./INSTALL_SELF_HOSTED.md) | DSI / DevOps | Guide technique complet (15 sections) |
+| [GUIDE_DEPLOIEMENT_UNIVERSITE.md](./GUIDE_DEPLOIEMENT_UNIVERSITE.md) | Décideurs / VP Recherche | Business case + plan 4 semaines |
+| [RAPPORT_DE_REPRISE_v2.5.0.md](./RAPPORT_DE_REPRISE_v2.5.0.md) | Équipe dev | Rapport de session |
 
 ---
 
-🚢 Déploiement
+## 🤝 Support & Contact
 
-Backend — Render
-
-1. Web Service connecté à main
-2. Build command : npm install --include=dev && npm run build
-3. Start command : npm start
-4. Health Check Path : /api/health/ready
-5. Variables d'environnement : voir .env.example
-
-Les migrations Knex s'exécutent automatiquement au démarrage.
-
-Frontend — Render Static / Vercel / Netlify
-
-1. Build command : npm run build
-2. Publish directory : build
-3. Environment : pointer REACT_APP_API_URL vers le backend
+- 📧 **Email** : contact@ebenoresearch.com
+- 🐛 **Issues** : [GitHub Issues](https://github.com/jacbene/Ebeno-Research-Platform/issues)
+- 🏛️ **Déploiement université** : contactez-nous pour un accompagnement dédié
 
 ---
 
-🧩 Architecture & choix techniques
+## 📄 Licence
 
-Voir ARCHITECTURE.md pour :
-
-· Fonctionnement du cache de stats
-· Stratégie de migrations Knex
-· Design des circuit breakers
-· Debounce Socket.IO
-· Code splitting frontend
-· Sécurité (rate limiting, sanitize, JWT)
+**Propriétaire** — Tous droits réservés. Ce logiciel n'est pas open-source. Contactez-nous pour les modalités de licence institutionnelle.
 
 ---
 
-📝 Changelog
+<div align="center">
 
-Voir CHANGELOG.md pour l'historique des changements notables.
+**Fait avec ❤️ pour la recherche souveraine en Sciences Humaines et Sociales**
 
----
+[⬆ Retour en haut](#-ebeno-research-platform)
 
-📜 Licence
-
-Copyright (c) 2023, Entreprise Bene Mbama Jacques
-Tous droits réservés.
-
-La redistribution et l'utilisation, sous forme source et binaire, avec ou sans modification, ne sont pas autorisées sans l'accord écrit préalable du titulaire du droit d'auteur.
-
----
-
-📬 Contact
-
-· 📧 jacquesbene301@gmail.com
-· 🔗 github.com/jacbene/Ebeno-Research-Platform
-
-```
-
----
+</div>
