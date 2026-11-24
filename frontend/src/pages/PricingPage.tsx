@@ -7,7 +7,8 @@ import { PaymentModal } from '../components/PaymentModal';
 interface SelectedPlan {
   id: string;
   name: string;
-  priceXAF: number; // Note: On garde le nom de la prop pour la compatibilité avec PaymentModal, mais la valeur est en EUR
+  priceEUR: number;
+  priceXAF: number;
   paddlePriceId: string;
   paddleLabel: string;
 }
@@ -56,9 +57,12 @@ export default function PricingPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Pricing.pro.name', 'Chercheur / Doctorant')}</h3>
             <p className="mt-2 text-gray-500 dark:text-gray-400">{t('Pricing.pro.desc', 'Pour vos travaux de recherche personnels.')}</p>
-            <div className="mt-6 flex items-baseline">
-              <span className="text-4xl font-extrabold text-gray-900 dark:text-white">{t('Pricing.pro.price', '12')}</span>
-              <span className="ml-1 text-xl text-gray-500 dark:text-gray-400">{t('Pricing.pro.period', '€ / mois')}</span>
+            <div className="mt-6 flex flex-col">
+              <div className="flex items-baseline">
+                <span className="text-4xl font-extrabold text-gray-900 dark:text-white">12</span>
+                <span className="ml-1 text-xl text-gray-500 dark:text-gray-400">€ / mois</span>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">(≈ 8 000 XAF)</span>
             </div>
             <ul className="mt-8 space-y-4 flex-1 text-gray-600 dark:text-gray-300">
               <li className="flex items-center font-medium">⭐ Projets illimités</li>
@@ -71,7 +75,8 @@ export default function PricingPage() {
                 onClick={() => setSelectedPlan({
                   id: 'pro_monthly',
                   name: `${t('Pricing.pro.name', 'Chercheur')} (Mensuel)`,
-                  priceXAF: 12, // 12 €
+                  priceEUR: 12,
+                  priceXAF: 8000,
                   paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY,
                   paddleLabel: t('Pricing.pro.ctaMonthly', 'S\'abonner')
                 })}
@@ -83,7 +88,8 @@ export default function PricingPage() {
                 onClick={() => setSelectedPlan({
                   id: 'pro_yearly',
                   name: `${t('Pricing.pro.name', 'Chercheur')} (Annuel)`,
-                  priceXAF: 120, // 120 €
+                  priceEUR: 120,
+                  priceXAF: 80000,
                   paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PRO_YEARLY,
                   paddleLabel: t('Pricing.pro.ctaYearly', 'Payer annuellement (-2 mois)')
                 })}
@@ -98,9 +104,12 @@ export default function PricingPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8 flex flex-col">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Pricing.institution.name', 'Institution / Labo')}</h3>
             <p className="mt-2 text-gray-500 dark:text-gray-400">{t('Pricing.institution.desc', 'Pour les équipes de recherche.')}</p>
-            <div className="mt-6 flex items-baseline">
-              <span className="text-4xl font-extrabold text-gray-900 dark:text-white">{t('Pricing.institution.price', '99')}</span>
-              <span className="ml-1 text-xl text-gray-500 dark:text-gray-400">{t('Pricing.institution.period', '€ / mois')}</span>
+            <div className="mt-6 flex flex-col">
+              <div className="flex items-baseline">
+                <span className="text-4xl font-extrabold text-gray-900 dark:text-white">99</span>
+                <span className="ml-1 text-xl text-gray-500 dark:text-gray-400">€ / mois</span>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">(≈ 65 000 XAF)</span>
             </div>
             <ul className="mt-8 space-y-4 flex-1 text-gray-600 dark:text-gray-300">
               <li className="flex items-center">✅ 10 utilisateurs inclus</li>
@@ -125,7 +134,7 @@ export default function PricingPage() {
         {/* DISCLAIMER DE FACTURATION */}
         <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
           <p className="mb-2">
-            <strong className="text-gray-900 dark:text-white">Billing & Taxes :</strong> Prices are displayed in Euros (€). For international payments, the amount will be converted by your bank. All applicable taxes (VAT) are included or added based on your location.
+            <strong className="text-gray-900 dark:text-white">Billing & Taxes :</strong> Prices are displayed in Euros (€) or XAF. The final amount will be converted based on your chosen payment method. Our Merchant of Record handles all applicable taxes (VAT).
           </p>
           <p className="mb-2">
             <strong className="text-gray-900 dark:text-white">Auto-renewal :</strong> Subscriptions automatically renew at the end of each billing period. You can cancel at any time from your dashboard.
@@ -174,12 +183,16 @@ export default function PricingPage() {
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-            <span className="text-3xl font-extrabold text-orange-900 dark:text-orange-200">5 €</span>
+            <div className="text-center">
+              <span className="text-3xl font-extrabold text-orange-900 dark:text-orange-200 block">5 €</span>
+              <span className="text-sm text-orange-700 dark:text-orange-300">(≈ 3 300 XAF)</span>
+            </div>
             <button
               onClick={() => setSelectedPlan({
                 id: 'payg',
                 name: t('Pricing.payg.title', 'Pack de crédits'),
-                priceXAF: 5, // 5 €
+                priceEUR: 5,
+                priceXAF: 3300,
                 paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_PAYG,
                 paddleLabel: t('Pricing.payg.cta', 'Acheter')
               })}
@@ -199,8 +212,8 @@ export default function PricingPage() {
           onClose={() => setSelectedPlan(null)}
           planId={selectedPlan.id}
           planName={selectedPlan.name}
-          price={selectedPlan.priceXAF}
-          currency="EUR"
+          priceEUR={selectedPlan.priceEUR}
+          priceXAF={selectedPlan.priceXAF}
           paddlePriceId={selectedPlan.paddlePriceId}
           paddleLabel={selectedPlan.paddleLabel}
         />

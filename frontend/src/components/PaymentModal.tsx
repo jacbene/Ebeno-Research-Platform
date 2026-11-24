@@ -10,14 +10,14 @@ interface PaymentModalProps {
   onClose: () => void;
   planId: string;
   planName: string;
-  price: number; // Renommé de priceXAF à price
-  currency?: string; // 'EUR' ou 'XAF'
+  priceEUR: number;
+  priceXAF: number;
   paddlePriceId?: string;
   paddleLabel?: string;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
-  isOpen, onClose, planId, planName, price, currency = 'EUR'
+  isOpen, onClose, planId, planName, priceEUR, priceXAF
 }) => {
   const toast = useToast();
   const { t } = useTranslation();
@@ -38,11 +38,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setUssdCode(null);
 
     try {
-      // ⚠️ ATTENTION : Le backend doit convertir le prix EUR en XAF si nécessaire
+      // Le backend gère la conversion ou utilise priceXAF
       const res = await api.post('/payments/checkout', {
         planId,
         method: 'MOBILE_MONEY',
         phone,
+        amount: priceXAF // On envoie explicitement le montant XAF
       });
 
       if (res.data.success) {
@@ -67,7 +68,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleCardPay = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/payments/checkout/dodo', { planId });
+      const res = await api.post('/payments/checkout/dodo', { 
+        planId,
+        amount: priceEUR // On envoie explicitement le montant EUR
+      });
       if (res.data.success && res.data.url) {
         window.location.href = res.data.url;
       } else {
@@ -83,7 +87,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
-  const currencySymbol = currency === 'EUR' ? '€' : 'XAF';
+  // Affichage dynamique du prix selon la méthode
+  const displayPrice = method === 'MOBILE_MONEY' 
+    ? `${priceXAF.toLocaleString()} XAF` 
+    : `${priceEUR.toLocaleString()} €`;
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
@@ -95,7 +102,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 24px 0', color: '#4A6CF7' }}>
-          {price > 0 ? `${price.toLocaleString()} ${currencySymbol}` : t('Pricing.free.name')}
+          {priceEUR > 0 ? displayPrice : t('Pricing.free.name')}
         </p>
 
         {ussdCode ? (
