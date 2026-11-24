@@ -3,23 +3,24 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import { Button } from './ui/Button';
 import { useToast } from '../context/ToastContext';
-import { useTranslation } from 'react-i18next'; // ✅ AJOUT
+import { useTranslation } from 'react-i18next';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   planId: string;
   planName: string;
-  priceXAF: number;
-  paddlePriceId: string;
-  paddleLabel: string;
+  price: number; // Renommé de priceXAF à price
+  currency?: string; // 'EUR' ou 'XAF'
+  paddlePriceId?: string;
+  paddleLabel?: string;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
-  isOpen, onClose, planId, planName, priceXAF
+  isOpen, onClose, planId, planName, price, currency = 'EUR'
 }) => {
   const toast = useToast();
-  const { t } = useTranslation(); // ✅ AJOUT
+  const { t } = useTranslation();
   const [method, setMethod] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setUssdCode(null);
 
     try {
+      // ⚠️ ATTENTION : Le backend doit convertir le prix EUR en XAF si nécessaire
       const res = await api.post('/payments/checkout', {
         planId,
         method: 'MOBILE_MONEY',
@@ -81,6 +83,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
+  const currencySymbol = currency === 'EUR' ? '€' : 'XAF';
+
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
       <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '24px', maxWidth: '420px', width: '100%' }}>
@@ -91,7 +95,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 24px 0', color: '#4A6CF7' }}>
-          {priceXAF > 0 ? `${priceXAF.toLocaleString()} XAF` : t('Pricing.free.name')}
+          {price > 0 ? `${price.toLocaleString()} ${currencySymbol}` : t('Pricing.free.name')}
         </p>
 
         {ussdCode ? (
