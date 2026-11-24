@@ -28,13 +28,13 @@ import AiUsagePage from './pages/admin/AiUsagePage';
 import ModerationPage from './pages/admin/ModerationPage';
 import PricingPage from './pages/PricingPage';
 import AdminEmailPage from './pages/admin/AdminEmailPage';
+import DocumentationPage from './pages/DocumentationPage';
 
 // ============================================================
 // LAZY-LOADED PAGES
 // ============================================================
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
-//const TranscriptionPage = lazy(() => import('./pages/TranscriptionPage'));
 const TranscriptionList = lazy(() => import('./pages/TranscriptionList'));
 const CollaborationPage = lazy(() => import('./pages/CollaborationPage'));
 const TextUploadPage = lazy(() => import('./pages/TextUploadPage'));
@@ -394,6 +394,9 @@ return (
 			<Route path="/" element={
 			  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
 			} />
+			<Route path="/docs" element={<DocumentationPage />} />
+      <Route path="/docs/:slug" element={<DocumentationPage />} />
+
       {/* ✅ ROUTES PUBLIQUES (Login/Register) */}
       <Route element={<PublicOnlyRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
