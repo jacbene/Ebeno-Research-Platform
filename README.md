@@ -11,7 +11,7 @@
 [![Docker](https://img.shields.io/badge/docker-compose%2011%20services-2496ED)]()
 
 [Documentation technique](./INSTALL_SELF_HOSTED.md) · [Guide université](./GUIDE_DEPLOIEMENT_UNIVERSITE.md) · [Signaler un bug](https://github.com/jacbene/Ebeno-Research-Platform/issues)
-
+[![Site Vitrine](https://img.shields.io/badge/Site_Vitrine-Live-success)](https://showcase.ebenoresearch.com/)
 </div>
 
 ---
