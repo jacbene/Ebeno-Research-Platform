@@ -522,4 +522,53 @@ curl -X POST ".../api/webhooks/dodo" \
 curl -X POST ".../socket.io/?EIO=4&transport=polling"
 # → Bad handshake ✅
 
+---
+
+## Session 25 Nov 2026 (suite) — Réévaluation de sécurité
+
+### 📊 Contexte
+Un audit externe a réévalué les correctifs. **Résultat : 5/5 constats de contrôle d'accès corrigés et validés.**
+
+### ✅ Statut final des 8 findings
+
+| # | Faille | Statut |
+|---|---|---|
+| 1 | Dodo webhook sans signature | ✅ **Résolu** (HMAC + fail-closed) |
+| 2 | CamPay fail-open | ⚠️ **Atténué** (rejet des signatures invalides) + **checkout suspendu** |
+| 3 | Chat sans contrôle projet | ✅ **Résolu** (testé : 404 pour non-membre, 201 pour membre) |
+| 4 | Socket sans auth | ✅ **Résolu** (JWT + membership + join-room) |
+| 5 | Upload sans contrôle | ✅ **Résolu** (middleware avant stockage) |
+| 6 | SSRF webhooks | ✅ **Atténué** (ssrf-agent-guard + maxRedirects: 0) |
+| 7 | Docker ports exposés | ✅ **Atténué** (ports localhost only + secrets requis) |
+| 8 | Mémos sans contrôle | ✅ **Résolu** (middleware + test intégration) |
+
+### 🧪 Validation technique
+- **Tests** : 68 passed (12 suites), 0 failed
+- **Build backend** : ✅
+- **Build frontend** : ✅
+- **Audits dépendances** :
+  - `npm audit` (root, backend, frontend) : **0 vulnérabilité**
+  - `npm audit --omit=dev` : **0 vulnérabilité**
+  - `pnpm audit` : **0 vulnérabilité**
+
+### ⚠️ Dette technique restante
+- **CamPay (Mobile Money)** : checkout suspendu (503). En attente de :
+  - Vérification serveur du statut de paiement auprès de l'API CamPay
+  - Enregistrement local de la transaction avant activation
+  - Rapprochement idempotent (transaction unique par référence)
+  - → À reprendre dans une session dédiée "payments"
+
+### 📦 Commits
+- `0ee91bc` — fix(security): close 8 findings from security audit
+- `5b621f4` — Merge branch 'main' (CNAME)
+- `f3f25d1` — feat(pricing): switch to EUR (précédent)
+- `<new>` — docs(report): security audit 8/8 + réévaluation
+
+### 🎯 Prochaines étapes recommandées
+1. **Payments** : reprendre CamPay avec vérification serveur (priorité haute pour revenus)
+2. **Tests unitaires** `requireProjectMember` (edge cases : projet supprimé, membre retiré)
+3. **Tests de rejeu webhook** (idempotence Dodo)
+4. **Audit externe de suivi** dans 3-6 mois
+5. **Test E2E Docker** (bloqué environnement)
+
 🚀 Fin du rapport
