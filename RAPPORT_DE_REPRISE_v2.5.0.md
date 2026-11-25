@@ -460,4 +460,66 @@ nano RAPPORT_DE_REPRISE_v2.5.0.md
 - 🟡 **Configuration production** : Mailu/Postfix (remplace Mailpit), DNS, certificats TLS
 - 🟢 **Documentation administrateur** : guide de déploiement université de A à Z
 
+---
+
+## Session 25 Nov 2026 — Audit sécurité : 8/8 findings corrigés
+
+### 🛡️ Contexte
+Un audit statique externe a identifié 8 vulnérabilités (1 critique, 6 élevées, 1 moyenne) sur la plateforme. Toutes ont été corrigées et validées en production.
+
+### ✅ Corrections livrées
+
+**1. Critique — Webhook Dodo sans signature**
+- HMAC-SHA256 sur raw body (`express.raw()` avant `express.json()`)
+- `crypto.timingSafeEqual` pour éviter les timing attacks
+- Fail-closed si secret absent → `401`
+
+**2. Élevé — Webhook CamPay fail-open**
+- Vérification JWT obligatoire (refus si secret absent)
+- Fail-closed configuré
+
+**3, 5, 8. Élevés — Contrôles d'accès projet manquants**
+- Nouveau middleware `requireProjectMember` (`src/middleware/projectAuth.ts`)
+- Appliqué sur : chat, uploads, mémos
+- Retourne `404` (pas `403`) pour ne pas révéler l'existence du projet
+
+**4. Élevé — Socket collaboration sans auth**
+- Authentification JWT au handshake (`socket.handshake.auth.token`)
+- Vérification d'appartenance projet avant `join-project` et `join-document`
+- `userId` extrait du token, jamais du payload client
+- Frontend mis à jour (4 fichiers) pour envoyer le token
+
+**6. Élevé — SSRF webhooks sortants**
+- Bibliothèque `ssrf-agent-guard` (v0.1.14) sur axios
+- `maxRedirects: 0` (bloque les redirections)
+- Remplacement de `fetch` par `axios` (le `safeAgent` ne fonctionnait qu'avec axios)
+
+**7. Élevé — Docker ports exposés + secrets par défaut**
+- Ports bindés à `127.0.0.1` (ou supprimés)
+- Secrets obligatoires via `${VAR:?message}` (fail-fast au boot)
+
+### 🧪 Tests de validation (en production)
+
+```bash
+# Test 1 : Chat vers projet inexistant → 404
+curl -X POST ".../api/chat/conversations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"projectId":"projet-hacker-test"}' 
+# → 404 Projet introuvable ou accès refusé ✅
+
+# Test 2 : Chat vers son propre projet → 201
+curl -X POST ".../api/chat/conversations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"projectId":"project-1790284937983-9utsdpkc"}'
+# → 201 Created ✅
+
+# Test 3 : Webhook Dodo sans signature → 401
+curl -X POST ".../api/webhooks/dodo" \
+  -H "webhook-signature: FAUSSE"
+# → 401 Signature invalide ✅
+
+# Test 4 : Socket sans token → Bad handshake
+curl -X POST ".../socket.io/?EIO=4&transport=polling"
+# → Bad handshake ✅
+
 🚀 Fin du rapport
