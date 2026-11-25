@@ -3,8 +3,8 @@ import { Request, Response } from 'express';
 import { DodoService } from '../services/dodoService';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
+import crypto from 'crypto';
 
-// 1. Créer la session de paiement
 export const createDodoCheckout = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -33,13 +33,43 @@ export const createDodoCheckout = async (req: Request, res: Response) => {
 
 // 2. Webhook pour valider le paiement
 export const handleDodoWebhook = async (req: Request, res: Response) => {
-  try {
-    // ⚠️ Idéalement, il faut vérifier la signature avec le DODO_WEBHOOK_SECRET ici
-    // Dodo utilise la librairie 'standardwebhooks' pour ça, mais on simplifie pour l'exemple.
-    const payload = req.body;
-    const eventType = payload.type;
+  const secret = process.env.DODO_PAYMENTS_WEBHOOK_SECRET;
+  const signature = req.headers['webhook-signature'] as string;
+  
+  if (!secret) {
+    logger.error('❌ [Dodo] DODO_PAYMENTS_WEBHOOK_SECRET non configuré');
+    return res.status(500).send('Configuration manquante');
+  }
+  if (!signature) {
+    return res.status(401).send('Signature manquante');
+  }
 
-    logger.info(`🔔 [Dodo Webhook] Événement reçu : ${eventType}`);
+  // ✅ Puisque la route utilise express.raw(), req.body EST le Buffer brut
+  const rawBody = req.body;
+  if (!Buffer.isBuffer(rawBody)) {
+    return res.status(500).send('Raw body non disponible');
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('base64');
+
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+
+  if (!isValid) {
+    logger.warn('⚠️ [Dodo] Tentative de webhook avec signature invalide');
+    return res.status(401).send('Signature invalide');
+  }
+
+  try {
+    // ✅ On parse le JSON SEULEMENT après avoir vérifié la signature
+    const payload = JSON.parse(rawBody.toString());
+    const eventType = payload.type;
+    logger.info(`🔔 [Dodo Webhook] Événement validé : ${eventType}`);
 
     if (eventType === 'payment.succeeded' || eventType === 'subscription.active') {
       const metadata = payload.data?.metadata || {};
@@ -47,7 +77,6 @@ export const handleDodoWebhook = async (req: Request, res: Response) => {
       const planId = metadata.plan_id;
 
       if (userId && planId) {
-        // Mise à jour de l'abonnement en base de données
         await db('subscriptions')
           .insert({
             user_id: userId,
@@ -63,10 +92,10 @@ export const handleDodoWebhook = async (req: Request, res: Response) => {
         logger.info(`✅ Paiement Dodo validé pour user ${userId}, plan ${planId}`);
       }
     }
-
     return res.status(200).json({ received: true });
   } catch (error: any) {
     logger.error('❌ Erreur Webhook Dodo:', error);
     return res.status(500).send('Internal Server Error');
   }
 };
+

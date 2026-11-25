@@ -2,6 +2,23 @@
 import crypto from 'crypto';
 import { db } from '../db/knex';
 import { logger } from '../utils/logger';
+import ssrfAgentGuard from 'ssrf-agent-guard';
+import axios from 'axios';
+
+export const triggerWebhook = async (url: string, payload: any) => {
+  try {
+    const response = await axios.post(url, payload, {
+     httpAgent: ssrfAgentGuard(url),
+     httpsAgent: ssrfAgentGuard(url),
+      maxRedirects: 0, // Ne pas suivre les redirections
+      timeout: 5000, // 5 secondes max
+    });
+    return response.data;
+  } catch (error) {
+    // Gérer l'erreur (webhook bloqué ou échec réseau)
+    throw error;
+  }
+};
 
 export const WEBHOOK_EVENTS = [
   'project.created', 'project.updated', 'project.deleted',
@@ -61,6 +78,8 @@ const findWebhooksForEvent = async (event: WebhookEvent, projectId: string | nul
 };
 
 // ✅ NOUVELLE FONCTION D'ENVOI UNIQUE (utilisée par le worker et le trigger initial)
+// Remplace les fonctions attemptDelivery et testWebhook par celles-ci :
+
 export const attemptDelivery = async (deliveryId: string, hook: any, event: string, payload: string, attempt: number): Promise<boolean> => {
   const signature = signPayload(payload, hook.secret);
   const startTime = Date.now();
@@ -69,11 +88,8 @@ export const attemptDelivery = async (deliveryId: string, hook: any, event: stri
     const check = validateWebhookUrl(hook.url);
     if (!check.valid) throw new Error(check.reason);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT);
-
-    const response = await fetch(hook.url, {
-      method: 'POST',
+    // ✅ Utilisation d'Axios avec l'agent sécurisé au lieu de fetch
+    const response = await axios.post(hook.url, payload, {
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'Ebeno-Research-Webhook/1.0',
@@ -82,47 +98,61 @@ export const attemptDelivery = async (deliveryId: string, hook: any, event: stri
         'X-Ebeno-Delivery': deliveryId,
         'X-Ebeno-Attempt': String(attempt),
       },
-      body: payload,
-      signal: controller.signal,
+      httpAgent: ssrfAgentGuard(hook.url),
+      httpsAgent: ssrfAgentGuard(hook.url),
+      maxRedirects: 0, // ✅ Bloque les redirections malveillantes
+      timeout: DELIVERY_TIMEOUT,
     });
 
-    clearTimeout(timeout);
     const duration = Date.now() - startTime;
     const success = response.status >= 200 && response.status < 300;
 
     if (success) {
-      await db('webhook_deliveries').where({ id: deliveryId }).update({
-        statusCode: response.status, success: true, durationMs: duration, next_retry_at: null,
-      });
-      await db('webhooks').where({ id: hook.id }).update({
-        successCount: db.raw('"successCount" + 1'), lastTriggeredAt: new Date().toISOString(), lastSuccessAt: new Date().toISOString(),
-      });
-      logger.info(`✅ [webhook] ${event} → ${hook.id} (${response.status}, ${duration}ms)`);
+      // ... (garde ton code de succès existant)
       return true;
     } else {
       throw new Error(`HTTP ${response.status}`);
     }
   } catch (err: any) {
-    const duration = Date.now() - startTime;
-    const errorMsg = err.name === 'AbortError' ? 'Timeout (15s)' : err.message;
-    
-    // Planifier le prochain retry
-    const nextDelay = RETRY_DELAYS_MS[attempt - 1];
-    const nextRetryAt = nextDelay ? new Date(Date.now() + nextDelay) : null;
-    const isDead = !nextRetryAt;
+    // ... (garde ton code de gestion d'erreur existant)
+    return false;
+  }
+};
 
-    await db('webhook_deliveries').where({ id: deliveryId }).update({
-      statusCode: null, success: false, durationMs: duration, errorMessage: errorMsg,
-      attempt: attempt, next_retry_at: nextRetryAt, is_dead: isDead,
+export const testWebhook = async (hook: any) => {
+  const body = JSON.stringify({
+    event: 'webhook.test',
+    timestamp: new Date().toISOString(),
+    data: { message: 'Test from Ebeno Research Platform' },
+  });
+
+  const signature = signPayload(body, hook.secret);
+  const startTime = Date.now();
+
+  try {
+    const check = validateWebhookUrl(hook.url);
+    if (!check.valid) return { success: false, durationMs: 0, error: check.reason };
+
+    const response = await axios.post(hook.url, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Ebeno-Research-Webhook/1.0',
+        'X-Ebeno-Event': 'webhook.test',
+        'X-Ebeno-Signature': `sha256=${signature}`,
+      },
+      httpAgent: ssrfAgentGuard(hook.url),
+      httpsAgent: ssrfAgentGuard(hook.url),
+      maxRedirects: 0,
+      timeout: DELIVERY_TIMEOUT,
     });
 
-    if (isDead) {
-      await db('webhooks').where({ id: hook.id }).update({ failureCount: db.raw('"failureCount" + 1') });
-      logger.error(`❌ [webhook] ${hook.id} : échec définitif après ${attempt} tentatives`);
-    } else {
-      logger.warn(`⚠️ [webhook] ${hook.id} : échec (HTTP ${err.message}), retry prévu à ${nextRetryAt?.toISOString()}`);
-    }
-    return false;
+    return {
+      success: response.status >= 200 && response.status < 300,
+      statusCode: response.status,
+      durationMs: Date.now() - startTime,
+    };
+  } catch (err: any) {
+    return { success: false, durationMs: Date.now() - startTime, error: err.message };
   }
 };
 
@@ -159,65 +189,5 @@ const cleanupDeliveries = async (webhookId: string): Promise<void> => {
   } catch (err: any) { logger.warn(`⚠️ [webhook] cleanup: ${err.message}`); }
 };
 
-export const testWebhook = async (hook: any): Promise<{
-  success: boolean;
-  statusCode?: number;
-  durationMs: number;
-  error?: string;
-}> => {
-  const body = JSON.stringify({
-    event: 'webhook.test',
-    timestamp: new Date().toISOString(),
-    data: { message: 'Test from Ebeno Research Platform' },
-  });
-
-  const signature = signPayload(body, hook.secret);
-  const startTime = Date.now();
-
-  try {
-    const check = validateWebhookUrl(hook.url);
-    if (!check.valid) {
-      logger.warn(`🚫 [webhook] URL bloquée: ${hook.url} (${check.reason})`);
-      return {
-        success: false,
-        durationMs: 0,
-        error: check.reason,
-      };
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT);
-
-    const response = await fetch(hook.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Ebeno-Research-Webhook/1.0',
-        'X-Ebeno-Event': 'webhook.test',
-        'X-Ebeno-Signature': `sha256=${signature}`,
-      },
-      body,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-    const duration = Date.now() - startTime;
-
-    return {
-      success: response.status >= 200 && response.status < 300,
-      statusCode: response.status,
-      durationMs: duration,
-      error: response.status >= 200 && response.status < 300
-        ? undefined
-        : `HTTP ${response.status}`,
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      durationMs: Date.now() - startTime,
-      error: err.name === 'AbortError' ? 'Timeout (15s)' : err.message,
-    };
-  }
-};
 
 export default { WEBHOOK_EVENTS, generateSecret, signPayload, validateWebhookUrl, triggerWebhookEvent, testWebhook };

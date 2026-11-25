@@ -59,47 +59,36 @@ export const handleLemonSqueezyWebhook = async (req: Request, res: Response) => 
 // CAMPAY (Mobile Money)
 // ==========================================
 export const handleCamPayWebhook = async (req: Request, res: Response) => {
-  const { reference, status, external_reference, amount, operator, signature } = req.body;
-
-  // 1. Vérifier la signature JWT
+  const { reference, status, external_reference, signature } = req.body;
   const webhookSecret = process.env.CAMPAY_WEBHOOK_SECRET;
-  if (webhookSecret && signature) {
-    try {
-      jwt.verify(signature, webhookSecret);
-    } catch (err) {
-      console.error('❌ Signature webhook CamPay invalide:', err);
-      return res.status(401).send('Invalid signature');
-    }
+
+  // 1. Échouer de manière fermée (Fail-Closed) si pas de secret configuré
+  if (!webhookSecret) {
+    console.error('❌ [CamPay] CAMPAY_WEBHOOK_SECRET non configuré');
+    return res.status(500).send('Configuration serveur incomplète');
   }
 
-  // 2. Traiter le paiement si succès
+  // 2. Refuser si aucune signature n'est fournie
+  if (!signature) {
+    return res.status(401).send('Signature manquante');
+  }
+
+  // 3. Vérifier obligatoirement la signature
+  try {
+    jwt.verify(signature, webhookSecret);
+  } catch (err) {
+    console.error('❌ Signature webhook CamPay invalide:', err);
+    return res.status(401).send('Signature invalide');
+  }
+
+  // 4. Traiter le paiement (le code existant est bon)
   try {
     if (status === 'SUCCESSFUL' && external_reference) {
-      // Format attendu: "userId:planId"
-      const [userId, planId] = external_reference.split(':');
-
-      if (userId && planId) {
-        await db('subscriptions')
-          .insert({
-            user_id: userId,
-            provider: 'campay',
-            provider_subscription_id: reference,
-            plan: planId,
-            status: 'active',
-            updated_at: new Date(),
-          })
-          .onConflict('user_id')
-          .merge();
-
-        console.log(`✅ Paiement CamPay validé pour user ${userId}, plan ${planId}`);
-      }
+       // ... (garde ton code d'activation d'abonnement)
     }
-
-    // 3. Répondre 200 pour éviter les re-essais de CamPay
     res.status(200).json({ received: true });
   } catch (error) {
     console.error('❌ Erreur Webhook CamPay:', error);
     res.status(500).send('Internal Server Error');
   }
 };
-

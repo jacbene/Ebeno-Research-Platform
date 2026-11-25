@@ -41,13 +41,10 @@ export const useRealtimeNotifications = ({ currentUserId }: NotificationsOptions
     }
 
     // ✅ Connexion unique
-    const socket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling'],
-      auth: { token }, // ⭐ Le backend récupère le userId depuis le JWT
-      reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 5,
-    });
+const socket = io(API_BASE_URL, {
+  auth: { token: localStorage.getItem('authToken') }, // ✅ AJOUT
+  transports: ['websocket'],
+});
 
     socketRef.current = socket;
 

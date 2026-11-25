@@ -60,13 +60,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     const token = localStorage.getItem('authToken');
     if (!token) return;
 
-    const socket = io(`${API_URL}/chat`, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
+const socket = io(`${API_URL}/chat`, {
+  auth: { token: localStorage.getItem('authToken') }, // ✅ AJOUT
+  transports: ['websocket'],
+});
 
     socketRef.current = socket;
 

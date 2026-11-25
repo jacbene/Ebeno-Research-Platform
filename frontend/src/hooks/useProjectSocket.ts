@@ -90,12 +90,11 @@ export const useProjectSocket = ({
     if (!projectId) return;
 
     console.log('🔌 [socket] Connexion à', API_BASE_URL);
-    const socket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-    });
+
+const socket = io(API_BASE_URL, {
+  auth: { token: localStorage.getItem('authToken') }, // ✅ AJOUT
+  transports: ['websocket'],
+});
 
     socketRef.current = socket;
 

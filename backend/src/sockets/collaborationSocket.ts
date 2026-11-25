@@ -14,16 +14,14 @@ import { requireSecret } from '../config/secrets';
 
 const JWT_SECRET = requireSecret('JWT_SECRET');
 
+// ⚠️ Le userId n'est plus requis dans les payloads clients
 interface JoinPayload {
   projectId: string;
-  userId: string;
   userName: string;
-  userEmail?: string;
 }
 
 interface JoinDocPayload {
   documentId: string;
-  userId: string;
   userName: string;
   color?: string;
 }
@@ -107,23 +105,37 @@ export class CollaborationSocketHandler {
 
   private setupHandlers() {
     this.io.on('connection', (socket: Socket) => {
-      logger.info(`🔌 [socket] Connexion : ${socket.id}`);
-
-      // ✅ Auto-join des projets du user (pour notifications)
+      // ✅ 1. AUTHENTIFICATION STRICTE
       const token = socket.handshake?.auth?.token as string | undefined;
       const userIdFromToken = extractUserIdFromToken(token);
 
-      if (userIdFromToken) {
-        this.autoJoinUserProjects(socket, userIdFromToken).catch(() => {});
-      } else {
-        logger.info(`ℹ️ [socket] Pas de token — notifications désactivées pour ${socket.id}`);
+      if (!userIdFromToken) {
+        logger.warn(`❌ [socket] Connexion rejetée (token invalide/absent) : ${socket.id}`);
+        socket.disconnect(true); // Coupe la connexion immédiatement
+        return;
       }
+
+      logger.info(`🔌 [socket] Connexion authentifiée : ${socket.id} (User: ${userIdFromToken})`);
+
+      // Auto-join sécurisé
+      this.autoJoinUserProjects(socket, userIdFromToken).catch(() => {});
 
       // ---------- Rejoindre un projet ----------
       socket.on('join-project', async (payload: JoinPayload) => {
         try {
-          const { projectId, userId, userName, userEmail } = payload;
-          if (!projectId || !userId) return;
+          const { projectId, userName } = payload;
+          if (!projectId) return;
+
+          // ✅ 2. VÉRIFICATION D'AUTORISATION (Le userId vient du token, pas du client)
+          const isMember = await db('project_members')
+            .where({ projectId, userId: userIdFromToken })
+            .first();
+
+          if (!isMember) {
+            socket.emit('error', 'Accès non autorisé à ce projet');
+            logger.warn(`🚫 [socket] ${userIdFromToken} a tenté de rejoindre le projet ${projectId} sans droits`);
+            return;
+          }
 
           socket.rooms.forEach((room) => {
             if (room !== socket.id) socket.leave(room);
@@ -131,14 +143,13 @@ export class CollaborationSocketHandler {
           socket.join(`project:${projectId}`);
 
           const userInfo = addUser(projectId, socket.id, {
-            userId,
+            userId: userIdFromToken,
             userName: userName || 'Utilisateur',
-            userEmail,
           });
 
           this.userSockets.set(socket.id, {
-            userId,
-            userName,
+            userId: userIdFromToken,
+            userName: userName || 'Utilisateur',
             projectId,
             color: userInfo.color,
           });
@@ -164,8 +175,22 @@ export class CollaborationSocketHandler {
       // ---------- Rejoindre un document ----------
       socket.on('join-document', async (payload: JoinDocPayload) => {
         try {
-          const { documentId, userId, userName, color } = payload;
+          const { documentId, userName, color } = payload;
           if (!documentId) return;
+
+          // ✅ 3. VÉRIFICATION D'AUTORISATION (Appartenance au projet du document)
+          const doc = await db('collaboration_documents')
+            .join('project_members', 'collaboration_documents.projectId', 'project_members.projectId')
+            .where('collaboration_documents.id', documentId)
+            .andWhere('project_members.userId', userIdFromToken)
+            .select('collaboration_documents.*')
+            .first();
+
+          if (!doc) {
+            socket.emit('error', 'Accès non autorisé à ce document');
+            logger.warn(`🚫 [socket] ${userIdFromToken} a tenté d'accéder au doc ${documentId} sans droits`);
+            return;
+          }
 
           socket.join(`doc:${documentId}`);
 
@@ -177,30 +202,24 @@ export class CollaborationSocketHandler {
           const userColor = color || userInfo?.color || '#4ECDC4';
 
           this.documentUsers.get(documentId)!.set(socket.id, {
-            userId,
-            userName,
+            userId: userIdFromToken,
+            userName: userName || 'Utilisateur',
             color: userColor,
           });
 
-          const doc = await db('collaboration_documents')
-            .where({ id: documentId })
-            .first();
-
           socket.emit('document-content', {
-            document: doc
-              ? {
-                  id: doc.id,
-                  title: doc.title,
-                  content: doc.content || '',
-                  version: doc.version || 1,
-                  updatedAt: doc.updatedAt,
-                }
-              : { id: documentId, title: 'Document', content: '', version: 1 },
+            document: {
+              id: doc.id,
+              title: doc.title,
+              content: doc.content || '',
+              version: doc.version || 1,
+              updatedAt: doc.updatedAt,
+            },
             users: Array.from(this.documentUsers.get(documentId)!.values()),
           });
 
           socket.to(`doc:${documentId}`).emit('user-joined', {
-            userId,
+            userId: userIdFromToken,
             name: userName,
             color: userColor,
           });
@@ -241,7 +260,7 @@ export class CollaborationSocketHandler {
         try {
           const { documentId, content, cursorPosition } = payload;
           const user = this.userSockets.get(socket.id);
-          if (!user || !documentId) return;
+          if (!user || !documentId) return; // Si le user n'est pas dans le projet, on ignore
 
           socket.to(`doc:${documentId}`).emit('document-updated', {
             content,
