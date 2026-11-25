@@ -36,6 +36,9 @@ export const clearTestDatabase = async (): Promise<void> => {
   if (!testDb) return;
 
   const tables = [
+    'ai_usage',
+    'subscriptions',
+    'organization_members',
     'audit_log',
     'project_activity',
     'document_summaries',
@@ -109,6 +112,35 @@ async function createTables(db: Knex): Promise<void> {
     });
   }
 
+  if (!(await db.schema.hasTable('subscriptions'))) {
+    await db.schema.createTable('subscriptions', (table) => {
+      table.increments('id').primary();
+      table.string('user_id').references('id').inTable('users').onDelete('CASCADE');
+      table.string('plan').notNullable().defaultTo('free');
+      table.string('status').notNullable().defaultTo('active');
+    });
+  }
+
+  if (!(await db.schema.hasTable('ai_usage'))) {
+    await db.schema.createTable('ai_usage', (table) => {
+      table.increments('id').primary();
+      table.string('user_id').references('id').inTable('users').onDelete('CASCADE');
+      table.string('month').notNullable();
+      table.integer('messages_used').notNullable().defaultTo(0);
+      table.integer('bonus_credits').notNullable().defaultTo(0);
+      table.unique(['user_id', 'month']);
+    });
+  }
+
+  if (!(await db.schema.hasTable('organization_members'))) {
+    await db.schema.createTable('organization_members', (table) => {
+      table.increments('id').primary();
+      table.integer('organization_id').notNullable();
+      table.string('user_id').notNullable();
+      table.string('role').notNullable().defaultTo('member');
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────
   // audit_log — utilisé par logAuditFromReq dans chaque action auth
   // ─────────────────────────────────────────────────────────────
@@ -167,6 +199,7 @@ async function createTables(db: Knex): Promise<void> {
       table.string('id').primary();
       table.string('title').notNullable();
       table.text('content');
+      table.string('language');
       table.string('userId').notNullable();
       table.string('projectId');
       table.timestamp('createdAt').defaultTo(db.fn.now());

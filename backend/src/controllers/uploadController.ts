@@ -84,6 +84,19 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ error: 'Aucun fichier' });
 
     try {
+      const membership = await db('project_members')
+        .where({ projectId, userId })
+        .first();
+
+      if (!membership) {
+        try {
+          await fs.promises.unlink(file.path);
+        } catch (cleanupError) {
+          logger.warn(`⚠️ [upload] Nettoyage du fichier temporaire échoué: ${cleanupError}`);
+        }
+        return res.status(404).json({ error: 'Projet introuvable ou accès refusé' });
+      }
+
       // 1. Vérifier les doublons
       const existing = await db('project_files')
         .where({ projectId, fileHash })

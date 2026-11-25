@@ -4,7 +4,7 @@
 
 **Plateforme collaborative d'analyse qualitative et de gestion de projets de recherche pour les Sciences Humaines et Sociales (SHS).**
 
-[![Tests](https://img.shields.io/badge/tests-59%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-68%20passed-brightgreen)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)]()
 [![Souveraineté](https://img.shields.io/badge/souverainet%C3%A9-100%25-success)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
@@ -165,15 +165,15 @@ cd frontend && npm install && npm run dev
 
 ```bash
 cd backend && npm test
-npx tsc --noEmit
+cd .. && npm run build:backend
 ```
 
 **État actuel :**
 
-- ✅ **59 tests passent** (62 total, 3 skipped)
-- ✅ **8 suites vertes** sur 9
-- ✅ **0 erreur TypeScript**
-- ✅ **Smoke test** : 11/11
+- ✅ **68 tests passent** (68 total, aucun ignoré)
+- ✅ **12 suites vertes** sur 12
+- ✅ **Build backend TypeScript** réussi
+- ℹ️ **Smoke test API** : 11 contrôles configurés ; dernier résultat documenté 11/11, non revalidé ici
 
 ---
 

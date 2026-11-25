@@ -29,9 +29,6 @@ cat > src/services/visualizationService.ts << 'VISUALIZATION_EOF'
 // Contenu corrigé (voir ci-dessus)
 VISUALIZATION_EOF
 
-echo "🔄 Génération du client Prisma..."
-npx prisma generate
-
 echo "🧪 Test du build..."
 if npm run build; then
   echo "✅ Build réussi !"

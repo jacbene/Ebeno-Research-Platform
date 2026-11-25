@@ -96,4 +96,26 @@ describe('Files API', () => {
       expect(response.status).toBe(404);
     });
   });
+
+  describe('POST /api/upload', () => {
+    test("Refuse le téléversement dans un projet dont l'utilisateur n'est pas membre", async () => {
+      const { user, token } = await createTestUser();
+
+      const response = await request(app)
+        .post('/api/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .field('projectId', 'project-not-owned')
+        .field('fileHash', 'unauthorized-upload-hash')
+        .attach('file', Buffer.from('private document'), 'private.txt');
+
+      expect(response.status).toBe(404);
+      const { getTestDb } = await import('../helpers/db');
+      const db = getTestDb();
+      const uploadedFiles = await db('project_files').where({
+        projectId: 'project-not-owned',
+        userId: user.id,
+      });
+      expect(uploadedFiles).toHaveLength(0);
+    });
+  });
 });

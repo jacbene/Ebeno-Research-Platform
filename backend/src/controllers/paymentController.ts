@@ -1,7 +1,5 @@
 // backend/src/controllers/paymentController.ts
 import { Request, Response } from 'express';
-import { CampayService } from '../services/campayService';
-import { db } from '../db/knex'; // Ton instance Knex
 
 // Définition des prix en XAF (à ajuster selon tes tarifs exacts)
 const PLAN_PRICES_XAF: Record<string, number> = {
@@ -15,7 +13,7 @@ const PLAN_PRICES_XAF: Record<string, number> = {
 export const createCheckout = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id; // Récupéré via ton middleware 'authenticate'
-    const { planId, method, phone } = req.body;
+    const { planId, method } = req.body;
 
     if (!userId) return res.status(401).json({ error: 'Non authentifié' });
     if (!planId || !method) return res.status(400).json({ error: 'Paramètres manquants' });
@@ -24,32 +22,8 @@ export const createCheckout = async (req: Request, res: Response) => {
     if (!amount) return res.status(400).json({ error: 'Plan invalide' });
 
     if (method === 'MOBILE_MONEY') {
-      if (!phone) return res.status(400).json({ error: 'Numéro de téléphone requis' });
-
-      // Appel au service CamPay
-      const campayResponse = await CampayService.initCollect({
-        userId,
-        planId,
-        amount,
-        phone,
-      });
-
-      // Optionnel : Sauvegarder la transaction en "PENDING" dans ta DB
-      await db('transactions').insert({
-        user_id: userId,
-        provider: 'campay',
-        reference: campayResponse.reference,
-        amount: amount,
-        currency: 'XAF',
-        status: 'PENDING',
-        created_at: new Date(),
-      }).catch(() => {}); // Catch si la table n'existe pas encore
-
-      return res.json({
-        success: true,
-        method: 'MOBILE_MONEY',
-        ussdCode: campayResponse.ussdCode, // Ex: "*126#"
-        message: 'Veuillez valider le paiement sur votre téléphone.',
+      return res.status(503).json({
+        error: 'Les paiements Mobile Money sont temporairement indisponibles.',
       });
     }
 

@@ -11,8 +11,6 @@
     "build:frontend": "cd frontend && npm run build",
     "docker:up": "docker-compose -f docker-compose.dev.yml up -d",
     "docker:down": "docker-compose -f docker-compose.dev.yml down",
-    "db:migrate": "cd backend && npx prisma migrate dev",
-    "db:studio": "cd backend && npx prisma studio",
     "setup": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "api:generate-key": "echo 'Usage: TOKEN=<jwt> NAME=<key-name> npm run api:generate-key' && curl -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"name\": \"'$NAME'\", \"scopes\": [\"read\", \"write\"]}' http://localhost:5000/api/v1/keys",
@@ -21,41 +19,44 @@
     "lint-staged": "lint-staged"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@types/node-fetch": "^2.6.13",
     "@types/socket.io": "^3.0.1",
     "@types/swagger-ui-express": "^4.1.8",
-    "commitizen": "^4.3.0",
-    "concurrently": "^8.2.0",
+    "commitizen": "^4.3.2",
+    "concurrently": "^8.2.2",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "^9.0.0",
-    "lint-staged": "^15.0.0",
-    "nodemon": "^3.1.11",
-    "prettier": "^3.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.10.1",
     "swagger-ui-express": "^5.0.1",
-    "typescript": "^5.1.6",
-    "vite": "^7.3.0"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.8"
   },
   "dependencies": {
     "@draft-js-plugins/editor": "^4.1.4",
     "@draft-js-plugins/inline-toolbar": "^4.2.1",
-    "axios": "^1.13.2",
+    "axios": "^1.21.1",
     "draft-js": "^0.11.7",
-    "mammoth": "^1.12.2",
-    "multer": "^2.0.2",
-    "openai": "^6.10.0",
+    "mammoth": "^1.13.0",
+    "multer": "^2.5.0",
+    "openai": "^6.49.0",
     "pdf-parse": "^2.4.5",
-    "pg": "^8.23.0",
-    "prisma": "^6.19.0",
-    "recharts": "^3.6.0",
-    "socket.io-client": "^4.8.1",
+    "pg": "^8.23.1",
+    "recharts": "^3.11.1",
+    "socket.io-client": "^4.8.4",
     "ssrf-agent-guard": "^0.1.14"
   },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "overrides": {
+    "immutable": "3.8.4",
+    "minimatch": "11.0.9"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

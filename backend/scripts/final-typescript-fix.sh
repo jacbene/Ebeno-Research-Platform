@@ -8,9 +8,6 @@ echo "📦 Installation des dépendances manquantes..."
 npm install --save-dev @types/swagger-ui-express @types/swagger-jsdoc @types/joi @types/socket.io
 npm install joi swagger-ui-express swagger-jsdoc
 
-echo "🔧 Génération du client Prisma..."
-npx prisma generate
-
 echo "📝 Correction des imports..."
 # Remplacer les imports incorrects
 find src -name "*.ts" -type f -exec sed -i 's|from '"'"'../lib/prisma'"'"'|from '"'"'../lib/prisma'"'"'|g' {} \;

@@ -256,11 +256,23 @@ export class CollaborationSocketHandler {
       });
 
       // ---------- Édition d'un document ----------
-      socket.on('edit-document', (payload: EditDocPayload) => {
+      socket.on('edit-document', async (payload: EditDocPayload) => {
         try {
           const { documentId, content, cursorPosition } = payload;
           const user = this.userSockets.get(socket.id);
           if (!user || !documentId) return; // Si le user n'est pas dans le projet, on ignore
+          const doc = await db('collaboration_documents')
+            .join('project_members', 'collaboration_documents.projectId', 'project_members.projectId')
+            .where('collaboration_documents.id', documentId)
+            .andWhere('project_members.userId', user.userId)
+            .select('collaboration_documents.id')
+            .first();
+
+          if (!doc || !socket.rooms.has(`doc:${documentId}`)) {
+            socket.emit('error', 'Accès non autorisé à ce document');
+            logger.warn(`🚫 [socket] ${user.userId} a tenté de modifier le doc ${documentId} sans droits`);
+            return;
+          }
 
           socket.to(`doc:${documentId}`).emit('document-updated', {
             content,

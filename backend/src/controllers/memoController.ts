@@ -88,6 +88,14 @@ export const createMemo = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Titre et contenu requis' });
     }
 
+    if (projectId && typeof projectId !== 'string') {
+      return res.status(400).json({ error: 'Identifiant de projet invalide' });
+    }
+
+    if (projectId && !(await isProjectMember(projectId, userId))) {
+      return res.status(403).json({ error: "Vous n'êtes pas membre de ce projet" });
+    }
+
     const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const now = new Date().toISOString();
 
