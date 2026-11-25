@@ -49,7 +49,8 @@
     "pg": "^8.23.0",
     "prisma": "^6.19.0",
     "recharts": "^3.6.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "ssrf-agent-guard": "^0.1.14"
   },
   "config": {
     "commitizen": {

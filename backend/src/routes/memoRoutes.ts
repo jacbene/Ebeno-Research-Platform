@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getMemos, getMemoById, createMemo, updateMemo, deleteMemo } from '../controllers/memoController';
 import { authenticate } from '../middleware/auth';
+import { requireProjectMember } from '../middleware/projectAuth';
 
 const router = Router();
 

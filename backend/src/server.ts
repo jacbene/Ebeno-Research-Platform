@@ -35,7 +35,6 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import memoRoutes from './routes/memoRoutes';
 import projectRoutes from './routes/projectRoutes';
-//import deepseekRoutes from './routes/deepseekRoutes';
 import collaborationRoutes from './routes/collaborationRoutes';
 import transcriptionRoutes from './routes/transcriptionRoutes';
 import analysisRoutes from './routes/analysisRoutes';
@@ -214,7 +213,9 @@ app.post(
   handleDodoWebhook
 );
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  verify: (req: any, res, buf) => { req.rawBody = buf.toString(); }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

@@ -1,0 +1,34 @@
+import crypto from 'crypto';
+
+export const campayWebhookHandler = async (req: any, res: any) => {
+  const secret = process.env.CAMPAY_WEBHOOK_SECRET;
+  const signature = req.headers['x-campay-signature'] as string;
+
+  if (!secret) {
+    console.error('❌ [CamPay] CAMPAY_WEBHOOK_SECRET non configuré');
+    return res.status(500).send('Erreur de configuration');
+  }
+
+  if (!signature) {
+    return res.status(401).send('Signature manquante');
+  }
+
+  // CamPay utilise généralement un HMAC sur le JSON stringifié
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(req.body))
+    .digest('hex');
+
+  if (signature !== expectedSignature) {
+    return res.status(401).send('Signature invalide');
+  }
+
+  // Signature validée, on traite le paiement
+  const { status, amount, reference } = req.body;
+  
+  if (status === 'SUCCESSFUL') {
+    // Activer l'abonnement pour la référence
+  }
+
+  return res.status(200).json({ received: true });
+};
