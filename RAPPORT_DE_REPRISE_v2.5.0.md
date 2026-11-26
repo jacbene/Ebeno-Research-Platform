@@ -571,4 +571,11 @@ Un audit externe a réévalué les correctifs. **Résultat : 5/5 constats de con
 4. **Audit externe de suivi** dans 3-6 mois
 5. **Test E2E Docker** (bloqué environnement)
 
+### 💳 État des paiements (26 Nov 2026)
+
+- **Dodo Payments** : Intégration code prête. En attente de la configuration du secret `DODO_PAYMENTS_WEBHOOK_SECRET` sur Render.
+- **CamPay (Mobile Money)** : Suspendu. En attente de l'implémentation de la vérification serveur (reconciliation).
+- **Frontend** : Le feature flag `VITE_PAYMENTS_ENABLED=false` désactive la modale de paiement et affiche un message "Bientôt disponible" sur la page Tarifs.
+- **Pour activer** : Passer `VITE_PAYMENTS_ENABLED=true` dans les variables d'environnement du frontend (Render) une fois les secrets configurés.
+
 🚀 Fin du rapport
