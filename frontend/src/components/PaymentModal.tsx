@@ -19,6 +19,8 @@ interface PaymentModalProps {
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen, onClose, planId, planName, priceEUR, priceXAF
 }) => {
+  // Au début de la fonction PaymentModal
+  const PAYMENTS_ENABLED = import.meta.env.VITE_PAYMENTS_ENABLED === 'true';
   const toast = useToast();
   const { t } = useTranslation();
   const [method, setMethod] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
@@ -100,6 +102,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{planName}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
         </div>
+
+      {/* ✅ NOUVEAU : Message si paiement désactivé */}
+      {!PAYMENTS_ENABLED ? (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Paiements bientôt disponibles</h3>
+          <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+            Nous finalisons l'intégration des paiements (Carte bancaire et Mobile Money). 
+            Inscrivez-vous dès maintenant pour être notifié !
+          </p>
+          <a href="mailto:contact@ebenoresearch.com?subject=Notification%20ouverture%20paiements" className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+            Me notifier
+          </a>
+        </div>
+      ) : (
+        <>        
 
         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 24px 0', color: '#4A6CF7' }}>
           {priceEUR > 0 ? displayPrice : t('Pricing.free.name')}

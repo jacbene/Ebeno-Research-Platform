@@ -24,6 +24,12 @@ export default function PricingPage() {
           <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl">
             {t('Pricing.title', 'Tarifs simples et transparents')}
           </h2>
+<div className="max-w-2xl mx-auto mb-8 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
+  <p className="text-sm text-blue-800 dark:text-blue-200">
+    💳 <strong>Info :</strong> Les paiements en ligne (Carte / Mobile Money) seront activés prochainement. 
+    En attendant, contactez-nous pour un <a href="mailto:contact@ebenoresearch.com" className="underline">paiement manuel</a>.
+  </p>
+</div>          
           <p className="mt-4 text-xl text-gray-500 dark:text-gray-400">
             {t('Pricing.subtitle', 'Choisissez le plan qui correspond à vos besoins de recherche.')}
           </p>
