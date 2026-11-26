@@ -19,8 +19,6 @@ interface PaymentModalProps {
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen, onClose, planId, planName, priceEUR, priceXAF
 }) => {
-  // Au début de la fonction PaymentModal
-  const PAYMENTS_ENABLED = import.meta.env.VITE_PAYMENTS_ENABLED === 'true';
   const toast = useToast();
   const { t } = useTranslation();
   const [method, setMethod] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
@@ -28,7 +26,38 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [ussdCode, setUssdCode] = useState<string | null>(null);
 
+  // ✅ Feature flag : paiements DÉSACTIVÉS par défaut (fail-safe)
+  // Activer avec VITE_PAYMENTS_ENABLED=true quand Dodo/CamPay sont prêts
+  const PAYMENTS_ENABLED = import.meta.env.VITE_PAYMENTS_ENABLED === 'true';
+
   if (!isOpen) return null;
+
+  // ✅ Message "Bientôt disponible" si les paiements sont désactivés
+  if (!PAYMENTS_ENABLED) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '32px', maxWidth: '420px', width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Paiements bientôt disponibles</h3>
+          <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+            Les paiements en ligne seront activés prochainement. Contactez-nous pour un paiement manuel.
+          </p>
+          <a
+            href="mailto:contact@ebenoresearch.com?subject=Notification%20ouverture%20paiements"
+            style={{ display: 'block', width: '100%', backgroundColor: '#4A6CF7', color: '#fff', padding: '12px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', boxSizing: 'border-box' }}
+          >
+            Me notifier
+          </a>
+          <button
+            onClick={onClose}
+            style={{ marginTop: '12px', background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '14px' }}
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleMobileMoneyPay = async () => {
     if (!phone) {
@@ -40,27 +69,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setUssdCode(null);
 
     try {
-      // Le backend gère la conversion ou utilise priceXAF
       const res = await api.post('/payments/checkout', {
         planId,
         method: 'MOBILE_MONEY',
         phone,
-        amount: priceXAF // On envoie explicitement le montant XAF
+        amount: priceXAF,
       });
 
       if (res.data.success) {
         setUssdCode(res.data.ussdCode);
-        toast.addToast({ 
-          type: 'success', 
-          title: t('payment.success'), 
-          message: t('payment.successMsg') 
+        toast.addToast({
+          type: 'success',
+          title: t('payment.success'),
+          message: t('payment.successMsg')
         });
       }
     } catch (err: any) {
-      toast.addToast({ 
-        type: 'error', 
-        title: t('common.error'), 
-        message: err.response?.data?.error || t('payment.error') 
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: err.response?.data?.error || t('payment.error')
       });
     } finally {
       setLoading(false);
@@ -70,9 +98,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleCardPay = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/payments/checkout/dodo', { 
+      const res = await api.post('/payments/checkout/dodo', {
         planId,
-        amount: priceEUR // On envoie explicitement le montant EUR
+        amount: priceEUR
       });
       if (res.data.success && res.data.url) {
         window.location.href = res.data.url;
@@ -80,18 +108,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error('URL invalide');
       }
     } catch (err: any) {
-      toast.addToast({ 
-        type: 'error', 
-        title: t('common.error'), 
-        message: err.response?.data?.error || t('payment.errorMsg') 
+      toast.addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: err.response?.data?.error || t('payment.errorMsg')
       });
       setLoading(false);
     }
   };
 
-  // Affichage dynamique du prix selon la méthode
-  const displayPrice = method === 'MOBILE_MONEY' 
-    ? `${priceXAF.toLocaleString()} XAF` 
+  const displayPrice = method === 'MOBILE_MONEY'
+    ? `${priceXAF.toLocaleString()} XAF`
     : `${priceEUR.toLocaleString()} €`;
 
   return (
@@ -102,23 +129,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{planName}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
         </div>
-
-      {/* ✅ NOUVEAU : Message si paiement désactivé */}
-      {!PAYMENTS_ENABLED ? (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
-          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Paiements bientôt disponibles</h3>
-          <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
-            Nous finalisons l'intégration des paiements (Carte bancaire et Mobile Money). 
-            Inscrivez-vous dès maintenant pour être notifié !
-          </p>
-          <a href="mailto:contact@ebenoresearch.com?subject=Notification%20ouverture%20paiements" className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-            Me notifier
-          </a>
-        </div>
-      ) : (
-        <>        
-
+      
         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 24px 0', color: '#4A6CF7' }}>
           {priceEUR > 0 ? displayPrice : t('Pricing.free.name')}
         </p>
