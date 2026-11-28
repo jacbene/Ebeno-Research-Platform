@@ -17,7 +17,7 @@ const PrivacyPage: React.FC = () => {
               <strong className="text-gray-900 dark:text-white">Ebeno Research Platform</strong><br />
               Jacques Bene Mbama<br />
               Localisation : Cameroun<br />
-              Contact : <a href="mailto:jacquesbene301@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">jacquesbene301@gmail.com</a>
+              Contact : <a href="mailto:contact@ebenoresearch.com" className="text-blue-600 dark:text-blue-400 hover:underline">contact@ebenoresearch.com</a>
             </p>
           </section>
 
@@ -52,7 +52,7 @@ const PrivacyPage: React.FC = () => {
             </ul>
             <p className="mt-2">
               Pour exercer ces droits, contactez-nous à : 
-              <a href="mailto:jacquesbene301@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline"> jacquesbene301@gmail.com</a>
+              <a href="mailto:contact@ebenoresearch.com" className="text-blue-600 dark:text-blue-400 hover:underline"> contact@ebenoresearch.com</a>
             </p>
           </section>
 

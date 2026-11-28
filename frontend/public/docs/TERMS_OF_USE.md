@@ -50,4 +50,4 @@ Nous pouvons modifier ces CGU à tout moment. Les utilisateurs seront notifiés 
 
 ## 9. Contact
 
-Pour toute question relative à ces Conditions Générales d'Utilisation, veuillez nous contacter à l'adresse suivante : [jacquesbene301@gmail.com](mailto:jacquesbene301@gmail.com).
+Pour toute question relative à ces Conditions Générales d'Utilisation, veuillez nous contacter à l'adresse suivante : [contact@ebenoresearch.com](mailto:contact@ebenoresearch.com).

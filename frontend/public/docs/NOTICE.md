@@ -12,5 +12,5 @@ Ce projet est une propriété intellectuelle de l'entité et de l'individu list�
 
 Pour toute question ou demande commerciale, veuillez utiliser les coordonnées suivantes :
 
--   **Email :** [jacquesbene301@gmail.com](mailto:jacquesbene301@gmail.com)
+-   **Email :** [contact@ebenoresearch.com](mailto:contact@ebenoresearch.com)
 -   **Téléphone :** +237 656454053

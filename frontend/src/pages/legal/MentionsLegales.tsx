@@ -19,7 +19,7 @@ const MentionsLegales: React.FC = () => {
               Jacques Bene Mbama<br />
               Statut : Entrepreneur individuel (Sole Trader)<br />
               Localisation : Cameroun<br />
-              Email : <a href="mailto:jacquesbene301@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">jacquesbene301@gmail.com</a>
+              Email : <a href="mailto:contact@ebenoresearch.com" className="text-blue-600 dark:text-blue-400 hover:underline">contact@ebenoresearch.com</a>
             </p>
           </section>
 
@@ -54,7 +54,7 @@ const MentionsLegales: React.FC = () => {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">5. Données personnelles</h2>
             <p>
               Voir notre <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Politique de Confidentialité</a>.<br />
-              Contact RGPD : <a href="mailto:jacquesbene301@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">jacquesbene301@gmail.com</a>
+              Contact RGPD : <a href="mailto:contact@ebenoresearch.com" className="text-blue-600 dark:text-blue-400 hover:underline">contact@ebenoresearch.com</a>
             </p>
           </section>
 

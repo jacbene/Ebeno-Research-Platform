@@ -56,4 +56,4 @@ Nous pouvons mettre à jour cette politique. En cas de changement majeur, nous v
 
 ## 8. Contact
 
-Pour toute question sur cette Politique de Confidentialité, contactez-nous à [jacquesbene301@gmail.com](mailto:jacquesbene301@gmail.com).
+Pour toute question sur cette Politique de Confidentialité, contactez-nous à [contact@ebenoresearch.com](mailto:contact@ebenoresearch.com).
